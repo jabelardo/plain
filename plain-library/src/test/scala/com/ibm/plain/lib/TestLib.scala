@@ -8,6 +8,7 @@ import org.junit.Test
     val v = requiredversion
     val y = x
     println(y)
+    println(home)
     assert(true)
   }
 

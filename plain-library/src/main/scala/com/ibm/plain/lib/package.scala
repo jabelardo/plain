@@ -4,6 +4,7 @@ package object lib
 
   extends config.CheckedConfig {
 
+  import config._
   import config.settings._
 
   final val requiredversion = "1.0.1"
@@ -12,7 +13,7 @@ package object lib
 
   val x = 1 / 1
 
-  val home = getString("plain.home")
+  val home = getString("plain.home", System.getenv("PLAIN_HOME"))
 
 }
 

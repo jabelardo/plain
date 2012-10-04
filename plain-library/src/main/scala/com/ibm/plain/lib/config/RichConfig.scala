@@ -4,25 +4,12 @@ package lib
 
 package config
 
-class RichConfig
+import com.typesafe.config.Config
 
-  extends DelayedInit {
+class RichConfig(self: Config) {
 
-  override def delayedInit(body: ⇒ Unit): Unit = {
-    try {
-      body
-    } catch {
-      case e: Throwable ⇒ handleError(e)
-    }
-  }
-
-  def handleError(e: Throwable) = {
-    if (terminateOnError)
-      bootstrap.terminateJvm(e, terminateOnErrorExitCode, printStackTraceOnError)
-    else if (printStackTraceOnError)
-      e.printStackTrace
-    else
-      println(e)
+  def getString(key: String, default: String) = {
+    if (self.hasPath(key)) self.getString(key) else default
   }
 
 }

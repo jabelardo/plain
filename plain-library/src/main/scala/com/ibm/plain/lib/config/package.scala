@@ -2,7 +2,10 @@ package com.ibm.plain
 
 package lib
 
-import com.typesafe.config.{ ConfigFactory, Config }
+import language.implicitConversions
+
+import com.ibm.plain.lib.config.{ CheckedConfig, RichConfig }
+import com.typesafe.config.{ Config, ConfigFactory }
 
 package object config
 
@@ -27,5 +30,11 @@ package object config
   final val terminateOnErrorExitCode = getInt("plain.config.terminate-on-error-exitcode")
 
   if (logConfigOnStart) println(root.render)
+
+  /**
+   * implicit conversions
+   */
+
+  implicit def config2RichConfig(config: Config) = new RichConfig(config)
 
 }
