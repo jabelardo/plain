@@ -1,4 +1,5 @@
 target/
+bin/
 logs/
 temp/
 */.cache
@@ -6,3 +7,5 @@ temp/
 */.project
 */.settings
 */.DS_Store
+*/.history
+*/.localized
