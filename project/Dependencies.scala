@@ -18,12 +18,12 @@ object Dependencies {
   def runtime     (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "runtime")
   def container   (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "container")
 
-  val config        = "com.typesafe"                            %   "config"                      % "0.5.2"
   val junit         = "junit"                                   %   "junit"                       % "4.10"
   val junitItf      = "com.novocode"                            %   "junit-interface"             % "0.8"
-  val akkaActor     = "com.typesafe.akka"                       %   "akka-actor"                  % "2.0.3"
-  val akkaSlf4j     = "com.typesafe.akka"                       %   "akka-slf4j"                  % "2.0.3"
-  val akkaTestKit   = "com.typesafe.akka"                       %   "akka-testkit"                % "2.0.3"
+  val config        = "com.typesafe"                            %   "config"                      % "0.5.2"
+  val akkaActor     = "com.typesafe.akka"                       %   "akka-actor_2.10.0-M7"        % "2.1-M2"
+  val akkaTestKit   = "com.typesafe.akka"                       %   "akka-testkit_2.10.0-M7"      % "2.1-M2"
+  val akkaSlf4j     = "com.typesafe.akka"                       %   "akka-slf4j_2.10.0-M7"        % "2.1-M2"
   val clHashMap     = "com.googlecode.concurrentlinkedhashmap"  %   "concurrentlinkedhashmap-lru" % "1.3.1"
   val jettyWebApp   = "org.eclipse.jetty"                       %   "jetty-webapp"                % "8.1.5.v20120716"
   val servlet30     = "org.eclipse.jetty.orbit"                 %   "javax.servlet"               % "3.0.0.v201112011016" artifacts Artifact("javax.servlet", "jar", "jar")

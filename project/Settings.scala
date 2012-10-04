@@ -26,7 +26,7 @@ object Settings {
     version      := "1.0.1-SNAPSHOT",
     scalaVersion := "2.10.0-M7",
     logLevel     := Level.Info,
-    resolvers    += "Typesafe" at "http://repo.typesafe.com/typesafe/releases/"
+    resolvers += "Typesafe releases" at "http://repo.typesafe.com/typesafe/releases/"
   ) 
 
   lazy val baseSettings = Defaults.defaultSettings ++ buildSettings
