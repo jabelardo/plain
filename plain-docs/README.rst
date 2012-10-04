@@ -37,6 +37,6 @@ or ::
 
 	make pdflatex
 
-to create HTML or PDF [#f1]_
+to create HTML or PDF [#f1]_.
 
 .. [#f1] To create PDF you need an installed LaTeX environment.
