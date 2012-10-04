@@ -12,5 +12,7 @@ package object lib
 
   val x = 1 / 1
 
+  val home = getString("plain.home")
+
 }
 

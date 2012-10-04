@@ -21,7 +21,7 @@ object PlainBuild extends Build {
   lazy val library = Project("plain-library", file("plain-library"))
     .settings(defaultSettings: _*)
     .settings(cpsPlugin: _*)
-    .settings(libraryDependencies ++= provided(akkaActor) ++ compile(config) ++ test(junit, junitItf))
+    .settings(libraryDependencies ++= provided(akkaActor) ++ compile(config, logback, akkaSlf4j, akkaActor) ++ test(junit, junitItf))
 
   lazy val monitorExtensionJmx = Project(
     id = "plain-monitor-extension-jmx",

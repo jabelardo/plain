@@ -1,6 +1,8 @@
 target/
+build/
 bin/
 logs/
+tmp/
 temp/
 */.cache
 */.classpath
@@ -9,3 +11,4 @@ temp/
 */.DS_Store
 */.history
 */.localized
+**/*~

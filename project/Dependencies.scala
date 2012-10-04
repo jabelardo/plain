@@ -28,7 +28,7 @@ object Dependencies {
   val jettyWebApp   = "org.eclipse.jetty"                       %   "jetty-webapp"                % "8.1.5.v20120716"
   val servlet30     = "org.eclipse.jetty.orbit"                 %   "javax.servlet"               % "3.0.0.v201112011016" artifacts Artifact("javax.servlet", "jar", "jar")
   val liftJson      = "net.liftweb"                             %   "lift-json_2.9.1"             % "2.4"
-  val logback       = "ch.qos.logback"                          %   "logback-classic"             % "1.0.0"
+  val logback       = "ch.qos.logback"                          %   "logback-classic"             % "1.0.4"
   val mimepull      = "org.jvnet.mimepull"                      %   "mimepull"                    % "1.8"
   val parboiled     = "org.parboiled"                           %%  "parboiled-scala"             % "1.1.1"
   val pegdown       = "org.pegdown"                             %   "pegdown"                     % "1.1.0"
