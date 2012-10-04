@@ -21,7 +21,10 @@ object PlainBuild extends Build {
   lazy val library = Project("plain-library", file("plain-library"))
     .settings(defaultSettings: _*)
     .settings(cpsPlugin: _*)
-    .settings(libraryDependencies ++= provided(akkaActor) ++ compile(config, logback, akkaSlf4j, akkaActor) ++ test(junit, junitItf))
+    .settings(libraryDependencies ++= 
+      compile(config, logback, janino, akkaSlf4j, akkaActor) ++ 
+      test(junit, junitItf)
+  )
 
   lazy val monitorExtensionJmx = Project(
     id = "plain-monitor-extension-jmx",
@@ -31,7 +34,7 @@ object PlainBuild extends Build {
 
   lazy val hybriddb = Project(
     id = "plain-hybriddb",
-    base = file("hybriddb"),
+    base = file("plain-hybriddb"),
     dependencies = Seq(library),
     settings = defaultSettings ++ cpsPlugin
   )

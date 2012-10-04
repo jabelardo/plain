@@ -8,8 +8,8 @@
   <classpathentry path="/Users/guido/.ivy2/cache/ch.qos.logback/logback-classic/jars/logback-classic-1.0.4.jar" kind="lib"></classpathentry>
   <classpathentry path="/Users/guido/.ivy2/cache/ch.qos.logback/logback-core/jars/logback-core-1.0.4.jar" kind="lib"></classpathentry>
   <classpathentry path="/Users/guido/.ivy2/cache/org.slf4j/slf4j-api/jars/slf4j-api-1.6.4.jar" kind="lib"></classpathentry>
-  <classpathentry path="/Users/guido/.ivy2/cache/com.typesafe.akka/akka-slf4j/jars/akka-slf4j-2.0.3.jar" kind="lib"></classpathentry>
-  <classpathentry path="/Users/guido/.ivy2/cache/com.typesafe.akka/akka-actor/jars/akka-actor-2.0.3.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/guido/.ivy2/cache/com.typesafe.akka/akka-slf4j_2.10.0-M7/bundles/akka-slf4j_2.10.0-M7-2.1-M2.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/guido/.ivy2/cache/com.typesafe.akka/akka-actor_2.10.0-M7/bundles/akka-actor_2.10.0-M7-2.1-M2.jar" kind="lib"></classpathentry>
   <classpathentry exported="true" path="/plain-library" kind="src" combineaccessrules="false"></classpathentry>
   <classpathentry path="org.eclipse.jdt.launching.JRE_CONTAINER" kind="con"></classpathentry>
   <classpathentry path="bin" kind="output"></classpathentry>

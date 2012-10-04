@@ -29,8 +29,6 @@ package object config
 
   final val terminateOnErrorExitCode = getInt("plain.config.terminate-on-error-exitcode")
 
-  if (logConfigOnStart) println(root.render)
-
   /**
    * implicit conversions
    */

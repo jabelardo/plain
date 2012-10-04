@@ -1,0 +1,68 @@
+<configuration debug="false">
+	<if condition='property("plain.logging.console.enable").equalsIgnoreCase("true")'>
+		<then>
+			<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+				<encoder>
+					<pattern>${plain.logging.console.pattern}</pattern>
+				</encoder>
+				<filter class="com.ibm.plain.lib.logging.LoggerNameFilter" />
+			</appender>
+		</then>
+	</if>
+	<if condition='property("plain.logging.text.enable").equalsIgnoreCase("true")'>
+		<then>
+			<appender name="TEXT"
+				class="ch.qos.logback.core.rolling.RollingFileAppender">
+				<file>${plain.logging.text.file}</file>
+				<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+					<fileNamePattern>${plain.logging.text.rolling-pattern}
+					</fileNamePattern>
+					<cleanHistoryOnStart>true</cleanHistoryOnStart>
+				</rollingPolicy>
+				<encoder>
+					<pattern>${plain.logging.text.pattern}</pattern>
+				</encoder>
+				<filter class="com.ibm.plain.lib.logging.LoggerNameFilter" />
+			</appender>
+		</then>
+	</if>
+	<if condition='property("plain.logging.html.enable").equalsIgnoreCase("true")'>
+		<then>
+			<appender name="HTML"
+				class="ch.qos.logback.core.rolling.RollingFileAppender">
+				<file>${plain.logging.html.file}</file>
+				<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+					<fileNamePattern>${plain.logging.html.rolling-pattern}
+					</fileNamePattern>
+					<cleanHistoryOnStart>true</cleanHistoryOnStart>
+				</rollingPolicy>
+				<encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+					<layout class="ch.qos.logback.classic.html.HTMLLayout">
+						<pattern><![CDATA[%level%relative%replace(%replace(%replace(%replace(%replace(%replace(%msg){'&', '&amp;'}){'<', '&lt;'}){'>', '&gt;'}){'\n','<br>'}){'"', '&quot;'}){'\'', '&apos;'}%logger%X{sourceThread}]]></pattern>
+					</layout>
+				</encoder>
+				<filter class="com.ibm.plain.lib.logging.LoggerNameFilter" />
+			</appender>
+		</then>
+	</if>
+	<root level="${rootLevel:-DEBUG}">
+		<if
+			condition='property("plain.logging.console.enable").equalsIgnoreCase("true")'>
+			<then>
+				<appender-ref ref="STDOUT" />
+			</then>
+		</if>
+		<if condition='property("plain.logging.text.enable").equalsIgnoreCase("true")'>
+			<then>
+				<appender-ref ref="TEXT" />
+			</then>
+		</if>
+		<if condition='property("plain.logging.html.enable").equalsIgnoreCase("true")'>
+			<then>
+				<appender-ref ref="HTML" />
+			</then>
+		</if>
+	</root>
+	<logger name="akka" level="WARN" />
+	<logger name="cc.spray" level="WARN" />
+</configuration>

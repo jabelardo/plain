@@ -22,11 +22,11 @@ import LsKeys.{ lsync, docsUrl => lsDocsUrl, tags => lsTags }
 object Settings {
   
   lazy val buildSettings = Seq(
+    resolvers += "Typesafe releases" at "http://repo.typesafe.com/typesafe/releases/",
     organization := "com.ibm.plain",
     version      := "1.0.1-SNAPSHOT",
     scalaVersion := "2.10.0-M7",
-    logLevel     := Level.Info,
-    resolvers += "Typesafe releases" at "http://repo.typesafe.com/typesafe/releases/"
+    logLevel     := Level.Warn
   ) 
 
   lazy val baseSettings = Defaults.defaultSettings ++ buildSettings
@@ -49,9 +49,15 @@ object Settings {
 		"-feature", 
 		"-unchecked", 
 		"-Xlog-reflective-calls", 
-		"-Ywarn-adapted-args"),
+		"-Ywarn-adapted-args"
+    ),
     
-	javacOptions in Compile ++= Seq("-source", "1.7", "-target", "1.7", "-Xlint:unchecked", "-Xlint:deprecation"),
+	javacOptions in Compile ++= Seq(
+	    "-source", "1.7", 
+	    "-target", "1.7", 
+	    "-Xlint:unchecked", 
+	    "-Xlint:deprecation"
+	),
 
     description in lsync := "plain brings to PLM what Hana brings to SAP.",
     homepage in lsync := Some(url("http://www.ibm.com")),
@@ -72,8 +78,6 @@ object Settings {
     import scalariform.formatter.preferences._
     FormattingPreferences()
     .setPreference(RewriteArrowSymbols, true)
-    .setPreference(AlignParameters, true)
-    .setPreference(AlignSingleLineCaseStatements, true)
   }
 
   lazy val mimaSettings = mimaDefaultSettings ++ Seq(
