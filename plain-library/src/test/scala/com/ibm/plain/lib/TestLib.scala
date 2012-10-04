@@ -5,10 +5,14 @@ import org.junit.Test
 @Test class TestLib {
 
   @Test def testA = {
-    println("before")
-    println("version " + config.version)
-    println("x " + x)
-    println("after")
+    val v = requiredversion
+    val y = x
+    println(y)
+    assert(true)
+  }
+
+  @Test def testB = {
+    assert(true)
   }
 
 }

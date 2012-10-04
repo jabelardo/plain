@@ -14,9 +14,9 @@ package object bootstrap
     val message = """
 plain-library : %s
 plain-library : Memory free/max/total : %d %d %d
-plain-library : Program will abort now."""
+plain-library : Program will abort now"""
     val runtime = Runtime.getRuntime
-    println(message.format(reason, runtime.freeMemory, runtime.maxMemory, runtime.totalMemory)); println(".")
+    println(message.format(reason, runtime.freeMemory, runtime.maxMemory, runtime.totalMemory))
     runtime.exit(code)
     throw reason
   } catch {

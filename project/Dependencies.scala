@@ -11,14 +11,16 @@ import Keys._
  */  
 object Dependencies {
 
-  def compile   (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "compile")
-  def provided  (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "provided")
-  def test      (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "test")
-  def runtime   (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "runtime")
-  def container (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "container")
+  def compile     (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "compile")
+  def provided    (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "provided")
+  def test        (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "test")
+  def testDefault (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "test->default")
+  def runtime     (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "runtime")
+  def container   (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "container")
 
   val config        = "com.typesafe"                            %   "config"                      % "0.5.2"
   val junit         = "junit"                                   %   "junit"                       % "4.10"
+  val junitItf      = "com.novocode"                            %   "junit-interface"             % "0.8"
   val akkaActor     = "com.typesafe.akka"                       %   "akka-actor"                  % "2.0.3"
   val akkaSlf4j     = "com.typesafe.akka"                       %   "akka-slf4j"                  % "2.0.3"
   val akkaTestKit   = "com.typesafe.akka"                       %   "akka-testkit"                % "2.0.3"
