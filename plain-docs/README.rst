@@ -39,6 +39,4 @@ or ::
 
 to create HTML or PDF [#f1]_
 
-.. rubric:: Footnotes
-
 .. [#f1] To create PDF you need an installed LaTeX environment.
