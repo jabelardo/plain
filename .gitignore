@@ -1,0 +1,8 @@
+target/
+logs/
+temp/
+*/.cache
+*/.classpath
+*/.project
+*/.settings
+*/.DS_Store
