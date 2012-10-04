@@ -14,9 +14,9 @@ To use sphinx on your local (Unix based) machine follow the steps below:
 
 * If `Easy Install <http://peak.telecommunity.com/DevCenter/EasyInstall>`_ isn't already installed, download the appropriate setuptools-*.egg for your python version on http://pypi.python.org/pypi/setuptools#files.
 
-* Execute the downloaded file ::
+* Execute the downloaded appropriate file ::
 
-	sh  appropriate setuptools-*.egg
+	sh setuptools-*.egg
 
 * Now download the appropriate Sphinx release on http://pypi.python.org/pypi/Sphinx and install Sphinx using ::
 
@@ -29,7 +29,7 @@ Using Sphinx
 
 For general information have a look at http://sphinx.pocoo.org/tutorial.html.
 
-On this project all source files are stored in the source directory. On Unix based systems you can use the Makefile to build the documentation. Just call ::
+On this project all source files are stored in the source directory. On Unix based systems you can use the Makefile to build the documentation. In your plain-docs directory just call ::
 
 	make html
 
