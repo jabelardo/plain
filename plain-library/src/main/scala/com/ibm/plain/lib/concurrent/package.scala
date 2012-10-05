@@ -58,10 +58,13 @@ package object concurrent
    */
   def addShutdownHook(body: ⇒ Unit): Unit = {
     shutdownHooks += (() ⇒ body)
-    if (shutdownHooks.isEmpty) Runtime.getRuntime.addShutdownHook(new Thread(new Runnable { def run = shutdownHooks.reverse.foreach(_.apply()) }))
+    if (shutdownHooks.isEmpty) Runtime.getRuntime.addShutdownHook(new Thread(new Runnable { def run = runShutdownHooks }))
   }
 
-  def shutdown = actorSystem.shutdown
+  def shutdown = {
+    runShutdownHooks
+    actorSystem.shutdown
+  }
 
   def isTerminated = actorSystem.isTerminated
 
@@ -74,6 +77,19 @@ package object concurrent
     system.registerOnTermination(logging.shutdown)
     addShutdownHook(system.shutdown)
     system
+  }
+
+  private[this] def runShutdownHooks = {
+    val hooks = shutdownHooks.toList
+    shutdownHooks.clear
+    hooks.reverse.foreach { p ⇒
+      try {
+        p()
+      } catch {
+        case e: Throwable ⇒ println("shutdownHook : " + e)
+      }
+    }
+
   }
 
   private[this] final lazy val shutdownHooks = new ArrayBuffer[() ⇒ Unit] with SynchronizedBuffer[() ⇒ Unit]

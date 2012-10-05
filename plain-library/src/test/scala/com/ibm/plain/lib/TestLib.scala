@@ -12,10 +12,22 @@ import org.junit.Test
   }
 
   @Test def testB = {
+    import os._
+    println(operatingSystem)
+    println(username)
+    println(hostname)
     assert(true)
   }
 
   @Test def testC = {
+    import io._
+    val f = temporaryFile
+    val d = temporaryDirectory
+    println(f)
+    println(d)
+  }
+
+  @Test def testD = {
     import concurrent._
     import logging.log._
     println(actorSystem)
@@ -23,9 +35,14 @@ import org.junit.Test
     info("info")
     warning("warning")
     error("error")
-    spawn { Thread.sleep(500); println("shutdown"); shutdown }
+    spawn { Thread.sleep(1000); shutdown }
     awaitTermination
     assert(true)
+  }
+
+  @Test def testF = {
+    import json._
+    test
   }
 
 }
