@@ -22,7 +22,7 @@ object PlainBuild extends Build {
     .settings(defaultSettings: _*)
     .settings(cpsPlugin: _*)
     .settings(libraryDependencies ++= 
-      compile(config, logback, janino, akkaSlf4j, akkaActor) ++ 
+      compile(config, logback, janino, akkaSlf4j, akkaActor, commonsCod) ++ 
       test(junit, junitItf)
   )
 

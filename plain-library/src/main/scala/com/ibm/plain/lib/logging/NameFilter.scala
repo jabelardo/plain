@@ -9,9 +9,9 @@ import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.filter.Filter
 import ch.qos.logback.core.spi.FilterReply
 
-class LoggerNameFilter extends Filter[ILoggingEvent] {
+class NameFilter extends Filter[ILoggingEvent] {
 
-  import LoggerNameFilter._
+  import NameFilter._
 
   override def decide(event: ILoggingEvent): FilterReply = {
     //    if (Level.DEBUG_INT >= event.getLevel.toInt) {
@@ -26,7 +26,7 @@ class LoggerNameFilter extends Filter[ILoggingEvent] {
 
 }
 
-object LoggerNameFilter {
+object NameFilter {
 
   var filterDebugLoggerNames: List[String] = null
 

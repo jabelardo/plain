@@ -16,12 +16,14 @@ import org.junit.Test
   }
 
   @Test def testC = {
-    import logging._
-    log.debug("debug")
-    log.info("info")
-    log.warning("warning")
-    log.error("error")
-    new Thread(new Runnable { def run = { Thread.sleep(500); shutdown } }).start
+    import concurrent._
+    import logging.log._
+    println(actorSystem)
+    debug("debug")
+    info("info")
+    warning("warning")
+    error("error")
+    spawn { Thread.sleep(500); println("shutdown"); shutdown }
     awaitTermination
     assert(true)
   }

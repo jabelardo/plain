@@ -98,7 +98,7 @@ package object logging
   }
 
   private[this] lazy val _log: LoggingAdapter = {
-    LoggerNameFilter.filterDebugLoggerNames = filterDebugLoggerNames
+    NameFilter.filterDebugLoggerNames = filterDebugLoggerNames
     val context = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
     try {
       val configurator = new JoranConfigurator

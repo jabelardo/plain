@@ -26,7 +26,7 @@ object Settings {
     organization := "com.ibm.plain",
     version      := "1.0.1-SNAPSHOT",
     scalaVersion := "2.10.0-M7",
-    logLevel     := Level.Warn
+    logLevel     := Level.Info
   ) 
 
   lazy val baseSettings = Defaults.defaultSettings ++ buildSettings
