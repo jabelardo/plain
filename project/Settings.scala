@@ -12,6 +12,7 @@ import com.typesafe.tools.mima.plugin.MimaPlugin.mimaDefaultSettings
 import com.typesafe.tools.mima.plugin.MimaKeys.previousArtifact
 import com.typesafe.sbteclipse.plugin.EclipsePlugin.EclipseKeys
 import com.typesafe.sbteclipse.plugin.EclipsePlugin.EclipseCreateSrc
+import com.github.retronym.SbtOneJar
 import ls.Plugin.{ lsSettings, LsKeys }
 import LsKeys.{ lsync, docsUrl => lsDocsUrl, tags => lsTags }
 
@@ -36,7 +37,7 @@ object Settings {
     publishArtifact in Compile := false
   )
 
-  lazy val sampleSettings = defaultSettings ++ Seq(
+  lazy val sampleSettings = defaultSettings ++ onejarSettings ++ Seq(
     publishArtifact in Compile := false
   )
 
@@ -84,5 +85,7 @@ object Settings {
   lazy val mimaSettings = mimaDefaultSettings ++ Seq(
     previousArtifact := None
   )
+  
+  lazy val onejarSettings = SbtOneJar.oneJarSettings
 
 }

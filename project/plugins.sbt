@@ -13,3 +13,5 @@ addSbtPlugin("com.typesafe.sbtscalariform" % "sbtscalariform" % "0.5.1")
 
 addSbtPlugin("me.lessis" % "ls-sbt" % "0.1.2")
 
+addSbtPlugin("com.github.retronym" % "sbt-onejar" % "0.8")
+

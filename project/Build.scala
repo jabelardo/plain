@@ -15,7 +15,7 @@ object PlainBuild extends Build {
     * project or module structure
     */
   lazy val root = Project("root", file("."))
-    .aggregate(library, hybriddb, eai, monitorExtensionJmx)
+    .aggregate(library, hybriddb, eai, monitorExtensionJmx, samples)
     .settings(parentSettings: _*)
 
   lazy val library = Project("plain-library", file("plain-library"))
@@ -64,18 +64,14 @@ object PlainBuild extends Build {
     settings = defaultSettings ++ cpsPlugin
   )
 
-  lazy val samples = Project(
-    id = "plain-samples",
-    base = file("plain-samples"),
-    settings = parentSettings,
-    aggregate = Seq(helloSample)
-  )
+  lazy val samples = Project("plain-sample", file("plain-sample"))
+    .aggregate(helloSample)
 
-  lazy val helloSample = Project(
-    id = "plain-sample-hello-world",
-    base = file("plain-samples/plain-sample-hello-world"),
-    dependencies = Seq(library)
-  )
+  lazy val helloSample = Project("plain-sample-hello-world", file("plain-sample/plain-sample-hello-world"))
+    .settings(defaultSettings: _*)
+    .settings(cpsPlugin: _*)
+    .settings(sampleSettings: _*)
+    .settings(libraryDependencies ++= compile(plainLib))
 
   def cpsPlugin = Seq(
     libraryDependencies <+= scalaVersion { v => compilerPlugin("org.scala-lang.plugins" % "continuations" % v) },
@@ -83,4 +79,3 @@ object PlainBuild extends Build {
   )
   
 }
-

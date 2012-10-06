@@ -1,8 +1,8 @@
-package com.ibm.haploid
+package com.ibm.plain
 
-package core
+package lib
 
-package util
+package crypt
 
 import language.implicitConversions
 

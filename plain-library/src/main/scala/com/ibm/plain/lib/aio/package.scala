@@ -2,24 +2,11 @@ package com.ibm.plain
 
 package lib
 
-import java.io.{ File, IOException, InputStream, OutputStream, Reader, Writer }
-import java.nio.ByteBuffer
-import java.nio.channels.{ FileChannel, ReadableByteChannel, WritableByteChannel }
-import java.nio.channels.Channels.newChannel
-import java.nio.file.{ Files, Paths }
-import java.util.concurrent.ConcurrentHashMap
+import java.nio.channels.AsynchronousFileChannel
 
-import scala.collection.JavaConversions.collectionAsScalaIterable
+import language.implicitConversions
 
-import org.apache.commons.io.FileUtils
-
-import lib.config.CheckedConfig
-
-import config.config2RichConfig
-import config.settings.{ getInt, getMilliseconds }
-
-import logging.createLogger
-import concurrent.{ addShutdownHook, spawn }
+import config.CheckedConfig
 
 package object aio
 
@@ -27,6 +14,16 @@ package object aio
 
   import config._
   import config.settings._
+
+  /**
+   * Shorthand to object AsynchronousChannelTransfer.
+   */
+  final val transfer = AsynchronousChannelTransfer
+
+  /**
+   * Helper to use AsynchronousFileChannel directly for transfer.
+   */
+  implicit def filechannel2filebytechannel(filechannel: AsynchronousFileChannel) = AsynchronousFileByteChannel.wrap(filechannel)
 
   /**
    * If not set differently this will result to 2k which proved to provide best performance under high load.

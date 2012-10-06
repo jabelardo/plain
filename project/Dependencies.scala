@@ -48,4 +48,6 @@ object Dependencies {
   val specs2        = "org.specs2"                              %%  "specs2"                      % "1.11"
   val twirlApi      = "cc.spray"                                %%  "twirl-api"                   % "0.5.4"
 
+  val plainLib      = "com.ibm.plain"                           %   "plain-library_2.10"          % "1.0.1-SNAPSHOT"
+  
 }

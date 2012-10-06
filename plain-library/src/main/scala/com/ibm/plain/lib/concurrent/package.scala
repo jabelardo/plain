@@ -20,6 +20,10 @@ package object concurrent
   import config.settings._
 
   /**
+   * Tired of typing Thread? Use this one.
+   */
+  def sleep(milliseconds: Long) = Thread.sleep(milliseconds)
+  /**
    * Spawn a body: => Unit to an execution context and forget about it. Use this only if you have no need to handle errors during the execution of 'body'.
    */
   def spawn(body: ⇒ Any): Unit = actorSystem.dispatcher.execute(new Runnable { def run = body })

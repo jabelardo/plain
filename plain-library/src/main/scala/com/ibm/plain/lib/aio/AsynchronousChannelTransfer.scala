@@ -69,19 +69,19 @@ class AsynchronousChannelTransfer[A] private (
 
 object AsynchronousChannelTransfer {
 
-  def transfer[A](
+  def apply[A](
     in: AsynchronousByteChannel,
     out: AsynchronousByteChannel,
     attachment: A,
     handler: CompletionHandler[Long, _ >: A],
     buffer: ByteBuffer): Unit = new AsynchronousChannelTransfer(in, out, attachment, handler, buffer).transfer
 
-  def transfer[A](
+  def apply[A](
     in: AsynchronousByteChannel,
     out: AsynchronousByteChannel,
     attachment: A,
     handler: CompletionHandler[Long, _ >: A]): Unit =
-    transfer(in, out, attachment, handler, ByteBuffer.allocateDirect(defaultBufferSize))
+    apply(in, out, attachment, handler, ByteBuffer.allocateDirect(defaultBufferSize))
 
 }
 

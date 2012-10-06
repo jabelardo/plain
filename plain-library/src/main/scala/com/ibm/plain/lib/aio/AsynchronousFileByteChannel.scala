@@ -8,7 +8,7 @@ import java.nio.channels.{ CompletionHandler, AsynchronousFileChannel, Asynchron
 import java.nio.ByteBuffer
 
 /**
- *
+ * Turns an AsynchronousFileChannel into an AsynchronousByteChannel to be used as source or destination for an AsynchronousChannelTransfer.
  */
 class AsynchronousFileByteChannel private (
 
@@ -24,8 +24,14 @@ class AsynchronousFileByteChannel private (
 
   def isOpen = filechannel.isOpen
 
+  /**
+   * java.util.concurrent.Future is poorly implemented as it cannot be called asynchronously, therefore, these methods are not implemented.
+   */
   def read(buffer: ByteBuffer) = throw futureNotSupported
 
+  /**
+   * java.util.concurrent.Future is poorly implemented as it cannot be called asynchronously, therefore, these methods are not implemented.
+   */
   def write(buffer: ByteBuffer) = throw futureNotSupported
 
   def read[A](buffer: ByteBuffer, attachment: A, handler: CompletionHandler[Integer, _ >: A]) = {

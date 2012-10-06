@@ -1,8 +1,6 @@
-package com.ibm.haploid
+package com.ibm.plain
 
-package core
-
-package util
+package lib
 
 package io
 
