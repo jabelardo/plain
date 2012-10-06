@@ -23,9 +23,9 @@ package json
 import scala.util.matching.Regex
 import language.implicitConversions
 
-private[json] object helpers {
-  implicit def stringToConfiggyString(s: String): ConfiggyString = new ConfiggyString(s)
-  implicit def byteArrayToConfiggyByteArray(b: Array[Byte]): ConfiggyByteArray = new ConfiggyByteArray(b)
+private[json] object Helpers {
+  @inline implicit def stringToConfiggyString(s: String): ConfiggyString = new ConfiggyString(s)
+  @inline implicit def byteArrayToConfiggyByteArray(b: Array[Byte]): ConfiggyByteArray = new ConfiggyByteArray(b)
 }
 
 private[json] final class ConfiggyString(wrapped: String) {
@@ -53,7 +53,7 @@ private[json] final class ConfiggyString(wrapped: String) {
    */
   def regexSub(re: Regex)(replace: (Regex.MatchData ⇒ String)): String = {
     var offset = 0
-    var out = new StringBuilder(io.defaultBufferSize)
+    val out = new StringBuilder(io.defaultBufferSize)
 
     for (m ← re.findAllIn(wrapped).matchData) {
       if (m.start > offset) {
@@ -70,7 +70,7 @@ private[json] final class ConfiggyString(wrapped: String) {
     out.toString
   }
 
-  private val QUOTE_RE = "[\u0000-\u001f\u007f-\uffff\\\\\"]".r
+  private final val QUOTE_RE = "[\u0000-\u001f\u007f-\uffff\\\\\"]".r
 
   /**
    * Quote a string so that unprintable chars (in ASCII) are represented by
@@ -101,7 +101,7 @@ private[json] final class ConfiggyString(wrapped: String) {
   }
 
   // we intentionally don't unquote "\$" here, so it can be used to escape interpolation later.
-  private val UNQUOTE_RE = """\\(u[\dA-Fa-f]{4}|x[\dA-Fa-f]{2}|[/rnt\"\\])""".r
+  private final val UNQUOTE_RE = """\\(u[\dA-Fa-f]{4}|x[\dA-Fa-f]{2}|[/rnt\"\\])""".r
 
   /**
    * Unquote an ASCII string that has been quoted in a style like

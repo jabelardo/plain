@@ -57,8 +57,8 @@ package object logging
 
   final val loggingHtml = new LogSettings("plain.logging.html")
 
-  final val filterDebugLoggerNames: List[String] = try {
-    getStringList("plain.logging.filter-debug-logger-names").toList
+  final val filterDebugNames: List[String] = try {
+    getStringList("plain.logging.filter-debug-names").toList
   } catch {
     case _: Throwable ⇒ List.empty
   }
@@ -98,7 +98,6 @@ package object logging
   }
 
   private[this] lazy val _log: LoggingAdapter = {
-    NameFilter.filterDebugLoggerNames = filterDebugLoggerNames
     val context = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
     try {
       val configurator = new JoranConfigurator

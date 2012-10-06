@@ -11,7 +11,8 @@ package object json
 
   with logging.HasLogger {
 
-  import log._
+  import java.io._
+  import time._
 
   def test = {
 
@@ -24,12 +25,20 @@ package object json
     println(j)
     println(j.toString)
 
+    var l = 0L
     info(j.asObject("result").asObject("data").asArray(2).getClass.toString)
     info(j.asObject("result").asObject("data").asArray(2).asBoolean.toString)
     info("short form " + j("result")("data")(2).asBoolean)
-    info("short form " + j("result")("data")(4)("name"))
+    infoNanos("how long?")(info("short form " + j("result")("data")(4)("name")))
     info(Json.build(j))
 
+    for (i ← 1 to 10) {
+      infoMillis {
+        val s = Json.parse(new FileReader("/tmp/big.json"))
+        // debug("{}", s.toString.length)
+      }
+    }
+    println
   }
 
 }

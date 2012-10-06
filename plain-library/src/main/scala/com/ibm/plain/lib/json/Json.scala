@@ -11,8 +11,8 @@ import scala.collection.Map
 import scala.collection.immutable.{ List, Seq }
 import scala.math.BigDecimal.double2bigDecimal
 import scala.util.parsing.combinator.JavaTokenParsers
-import org.codehaus.jackson.map.ObjectMapper
-import helpers.stringToConfiggyString
+import com.fasterxml.jackson.databind.ObjectMapper
+import Helpers.stringToConfiggyString
 
 final case class Json(any: Any) {
   override def toString = any match { case Some(json: Json) ⇒ json.toString case null ⇒ "null" case _ ⇒ any.toString }

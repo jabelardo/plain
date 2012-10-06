@@ -5,11 +5,19 @@ package lib
 package logging
 
 /**
- * Mixin this trait to get a protected member log: akka.logging.LoggingAdapter.
+ * Mixin this trait to get a protected implicit member log: akka.logging.LoggingAdapter.
  */
 trait HasLogger {
 
-  protected[this] val log = createLogger(this)
+  protected[this] final def debug(s: String) = log.debug(s)
+
+  protected[this] final def info(s: String) = log.info(s)
+
+  protected[this] final def warning(s: String) = log.warning(s)
+
+  protected[this] final def error(s: String) = log.error(s)
+
+  protected[this] implicit final val log = createLogger(this)
 
 }
 

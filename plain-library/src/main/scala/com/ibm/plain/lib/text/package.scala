@@ -17,6 +17,9 @@ package object text {
    */
   val ASCII = US_ASCII
 
+  /**
+   * The most important standard character sets.
+   */
   val UTF8 = UTF_8
 
   /**

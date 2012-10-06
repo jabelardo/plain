@@ -35,7 +35,7 @@ import org.junit.Test
     info("info")
     warning("warning")
     error("error")
-    spawn { Thread.sleep(1000); shutdown }
+    spawn { Thread.sleep(500); shutdown }
     awaitTermination
     assert(true)
   }

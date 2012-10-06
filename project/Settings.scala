@@ -49,6 +49,7 @@ object Settings {
 		"-deprecation", 
 		"-feature", 
 		"-unchecked", 
+		"-Yinline-warnings",
 		"-Ywarn-adapted-args"
     ),
     

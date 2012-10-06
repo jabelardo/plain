@@ -11,23 +11,16 @@ import ch.qos.logback.core.spi.FilterReply
 
 class NameFilter extends Filter[ILoggingEvent] {
 
-  import NameFilter._
-
   override def decide(event: ILoggingEvent): FilterReply = {
-    //    if (Level.DEBUG_INT >= event.getLevel.toInt) {
-    //      filterDebugLoggerNames.foreach { loggername ⇒
-    //        if (event.getLoggerName.contains(loggername)) {
-    //          return FilterReply.DENY
-    //        }
-    //      }
-    //    }
+    if (Level.DEBUG_INT >= event.getLevel.toInt) {
+      filterDebugNames.foreach { loggername ⇒
+        if (event.getLoggerName.contains(loggername)) {
+          return FilterReply.DENY
+        }
+      }
+    }
     FilterReply.NEUTRAL
   }
 
 }
 
-object NameFilter {
-
-  var filterDebugLoggerNames: List[String] = null
-
-}

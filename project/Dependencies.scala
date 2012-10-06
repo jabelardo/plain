@@ -34,8 +34,9 @@ object Dependencies {
   val clHashMap     = "com.googlecode.concurrentlinkedhashmap"  %   "concurrentlinkedhashmap-lru" % "1.3.1"
   val jettyWebApp   = "org.eclipse.jetty"                       %   "jetty-webapp"                % "8.1.5.v20120716"
   val servlet30     = "org.eclipse.jetty.orbit"                 %   "javax.servlet"               % "3.0.0.v201112011016" artifacts Artifact("javax.servlet", "jar", "jar")
-  val jacksonCore   = "org.codehaus.jackson"                    %   "jackson-core-asl"            % "1.9.9"
-  val jacksonMapper = "org.codehaus.jackson"                    %   "jackson-mapper-asl"          % "1.9.9"
+  val jacksonCore   = "org.codehaus.jackson"                    %   "jackson-core-asl"            % "1.9.10"
+  val jacksonMapper = "org.codehaus.jackson"                    %   "jackson-mapper-asl"          % "1.9.10"
+  val fasterXml     = "com.fasterxml.jackson.core"              %   "jackson-databind"            % "2.0.6"
   val sprayJson     = "cc.spray"                                %   "spray-json_2.9.2"            % "1.1.1"
   val liftJson      = "net.liftweb"                             %   "lift-json_2.9.1"             % "2.4"
   val mimepull      = "org.jvnet.mimepull"                      %   "mimepull"                    % "1.8"

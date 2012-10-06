@@ -32,8 +32,7 @@ object PlainBuild extends Build {
           commonsCodec, 
           commonsIo, 
           clHashMap, 
-          jacksonCore,
-          jacksonMapper
+          fasterXml
       ) ++ 
       test(junit, junitItf)
   )
