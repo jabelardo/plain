@@ -4,9 +4,13 @@ import org.junit.Test
 
 @Test class TestLib {
 
+  override protected def finalize = {
+    concurrent.shutdown
+  }
+
   @Test def testA = {
     import logging._
-    log.debug("debug")
+    log.info("info")
     println(requiredversion)
     assert(true)
   }
@@ -35,14 +39,15 @@ import org.junit.Test
     info("info")
     warning("warning")
     error("error")
-    spawn { Thread.sleep(500); shutdown }
-    awaitTermination
     assert(true)
+    spawn { sleep(2000); shutdown }
+    awaitTermination
   }
 
   @Test def testF = {
     import json._
-    test
+    jsonparser("""{"name":"value"}""")
+    assert(true)
   }
 
 }

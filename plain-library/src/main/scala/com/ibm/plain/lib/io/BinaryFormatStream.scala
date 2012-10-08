@@ -86,9 +86,9 @@ trait BinaryInput {
  * A binary formatted [[java.nio.ByteBuffer]], very fast (except write/read/String/ShortString), versatile (write/read/Map/List).
  */
 final class BinaryFormatByteBuffer(
-  private[this] val buffer: ByteBuffer,
-  private[this] var position: Int,
-  private[this] val limit: Int)
+  private[this] final val buffer: ByteBuffer,
+  private[this] final var position: Int,
+  private[this] final val limit: Int)
 
   extends BinaryOutput with BinaryInput {
 
@@ -229,7 +229,7 @@ final class BinaryFormatByteBuffer(
     if (readBoolean) Some(readAny) else None
   }
 
-  private[this] def writeType(v: Any): Unit = {
+  private[this] final def writeType(v: Any): Unit = {
     writeByte((v: @unchecked) match {
       case _: Boolean ⇒ 1
       case _: Byte ⇒ 2
@@ -247,7 +247,7 @@ final class BinaryFormatByteBuffer(
     })
   }
 
-  private[this] def writeAny(v: Any): Unit = {
+  private[this] final def writeAny(v: Any): Unit = {
     writeType(v)
     (v: @unchecked) match {
       case v: Boolean ⇒ writeBoolean(v)
@@ -266,7 +266,7 @@ final class BinaryFormatByteBuffer(
     }
   }
 
-  private[this] def readAny: Any = {
+  private[this] final def readAny: Any = {
     readByte match {
       case 1 ⇒ readBoolean
       case 2 ⇒ readByte
@@ -284,7 +284,7 @@ final class BinaryFormatByteBuffer(
     }
   }
 
-  @inline private[this] def advance(by: Int) = {
+  @inline private[this] final def advance(by: Int) = {
     val p = position
     position += by
     p

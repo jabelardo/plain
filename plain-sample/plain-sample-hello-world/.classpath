@@ -20,6 +20,18 @@
   <classpathentry path="/Users/guido/.ivy2/cache/com.fasterxml.jackson.core/jackson-databind/bundles/jackson-databind-2.0.6.jar" kind="lib"></classpathentry>
   <classpathentry path="/Users/guido/.ivy2/cache/com.fasterxml.jackson.core/jackson-annotations/jars/jackson-annotations-2.0.6.jar" kind="lib"></classpathentry>
   <classpathentry path="/Users/guido/.ivy2/cache/com.fasterxml.jackson.core/jackson-core/bundles/jackson-core-2.0.6.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/guido/.ivy2/cache/com.sun.jersey/jersey-json/jars/jersey-json-1.14.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/guido/.ivy2/cache/org.codehaus.jettison/jettison/bundles/jettison-1.1.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/guido/.ivy2/cache/stax/stax-api/jars/stax-api-1.0.1.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/guido/.ivy2/cache/com.sun.xml.bind/jaxb-impl/jars/jaxb-impl-2.2.3-1.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/guido/.ivy2/cache/javax.xml.bind/jaxb-api/jars/jaxb-api-2.2.2.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/guido/.ivy2/cache/javax.xml.stream/stax-api/jars/stax-api-1.0-2.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/guido/.ivy2/cache/javax.activation/activation/jars/activation-1.1.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/guido/.ivy2/cache/org.codehaus.jackson/jackson-core-asl/jars/jackson-core-asl-1.9.2.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/guido/.ivy2/cache/org.codehaus.jackson/jackson-mapper-asl/jars/jackson-mapper-asl-1.9.2.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/guido/.ivy2/cache/org.codehaus.jackson/jackson-jaxrs/jars/jackson-jaxrs-1.9.2.jar" kind="lib"></classpathentry>
+  <classpathentry path="/Users/guido/.ivy2/cache/org.codehaus.jackson/jackson-xc/jars/jackson-xc-1.9.2.jar" kind="lib"></classpathentry>
+  <classpathentry exported="true" path="/plain-library" kind="src" combineaccessrules="false"></classpathentry>
   <classpathentry path="org.eclipse.jdt.launching.JRE_CONTAINER" kind="con"></classpathentry>
   <classpathentry path="bin" kind="output"></classpathentry>
 </classpath>

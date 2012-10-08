@@ -9,6 +9,7 @@ import java.nio.channels.Channels.newChannel
 import java.nio.file.{ Files, Paths }
 import java.util.concurrent.ConcurrentHashMap
 
+import language.implicitConversions
 import scala.collection.JavaConversions.collectionAsScalaIterable
 
 import org.apache.commons.io.FileUtils
@@ -19,7 +20,7 @@ import config.config2RichConfig
 import config.settings.{ getInt, getMilliseconds }
 
 import logging.createLogger
-import concurrent.{ addShutdownHook, spawn }
+import concurrent.{ addShutdownHook, spawn, sleep }
 
 package object io
 
@@ -163,7 +164,8 @@ package object io
         var retries = deleteDirectoryRetries
         while (0 < retries) {
           try {
-            Thread.sleep(deleteDirectoryTimeout)
+            createLogger(this).info("deleteDirectory : retry " + retries + " " + directory)
+            sleep(deleteDirectoryTimeout)
             FileUtils.deleteDirectory(directory)
             retries = 0
           } catch {

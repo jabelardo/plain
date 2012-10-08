@@ -41,7 +41,12 @@ package object os
   /**
    * The machine name the JVM is running on.
    */
-  final val hostname = InetAddress.getLocalHost.getCanonicalHostName
+  final val hostname = InetAddress.getLocalHost.getHostName
+
+  /**
+   * The canonical hostname the JVM is running on. Depending on DNS settings this might take some time to compute.
+   */
+  final lazy val canonicalhostname = InetAddress.getLocalHost.getCanonicalHostName
 
   sealed abstract class OperatingSystem(value: String) {
 

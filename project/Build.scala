@@ -32,7 +32,8 @@ object PlainBuild extends Build {
           commonsCodec, 
           commonsIo, 
           clHashMap, 
-          fasterXml
+          fasterXml,
+          jerseyJson
       ) ++ 
       test(junit, junitItf)
   )
@@ -68,10 +69,8 @@ object PlainBuild extends Build {
     .aggregate(helloSample)
 
   lazy val helloSample = Project("plain-sample-hello-world", file("plain-sample/plain-sample-hello-world"))
-    .settings(defaultSettings: _*)
-    .settings(cpsPlugin: _*)
     .settings(sampleSettings: _*)
-    .settings(libraryDependencies ++= compile(plainLib))
+    .dependsOn(library)
 
   def cpsPlugin = Seq(
     libraryDependencies <+= scalaVersion { v => compilerPlugin("org.scala-lang.plugins" % "continuations" % v) },

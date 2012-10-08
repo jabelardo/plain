@@ -39,6 +39,7 @@ object Dependencies {
   val fasterXml     = "com.fasterxml.jackson.core"              %   "jackson-databind"            % "2.0.6"
   val sprayJson     = "cc.spray"                                %   "spray-json_2.9.2"            % "1.1.1"
   val liftJson      = "net.liftweb"                             %   "lift-json_2.9.1"             % "2.4"
+  val jerseyJson    = "com.sun.jersey"                          %   "jersey-json"                 % "1.14"
   val mimepull      = "org.jvnet.mimepull"                      %   "mimepull"                    % "1.8"
   val parboiled     = "org.parboiled"                           %%  "parboiled-scala"             % "1.1.1"
   val pegdown       = "org.pegdown"                             %   "pegdown"                     % "1.1.0"
@@ -48,6 +49,4 @@ object Dependencies {
   val specs2        = "org.specs2"                              %%  "specs2"                      % "1.11"
   val twirlApi      = "cc.spray"                                %%  "twirl-api"                   % "0.5.4"
 
-  val plainLib      = "com.ibm.plain"                           %   "plain-library_2.10"          % "1.0.1-SNAPSHOT"
-  
 }

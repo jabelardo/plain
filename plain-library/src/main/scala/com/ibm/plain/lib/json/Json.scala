@@ -60,6 +60,10 @@ object Json {
   type JArray = List[Json]
   type JObject = Map[String, Json]
 
+  def apply(s: String) = parse(s)
+
+  def apply(reader: Reader) = parse(reader)
+
   def build(any: Any): String = {
     @inline def quote(s: String) = {
       "\"" + s.regexSub("""[\u0000-\u001f\u0080-\uffff/\"\\]""".r) { m ⇒
