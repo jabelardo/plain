@@ -25,8 +25,10 @@ package object logging
 
   def createLogger(any: Any) = Logging.getLogger(loggingSystem.eventStream, any.getClass)
 
+  def infoLevel = loggingSystem.eventStream.setLogLevel(Logging.InfoLevel)
+
   def shutdown = {
-    loggingSystem.eventStream.setLogLevel(Logging.InfoLevel)
+    infoLevel
     loggingSystem.shutdown
   }
 

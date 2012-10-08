@@ -2,11 +2,21 @@ package com.ibm.plain.lib
 
 import org.junit.Test
 
+object TestLib {
+
+  val i = 0
+
+  concurrent.startup
+
+  override protected def finalize = concurrent.shutdown
+
+}
+
 @Test class TestLib {
 
-  override protected def finalize = {
-    concurrent.shutdown
-  }
+  import TestLib._
+
+  val x = i
 
   @Test def testA = {
     import logging._
@@ -39,9 +49,17 @@ import org.junit.Test
     info("info")
     warning("warning")
     error("error")
-    assert(true)
-    spawn { sleep(2000); shutdown }
+    spawn { sleep(200000); shutdown }
+    var c = 0
+    schedule(1000, 2000) {
+      c += 1
+      debug("debug " + c)
+      info("info " + c)
+      warning("warning " + c)
+      error("error " + c)
+    }
     awaitTermination
+    assert(true)
   }
 
   @Test def testF = {

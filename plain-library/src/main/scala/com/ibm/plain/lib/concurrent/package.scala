@@ -65,7 +65,14 @@ package object concurrent
     if (shutdownHooks.isEmpty) Runtime.getRuntime.addShutdownHook(new Thread(new Runnable { def run = runShutdownHooks }))
   }
 
+  def startup = {
+    logging.log.info("startup initiated.")
+    monitor.register
+  }
+
   def shutdown = {
+    logging.infoLevel
+    logging.log.info("shutdown initiated.")
     runShutdownHooks
     actorSystem.shutdown
   }
