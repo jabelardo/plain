@@ -14,7 +14,9 @@ import config.config2RichConfig
 
 package object concurrent
 
-  extends config.CheckedConfig {
+  extends config.CheckedConfig
+
+  with logging.HasLogger {
 
   import config._
   import config.settings._
@@ -66,14 +68,13 @@ package object concurrent
   }
 
   def startup = {
-    logging.log.info("startup initiated.")
+    info("startup initiated.")
     monitor.register
   }
 
   def shutdown = {
     logging.infoLevel
-    logging.log.info("shutdown initiated.")
-    runShutdownHooks
+    info("shutdown initiated.")
     actorSystem.shutdown
   }
 
@@ -86,11 +87,13 @@ package object concurrent
   implicit final val actorSystem = {
     val system = ActorSystem(getString("plain.concurrent.actorsystem", "default"), config.settings)
     system.registerOnTermination(logging.shutdown)
+    system.registerOnTermination(runShutdownHooks)
+    system.registerOnTermination(http.group.shutdown)
     addShutdownHook(system.shutdown)
     system
   }
 
-  private[this] def runShutdownHooks = {
+  private[this] def runShutdownHooks: Unit = {
     val hooks = shutdownHooks.toList
     shutdownHooks.clear
     hooks.reverse.foreach { p ⇒

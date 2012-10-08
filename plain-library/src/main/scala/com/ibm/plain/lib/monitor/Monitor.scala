@@ -42,7 +42,7 @@ class Monitor {
   def shutdown(token: String): String = if (shutdownToken == token) {
     concurrent.shutdown
     "Shutting down now."
-  } else throw new Exception("Invalid token.")
+  } else throw new IllegalArgumentException("Invalid token.")
 
   private[this] final lazy val _config =
     config.settings.entrySet.map(e ⇒ e.getKey + "=" + e.getValue.render).toArray.sorted

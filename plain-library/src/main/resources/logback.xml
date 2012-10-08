@@ -1,7 +1,6 @@
 <configuration debug="false">
 	<jmxConfigurator />
 	<logger name="akka" level="WARN" />
-	<logger name="cc.spray" level="WARN" />
 	<if condition='property("plain.logging.console.enable").equalsIgnoreCase("true")'>
 		<then>
 			<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">

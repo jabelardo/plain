@@ -7,6 +7,13 @@ package object lib
   import config._
   import config.settings._
 
+  def plain(body: ⇒ Unit): Unit = try {
+    concurrent.startup
+    body
+  } finally {
+    concurrent.shutdown
+  }
+
   override lazy val toString = root.render
 
   final val requiredversion = "1.0.1"
