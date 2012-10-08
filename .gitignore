@@ -5,10 +5,12 @@ logs/
 tmp/
 temp/
 */.cache
+*.cache
 */.classpath
 */.project
 */.settings
 */.prefs
+*.prefs
 */.DS_Store
 */.history
 */.localized
