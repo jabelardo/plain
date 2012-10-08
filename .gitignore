@@ -7,7 +7,9 @@ temp/
 */.cache
 *.cache
 */.classpath
+*.classpath
 */.project
+*.project
 */.settings
 */.prefs
 *.prefs
