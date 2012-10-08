@@ -15,6 +15,12 @@ class Monitor {
 
   def getConfiguration: Array[String] = _config
 
+  def getFreeMemoryMb = (Runtime.getRuntime.freeMemory / (1024 * 1024)).toInt
+
+  def getMaxMemoryMb = (Runtime.getRuntime.maxMemory / (1024 * 1024)).toInt
+
+  def getTotalMemoryMb = (Runtime.getRuntime.totalMemory / (1024 * 1024)).toInt
+
   def getLogLevel = logging.loggingSystem.eventStream.logLevel match {
     case DebugLevel ⇒ "Debug"
     case InfoLevel ⇒ "Info"
