@@ -6,6 +6,8 @@ package object bootstrap
 
   extends config.CheckedConfig {
 
+  final lazy val application = Application
+
   /**
    * Call this from anywhere in order to terminate the jvm with a message and a given exit code.
    */

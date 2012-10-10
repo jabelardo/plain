@@ -2,19 +2,9 @@ package com.ibm.plain
 
 package lib
 
-import java.io.{ FileOutputStream, PrintStream }
-import java.nio.file.{ Files, Paths }
-
 import scala.collection.JavaConversions.asScalaBuffer
-import scala.concurrent.util.Duration
 
-import org.slf4j.LoggerFactory
-
-import akka.actor.ActorSystem
-import akka.event.{ Logging, LoggingAdapter }
-import ch.qos.logback.classic.LoggerContext
-import ch.qos.logback.classic.joran.JoranConfigurator
-import ch.qos.logback.core.util.StatusPrinter
+import config.settings.{ getConfig, getString, getStringList }
 
 package object logging
 
@@ -23,34 +13,19 @@ package object logging
   import config._
   import config.settings._
 
-  def createLogger(any: Any) = Logging.getLogger(loggingSystem.eventStream, any.getClass)
+  def createLogger(any: Any) = Logging.createLogger(any)
 
-  def infoLevel = loggingSystem.eventStream.setLogLevel(Logging.InfoLevel)
+  def createLogger(name: String) = Logging.createLogger(name)
 
-  def shutdown = {
-    infoLevel
-    loggingSystem.shutdown
-  }
+  final lazy val defaultLogger = Logging.createLogger(Logging.name)
 
-  def isTerminated = loggingSystem.isTerminated
-
-  def awaitTermination(timeout: Duration) = loggingSystem.awaitTermination(timeout)
-
-  def awaitTermination = loggingSystem.awaitTermination(Duration.Inf)
-
-  final val logginglevel = {
+  final val loggingLevel = {
     val level = getString("plain.logging.level").toUpperCase
     System.setProperty("rootLevel", level match {
       case "WARNING" ⇒ "WARN"
       case v ⇒ v
     })
     level
-  }
-
-  final val loggingSystem = {
-    val system = ActorSystem("plain-logging")
-    system.eventStream.setLogLevel(Logging.levelFor(logginglevel).getOrElse(Logging.DebugLevel))
-    system
   }
 
   final val loggingConsole = new LogSettings("plain.logging.console")
@@ -91,38 +66,6 @@ package object logging
       case v ⇒ System.setProperty(path + ".rolling-pattern", v)
     }
 
-  }
-
-  final lazy val log = {
-    val l = _log
-    if (logConfigOnStart) l.info(root.render)
-    l
-  }
-
-  private[this] lazy val _log: LoggingAdapter = {
-    val context = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
-    try {
-      val configurator = new JoranConfigurator
-      configurator.setContext(context)
-      context.reset
-      configurator.doConfigure(getClass.getClassLoader.getResourceAsStream("logback.xml"))
-      if (loggingConsole.enable && loggingConsole.toFile) {
-        try {
-          val path = Paths.get(System.getProperty("plain.logging.console.file"))
-          Files.createDirectories(path.getParent)
-          val console = new PrintStream(new FileOutputStream(path.toFile))
-          System.setOut(console)
-          System.setErr(console)
-        } catch {
-          case e: Throwable ⇒
-            println("Could not create plain.logging.console.file : " + e)
-        }
-      }
-    } catch {
-      case e: Throwable ⇒ println()
-    }
-    StatusPrinter.printInCaseOfErrorsOrWarnings(context)
-    Logging.getLogger(loggingSystem, loggingSystem.name)
   }
 
 }

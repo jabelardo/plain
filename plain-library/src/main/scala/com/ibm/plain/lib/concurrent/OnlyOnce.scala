@@ -1,6 +1,6 @@
 package com.ibm.plain
 
-package core
+package lib
 
 package concurrent
 

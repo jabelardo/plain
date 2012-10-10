@@ -21,6 +21,12 @@ package object concurrent
   import config._
   import config.settings._
 
+  def dispatcher = Concurrent.dispatcher
+
+  def scheduler = Concurrent.scheduler
+
+  def executor = Concurrent.executor
+
   /**
    * Tired of typing Thread? Use this one.
    */
@@ -28,7 +34,7 @@ package object concurrent
   /**
    * Spawn a body: => Unit to an execution context and forget about it. Use this only if you have no need to handle errors during the execution of 'body'.
    */
-  def spawn(body: ⇒ Any): Unit = actorSystem.dispatcher.execute(new Runnable { def run = body })
+  def spawn(body: ⇒ Any): Unit = dispatcher.execute(new Runnable { def run = body })
 
   /**
    * Spawn a body: => Unit to an execution context and forget about it. This versions requires an explicit dispatcher, useful in combination with a PinnedDispatcher.
@@ -41,14 +47,14 @@ package object concurrent
    * Schedule 'body' to be executed every 'repeateddelay' milliseconds, but execute it first after 'initialdelay' milliseconds.
    */
   def schedule(initialdelay: Long, repeateddelay: Long)(body: ⇒ Unit) = {
-    actorSystem.scheduler.schedule(initialdelay.milliseconds, repeateddelay.milliseconds)(body)(actorSystem.dispatcher)
+    scheduler.schedule(initialdelay.milliseconds, repeateddelay.milliseconds)(body)(dispatcher)
   }
 
   /**
    * Schedule 'body' to be executed only once after 'initialdelay' milliseconds.
    */
   def scheduleOnce(delay: Long)(body: ⇒ Unit): Cancellable = {
-    actorSystem.scheduler.scheduleOnce(delay.milliseconds)(body)(actorSystem.dispatcher)
+    scheduler.scheduleOnce(delay.milliseconds)(body)(dispatcher)
   }
 
   /**
@@ -56,56 +62,7 @@ package object concurrent
    * Usually this is too simplistic, you will probably need Future/Promise to handle full asynchronicity.
    */
   def future[T](body: ⇒ T): Future[T] = {
-    Future(body)(actorSystem.dispatcher)
+    Future(body)(dispatcher)
   }
-
-  /**
-   * Add a piece of code (body) to be executed at Runtime.exit. All pieces of code will be executed in one thread at reverse order.
-   */
-  def addShutdownHook(body: ⇒ Unit): Unit = {
-    shutdownHooks += (() ⇒ body)
-    if (shutdownHooks.isEmpty) Runtime.getRuntime.addShutdownHook(new Thread(new Runnable { def run = runShutdownHooks }))
-  }
-
-  def startup = {
-    info("startup initiated.")
-    monitor.register
-  }
-
-  def shutdown = {
-    logging.infoLevel
-    info("shutdown initiated.")
-    actorSystem.shutdown
-  }
-
-  def isTerminated = actorSystem.isTerminated
-
-  def awaitTermination(timeout: Duration) = actorSystem.awaitTermination(timeout)
-
-  def awaitTermination = actorSystem.awaitTermination(Duration.Inf)
-
-  implicit final val actorSystem = {
-    val system = ActorSystem(getString("plain.concurrent.actorsystem", "default"), config.settings)
-    system.registerOnTermination(logging.shutdown)
-    system.registerOnTermination(runShutdownHooks)
-    system.registerOnTermination(http.group.shutdown)
-    addShutdownHook(system.shutdown)
-    system
-  }
-
-  private[this] def runShutdownHooks: Unit = {
-    val hooks = shutdownHooks.toList
-    shutdownHooks.clear
-    hooks.reverse.foreach { p ⇒
-      try {
-        p()
-      } catch {
-        case e: Throwable ⇒ println("shutdownHook : " + e)
-      }
-    }
-
-  }
-
-  private[this] final lazy val shutdownHooks = new ArrayBuffer[() ⇒ Unit] with SynchronizedBuffer[() ⇒ Unit]
 
 }

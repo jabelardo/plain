@@ -94,7 +94,7 @@ object HttpIteratees {
     method ← takeUntil(space)
     uri ← readUri
     version ← takeUntil(crlf)
-    bloodyrest ← take(135)
+    bloodyrest ← takeUntil(crlf)
   } yield (HttpMethod(method), uri, version, bloodyrest)
 
   val readUri = peek(1) >>= {

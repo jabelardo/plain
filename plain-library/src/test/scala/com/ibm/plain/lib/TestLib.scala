@@ -3,7 +3,7 @@ package com.ibm.plain.lib
 import org.junit.Test
 
 import concurrent._
-import logging.log._
+import logging.defaultLogger._
 import os._
 import json._
 import io._
@@ -13,7 +13,7 @@ import http.HttpAio._
 @Test class TestLib {
 
   @Test def testA = {
-    plain {
+    run {
       println(requiredversion)
       println(operatingSystem)
       println(username)
@@ -23,12 +23,10 @@ import http.HttpAio._
       val d = temporaryDirectory
       println(f)
       println(d)
-      println(actorSystem)
       debug("debug")
       info("info")
       warning("warning")
       error("error")
-      spawn { sleep(200000); concurrent.shutdown }
       var c = 0
       schedule(1000, 2000) {
         c += 1
@@ -38,8 +36,7 @@ import http.HttpAio._
         warning("warning " + c)
         error("error " + c)
       }
-      test(server)
-      concurrent.awaitTermination
+      //test(server)
       println("after serve")
     }
   }

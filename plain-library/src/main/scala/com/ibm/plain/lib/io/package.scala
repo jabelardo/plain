@@ -20,7 +20,7 @@ import config.config2RichConfig
 import config.settings.{ getInt, getMilliseconds }
 
 import logging.createLogger
-import concurrent.{ addShutdownHook, spawn, sleep }
+import concurrent.{ spawn, sleep }
 
 package object io
 
@@ -190,7 +190,7 @@ package object io
       files.values.filter(_.isDirectory).foreach { d ⇒ d.listFiles.foreach(_.delete); d.delete }
     }
 
-    addShutdownHook(delete)
+    //  addShutdownHook(delete)
 
     private[this] val files = new ConcurrentHashMap[String, File]
 
