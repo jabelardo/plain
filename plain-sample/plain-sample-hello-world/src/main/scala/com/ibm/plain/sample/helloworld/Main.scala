@@ -2,7 +2,7 @@ package com.ibm.plain.sample.helloworld
 
 import scala.concurrent.util.duration.intToDurationInt
 
-import com.ibm.plain.lib.{ requiredversion, run }
+import com.ibm.plain.lib.{ requiredversion, run, application }
 import com.ibm.plain.lib.bootstrap.Application
 import com.ibm.plain.lib.concurrent.{ Concurrent, schedule }
 import com.ibm.plain.lib.http.HttpServer
@@ -16,11 +16,11 @@ import com.ibm.plain.lib.os.{ hostname, operatingSystem, username }
  */
 object Main extends App {
 
-  Application.register(HttpServer(5757, 0))
+  application.register(HttpServer(5757, 0))
 
   run(45.seconds) {
 
-    println("Application " + Application)
+    println("Application " + application)
     println("executor " + Concurrent.executor)
     println(requiredversion)
     println(operatingSystem)

@@ -64,4 +64,3 @@ abstract sealed class JmxMonitor
  */
 object JmxMonitor extends JmxMonitor
 
-

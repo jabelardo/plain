@@ -8,7 +8,12 @@ package object lib
 
   import config._
   import config.settings._
-  import bootstrap._
+
+  final lazy val application = bootstrap.application
+    .register(logging.Logging)
+    .register(concurrent.Concurrent)
+    .register(monitor.extension.jmx.JmxMonitor)
+    .register(http.HttpServer(http.port, http.backlog))
 
   def run(body: ⇒ Unit): Unit = run(Duration.Inf)(body)
 
@@ -16,12 +21,7 @@ package object lib
    * This is the central point for registering Components to the Application in the correct order.
    */
   def run(timeout: Duration)(body: ⇒ Unit): Unit = try {
-    application
-      .register(logging.Logging)
-      .register(concurrent.Concurrent)
-      .register(monitor.extension.jmx.JmxMonitor)
-      .register(http.HttpServer(http.port, http.backlog))
-      .bootstrap
+    application.bootstrap
     body
     application.awaitTermination(timeout)
   } catch {

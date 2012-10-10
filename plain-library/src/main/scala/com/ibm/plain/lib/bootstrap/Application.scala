@@ -19,7 +19,10 @@ abstract sealed class Application
 
   override def toString = components.toList.toString
 
-  def bootstrap = components.filter(_.isEnabled).foreach(_.doStart)
+  def bootstrap = {
+    components.filter(_.isEnabled).foreach(_.doStart)
+    Runtime.getRuntime.addShutdownHook(new Thread(new Runnable { def run = teardown }))
+  }
 
   def teardown = onlyonce { components.filter(_.isStarted).reverse.foreach(_.doStop) }
 
@@ -42,4 +45,4 @@ abstract sealed class Application
 /**
  * The Application object.
  */
-object Application extends Application
+private[lib] object Application extends Application
