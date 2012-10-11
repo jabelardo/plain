@@ -58,7 +58,7 @@ abstract class Monitor
 
   def getUptimeInSeconds = (application.uptime / 1000).toLong
 
-  def getComponents = application.toString
+  def getComponents: Array[String] = application.render
 
   def shutdown(token: String): String = if (shutdownToken == token) {
     warning("Application teardown was called from JMX console.")

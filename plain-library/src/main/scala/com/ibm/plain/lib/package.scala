@@ -9,17 +9,18 @@ package object lib
   import config._
   import config.settings._
 
+  /**
+   * This is the central point for registering Components to the application in the correct order.
+   */
   final lazy val application = bootstrap.application
     .register(logging.Logging)
     .register(concurrent.Concurrent)
+    .register(io.Io)
     .register(monitor.extension.jmx.JmxMonitor)
     .register(http.HttpServer(http.port, http.backlog))
 
   def run(body: ⇒ Unit): Unit = run(Duration.Inf)(body)
 
-  /**
-   * This is the central point for registering Components to the Application in the correct order.
-   */
   def run(timeout: Duration)(body: ⇒ Unit): Unit = try {
     application.bootstrap
     body
@@ -33,8 +34,6 @@ package object lib
       case e: Throwable ⇒ println("Exception during teardown: " + e)
     }
   }
-
-  override lazy val toString = root.render
 
   /**
    * Must match the version string provided by the *.conf files.

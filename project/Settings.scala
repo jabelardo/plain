@@ -50,6 +50,8 @@ object Settings {
 		"-deprecation", 
 		"-feature", 
 		"-unchecked", 
+		"-Yinline",
+		"-Yinline-handlers",
 		"-Yinline-warnings",
 		"-Ywarn-adapted-args"
     ),

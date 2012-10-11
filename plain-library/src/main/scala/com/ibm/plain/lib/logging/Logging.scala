@@ -56,7 +56,7 @@ abstract sealed class Logging
           }
         }
       } catch {
-        case e: Throwable ⇒ println()
+        case e: Throwable ⇒ println(e)
       }
       StatusPrinter.printInCaseOfErrorsOrWarnings(context)
 

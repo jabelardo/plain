@@ -19,6 +19,8 @@ abstract sealed class Application
 
   override def toString = components.toList.toString
 
+  def render: Array[String] = components.toArray.map(_.toString)
+
   def bootstrap = {
     components.filter(_.isEnabled).foreach(_.doStart)
     Runtime.getRuntime.addShutdownHook(new Thread(new Runnable { def run = teardown }))

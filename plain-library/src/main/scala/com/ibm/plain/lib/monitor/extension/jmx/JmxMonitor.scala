@@ -30,7 +30,7 @@ trait JmxMonitorMBean {
 
   def getUptimeInSeconds: Long
 
-  def getComponents: String
+  def getComponents: Array[String]
 
   def shutdown(token: String): String
 

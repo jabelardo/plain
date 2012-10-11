@@ -5,39 +5,93 @@ package lib
 package http
 
 import java.nio.ByteBuffer
-import aio.{ ByteBufferInput, Input }
-import aio.Iteratees.{ drop, peek, takeUntil, take }
 
-import text.{ ASCII, UTF8 }
+import aio.Io
+
+/**
+ * Supported http versions. The current planning only supports HTTP/1.1.
+ */
+sealed abstract class HttpVersion(val version: String)
+
+object HttpVersion {
+
+  def apply(version: String): HttpVersion = version match {
+    case "HTTP/1.0" ⇒ `HTTP/1.0`
+    case "HTTP/1.1" ⇒ `HTTP/1.1`
+    case v ⇒ throw BadRequest("Unsupported http version " + v)
+  }
+
+}
+
+case object `HTTP/1.0` extends HttpVersion("HTTP/1.0")
+case object `HTTP/1.1` extends HttpVersion("HTTP/1.1")
 
 /**
  * Supported http methods.
  */
-sealed abstract class HttpMethod(val value: String, val idempotent: Boolean)
+sealed abstract class HttpMethod(val name: String)
 
 object HttpMethod {
 
-  def apply(value: String): HttpMethod = value match {
+  def apply(name: String): HttpMethod = name match {
     case "GET" ⇒ GET
     case "HEAD" ⇒ HEAD
     case "PUT" ⇒ PUT
     case "POST" ⇒ POST
     case "DELETE" ⇒ DELETE
-    case m ⇒ throw BadRequest("Invalid method " + m)
+    case "OPTIONS" ⇒ OPTIONS
+    case "CONNECT" ⇒ CONNECT
+    case "TRACE" ⇒ TRACE
+    case n ⇒ throw BadRequest("Invalid method " + n)
   }
 
 }
 
-case object GET extends HttpMethod("GET", true)
-case object HEAD extends HttpMethod("HEAD", true)
-case object PUT extends HttpMethod("PUT", true)
-case object POST extends HttpMethod("POST", false)
-case object DELETE extends HttpMethod("DELETE", true)
+case object GET extends HttpMethod("GET")
+case object HEAD extends HttpMethod("HEAD")
+case object PUT extends HttpMethod("PUT")
+case object POST extends HttpMethod("POST")
+case object DELETE extends HttpMethod("DELETE")
+case object OPTIONS extends HttpMethod("OPTIONS")
+case object CONNECT extends HttpMethod("CONNECT")
+case object TRACE extends HttpMethod("TRACE")
 
 /**
- *
+ * A simple HttpHeader class.
  */
 case class HttpHeader(name: String, value: String)
+
+/**
+ * Base class for the body of an HttpRequest.
+ */
+abstract sealed class HttpRequestBody
+
+/**
+ * The 'non-existent' request body.
+ */
+case object NoneRequestBody extends HttpRequestBody
+
+/**
+ * The body represented by a ByteBuffer that was fully read together with the request header.
+ */
+case class BytesRequestBody(buffer: ByteBuffer) extends HttpRequestBody
+
+/**
+ * The body represented by a String converted from a ByteBuffer that was fully read together with the request header.
+ */
+case class StringRequestBody(value: String) extends HttpRequestBody
+
+/**
+ * The body represented by an Io instance, it is incomplete on creation and must be processed asynchronously.
+ */
+case class IoRequestBody(io: Io) extends HttpRequestBody
+
+/**
+ * Http error handling.
+ */
+sealed abstract class HttpException(message: String) extends Exception(message)
+
+case class BadRequest(message: String) extends HttpException(message)
 
 /**
  * The classic http request.
@@ -47,75 +101,6 @@ case class HttpRequest(
   path: Seq[String],
   query: Option[String],
   version: String,
-  headers: Seq[HttpHeader])
-
-/**
- * Basic parsing constants.
- */
-object HttpConstants {
-
-  val space = ' '.toByte
-  val colon = ':'.toByte
-  val slash = '/'.toByte
-  val questionmark = '?'.toByte
-  val percent = '%'.toByte
-  val crlf = "\r\n".getBytes
-
-  val SPACE = " "
-  val COLON = ":"
-  val SLASH = "/"
-  val QUESTIONMARK = "?"
-  val PERCENT = "%"
-  val CRLF = "\r\n"
-
-}
-
-/**
- * Http errors.
- */
-sealed abstract class HttpException(message: String) extends Exception(message)
-
-case class BadRequest(message: String) extends HttpException(message)
-
-/**
- * Consuming the input stream to produce a HttpRequest.
- */
-object HttpIteratees {
-
-  import HttpConstants._
-
-  implicit val ascii = ASCII
-
-  val readRequestLine1 = for {
-    what ← take(181)
-  } yield what
-
-  val readRequestLine = for {
-    method ← takeUntil(space)
-    uri ← readUri
-    version ← takeUntil(crlf)
-    bloodyrest ← takeUntil(crlf)
-  } yield (HttpMethod(method), uri, version, bloodyrest)
-
-  val readUri = peek(1) >>= {
-    case SLASH ⇒ for {
-      _ ← drop(1)
-      path ← takeUntil(space)(UTF8)
-    } yield (Seq(path), "?")
-    case _ ⇒ throw BadRequest("invalid uri")
-  }
-
-}
-
-object HttpTest extends App {
-
-  import HttpIteratees._
-
-  val input = Input.Elem(ByteBufferInput(ByteBuffer.wrap("GET /ping?w⇒h".getBytes("UTF8"))))
-
-  readRequestLine(input) match {
-    case e ⇒ println(e)
-  }
-
-}
+  headers: Seq[HttpHeader],
+  body: HttpRequestBody)
 

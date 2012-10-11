@@ -28,7 +28,7 @@ package object concurrent
   def executor = Concurrent.executor
 
   /**
-   * Tired of typing Thread? Use this one.
+   * Tired of typing 'Thread.'? Use this one. We won't win a Turing award for it for sure.
    */
   def sleep(milliseconds: Long) = Thread.sleep(milliseconds)
   /**

@@ -54,7 +54,7 @@ case class HttpServer(
     case e: Throwable ⇒ error(name + " failed to stop : " + e); this
   }
 
-  def awaitTermination(timeout: Duration) = if (!channelGroup.isShutdown) channelGroup.awaitTermination(timeout.toMillis, TimeUnit.MILLISECONDS)
+  def awaitTermination(timeout: Duration) = if (!channelGroup.isShutdown) channelGroup.awaitTermination(if (Duration.Inf == timeout) -1 else timeout.toMillis, TimeUnit.MILLISECONDS)
 
   private[this] var serverChannel: ServerChannel = null
 

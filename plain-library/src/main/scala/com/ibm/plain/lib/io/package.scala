@@ -7,20 +7,16 @@ import java.nio.ByteBuffer
 import java.nio.channels.{ FileChannel, ReadableByteChannel, WritableByteChannel }
 import java.nio.channels.Channels.newChannel
 import java.nio.file.{ Files, Paths }
-import java.util.concurrent.ConcurrentHashMap
-
-import language.implicitConversions
-import scala.collection.JavaConversions.collectionAsScalaIterable
 
 import org.apache.commons.io.FileUtils
 
-import lib.config.CheckedConfig
+import com.ibm.plain.lib.io.Io
 
+import concurrent.{ sleep, spawn }
 import config.config2RichConfig
 import config.settings.{ getInt, getMilliseconds }
-
+import lib.config.CheckedConfig
 import logging.createLogger
-import concurrent.{ spawn, sleep }
 
 package object io
 
@@ -154,7 +150,7 @@ package object io
   }
 
   /**
-   * Delete a directory and all of its contents. Use delete-directory-retries and delete-directory-timeout to make this method more robust.
+   * Delete a directory and all of its contents in a background thread. Use delete-directory-retries and delete-directory-timeout to make this method more robust.
    */
   def deleteDirectory(directory: File) = spawn {
     try {
@@ -177,26 +173,9 @@ package object io
   }
 
   /**
-   * This file will be automatically deleted at JVM shutdown.
+   * The file given will be automatically deleted at JVM shutdown.
    */
-  def deleteOnExit(file: File) = DeleteOnExit.add(file)
-
-  private object DeleteOnExit {
-
-    def add(file: File) = files.put(file.getAbsolutePath, file)
-
-    def delete = {
-      files.values.filter(!_.isDirectory).foreach(_.delete)
-      files.values.filter(_.isDirectory).foreach { d ⇒ d.listFiles.foreach(_.delete); d.delete }
-    }
-
-    //  addShutdownHook(delete)
-
-    private[this] val files = new ConcurrentHashMap[String, File]
-
-    protected override def finalize = delete
-
-  }
+  def deleteOnExit(file: File) = Io.add(file)
 
   /**
    * check requirements

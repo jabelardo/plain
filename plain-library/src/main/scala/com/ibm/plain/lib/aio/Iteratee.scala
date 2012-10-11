@@ -38,9 +38,9 @@ sealed abstract class Iteratee[E, +A] {
 
   final def map[B](f: A ⇒ B): Iteratee[E, B] = flatMap(a ⇒ Done(f(a)))
 
-  final def >>=[B](f: A ⇒ Iteratee[E, B]) = flatMap(f)
+  final def >>>[B](f: A ⇒ Iteratee[E, B]) = flatMap(f)
 
-  final def >=[B](f: A ⇒ B) = map(f)
+  final def >>[B](f: A ⇒ B) = map(f)
 
 }
 
