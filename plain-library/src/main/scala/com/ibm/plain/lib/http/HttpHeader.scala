@@ -267,14 +267,5 @@ object HttpHeader {
     case _ ⇒ `User-Defined`(name, value)
   }
 
-  def test = {
-    apply("Connection", "keep-alive") match {
-      case h @ `Accept`(_) ⇒ println(h)
-      case h @ `Connection`(_) ⇒ println(h.isKeepAlive)
-      case h @ `User-Defined`(name, value) ⇒ println(name + " " + value)
-      case h ⇒ println(h)
-    }
-  }
-
 }
 

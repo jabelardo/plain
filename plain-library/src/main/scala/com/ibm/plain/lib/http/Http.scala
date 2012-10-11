@@ -9,14 +9,14 @@ import java.nio.ByteBuffer
 import aio.Io
 
 /**
- * Supported http versions. The current planning only supports HTTP/1.1.
+ * Supported http versions. The current implementation only supports HTTP/1.1.
  */
 sealed abstract class HttpVersion(val version: String)
 
 object HttpVersion {
 
   def apply(version: String): HttpVersion = version match {
-    case "HTTP/1.0" ⇒ if (treadVersion10As11) `HTTP/1.1` else `HTTP/1.0`
+    case "HTTP/1.0" ⇒ if (tread10VersionAs11) `HTTP/1.1` else `HTTP/1.0`
     case "HTTP/1.1" ⇒ `HTTP/1.1`
     case v ⇒
       if (treadAnyVersionAs11)
@@ -97,9 +97,9 @@ case class BadRequest(message: String) extends HttpException(message)
  */
 case class HttpRequest(
   method: HttpMethod,
-  path: Seq[String],
+  path: List[String],
   query: Option[String],
   version: HttpVersion,
-  headers: Seq[HttpHeader],
+  headers: List[HttpHeader],
   body: HttpRequestBody)
 

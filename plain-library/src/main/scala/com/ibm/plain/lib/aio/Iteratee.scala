@@ -108,14 +108,14 @@ object Iteratees {
 
   def peek(n: Int)(implicit cset: Charset) = iter(n)(cset)(in ⇒ in.peek(n))
 
-  def takeWhile(p: Byte ⇒ Boolean)(implicit cset: Charset): Iteratee[ByteBufferInput, String] = {
+  def takeWhile(p: Int ⇒ Boolean)(implicit cset: Charset): Iteratee[ByteBufferInput, String] = {
     def cont(taken: ByteBufferInput)(input: Input[ByteBufferInput]): (Iteratee[ByteBufferInput, String], Input[ByteBufferInput]) = input match {
       case Eof | Empty ⇒ throw EOF
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
         val found = more.takeWhile(p)
         if (0 < more.remaining) {
-          (Done((taken ++ found).ascii), Elem(more))
+          (Done((taken ++ found).decode(cset)), Elem(more))
         } else {
           (Cont(cont(taken ++ found)), Empty)
         }
@@ -123,7 +123,7 @@ object Iteratees {
     Cont(cont(ByteBufferInput.empty))
   }
 
-  def takeUntil(p: Byte ⇒ Boolean)(implicit cset: Charset): Iteratee[ByteBufferInput, String] = takeWhile(b ⇒ !p(b))
+  def takeUntil(p: Int ⇒ Boolean)(implicit cset: Charset): Iteratee[ByteBufferInput, String] = takeWhile(b ⇒ !p(b))
 
   def takeUntil(delimiter: Byte)(implicit cset: Charset): Iteratee[ByteBufferInput, String] = {
     def cont(taken: ByteBufferInput)(input: Input[ByteBufferInput]): (Iteratee[ByteBufferInput, String], Input[ByteBufferInput]) = input match {

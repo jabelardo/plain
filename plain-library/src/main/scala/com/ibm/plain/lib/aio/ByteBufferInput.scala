@@ -43,7 +43,7 @@ abstract class ByteBufferInput(
     this
   }
 
-  def takeWhile(p: Byte ⇒ Boolean): ByteBufferInput = {
+  def takeWhile(p: Int ⇒ Boolean): ByteBufferInput = {
     var pos = position
     while (pos < limit && p(in.get(pos))) pos += 1
     limit = pos
@@ -52,6 +52,9 @@ abstract class ByteBufferInput(
 
   def takeUntil(delimiter: Byte): ByteBufferInput = takeWhile(_ != delimiter)
 
+  /**
+   * This is mainly implemented for `\r\n`.
+   */
   def takeUntil(delimiter: Array[Byte]): ByteBufferInput = {
     require(3 > delimiter.length, "Only implemented for delimiter.length < 3")
     delimiter.length match {
@@ -84,10 +87,6 @@ abstract class ByteBufferInput(
   }
 
   def decode(cset: Charset): String = reset(new String(readBytes, cset))
-
-  def ascii = decode(ASCII)
-
-  def utf8 = decode(UTF8)
 
   def reset = in.reset
 
