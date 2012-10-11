@@ -2,13 +2,12 @@ package com.ibm.plain
 
 package lib
 
-import java.net.InetSocketAddress
-import java.nio.channels.{ AsynchronousChannelGroup ⇒ Group, AsynchronousServerSocketChannel ⇒ ServerChannel }
-import java.util.concurrent.{ ForkJoinPool, TimeUnit }
+import java.nio.charset.Charset
+import config.CheckedConfig
 
 package object http
 
-  extends config.CheckedConfig {
+  extends CheckedConfig {
 
   import config._
   import config.settings._
@@ -17,8 +16,12 @@ package object http
 
   final val backlog = getInt("plain.http.backlog", 10000)
 
-  final val treadVersion10As11 = getBoolean("plain.http.allow-version-10-but-tread-it-like-11", false)
+  final val treadVersion10As11 = getBoolean("plain.http.feature.allow-version-10-but-tread-it-like-11", false)
 
-  final val treadAnyVersionAs11 = getBoolean("plain.http.allow-any-version-but-tread-it-like-11", false)
+  final val treadAnyVersionAs11 = getBoolean("plain.http.feature.allow-any-version-but-tread-it-like-11", false)
+
+  final val defaultCharacterSet = Charset.forName(getString("plain.http.feature.default-character-set", "UTF-8"))
+
+  final val disableUrlDecoding = getBoolean("plain.http.feature.diable-url-decoding", false)
 
 }
