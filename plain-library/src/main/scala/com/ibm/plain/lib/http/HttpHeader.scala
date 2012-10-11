@@ -4,7 +4,9 @@ package lib
 
 package http
 
-import HttpConstants._
+import java.text.SimpleDateFormat
+
+import scala.Array.canBuildFrom
 
 /**
  * A simple HttpHeader case class hierarchy.
@@ -39,11 +41,43 @@ sealed trait EntityHttpHeader extends PredefinedHttpHeader
 /**
  * Helpers to parse the values of header fields.
  */
+
+/**
+ * HttpHeader.value contains a list of Tokens.
+ */
 trait TokenList {
 
-  val value: String
+  self: HttpHeader ⇒
 
-  lazy val tokens = value.split(",")
+  lazy val tokens = value.split(",").map(_.trim)
+
+}
+
+/**
+ * HttpHeader.value contains an Int.
+ */
+trait IntValue {
+
+  self: HttpHeader ⇒
+
+  lazy val intValue = value.trim.toInt
+
+}
+
+/**
+ * HttpHeader.value contains a java.util.Date.
+ */
+trait DateValue {
+
+  self: HttpHeader ⇒
+
+  lazy val dateValue = DateValue.format.parse(value.trim)
+
+}
+
+object DateValue {
+
+  private val format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z")
 
 }
 
@@ -52,15 +86,19 @@ trait TokenList {
  */
 case class `Cache-Control`(value: String) extends GeneralHttpHeader
 
-case class `Connection`(value: String) extends GeneralHttpHeader {
+case class `Connection`(value: String)
 
-  val isKeepAlive = "keep-alive".equalsIgnoreCase(value)
+  extends GeneralHttpHeader
 
-  val isClose = "close".equalsIgnoreCase(value)
+  with TokenList {
+
+  def isKeepAlive = tokens.exists("keep-alive".equalsIgnoreCase)
+
+  def isClose = tokens.exists("close".equalsIgnoreCase)
 
 }
 
-case class `Date`(value: String) extends GeneralHttpHeader
+case class `Date`(value: String) extends GeneralHttpHeader with DateValue
 
 case class `Pragma`(value: String) extends GeneralHttpHeader
 
@@ -73,6 +111,8 @@ case class `Upgrade`(value: String) extends GeneralHttpHeader
 case class `Via`(value: String) extends GeneralHttpHeader
 
 case class `Warning`(value: String) extends GeneralHttpHeader
+
+case class `X-Forwarded-For`(value: String) extends GeneralHttpHeader
 
 /**
  * Request header fields.
@@ -120,11 +160,13 @@ case class `User-Agent`(value: String) extends RequestHttpHeader
  */
 case class `Allow`(value: String) extends EntityHttpHeader
 
+case class `Content-Disposition`(value: String) extends EntityHttpHeader
+
 case class `Content-Encoding`(value: String) extends EntityHttpHeader
 
 case class `Content-Language`(value: String) extends EntityHttpHeader
 
-case class `Content-Length`(value: String) extends EntityHttpHeader
+case class `Content-Length`(value: String) extends EntityHttpHeader with IntValue
 
 case class `Content-Location`(value: String) extends EntityHttpHeader
 
@@ -136,7 +178,7 @@ case class `Content-Type`(value: String) extends EntityHttpHeader
 
 case class `Expires`(value: String) extends EntityHttpHeader
 
-case class `Last-Modified`(value: String) extends EntityHttpHeader
+case class `Last-Modified`(value: String) extends EntityHttpHeader with DateValue
 
 /**
  * Response header fields.
@@ -183,6 +225,7 @@ object HttpHeader {
     case "authorization" ⇒ `Authorization`(value)
     case "cache-control" ⇒ `Cache-Control`(value)
     case "connection" ⇒ `Connection`(value)
+    case "content-disposition" ⇒ `Content-Disposition`(value)
     case "content-encoding" ⇒ `Content-Encoding`(value)
     case "content-language" ⇒ `Content-Language`(value)
     case "content-length" ⇒ `Content-Length`(value)
@@ -220,6 +263,7 @@ object HttpHeader {
     case "via" ⇒ `Via`(value)
     case "warning" ⇒ `Warning`(value)
     case "www-authenticate" ⇒ `WWW-Authenticate`(value)
+    case "x-forwarded-for" ⇒ `X-Forwarded-For`(value)
     case _ ⇒ `User-Defined`(name, value)
   }
 

@@ -157,7 +157,17 @@ private object HttpIteratees {
     cont(Vector.empty)
   }
 
-  def readRequestBody(headers: Seq[HttpHeader]): Iteratee[ByteBufferInput, HttpRequestBody] = Done(NoneRequestBody)
+  def readRequestBody(headers: Seq[HttpHeader]): Iteratee[ByteBufferInput, HttpRequestBody] = {
+    headers.foreach(_ match {
+      case length @ `Content-Length`(_) ⇒
+        val bytes = for {
+          body ← take(length.intValue)
+        } yield body.getBytes
+        return Done(BytesRequestBody(bytes.result))
+      case _ ⇒ ()
+    })
+    Done(NoneRequestBody)
+  }
 
   val readRequest = for {
     (method, path, query, version) ← readRequestLine

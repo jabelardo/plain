@@ -18,7 +18,7 @@ case class Io(
 
   buffer: ByteBuffer,
 
-  it: Iteratee[ByteBufferInput, _],
+  iter: Iteratee[ByteBufferInput, _],
 
   k: Io.IoHandler,
 
@@ -28,19 +28,19 @@ case class Io(
 
   import Io._
 
-  @inline def ++(server: ServerChannel) = Io(server, channel, buffer, it, k, n, expected)
+  @inline def ++(server: ServerChannel) = Io(server, channel, buffer, iter, k, n, expected)
 
-  @inline def ++(channel: Channel) = Io(server, channel, buffer, it, k, n, expected)
+  @inline def ++(channel: Channel) = Io(server, channel, buffer, iter, k, n, expected)
 
-  @inline def ++(buffer: ByteBuffer) = Io(server, channel, buffer, it, k, n, expected)
+  @inline def ++(buffer: ByteBuffer) = Io(server, channel, buffer, iter, k, n, expected)
 
-  @inline def ++(k: IoHandler) = Io(server, channel, buffer, it, k, n, expected)
+  @inline def ++(k: IoHandler) = Io(server, channel, buffer, iter, k, n, expected)
 
-  @inline def ++(it: Iteratee[ByteBufferInput, _]) = Io(server, channel, buffer, it, k, n, expected)
+  @inline def ++(iter: Iteratee[ByteBufferInput, _]) = Io(server, channel, buffer, iter, k, n, expected)
 
-  @inline def ++(n: Int) = Io(server, channel, buffer, it, k, n, expected)
+  @inline def ++(n: Int) = Io(server, channel, buffer, iter, k, n, expected)
 
-  @inline def ++(expected: Long) = Io(server, channel, buffer, it, k, n, expected)
+  @inline def ++(expected: Long) = Io(server, channel, buffer, iter, k, n, expected)
 
 }
 

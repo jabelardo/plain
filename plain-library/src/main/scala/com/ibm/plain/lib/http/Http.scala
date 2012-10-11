@@ -71,9 +71,9 @@ abstract sealed class HttpRequestBody
 case object NoneRequestBody extends HttpRequestBody
 
 /**
- * The body represented by a ByteBuffer that was fully read together with the request header.
+ * The body represented by an Array[Byte] that was fully read together with the request header.
  */
-case class BytesRequestBody(buffer: ByteBuffer) extends HttpRequestBody
+case class BytesRequestBody(bytes: Array[Byte]) extends HttpRequestBody
 
 /**
  * The body represented by a String converted from a ByteBuffer that was fully read together with the request header.
