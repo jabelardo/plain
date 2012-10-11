@@ -123,6 +123,8 @@ object Iteratees {
     Cont(cont(ByteBufferInput.empty))
   }
 
+  def takeUntil(p: Byte ⇒ Boolean)(implicit cset: Charset): Iteratee[ByteBufferInput, String] = takeWhile(b ⇒ !p(b))
+
   def takeUntil(delimiter: Byte)(implicit cset: Charset): Iteratee[ByteBufferInput, String] = {
     def cont(taken: ByteBufferInput)(input: Input[ByteBufferInput]): (Iteratee[ByteBufferInput, String], Input[ByteBufferInput]) = input match {
       case Eof | Empty ⇒ throw EOF

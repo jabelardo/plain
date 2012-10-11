@@ -89,6 +89,8 @@ abstract class ByteBufferInput(
 
   def utf8 = decode(UTF8)
 
+  def reset = in.reset
+
   private def readBytes: Array[Byte] = Array.fill(length)(readByte)
 
   private[this] def readByte: Byte = in.get(getAndIncrement)

@@ -56,6 +56,16 @@ package object time
   @inline def infoNanos[R](msg: String)(f: ⇒ R)(implicit log: LoggingAdapter) = { val r = timeNanos(f); log.info(msg + " " + (r._2 / 1000000.0) + " msec"); r._1 }
 
   /**
+   * Executes f and log.info the time elapsed in nanoseconds.
+   */
+  @inline def infoNanoNanos[R](f: ⇒ R)(implicit log: LoggingAdapter) = { val r = timeNanos(f); log.info(r._2 + " nanos"); r._1 }
+
+  /**
+   * Executes f and log.info message and the time elapsed in nanoseconds.
+   */
+  @inline def infoNanoNanos[R](msg: String)(f: ⇒ R)(implicit log: LoggingAdapter) = { val r = timeNanos(f); log.info(msg + " " + r._2 + " nanos"); r._1 }
+
+  /**
    * 0 seconds.
    */
   final val never = 0L seconds

@@ -1,4 +1,6 @@
-package com.ibm.plain.lib
+package com.ibm.plain
+
+package lib
 
 package json
 

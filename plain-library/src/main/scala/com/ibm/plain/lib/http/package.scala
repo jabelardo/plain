@@ -17,4 +17,8 @@ package object http
 
   final val backlog = getInt("plain.http.backlog", 10000)
 
+  final val treadVersion10As11 = getBoolean("plain.http.allow-version-10-but-tread-it-like-11", false)
+
+  final val treadAnyVersionAs11 = getBoolean("plain.http.allow-any-version-but-tread-it-like-11", false)
+
 }

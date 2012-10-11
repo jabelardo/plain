@@ -16,9 +16,13 @@ sealed abstract class HttpVersion(val version: String)
 object HttpVersion {
 
   def apply(version: String): HttpVersion = version match {
-    case "HTTP/1.0" ⇒ `HTTP/1.0`
+    case "HTTP/1.0" ⇒ if (treadVersion10As11) `HTTP/1.1` else `HTTP/1.0`
     case "HTTP/1.1" ⇒ `HTTP/1.1`
-    case v ⇒ throw BadRequest("Unsupported http version " + v)
+    case v ⇒
+      if (treadAnyVersionAs11)
+        `HTTP/1.1`
+      else
+        throw BadRequest("Unsupported http version " + v)
   }
 
 }
@@ -55,11 +59,6 @@ case object DELETE extends HttpMethod("DELETE")
 case object OPTIONS extends HttpMethod("OPTIONS")
 case object CONNECT extends HttpMethod("CONNECT")
 case object TRACE extends HttpMethod("TRACE")
-
-/**
- * A simple HttpHeader class.
- */
-case class HttpHeader(name: String, value: String)
 
 /**
  * Base class for the body of an HttpRequest.
@@ -100,7 +99,7 @@ case class HttpRequest(
   method: HttpMethod,
   path: Seq[String],
   query: Option[String],
-  version: String,
+  version: HttpVersion,
   headers: Seq[HttpHeader],
   body: HttpRequestBody)
 
