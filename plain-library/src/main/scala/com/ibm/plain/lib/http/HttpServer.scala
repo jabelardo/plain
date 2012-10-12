@@ -36,6 +36,9 @@ case class HttpServer(
   def start = try {
     if (isEnabled) {
       serverChannel = ServerChannel.open(channelGroup).bind(new InetSocketAddress(port), backlog)
+
+      HttpAio.test(serverChannel)
+
       debug(name + " has started.")
     }
     this

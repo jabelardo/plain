@@ -11,7 +11,7 @@ import scala.util.continuations.{ reset, shift, suspendable }
 
 import com.ibm.plain.lib.aio.Iteratee
 
-import HttpIteratees.readRequestLine
+import HttpIteratees.readRequest
 import aio.{ ByteBufferInput, Cont, Error }
 import aio.Input.{ Elem, Eof }
 
@@ -90,19 +90,18 @@ object HttpAio {
     shift { k: IoHandler ⇒ buffer.clear; channel.read(buffer, io ++ k, iohandler) }
   }
 
-  def readRequest(io: Io, iter: Iteratee[ByteBufferInput, Any]): (Io, Any) @suspendable = {
+  def readRequest2(io: Io, iter: Iteratee[ByteBufferInput, Any]): (Io, Any) @suspendable = {
     import io._
-    shift { k: (((Io, Any)) ⇒ Unit) ⇒ k(io, iter) }
     val r = read(io)
     iter(if (-1 < r.n) Elem(ByteBufferInput(r.buffer)) else Eof) match {
-      case (c @ Cont(_), _) ⇒ println("not enough"); readRequest(r ++ c, c)
-      case (e, _) ⇒ (io, e)
+      case (c @ Cont(_), _) ⇒ println("not enough"); readRequest2(r ++ c, c)
+      case (e, _) ⇒ println(e); (io, e)
     }
   }
 
   def readR(io: Io): Io @suspendable = {
     import io._
-    val (i, req) = readRequest(io, readRequestLine)
+    val (i, req) = readRequest2(io, readRequest)
     write(i)
   }
 

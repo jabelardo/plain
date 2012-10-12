@@ -11,7 +11,11 @@ import aio.Io
 /**
  * Supported http versions. The current implementation only supports HTTP/1.1.
  */
-sealed abstract class HttpVersion(val version: String)
+sealed abstract class HttpVersion {
+
+  override def toString = getClass.getSimpleName
+
+}
 
 object HttpVersion {
 
@@ -27,8 +31,8 @@ object HttpVersion {
 
 }
 
-case object `HTTP/1.0` extends HttpVersion("HTTP/1.0")
-case object `HTTP/1.1` extends HttpVersion("HTTP/1.1")
+case object `HTTP/1.0` extends HttpVersion
+case object `HTTP/1.1` extends HttpVersion
 
 /**
  * Supported http methods.

@@ -35,19 +35,16 @@ object Main extends App {
     info("info")
     warning("warning")
     error("error")
-    //    spawn { sleep(200000); concurrent.shutdown }
     var c = 0
-    schedule(100, 1000) {
-      c += 1
-      println("print " + c)
-      debug("debug " + c)
-      info("info " + c)
-      warning("warning " + c)
-      error("error " + c)
-    }
-    //    test(server)
-    println("after serve")
-    println("before end of plain")
+    //    schedule(100, 1000) {
+    //      c += 1
+    //      println("print " + c)
+    //      debug("debug " + c)
+    //      info("info " + c)
+    //      warning("warning " + c)
+    //      error("error " + c)
+    //    }
+    println("before end of run")
   }
   println("after plain")
 

@@ -17,7 +17,7 @@ sealed abstract class HttpHeader {
 
   val value: String
 
-  def render = name + ": " + value
+  final def render = name + ": " + value
 
 }
 
@@ -26,7 +26,7 @@ sealed abstract class HttpHeader {
  */
 abstract sealed class PredefinedHttpHeader extends HttpHeader {
 
-  val name = getClass.getSimpleName
+  lazy final val name = getClass.getSimpleName
 
 }
 
@@ -41,13 +41,12 @@ sealed trait EntityHttpHeader extends PredefinedHttpHeader
 /**
  * Helpers to parse the values of header fields.
  */
+trait HttpHeaderValue { val value: String }
 
 /**
  * HttpHeader.value contains a list of Tokens.
  */
-trait TokenList {
-
-  self: HttpHeader ⇒
+trait TokenList extends HttpHeaderValue {
 
   lazy val tokens = value.split(",").map(_.trim)
 
@@ -56,9 +55,7 @@ trait TokenList {
 /**
  * HttpHeader.value contains an Int.
  */
-trait IntValue {
-
-  self: HttpHeader ⇒
+trait IntValue extends HttpHeaderValue {
 
   lazy val intValue = value.trim.toInt
 
@@ -67,144 +64,20 @@ trait IntValue {
 /**
  * HttpHeader.value contains a java.util.Date.
  */
-trait DateValue {
-
-  self: HttpHeader ⇒
+trait DateValue extends HttpHeaderValue {
 
   lazy val dateValue = DateValue.format.parse(value.trim)
 
 }
 
+/**
+ * The DateValue object provides the SimpleDateFormat used in http header fields.
+ */
 object DateValue {
 
-  private val format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z")
+  private lazy final val format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z")
 
 }
-
-/**
- * General header fields.
- */
-case class `Cache-Control`(value: String) extends GeneralHttpHeader
-
-case class `Connection`(value: String)
-
-  extends GeneralHttpHeader
-
-  with TokenList {
-
-  def isKeepAlive = tokens.exists("keep-alive".equalsIgnoreCase)
-
-  def isClose = tokens.exists("close".equalsIgnoreCase)
-
-}
-
-case class `Date`(value: String) extends GeneralHttpHeader with DateValue
-
-case class `Pragma`(value: String) extends GeneralHttpHeader
-
-case class `Trailer`(value: String) extends GeneralHttpHeader
-
-case class `Transfer-Encoding`(value: String) extends GeneralHttpHeader
-
-case class `Upgrade`(value: String) extends GeneralHttpHeader
-
-case class `Via`(value: String) extends GeneralHttpHeader
-
-case class `Warning`(value: String) extends GeneralHttpHeader
-
-case class `X-Forwarded-For`(value: String) extends GeneralHttpHeader
-
-/**
- * Request header fields.
- */
-case class `Accept`(value: String) extends RequestHttpHeader
-
-case class `Accept-Charset`(value: String) extends RequestHttpHeader
-
-case class `Accept-Encoding`(value: String) extends RequestHttpHeader
-
-case class `Accept-Language`(value: String) extends RequestHttpHeader
-
-case class `Authorization`(value: String) extends RequestHttpHeader
-
-case class `Expect`(value: String) extends RequestHttpHeader
-
-case class `From`(value: String) extends RequestHttpHeader
-
-case class `Host`(value: String) extends RequestHttpHeader
-
-case class `If-Match`(value: String) extends RequestHttpHeader
-
-case class `If-Modified-Since`(value: String) extends RequestHttpHeader
-
-case class `If-None-Match`(value: String) extends RequestHttpHeader
-
-case class `If-Range`(value: String) extends RequestHttpHeader
-
-case class `If-Unmodified-Since`(value: String) extends RequestHttpHeader
-
-case class `Max-Forwards`(value: String) extends RequestHttpHeader
-
-case class `Proxy-Authorization`(value: String) extends RequestHttpHeader
-
-case class `Range`(value: String) extends RequestHttpHeader
-
-case class `Referer`(value: String) extends RequestHttpHeader
-
-case class `TE`(value: String) extends RequestHttpHeader
-
-case class `User-Agent`(value: String) extends RequestHttpHeader
-
-/**
- * Entity header fields.
- */
-case class `Allow`(value: String) extends EntityHttpHeader
-
-case class `Content-Disposition`(value: String) extends EntityHttpHeader
-
-case class `Content-Encoding`(value: String) extends EntityHttpHeader
-
-case class `Content-Language`(value: String) extends EntityHttpHeader
-
-case class `Content-Length`(value: String) extends EntityHttpHeader with IntValue
-
-case class `Content-Location`(value: String) extends EntityHttpHeader
-
-case class `Content-MD5`(value: String) extends EntityHttpHeader
-
-case class `Content-Range`(value: String) extends EntityHttpHeader
-
-case class `Content-Type`(value: String) extends EntityHttpHeader
-
-case class `Expires`(value: String) extends EntityHttpHeader
-
-case class `Last-Modified`(value: String) extends EntityHttpHeader with DateValue
-
-/**
- * Response header fields.
- */
-case class `Accept-Ranges`(value: String) extends ResponseHttpHeader
-
-case class `Age`(value: String) extends ResponseHttpHeader
-
-case class `ETag`(value: String) extends ResponseHttpHeader
-
-case class `Location`(value: String) extends ResponseHttpHeader
-
-case class `Proxy-Authenticate`(value: String) extends ResponseHttpHeader
-
-case class `Retry-After`(value: String) extends ResponseHttpHeader
-
-case class `Server`(value: String) extends ResponseHttpHeader
-
-case class `Vary`(value: String) extends ResponseHttpHeader
-
-case class `WWW-Authenticate`(value: String) extends ResponseHttpHeader
-
-/**
- * Non-predefined header fields.
- */
-case class `User-Defined`(name: String, value: String) extends HttpHeader
 
 /**
  * The HttpHeader object.
@@ -264,8 +137,133 @@ object HttpHeader {
     case "warning" ⇒ `Warning`(value)
     case "www-authenticate" ⇒ `WWW-Authenticate`(value)
     case "x-forwarded-for" ⇒ `X-Forwarded-For`(value)
-    case _ ⇒ `User-Defined`(name, value)
+    case userdefined ⇒ `User-Defined`(userdefined, value)
   }
+
+  /**
+   * General header fields.
+   */
+  case class `Cache-Control`(value: String) extends GeneralHttpHeader
+
+  case class `Connection`(value: String)
+
+    extends GeneralHttpHeader
+
+    with TokenList {
+
+    def isKeepAlive = tokens.exists("keep-alive".equalsIgnoreCase)
+
+    def isClose = tokens.exists("close".equalsIgnoreCase)
+
+  }
+
+  case class `Date`(value: String) extends GeneralHttpHeader with DateValue
+
+  case class `Pragma`(value: String) extends GeneralHttpHeader
+
+  case class `Trailer`(value: String) extends GeneralHttpHeader
+
+  case class `Transfer-Encoding`(value: String) extends GeneralHttpHeader
+
+  case class `Upgrade`(value: String) extends GeneralHttpHeader
+
+  case class `Via`(value: String) extends GeneralHttpHeader
+
+  case class `Warning`(value: String) extends GeneralHttpHeader
+
+  case class `X-Forwarded-For`(value: String) extends GeneralHttpHeader
+
+  /**
+   * Request header fields.
+   */
+  case class `Accept`(value: String) extends RequestHttpHeader
+
+  case class `Accept-Charset`(value: String) extends RequestHttpHeader
+
+  case class `Accept-Encoding`(value: String) extends RequestHttpHeader
+
+  case class `Accept-Language`(value: String) extends RequestHttpHeader
+
+  case class `Authorization`(value: String) extends RequestHttpHeader
+
+  case class `Expect`(value: String) extends RequestHttpHeader
+
+  case class `From`(value: String) extends RequestHttpHeader
+
+  case class `Host`(value: String) extends RequestHttpHeader
+
+  case class `If-Match`(value: String) extends RequestHttpHeader
+
+  case class `If-Modified-Since`(value: String) extends RequestHttpHeader
+
+  case class `If-None-Match`(value: String) extends RequestHttpHeader
+
+  case class `If-Range`(value: String) extends RequestHttpHeader
+
+  case class `If-Unmodified-Since`(value: String) extends RequestHttpHeader
+
+  case class `Max-Forwards`(value: String) extends RequestHttpHeader
+
+  case class `Proxy-Authorization`(value: String) extends RequestHttpHeader
+
+  case class `Range`(value: String) extends RequestHttpHeader
+
+  case class `Referer`(value: String) extends RequestHttpHeader
+
+  case class `TE`(value: String) extends RequestHttpHeader
+
+  case class `User-Agent`(value: String) extends RequestHttpHeader
+
+  /**
+   * Entity header fields.
+   */
+  case class `Allow`(value: String) extends EntityHttpHeader
+
+  case class `Content-Disposition`(value: String) extends EntityHttpHeader
+
+  case class `Content-Encoding`(value: String) extends EntityHttpHeader
+
+  case class `Content-Language`(value: String) extends EntityHttpHeader
+
+  case class `Content-Length`(value: String) extends EntityHttpHeader with IntValue
+
+  case class `Content-Location`(value: String) extends EntityHttpHeader
+
+  case class `Content-MD5`(value: String) extends EntityHttpHeader
+
+  case class `Content-Range`(value: String) extends EntityHttpHeader
+
+  case class `Content-Type`(value: String) extends EntityHttpHeader
+
+  case class `Expires`(value: String) extends EntityHttpHeader
+
+  case class `Last-Modified`(value: String) extends EntityHttpHeader with DateValue
+
+  /**
+   * Response header fields.
+   */
+  case class `Accept-Ranges`(value: String) extends ResponseHttpHeader
+
+  case class `Age`(value: String) extends ResponseHttpHeader
+
+  case class `ETag`(value: String) extends ResponseHttpHeader
+
+  case class `Location`(value: String) extends ResponseHttpHeader
+
+  case class `Proxy-Authenticate`(value: String) extends ResponseHttpHeader
+
+  case class `Retry-After`(value: String) extends ResponseHttpHeader
+
+  case class `Server`(value: String) extends ResponseHttpHeader
+
+  case class `Vary`(value: String) extends ResponseHttpHeader
+
+  case class `WWW-Authenticate`(value: String) extends ResponseHttpHeader
+
+  /**
+   * Non-predefined header fields.
+   */
+  case class `User-Defined`(name: String, value: String) extends HttpHeader
 
 }
 

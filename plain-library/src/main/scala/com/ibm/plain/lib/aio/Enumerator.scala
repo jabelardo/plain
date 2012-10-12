@@ -33,6 +33,9 @@ object Enumerator {
 
 }
 
+/**
+ * Here we become 'monadic', fasten your seat belts.
+ */
 case class Inp[E, A](f: E ⇒ A)
 
 trait Mon[R] {
@@ -41,6 +44,9 @@ trait Mon[R] {
 
 }
 
+/**
+ * what the ...?
+ */
 class BMon[R] extends Mon[({ type λ[α] = Inp[α, R] })#λ[_]] {
 
   override def unit[A](a: A) = throw new Exception

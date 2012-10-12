@@ -163,7 +163,7 @@ private object HttpIteratees {
 
   def readRequestBody(headers: List[HttpHeader]): Iteratee[ByteBufferInput, HttpRequestBody] = {
     headers.foreach(_ match {
-      case length @ `Content-Length`(_) ⇒
+      case length @ HttpHeader.`Content-Length`(_) ⇒
         val bytes = for {
           body ← take(length.intValue)
         } yield body.getBytes
@@ -195,7 +195,7 @@ object HttpTest extends App with HasLogger {
 
     val req = "GET /a/b//////c/%32%33d/e//XYZ/%c3%84_%c3%96_%c3%9c_%c3%a4_%c3%b6_%c3%bc_%c3%9f/%E9%BA%B5%E5%8C%85/?this%20query%21%E4%BA%8C%E4%B8%8D%E4%BA%8C%E7%9A%84%E4%BA%8C/%21#this_is_fragment HTTP/1.1\r\nHost: localhost:7500\r\nAccept: */*\r\nAccept-Encoding: gzip, deflate; g=1.0\r\nUser-Agent: JoeDog/1.00 [en] (X11; I; Siege 2.72)\r\n more user agent.\r\nConnection: keep-alive\r\n\r\n".getBytes(UTF8)
 
-    for (_ ← 1 to 1000000) infoNanos(try {
+    for (_ ← 1 to 1) infoNanos(try {
       val input = Input.Elem(ByteBufferInput(ByteBuffer.wrap(req)))
       readRequest(input) match {
         case (Done(r), _) ⇒ // println(r)
