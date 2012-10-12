@@ -18,7 +18,7 @@ object Main extends App {
 
   application.register(HttpServer(5757, 0))
 
-  run(45.seconds) {
+  run(900.seconds) {
 
     println("Application " + application)
     println("executor " + Concurrent.executor)
@@ -36,14 +36,14 @@ object Main extends App {
     warning("warning")
     error("error")
     var c = 0
-    //    schedule(100, 1000) {
-    //      c += 1
-    //      println("print " + c)
-    //      debug("debug " + c)
-    //      info("info " + c)
-    //      warning("warning " + c)
-    //      error("error " + c)
-    //    }
+    schedule(100, 1000) {
+      c += 1
+      println("print " + c)
+      debug("debug " + c)
+      info("info " + c)
+      warning("warning " + c)
+      error("error " + c)
+    }
     println("before end of run")
   }
   println("after plain")

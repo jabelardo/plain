@@ -23,7 +23,7 @@ case class HttpServer(
   backlog: Int)
 
   extends BaseComponent[HttpServer](
-    "HttpServer(address:" + new InetSocketAddress(port) + ", backlog:" + backlog + ")")
+    "HttpServer(address:" + new InetSocketAddress(os.canonicalhostname, port) + ", backlog:" + backlog + ")")
 
   with HasLogger {
 
@@ -35,7 +35,7 @@ case class HttpServer(
 
   def start = try {
     if (isEnabled) {
-      serverChannel = ServerChannel.open(channelGroup).bind(new InetSocketAddress(port), backlog)
+      serverChannel = ServerChannel.open(channelGroup).bind(new InetSocketAddress(os.canonicalhostname, port), backlog)
 
       HttpAio.test(serverChannel)
 

@@ -13,7 +13,7 @@ import aio.Io
  */
 sealed abstract class HttpVersion {
 
-  override def toString = getClass.getSimpleName
+  final val version = getClass.getSimpleName
 
 }
 
