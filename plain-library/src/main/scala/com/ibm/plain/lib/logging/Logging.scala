@@ -30,13 +30,11 @@ abstract sealed class Logging
 
   extends BaseComponent[Logging]("plain-logging") {
 
-  def isStarted = !isStopped
+  override def isStopped = loggingSystem.isTerminated
 
-  def isStopped = loggingSystem.isTerminated
-
-  def start = {
+  override def start = {
     if (isEnabled) {
-      if (isStopped) throw new IllegalStateException("Underlying system already terminated.")
+      if (isStopped) throw new IllegalStateException("Underlying system already terminated and cannot be started more than once.")
       val context = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
       try {
         val configurator = new JoranConfigurator
@@ -65,15 +63,12 @@ abstract sealed class Logging
     this
   }
 
-  def stop = {
-    if (isStarted) {
-      loggingSystem.shutdown
-      sleep(200)
-    }
+  override def stop = {
+    if (isStarted) loggingSystem.shutdown
     this
   }
 
-  def awaitTermination(timeout: Duration) = if (!loggingSystem.isTerminated) loggingSystem.awaitTermination(timeout)
+  override def awaitTermination(timeout: Duration) = if (!loggingSystem.isTerminated) loggingSystem.awaitTermination(timeout)
 
   def infoLevel = loggingSystem.eventStream.setLogLevel(InfoLevel)
 

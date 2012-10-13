@@ -22,21 +22,17 @@ abstract class Monitor
 
   with HasLogger {
 
-  def isStarted = isRegistered
+  override def isStarted = isRegistered
 
-  def isStopped = !isStarted
-
-  def start = {
+  override def start = {
     if (isEnabled) register
     this
   }
 
-  def stop = {
+  override def stop = {
     if (isStarted) unregister
     this
   }
-
-  def awaitTermination(timeout: Duration) = ()
 
   protected def register
 

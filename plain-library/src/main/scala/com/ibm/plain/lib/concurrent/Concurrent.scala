@@ -19,21 +19,22 @@ abstract sealed class Concurrent
 
   extends BaseComponent[Concurrent]("plain-concurrent") {
 
-  def isStarted = !isStopped
+  override def isStopped = actorSystem.isTerminated
 
-  def isStopped = actorSystem.isTerminated
-
-  def start = {
-    if (isEnabled) actorSystem
+  override def start = {
+    if (isEnabled) {
+      if (isStopped) throw new IllegalStateException("Underlying system already terminated and cannot be started more than once.")
+      actorSystem
+    }
     this
   }
 
-  def stop = {
+  override def stop = {
     if (isStarted) actorSystem.shutdown
     this
   }
 
-  def awaitTermination(timeout: Duration) = if (!actorSystem.isTerminated) actorSystem.awaitTermination(timeout)
+  override def awaitTermination(timeout: Duration) = if (!actorSystem.isTerminated) actorSystem.awaitTermination(timeout)
 
   lazy val dispatcher = actorSystem.dispatcher
 

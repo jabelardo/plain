@@ -14,10 +14,10 @@ import http.HttpAio._
 
   @Test def testA = {
     run {
-      println(requiredversion)
+      println(requiredVersion)
       println(operatingSystem)
-      println(username)
-      println(hostname)
+      println(userName)
+      println(hostName)
       jsonparser("""{"name":"value"}""")
       val f = temporaryFile
       val d = temporaryDirectory

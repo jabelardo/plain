@@ -20,18 +20,10 @@ abstract sealed class Io
 
   extends BaseComponent[Io]("plain-io") {
 
-  def isStarted = true
-
-  def isStopped = false
-
-  def start = this
-
-  def stop = {
+  override def stop = {
     if (isStarted) deleteAll
     this
   }
-
-  def awaitTermination(timeout: Duration) = ()
 
   def add(file: File) = files += file
 

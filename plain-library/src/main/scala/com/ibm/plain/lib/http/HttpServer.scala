@@ -23,19 +23,17 @@ case class HttpServer(
   backlog: Int)
 
   extends BaseComponent[HttpServer](
-    "HttpServer(address:" + new InetSocketAddress(os.canonicalhostname, port) + ", backlog:" + backlog + ")")
+    "HttpServer(address:" + new InetSocketAddress(port) + ", backlog:" + backlog + ")")
 
   with HasLogger {
 
   import HttpServer._
 
-  def isStarted = synchronized { null != serverChannel }
+  override def isStarted = synchronized { null != serverChannel }
 
-  def isStopped = !isStarted
-
-  def start = try {
+  override def start = try {
     if (isEnabled) {
-      serverChannel = ServerChannel.open(channelGroup).bind(new InetSocketAddress(os.canonicalhostname, port), backlog)
+      serverChannel = ServerChannel.open(channelGroup).bind(new InetSocketAddress(port), backlog)
 
       HttpAio.test(serverChannel)
 
@@ -46,7 +44,7 @@ case class HttpServer(
     case e: Throwable ⇒ error(name + " failed to start : " + e); throw e
   }
 
-  def stop = try {
+  override def stop = try {
     if (isStarted) synchronized {
       serverChannel.close
       serverChannel = null
@@ -57,7 +55,7 @@ case class HttpServer(
     case e: Throwable ⇒ error(name + " failed to stop : " + e); this
   }
 
-  def awaitTermination(timeout: Duration) = if (!channelGroup.isShutdown) channelGroup.awaitTermination(if (Duration.Inf == timeout) -1 else timeout.toMillis, TimeUnit.MILLISECONDS)
+  override def awaitTermination(timeout: Duration) = if (!channelGroup.isShutdown) channelGroup.awaitTermination(if (Duration.Inf == timeout) -1 else timeout.toMillis, TimeUnit.MILLISECONDS)
 
   private[this] var serverChannel: ServerChannel = null
 

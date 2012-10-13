@@ -2,6 +2,7 @@ package com.ibm.plain
 
 package lib
 
+import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousFileChannel
 
 import language.implicitConversions
@@ -14,6 +15,16 @@ package object aio
 
   import config._
   import config.settings._
+
+  def defaultByteBuffer = Aio.defaultBufferPool.getBuffer
+
+  def largeByteBuffer = Aio.largeBufferPool.getBuffer
+
+  def releaseByteBuffer(buffer: ByteBuffer) = buffer.capacity match {
+    case `defaultBufferSize` ⇒ Aio.defaultBufferPool.releaseBuffer(buffer)
+    case `largeBufferSize` ⇒ Aio.largeBufferPool.releaseBuffer(buffer)
+    case _ ⇒
+  }
 
   /**
    * Shorthand to object AsynchronousChannelTransfer.
@@ -28,6 +39,15 @@ package object aio
   /**
    * If not set differently this will result to 2k which proved to provide best performance under high load.
    */
-  final val defaultBufferSize = getBytes("plain.io.default-buffersize", 2 * 1024).toInt
+  final val defaultBufferSize = getBytes("plain.aio.default-buffer-size", 2 * 1024).toInt
+
+  final val defaultBufferPoolSize = getInt("plain.aio.default-buffer-pool-size", 512)
+
+  /**
+   * Should be large enough to make an SSL packet fit into it.
+   */
+  final val largeBufferSize = getBytes("plain.aio.large-buffer-size", 24 * 1024).toInt
+
+  final val largeBufferPoolSize = getInt("plain.aio.large-buffer-pool-size", 64)
 
 }

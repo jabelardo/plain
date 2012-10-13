@@ -8,6 +8,8 @@ import java.util.concurrent.TimeoutException
 
 import scala.concurrent.util.Duration
 
+import concurrent.sleep
+
 /**
  * A Component will be started automatically by the bootstrapping mechanism if it is enabled which it is by default.
  * It will also be stopped by the tear down mechanism. All components are registered automatically with bootstrap and tear down.
@@ -47,6 +49,16 @@ abstract class BaseComponent[C](val name: String)
 
   def enable = { enabled = true; this.asInstanceOf[C] }
 
+  def isStarted = !isStopped
+
+  def isStopped = !started
+
+  def start = { started = true; this.asInstanceOf[C] }
+
+  def stop = { started = false; this.asInstanceOf[C] }
+
+  def awaitTermination(timeout: Duration) = ()
+
   def disable = {
     if (isEnabled) stop
     enabled = false
@@ -54,24 +66,33 @@ abstract class BaseComponent[C](val name: String)
   }
 
   def doStart = try {
-    start
+    if (isEnabled && isStopped) {
+      start
+      started = true
+    }
   } catch {
     case e: Throwable ⇒ println("Excption during start of '" + name + "' : " + e)
   }
 
   def doStop = try {
-    stop
+    if (isStarted) {
+      stop
+      started = false
+      sleep(200)
+    }
   } catch {
     case e: Throwable ⇒ println("Excption during stop of '" + name + "' : " + e)
   }
 
   def doAwaitTermination(timeout: Duration) = try {
-    awaitTermination(timeout)
+    if (isStarted) awaitTermination(timeout)
   } catch {
     case e: TimeoutException ⇒ println(name + " " + e)
     case e: Throwable ⇒ println("Excption during awaitTermination of '" + name + "' : " + e)
   }
 
   @volatile private[this] var enabled = true
+
+  @volatile private[this] var started = false
 
 }

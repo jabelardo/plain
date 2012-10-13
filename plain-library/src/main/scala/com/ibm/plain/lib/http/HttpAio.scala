@@ -31,7 +31,7 @@ object HttpAio {
     def completed(ch: Channel, io: Io) = {
       import io._
       server.accept(io, this)
-      k(io ++ ch ++ ByteBuffer.allocateDirect(192))
+      k(io ++ ch ++ aio.defaultByteBuffer)
     }
 
     def failed(e: Throwable, io: Io) = {
@@ -49,7 +49,7 @@ object HttpAio {
     def completed(count: Integer, io: Io) = {
       import io._
       if (-1 < count) buffer.flip else channel.close
-      k(io ++ count)
+      if (null != k) k(io ++ count)
     }
 
     def failed(e: Throwable, io: Io) = {
@@ -95,7 +95,7 @@ object HttpAio {
     val r = read(io)
     iter(if (-1 < r.n) Elem(ByteBufferInput(r.buffer)) else Eof) match {
       case (c @ Cont(_), _) ⇒ println("not enough"); readRequest2(r ++ c, c)
-      case (e, _) ⇒ println(e); (io, e)
+      case (e, _) ⇒ (io, e)
     }
   }
 

@@ -16,6 +16,7 @@ package object lib
     .register(logging.Logging)
     .register(concurrent.Concurrent)
     .register(io.Io)
+    .register(aio.Aio)
     .register(monitor.extension.jmx.JmxMonitor)
     .register(http.HttpServer(http.port, http.backlog))
 
@@ -38,7 +39,7 @@ package object lib
   /**
    * Must match the version string provided by the *.conf files.
    */
-  final val requiredversion = "1.0.1"
+  final val requiredVersion = "1.0.1"
 
   final val home = getString("plain.home", System.getenv("PLAIN_HOME"))
 
@@ -46,7 +47,7 @@ package object lib
    * check requirements
    */
   require(null != home, "Neither plain.home config setting nor PLAIN_HOME environment variable are set.")
-  require(requiredversion == config.version, String.format("plain.version (%s) does not match internal version (%s).", config.version, requiredversion))
+  require(requiredVersion == config.version, String.format("plain.version (%s) does not match internal version (%s).", config.version, requiredVersion))
 
 }
 

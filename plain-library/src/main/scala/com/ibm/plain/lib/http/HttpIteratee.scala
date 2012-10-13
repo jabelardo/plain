@@ -68,15 +68,15 @@ private object HttpIteratees {
 
   private[this] implicit final val ascii = ASCII
 
-  val readToken = for {
+  final val readToken = for {
     token ← takeWhile(token)(defaultCharacterSet)
   } yield token
 
-  val readText = for {
+  final val readText = for {
     text ← takeWhile(text)(defaultCharacterSet)
   } yield text
 
-  val readRequestLine = {
+  final val readRequestLine = {
 
     val readRequestUri: Iteratee[ByteBufferInput, (List[String], Option[String])] = {
 
@@ -123,11 +123,11 @@ private object HttpIteratees {
     } yield (HttpMethod(method), uri, query, HttpVersion(version))
   }
 
-  val readRequestHeaders: Iteratee[ByteBufferInput, List[HttpHeader]] = {
+  final val readRequestHeaders: Iteratee[ByteBufferInput, List[HttpHeader]] = {
 
     val readHeader: Iteratee[ByteBufferInput, HttpHeader] = {
 
-      @noinline def readMultipleLines(lines: String): Iteratee[ByteBufferInput, String] = peek(1) >>> {
+      def readMultipleLines(lines: String): Iteratee[ByteBufferInput, String] = peek(1) >>> {
         case " " | "\t" ⇒ for {
           _ ← drop(1)
           line ← takeUntil(`\r\n`)
@@ -135,15 +135,14 @@ private object HttpIteratees {
         } yield more
         case _ ⇒ Done(lines)
       }
-
       for {
         name ← readToken
         _ ← takeUntil(`:`)
         _ ← takeWhile(whitespace)
         value ← for {
           line ← takeUntil(`\r\n`)
-          lines ← readMultipleLines(line)
-        } yield lines
+          morelines ← readMultipleLines(line)
+        } yield morelines
       } yield HttpHeader(name, value)
     }
 
@@ -161,7 +160,7 @@ private object HttpIteratees {
     cont(List.empty)
   }
 
-  def readRequestBody(headers: List[HttpHeader]): Iteratee[ByteBufferInput, HttpRequestBody] = {
+  final def readRequestBody(headers: List[HttpHeader]): Iteratee[ByteBufferInput, HttpRequestBody] = {
     headers.foreach(_ match {
       case length @ HttpHeader.`Content-Length`(_) ⇒
         val bytes = for {
@@ -173,7 +172,7 @@ private object HttpIteratees {
     Done(NoneRequestBody)
   }
 
-  val readRequest = for {
+  final val readRequest = for {
     (method, path, query, version) ← readRequestLine
     headers ← readRequestHeaders
     body ← readRequestBody(headers)
