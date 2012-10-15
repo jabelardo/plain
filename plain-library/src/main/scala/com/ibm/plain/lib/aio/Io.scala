@@ -93,21 +93,16 @@ object Io
    */
   private[this] val accepthandler = new Handler[Channel, Io] {
 
-    def completed(c: Channel, io: Io) = try {
+    def completed(c: Channel, io: Io) = {
       import io._
       server.accept(io, this)
       k(io ++ c ++ defaultByteBuffer)
-    } catch {
-      case _: java.io.EOFException ⇒
-      case e: Throwable ⇒
-        warning("accept error : " + e)
     }
 
     def failed(e: Throwable, io: Io) = {
       import io._
       if (server.isOpen) {
         server.accept(io, this)
-        warning("accept failed : " + e)
       }
     }
 
@@ -120,7 +115,7 @@ object Io
       if (-1 < count) buffer.flip else channel.close
       k(io ++ count)
     } catch {
-      case _: java.io.EOFException ⇒
+      case _: java.io.IOException ⇒
       case e: Throwable ⇒
         warning("iohandler error : " + e)
         e.printStackTrace
@@ -130,7 +125,6 @@ object Io
     def failed(e: Throwable, io: Io) = {
       import io._
       channel.close
-      warning("iohandler.failed " + e)
       k(io ++ Error[Io](e))
     }
 
@@ -159,7 +153,6 @@ object Io
         respond(io ++ ByteBuffer.wrap(response))
         handle(io ++ defaultByteBuffer)
       case (e, io) ⇒
-        error("not handled: " + e + " " + io)
     }
   }
 

@@ -16,7 +16,7 @@ import com.ibm.plain.lib.os._
  */
 object Main extends App {
 
-  application.register(HttpServer(5757, 0))
+  // application.register(HttpServer(5757, 0))
 
   run(150.seconds) {
 

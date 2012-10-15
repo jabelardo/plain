@@ -12,7 +12,7 @@ import scala.annotation.tailrec
 final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int) {
 
   /**
-   * This is an expensive O(n), call it with care. 
+   * This is an expensive O(n), call it with care.
    */
   def size = pool.size
 
