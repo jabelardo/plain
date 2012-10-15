@@ -20,7 +20,7 @@ import aio.Input.{ Elem, Eof, Empty }
 /**
  * Io represents the context of an asynchronous i/o operation.
  */
-case class Io(
+final case class Io(
 
   server: ServerChannel,
 
@@ -52,7 +52,10 @@ case class Io(
 
   def ++(expected: Long) = Io(server, channel, buffer, iteratee, k, n, expected)
 
-  override def toString = getClass.getSimpleName + "(" + buffer + " pos=" + position + " lim=" + limit + " rem=" + remaining + " len " + length + " mar=" + mark + ")"
+  override def toString = {
+    val buf = { val a = new Array[Byte](1024); for (i ← 0 until buffer.limit) a.update(i, buffer.get(i)); "buffer<" + new String(a) + ">" }
+    getClass.getSimpleName + "(" + buffer + " pos=" + position + " lim=" + limit + " rem=" + remaining + " avl=" + available + " len " + length + " mar=" + mark + ") " + buf
+  }
 
   def ++(that: Io): Io = try {
     if (0 == this.length)
@@ -61,16 +64,18 @@ case class Io(
       this
     else {
       logging.defaultLogger.warning("Avoid this by enlarging buffersize " + this + " " + that)
-      this.reset(null)
+      this.reset
+      // that.reset
       val len = this.length + that.length
-      val b = ByteBuffer.allocate(len)
-      val aa = this.readBytes; logging.defaultLogger.info("aa<" + new String(aa) + ">")
-      val bb = that.readBytes; logging.defaultLogger.info("bb<" + new String(bb) + ">")
-      b.put(aa)
-      b.put(bb)
+      println("len " + len)
+      val b = if (defaultBufferSize > len) defaultByteBuffer else ByteBuffer.allocate(len)
+      b.put(this.readBytes)
+      b.put(that.readBytes)
       b.flip
-      // releaseByteBuffer(this.buffer)
-      //    releaseByteBuffer(that.buffer)
+      releaseByteBuffer(this.buffer)
+      /*
+       * do not release that.buffer, it is not yet completely consumed
+       */
       val a = new Array[Byte](b.limit); b.get(a); b.rewind; println("buf<" + new String(a) + ">")
       logging.defaultLogger.info("after ++ " + this + " " + that)
       this ++ b
@@ -82,21 +87,28 @@ case class Io(
    */
   final def length = limit - position
 
+  final def available = buffer.limit - limit
+
   final def remaining = buffer.limit - position
 
-  // remaining + length = buffer.limit - limit + limit - position = buffer.limit - position
+  /**
+   * decode is actually the only method 'consuming' from the internal ByteBuffer.
+   */
+  def decode(cset: Charset): String = new String(readBytes, cset)
 
   def take(n: Int): Io = {
+    reset
     limit = position + n
-    invariants
     this
   }
 
   def takeWhile(p: Int ⇒ Boolean): Io = {
+    reset
     var pos = position
+    println("takeWhile intern before " + this)
     while (pos < limit && p(buffer.get(pos))) pos += 1
+    println("takeWhile intern " + this)
     limit = pos
-    invariants
     this
   }
 
@@ -106,61 +118,63 @@ case class Io(
    * This is mainly implemented for `\r\n`.
    */
   def takeUntil(delimiter: Array[Byte]): Io = {
-    reset(null)
-    require(3 > delimiter.length, "Only implemented for delimiter.length < 3")
+    reset
     delimiter.length match {
-      case 0 ⇒ limit = position
-      case 1 ⇒ takeWhile(_ != delimiter(0))
       case 2 ⇒
         var pos = position
         val a = delimiter(0)
         val b = delimiter(1)
-        while (pos + 1 < limit && a != buffer.get(pos) && b != buffer.get(pos + 1)) pos += 1
-        limit = pos
+        var done = false
+        while (pos < limit && !done) {
+          println("until " + pos + " " + buffer.get(pos) + " " + buffer)
+          if (a == buffer.get(pos)) {
+            if (pos < limit) pos += 1
+            if (b == buffer.get(pos)) done = true
+          }
+          pos += 1
+        }
+        limit = if (done) pos - 2 else pos
+        println("limit " + this)
+      case l ⇒ throw new UnsupportedOperationException("delimiter.length != 2 : " + l)
     }
-    invariants
     this
   }
 
   def peek(n: Int): Io = {
+    reset
     mark = position
     limit = position + n
-    invariants
     this
   }
 
   def drop(n: Int): Io = {
-    reset(null)
+    reset
     position += n
-    invariants
     this
   }
 
   def dropWhile(p: Byte ⇒ Boolean): Io = {
+    reset
     while (p(buffer.get(position)) && position < limit) position += 1
     this
   }
 
-  def decode(cset: Charset): String = reset(new String(readBytes, cset))
+  private def readBytes: Array[Byte] = reset(Array.fill(length)(readByte))
 
-  def reset = buffer.reset
+  @inline private def reset(a: Array[Byte]): Array[Byte] = { reset; a }
 
-  private def readBytes: Array[Byte] = Array.fill(length)(readByte)
+  @inline private def reset: Unit = { invariants; limit = buffer.limit; if (-1 < mark) { position = mark; mark = -1 } }
 
-  private[this] def readByte: Byte = buffer.get(getAndIncrement)
-
-  @inline private def reset[T](t: T): T = { limit = buffer.limit; if (-1 < mark) { position = mark; mark = -1 }; invariants; t }
+  @inline private[this] def readByte: Byte = buffer.get(getAndIncrement)
 
   @inline private[this] def getAndIncrement = {
     val p = position
     position += 1
-    invariants
     p
   }
 
   private[this] def invariants = try {
-    //   println(position + " " + limit + " " + length + " " + remaining + " " + buffer)
-    //   val a = new Array[Byte](1024); for (i ← 0 until buffer.limit) a.update(i, buffer.get(i)); println("buffer<" + new String(a) + ">")
+    println(this)
     require(position <= limit, "#1")
     require(0 <= remaining, "#2")
     require(0 <= position, "#3")
@@ -187,16 +201,20 @@ object Io
 
   extends HasLogger {
 
-  final val empty = Io(null, null, ByteBuffer.wrap(new Array[Byte](0)), null, null, -1, -1)
+  final val empty = Io(null, null, ByteBuffer.allocateDirect(0), null, null, -1, -1)
 
   type IoHandler = Io ⇒ Unit
 
   private[this] val accepthandler = new Handler[Channel, Io] {
 
-    def completed(c: Channel, io: Io) = {
+    def completed(c: Channel, io: Io) = try {
       import io._
       server.accept(io, this)
       k(io ++ c ++ defaultByteBuffer)
+    } catch {
+      case _: java.io.EOFException ⇒
+      case e: Throwable ⇒
+        warning("accept error : " + e)
     }
 
     def failed(e: Throwable, io: Io) = {
@@ -211,10 +229,15 @@ object Io
 
   private[this] val iohandler = new Handler[Integer, Io] {
 
-    def completed(count: Integer, io: Io) = {
+    def completed(count: Integer, io: Io) = try {
       import io._
       if (-1 < count) buffer.flip else channel.close
       k(io ++ count)
+    } catch {
+      case _: java.io.EOFException ⇒
+      case e: Throwable ⇒
+        warning("iohandler error : " + e)
+        io.channel.close
     }
 
     def failed(e: Throwable, io: Io) = {

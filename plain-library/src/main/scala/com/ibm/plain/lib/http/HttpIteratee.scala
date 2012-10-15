@@ -92,7 +92,7 @@ private object HttpIteratee {
             segment ← readUriSegment(path)
             more ← cont(if (0 < segment.length) segment :: segments else segments)
           } yield more
-          case _ ⇒ Done(segments.reverse)
+          case a ⇒ println("peek " + a); println("done segments " + segments.reverse); Done(segments.reverse)
         }
 
         cont(List.empty)
@@ -120,7 +120,10 @@ private object HttpIteratee {
       (uri, query) ← readRequestUri
       _ ← takeWhile(whitespace)
       version ← takeUntil(`\r\n`)
-    } yield (HttpMethod(method), uri, query, HttpVersion(version))
+    } yield {
+      val l = (HttpMethod(method), uri, query, HttpVersion(version))
+      println(">>>>>>>> " + l); l
+    }
   }
 
   final val readRequestHeaders: Iteratee[Io, List[HttpHeader]] = {
@@ -141,12 +144,15 @@ private object HttpIteratee {
       for {
         name ← readToken
         _ ← takeUntil(`:`)
-        ws ← takeWhile(whitespace)
+        _ ← takeWhile(whitespace)
         value ← for {
           line ← takeUntil(`\r\n`)
           morelines ← cont(line)
         } yield morelines
-      } yield { println("ws<" + ws + ">"); val h = HttpHeader(name, value); println(">>>>>>>>>>>>>>>header " + h); h }
+      } yield {
+        val h = HttpHeader(name, value)
+        println(">>>>>>>>>>> " + h); h
+      }
 
     }
 

@@ -46,8 +46,12 @@ package object aio
   /**
    * Should be large enough to make an SSL packet fit into it.
    */
-  final val largeBufferSize = getBytes("plain.aio.large-buffer-size", 24 * 1024).toInt
+  final val largeBufferSize = getBytes("plain.aio.large-buffer-size", 20 * 1024).toInt
 
   final val largeBufferPoolSize = getInt("plain.aio.large-buffer-pool-size", 64)
+
+  require(1 <= defaultBufferSize, "plain.aio.default-buffer-size must be >= " + 16)
+
+  require(2 * 1024 <= largeBufferSize, "plain.aio.large-buffer-size must be >= " + 2 * 1024)
 
 }

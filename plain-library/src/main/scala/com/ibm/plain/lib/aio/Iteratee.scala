@@ -114,12 +114,12 @@ object Iteratees {
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
         val found = more.takeWhile(p)
-        println("takeWhile " + found.length + " " + more.remaining + " " + more.length)
-        if (found.length < more.remaining) {
-          println("done while")
+        println("takeWhile ext " + found + " " + more)
+        if (0 < more.available) { // not: <=
+          println("done " + taken + " " + found + " " + more)
           (Done((taken ++ found).decode(cset)), Elem(more))
         } else {
-          println("cont while")
+          println("cont")
           (Cont(cont(taken ++ found)), Empty)
         }
     }
@@ -134,10 +134,12 @@ object Iteratees {
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
         val found = more.takeUntil(delimiter)
-        println("takeUntil1 " + found.length + " " + more.remaining + " " + more.length)
-        if ((found.length + 1) <= more.remaining) {
+        println("takeUntil1")
+        if ((found.length + 1) <= more.remaining) { // not: <
+          println("done " + more)
           (Done((taken ++ found).decode(cset)), Elem(more.drop(1)))
         } else {
+          println("cont ")
           (Cont(cont(taken ++ found)), Empty)
         }
     }
@@ -149,12 +151,13 @@ object Iteratees {
       case Eof | Empty ⇒ throw EOF
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
-        println("takeUntil2 before " + more + " " + more.remaining + " " + more.length)
         val found = more.takeUntil(delimiter)
-        println("takeUntil2 " + found.length + " " + more.remaining + " " + more.length)
-        if ((found.length + delimiter.length) <= more.remaining) {
+        println("takeUntil2")
+        if ((found.length + delimiter.length) <= more.remaining) { // not: <
+          println("done " + more)
           (Done((taken ++ found).decode(cset)), Elem(more.drop(delimiter.length)))
         } else {
+          println("cont")
           (Cont(cont(taken ++ found)), Empty)
         }
     }
@@ -190,7 +193,7 @@ object Iteratees {
     Cont(cont(Io.empty))
   }
 
-  private[this] val EOF = new EOFException
+  private[this] lazy val EOF = new EOFException
 
 }
 

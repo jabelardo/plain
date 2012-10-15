@@ -23,6 +23,8 @@ package object config
 
   final val logConfigOnStart = getBoolean("plain.config.log-config-on-start")
 
+  final val rethrowExceptionOnError = getBoolean("plain.config.rethrow-exception-on-error")
+
   final val printStackTraceOnError = getBoolean("plain.config.print-stacktrace-on-error")
 
   final val terminateOnError = getBoolean("plain.config.terminate-on-error")

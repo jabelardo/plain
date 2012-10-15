@@ -78,7 +78,7 @@ abstract class BaseComponent[C](val name: String)
     if (isStarted) {
       stop
       started = false
-      sleep(100)
+      sleep(1)
     }
   } catch {
     case e: Throwable ⇒ println("Excption during stop of '" + name + "' : " + e)

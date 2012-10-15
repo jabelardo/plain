@@ -26,7 +26,7 @@ object HttpVersion {
       if (treadAnyVersionAs11)
         `HTTP/1.1`
       else
-        throw BadRequest("Unsupported http version " + v)
+        throw BadRequest("Unsupported http version: [" + v + "]")
   }
 
 }

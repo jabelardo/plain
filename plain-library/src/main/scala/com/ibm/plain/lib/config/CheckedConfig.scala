@@ -17,7 +17,9 @@ trait CheckedConfig
   }
 
   def handleError(e: Throwable) = {
-    if (terminateOnError)
+    if (rethrowExceptionOnError)
+      throw e
+    else if (terminateOnError)
       bootstrap.terminateJvm(e, terminateOnErrorExitCode, printStackTraceOnError)
     else if (printStackTraceOnError)
       e.printStackTrace
