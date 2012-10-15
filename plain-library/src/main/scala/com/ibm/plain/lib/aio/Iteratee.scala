@@ -8,6 +8,7 @@ import java.io.EOFException
 import java.nio.charset.Charset
 
 import scala.annotation.tailrec
+import scala.math.max
 
 import Input.{ Elem, Empty, Eof, Failure }
 
@@ -104,93 +105,85 @@ final case class Cont[E, +A](cont: Input[E] ⇒ (Iteratee[E, A], Input[E])) exte
  */
 object Iteratees {
 
-  def take(n: Int)(implicit cset: Charset) = iter(n)(cset)(in ⇒ in.take(n))
+  import Io._
 
-  def peek(n: Int)(implicit cset: Charset) = iter(n)(cset)(in ⇒ in.peek(n))
+  def take(n: Int)(implicit cset: Charset) = {
+    def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
+      case Eof ⇒ throw EOF
+      case Failure(e) ⇒ (Error(e), input)
+      case Elem(more) ⇒
+        val in = more ++ (taken.bytestring ++ more.bytestring)
+        if (in.bytestring.length < n) {
+          (Cont(cont(in)), Empty)
+        } else {
+          (Done(in.bytestring.take(n).decodeString(cset.toString)), Elem(in ++ in.bytestring.drop(n)))
+        }
+    }
+    Cont(cont(Io.empty))
+  }
+
+  def peek(n: Int)(implicit cset: Charset) = {
+    def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
+      case Failure(e) ⇒ println("error " + e); (Error(e), input)
+      case Eof ⇒
+        (Done(taken.bytestring.decodeString(cset.toString)), Eof)
+      case Elem(more) ⇒
+        val in = more ++ (taken.bytestring ++ more.bytestring)
+        if (in.bytestring.length < n) {
+          (Cont(cont(in)), Empty)
+        } else {
+          (Done(in.bytestring.take(n).decodeString(cset.toString)), Elem(in))
+        }
+    }
+    Cont(cont(Io.empty))
+  }
 
   def takeWhile(p: Int ⇒ Boolean)(implicit cset: Charset): Iteratee[Io, String] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
-      case Eof | Empty ⇒ throw EOF
+      case Eof ⇒ throw EOF
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
-        val found = more.takeWhile(p)
-        println("takeWhile ext " + found + " " + more)
-        if (0 < more.available) { // not: <=
-          println("done " + taken + " " + found + " " + more)
-          (Done((taken ++ found).decode(cset)), Elem(more))
+        val pp: Byte ⇒ Boolean = b ⇒ p(b)
+        val (found, remaining) = more.bytestring.span(pp)
+        if (remaining.isEmpty) {
+          (Cont(cont(more ++ (taken.bytestring ++ found))), Empty)
         } else {
-          println("cont")
-          (Cont(cont(taken ++ found)), Empty)
+          (Done((more ++ (taken.bytestring ++ found)).bytestring.decodeString(cset.toString)), Elem(more ++ remaining))
         }
     }
     Cont(cont(Io.empty))
   }
 
-  def takeUntil(p: Int ⇒ Boolean)(implicit cset: Charset): Iteratee[Io, String] = takeWhile(b ⇒ !p(b))
-
-  def takeUntil(delimiter: Byte)(implicit cset: Charset): Iteratee[Io, String] = {
-    def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
-      case Eof | Empty ⇒ throw EOF
-      case Failure(e) ⇒ (Error(e), input)
-      case Elem(more) ⇒
-        val found = more.takeUntil(delimiter)
-        println("takeUntil1")
-        if ((found.length + 1) <= more.remaining) { // not: <
-          println("done " + more)
-          (Done((taken ++ found).decode(cset)), Elem(more.drop(1)))
-        } else {
-          println("cont ")
-          (Cont(cont(taken ++ found)), Empty)
-        }
-    }
-    Cont(cont(Io.empty))
-  }
+  def takeUntil(p: Int ⇒ Boolean)(implicit cset: Charset): Iteratee[Io, String] = takeWhile(b ⇒ !p(b))(cset)
 
   def takeUntil(delimiter: Array[Byte])(implicit cset: Charset): Iteratee[Io, String] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
-      case Eof | Empty ⇒ throw EOF
+      case Eof ⇒ throw EOF
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
-        val found = more.takeUntil(delimiter)
-        println("takeUntil2")
-        if ((found.length + delimiter.length) <= more.remaining) { // not: <
-          println("done " + more)
-          (Done((taken ++ found).decode(cset)), Elem(more.drop(delimiter.length)))
+        val in = more ++ (taken.bytestring ++ more.bytestring)
+        val pos = in.bytestring.indexOfSlice(delimiter, max(taken.bytestring.length - delimiter.length, 0))
+        if (0 <= pos) {
+          (Done(in.bytestring.take(pos).decodeString(cset.toString)), Elem(in ++ in.bytestring.drop(pos + delimiter.length)))
         } else {
-          println("cont")
-          (Cont(cont(taken ++ found)), Empty)
+          (Cont(cont(in)), Empty)
         }
     }
     Cont(cont(Io.empty))
   }
 
   def drop(n: Int): Iteratee[Io, Unit] = {
-    def cont(left: Int)(input: Input[Io]): (Iteratee[Io, Unit], Input[Io]) = input match {
-      case Eof | Empty ⇒ throw EOF
+    def cont(remaining: Int)(input: Input[Io]): (Iteratee[Io, Unit], Input[Io]) = input match {
+      case Eof ⇒ throw EOF
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
-        if (left <= more.length) {
-          (Done(()), Elem(more.drop(left)))
+        if (remaining > more.bytestring.length) {
+          (Cont(cont(remaining - more.bytestring.length)), Empty)
         } else {
-          (Cont(cont(left - more.length)), Empty)
+          (Done(()), Elem(more ++ more.bytestring.drop(remaining)))
         }
     }
     Cont(cont(n))
-  }
-
-  private[this] def iter(n: Int)(cset: Charset)(f: Io ⇒ Io): Iteratee[Io, String] = {
-    def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
-      case Eof | Empty ⇒ throw EOF
-      case Failure(e) ⇒ (Error(e), input)
-      case Elem(more) ⇒
-        val in = taken ++ more
-        if (in.length >= n) {
-          (Done(f(in).decode(cset)), Elem(in))
-        } else {
-          (Cont(cont(in)), Empty)
-        }
-    }
-    Cont(cont(Io.empty))
   }
 
   private[this] lazy val EOF = new EOFException

@@ -24,9 +24,9 @@ import time.infoNanos
  */
 private object HttpConstants {
 
-  final val ` ` = ' '.toByte
-  final val `\t` = '\t'.toByte
-  final val `:` = ':'.toByte
+  final val ` ` = " ".getBytes
+  final val `\t` = "\t".getBytes
+  final val `:` = ":".getBytes
   final val `/` = "/"
   final val `?` = "?"
   final val `\r\n` = "\r\n".getBytes
@@ -40,7 +40,7 @@ private object HttpConstants {
   final val digit = b('0' to '9')
   final val hex = digit | b('a' to 'f') | b('A' to 'F')
   final val control = b(0 to 31) + del
-  final val whitespace = b(` `, `\t`)
+  final val whitespace = b(' ', '\t')
   final val separators = whitespace | b('(', ')', '[', ']', '<', '>', '@', ',', ';', ':', '\\', '\"', '/', '?', '=', '{', '}')
   final val text = char -- control ++ whitespace
   final val token = char -- control -- separators
@@ -82,7 +82,7 @@ private object HttpIteratee {
 
       def readUriSegment(allowed: Set[Int]): Iteratee[Io, String] = for {
         segment ← takeWhile(allowed)(defaultCharacterSet)
-      } yield if (disableUrlDecoding) segment else codec.decode(segment)
+      } yield if (disableUrlDecoding) p(segment) else p(codec.decode(segment))
 
       val readPath: Iteratee[Io, List[String]] = {
 
@@ -91,8 +91,8 @@ private object HttpIteratee {
             _ ← drop(1)
             segment ← readUriSegment(path)
             more ← cont(if (0 < segment.length) segment :: segments else segments)
-          } yield more
-          case a ⇒ println("peek " + a); println("done segments " + segments.reverse); Done(segments.reverse)
+          } yield p(more)
+          case a ⇒ Done(segments.reverse)
         }
 
         cont(List.empty)
@@ -102,7 +102,7 @@ private object HttpIteratee {
         case `?` ⇒ for {
           _ ← drop(1)
           query ← readUriSegment(query)
-        } yield Some(query)
+        } yield p(Some(query))
         case _ ⇒ Done(None)
       }
 
@@ -110,7 +110,7 @@ private object HttpIteratee {
         case `/` ⇒ for {
           path ← readPath
           query ← readQuery
-        } yield (path, query)
+        } yield p((path, query))
         case _ ⇒ throw BadRequest("Invalid request URI.")
       }
     }
@@ -120,25 +120,21 @@ private object HttpIteratee {
       (uri, query) ← readRequestUri
       _ ← takeWhile(whitespace)
       version ← takeUntil(`\r\n`)
-    } yield {
-      val l = (HttpMethod(method), uri, query, HttpVersion(version))
-      println(">>>>>>>> " + l); l
-    }
+    } yield p((HttpMethod(method), uri, query, HttpVersion(version)))
+
   }
 
   final val readRequestHeaders: Iteratee[Io, List[HttpHeader]] = {
 
     val readHeader: Iteratee[Io, HttpHeader] = {
 
-      @noinline def cont(lines: String): Iteratee[Io, String] = {
-        println("line<" + lines + ">"); peek(1) >>> {
-          case " " | "\t" ⇒ for {
-            _ ← drop(1)
-            line ← takeUntil(`\r\n`)
-            more ← cont(lines + line)
-          } yield more
-          case _ ⇒ Done(lines)
-        }
+      @noinline def cont(lines: String): Iteratee[Io, String] = peek(1) >>> {
+        case " " | "\t" ⇒ for {
+          _ ← drop(1)
+          line ← takeUntil(`\r\n`)
+          more ← cont(lines + line)
+        } yield more
+        case _ ⇒ Done(lines)
       }
 
       for {
@@ -149,10 +145,7 @@ private object HttpIteratee {
           line ← takeUntil(`\r\n`)
           morelines ← cont(line)
         } yield morelines
-      } yield {
-        val h = HttpHeader(name, value)
-        println(">>>>>>>>>>> " + h); h
-      }
+      } yield p(HttpHeader(name, value))
 
     }
 
@@ -163,8 +156,8 @@ private object HttpIteratee {
       } yield done
       case _ ⇒ for {
         header ← readHeader
-        more ← cont(header :: headers)
-      } yield more
+        moreheaders ← cont(header :: headers)
+      } yield moreheaders
     }
 
     cont(List.empty)
@@ -178,7 +171,9 @@ private object HttpIteratee {
     (method, path, query, version) ← readRequestLine
     headers ← readRequestHeaders
     body ← readRequestBody(headers)
-  } yield HttpRequest(method, path, query, version, headers, body)
+  } yield p(HttpRequest(method, path, query, version, headers, body))
+
+  private[this] final def p[A](a: A): A = { if (false) println("result " + a); a }
 
 }
 
