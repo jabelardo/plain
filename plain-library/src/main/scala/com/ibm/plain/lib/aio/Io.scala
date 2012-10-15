@@ -61,6 +61,11 @@ final case class Io(
 
   def ++(expected: Long) = Io(server, channel, buffer, bytestring, iteratee, k, n, expected)
 
+  /**
+   * The Io 'that' always reflects the most current state, therefore it returns that ++ (this.bytestring + that.bytestring)
+   */
+  def ++(that: Io): Io = that ++ (this.bytestring ++ that.bytestring)
+
 }
 
 /**
@@ -70,10 +75,22 @@ object Io
 
   extends HasLogger {
 
+  /**
+   * Helpers
+   */
   final val empty = Io(null, null, null, ByteString.empty, null, null, -1, -1)
 
   type IoHandler = Io ⇒ Unit
 
+  implicit def io2bytestring(io: Io): ByteString = io.bytestring
+
+  @inline final def decode(io: Io)(implicit cset: Charset): String = io.bytestring.decodeString(cset.toString)
+
+  @inline final def decode(bytestring: ByteString)(implicit cset: Charset): String = bytestring.decodeString(cset.toString)
+
+  /**
+   * Aio handling.
+   */
   private[this] val accepthandler = new Handler[Channel, Io] {
 
     def completed(c: Channel, io: Io) = try {

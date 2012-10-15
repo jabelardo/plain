@@ -112,11 +112,11 @@ object Iteratees {
       case Eof ⇒ throw EOF
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
-        val in = more ++ (taken.bytestring ++ more.bytestring)
+        val in = taken ++ more
         if (in.bytestring.length < n) {
           (Cont(cont(in)), Empty)
         } else {
-          (Done(in.bytestring.take(n).decodeString(cset.toString)), Elem(in ++ in.bytestring.drop(n)))
+          (Done(decode(in.bytestring.take(n))), Elem(in ++ in.drop(n)))
         }
     }
     Cont(cont(Io.empty))
@@ -124,15 +124,15 @@ object Iteratees {
 
   def peek(n: Int)(implicit cset: Charset) = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
-      case Failure(e) ⇒ println("error " + e); (Error(e), input)
+      case Failure(e) ⇒ (Error(e), input)
       case Eof ⇒
-        (Done(taken.bytestring.decodeString(cset.toString)), Eof)
+        (Done(decode(taken)), Eof)
       case Elem(more) ⇒
-        val in = more ++ (taken.bytestring ++ more.bytestring)
+        val in = taken ++ more
         if (in.bytestring.length < n) {
           (Cont(cont(in)), Empty)
         } else {
-          (Done(in.bytestring.take(n).decodeString(cset.toString)), Elem(in))
+          (Done(decode(in.bytestring.take(n))), Elem(in))
         }
     }
     Cont(cont(Io.empty))
@@ -144,11 +144,11 @@ object Iteratees {
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
         val pp: Byte ⇒ Boolean = b ⇒ p(b)
-        val (found, remaining) = more.bytestring.span(pp)
+        val (found, remaining) = more.span(pp)
         if (remaining.isEmpty) {
-          (Cont(cont(more ++ (taken.bytestring ++ found))), Empty)
+          (Cont(cont(taken ++ more ++ found)), Empty)
         } else {
-          (Done((more ++ (taken.bytestring ++ found)).bytestring.decodeString(cset.toString)), Elem(more ++ remaining))
+          (Done(decode(taken ++ more ++ found)), Elem(more ++ remaining))
         }
     }
     Cont(cont(Io.empty))
@@ -161,10 +161,10 @@ object Iteratees {
       case Eof ⇒ throw EOF
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
-        val in = more ++ (taken.bytestring ++ more.bytestring)
-        val pos = in.bytestring.indexOfSlice(delimiter, max(taken.bytestring.length - delimiter.length, 0))
+        val in = taken ++ more
+        val pos = in.indexOfSlice(delimiter, max(taken.length - delimiter.length, 0))
         if (0 <= pos) {
-          (Done(in.bytestring.take(pos).decodeString(cset.toString)), Elem(in ++ in.bytestring.drop(pos + delimiter.length)))
+          (Done(decode(in.take(pos))), Elem(in ++ in.drop(pos + delimiter.length)))
         } else {
           (Cont(cont(in)), Empty)
         }
@@ -177,10 +177,11 @@ object Iteratees {
       case Eof ⇒ throw EOF
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
-        if (remaining > more.bytestring.length) {
-          (Cont(cont(remaining - more.bytestring.length)), Empty)
+        val len = more.length
+        if (remaining > len) {
+          (Cont(cont(remaining - len)), Empty)
         } else {
-          (Done(()), Elem(more ++ more.bytestring.drop(remaining)))
+          (Done(()), Elem(more ++ more.drop(remaining)))
         }
     }
     Cont(cont(n))
