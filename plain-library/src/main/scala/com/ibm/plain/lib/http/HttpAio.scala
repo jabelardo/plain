@@ -1,4 +1,4 @@
-package com.ibm.plain
+/*package com.ibm.plain
 
 package lib
 
@@ -11,13 +11,13 @@ import scala.util.continuations.{ reset, shift, suspendable }
 
 import com.ibm.plain.lib.aio.Iteratee
 
-import HttpIteratees.readRequest
+import HttpIteratee.readRequest
 import aio.{ ByteBufferInput, Cont, Error }
 import aio.Input.{ Elem, Eof }
 
 object HttpAio {
 
-  import HttpIteratees._
+  import HttpIteratee._
 
   /**
    * async stuff, incredibly difficult
@@ -116,7 +116,6 @@ object HttpAio {
       readR(accept(server))
       println
     }
-
   }
 
   private[this] final val response = """HTTP/1.1 200 OK
@@ -127,4 +126,5 @@ Connection: keep-alive
 
 PONG!""".getBytes
 
-}
+}*/
+

@@ -44,9 +44,9 @@ object Main extends App {
       warning("warning " + c)
       error("error " + c)
     }
-    println("before end of run")
   }
-  println("after plain")
+
+  println("run finished")
 
 }
 

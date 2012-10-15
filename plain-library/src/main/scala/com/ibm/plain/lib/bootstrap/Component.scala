@@ -71,14 +71,14 @@ abstract class BaseComponent[C](val name: String)
       started = true
     }
   } catch {
-    case e: Throwable ⇒ println("Excption during start of '" + name + "' : " + e)
+    case e: Throwable ⇒ println("Excption during start of '" + name + "' : " + e); e.printStackTrace; throw e
   }
 
   def doStop = try {
     if (isStarted) {
       stop
       started = false
-      sleep(200)
+      sleep(100)
     }
   } catch {
     case e: Throwable ⇒ println("Excption during stop of '" + name + "' : " + e)

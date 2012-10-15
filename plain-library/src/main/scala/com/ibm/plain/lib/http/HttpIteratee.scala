@@ -13,7 +13,7 @@ import org.apache.commons.codec.net.URLCodec
 import com.ibm.plain.lib.aio.Iteratee
 
 import HttpConstants.codec
-import aio.{ ByteBufferInput, Done, Input, Iteratee }
+import aio.{ Io, Done, Input, Iteratee }
 import aio.Iteratees.{ drop, peek, take, takeUntil, takeWhile }
 import logging.HasLogger
 import text.{ ASCII, UTF8 }
@@ -62,7 +62,7 @@ private object HttpConstants {
 /**
  * Consuming the input stream to produce a HttpRequest.
  */
-private object HttpIteratees {
+private object HttpIteratee {
 
   import HttpConstants._
 
@@ -78,15 +78,15 @@ private object HttpIteratees {
 
   final val readRequestLine = {
 
-    val readRequestUri: Iteratee[ByteBufferInput, (List[String], Option[String])] = {
+    val readRequestUri: Iteratee[Io, (List[String], Option[String])] = {
 
-      def readUriSegment(allowed: Set[Int]): Iteratee[ByteBufferInput, String] = for {
+      def readUriSegment(allowed: Set[Int]): Iteratee[Io, String] = for {
         segment ← takeWhile(allowed)(defaultCharacterSet)
       } yield if (disableUrlDecoding) segment else codec.decode(segment)
 
-      val readPath: Iteratee[ByteBufferInput, List[String]] = {
+      val readPath: Iteratee[Io, List[String]] = {
 
-        @noinline def cont(segments: List[String]): Iteratee[ByteBufferInput, List[String]] = peek(1) >>> {
+        @noinline def cont(segments: List[String]): Iteratee[Io, List[String]] = peek(1) >>> {
           case `/` ⇒ for {
             _ ← drop(1)
             segment ← readUriSegment(path)
@@ -98,7 +98,7 @@ private object HttpIteratees {
         cont(List.empty)
       }
 
-      val readQuery: Iteratee[ByteBufferInput, Option[String]] = peek(1) >>> {
+      val readQuery: Iteratee[Io, Option[String]] = peek(1) >>> {
         case `?` ⇒ for {
           _ ← drop(1)
           query ← readUriSegment(query)
@@ -123,30 +123,34 @@ private object HttpIteratees {
     } yield (HttpMethod(method), uri, query, HttpVersion(version))
   }
 
-  final val readRequestHeaders: Iteratee[ByteBufferInput, List[HttpHeader]] = {
+  final val readRequestHeaders: Iteratee[Io, List[HttpHeader]] = {
 
-    val readHeader: Iteratee[ByteBufferInput, HttpHeader] = {
+    val readHeader: Iteratee[Io, HttpHeader] = {
 
-      def readMultipleLines(lines: String): Iteratee[ByteBufferInput, String] = peek(1) >>> {
-        case " " | "\t" ⇒ for {
-          _ ← drop(1)
-          line ← takeUntil(`\r\n`)
-          more ← readMultipleLines(lines + line)
-        } yield more
-        case _ ⇒ Done(lines)
+      @noinline def cont(lines: String): Iteratee[Io, String] = {
+        println("line<" + lines + ">"); peek(1) >>> {
+          case " " | "\t" ⇒ for {
+            _ ← drop(1)
+            line ← takeUntil(`\r\n`)
+            more ← cont(lines + line)
+          } yield more
+          case _ ⇒ Done(lines)
+        }
       }
+
       for {
         name ← readToken
         _ ← takeUntil(`:`)
-        _ ← takeWhile(whitespace)
+        ws ← takeWhile(whitespace)
         value ← for {
           line ← takeUntil(`\r\n`)
-          morelines ← readMultipleLines(line)
+          morelines ← cont(line)
         } yield morelines
-      } yield HttpHeader(name, value)
+      } yield { println("ws<" + ws + ">"); val h = HttpHeader(name, value); println(">>>>>>>>>>>>>>>header " + h); h }
+
     }
 
-    @noinline def cont(headers: List[HttpHeader]): Iteratee[ByteBufferInput, List[HttpHeader]] = peek(2) >>> {
+    @noinline def cont(headers: List[HttpHeader]): Iteratee[Io, List[HttpHeader]] = peek(2) >>> {
       case "\r\n" ⇒ for {
         _ ← takeUntil(`\r\n`)
         done ← Done(headers.reverse)
@@ -160,15 +164,7 @@ private object HttpIteratees {
     cont(List.empty)
   }
 
-  final def readRequestBody(headers: List[HttpHeader]): Iteratee[ByteBufferInput, HttpRequestBody] = {
-    headers.foreach(_ match {
-      case length @ HttpHeader.`Content-Length`(_) ⇒
-        val bytes = for {
-          body ← take(length.intValue)
-        } yield body.getBytes
-        return Done(BytesRequestBody(bytes.result))
-      case _ ⇒ ()
-    })
+  final def readRequestBody(headers: List[HttpHeader]): Iteratee[Io, HttpRequestBody] = {
     Done(NoneRequestBody)
   }
 
@@ -182,7 +178,7 @@ private object HttpIteratees {
 
 object HttpTest extends App with HasLogger {
 
-  import HttpIteratees._
+  import HttpIteratee._
 
   def apply = try {
 
@@ -195,7 +191,7 @@ object HttpTest extends App with HasLogger {
     val req = "GET /a/b//////c/%32%33d/e//XYZ/%c3%84_%c3%96_%c3%9c_%c3%a4_%c3%b6_%c3%bc_%c3%9f/%E9%BA%B5%E5%8C%85/?this%20query%21%E4%BA%8C%E4%B8%8D%E4%BA%8C%E7%9A%84%E4%BA%8C/%21#this_is_fragment HTTP/1.1\r\nHost: localhost:7500\r\nAccept: */*\r\nAccept-Encoding: gzip, deflate; g=1.0\r\nUser-Agent: JoeDog/1.00 [en] (X11; I; Siege 2.72)\r\n more user agent.\r\nConnection: keep-alive\r\n\r\n".getBytes(UTF8)
 
     for (_ ← 1 to 1) infoNanos(try {
-      val input = Input.Elem(ByteBufferInput(ByteBuffer.wrap(req)))
+      val input = Input.Elem(Io.empty ++ ByteBuffer.wrap(req))
       readRequest(input) match {
         case (Done(r), _) ⇒ // println(r)
         case e ⇒ println(e)

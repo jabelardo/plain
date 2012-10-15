@@ -8,7 +8,6 @@ import os._
 import json._
 import io._
 import http._
-import http.HttpAio._
 
 @Test class TestLib {
 

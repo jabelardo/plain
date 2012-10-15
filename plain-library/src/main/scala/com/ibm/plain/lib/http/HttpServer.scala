@@ -5,13 +5,18 @@ package lib
 package http
 
 import java.net.InetSocketAddress
+import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousChannelGroup ⇒ Group, AsynchronousServerSocketChannel ⇒ ServerChannel }
-import java.util.concurrent.{ ForkJoinPool, TimeUnit }
+import java.util.concurrent.TimeUnit
+
 import scala.concurrent.util.Duration
+import scala.util.continuations.{ reset, shift, suspendable }
+
+import HttpIteratee.readRequest
+import aio.{ Cont, Done, Error }
+import aio.Io._
 import bootstrap.BaseComponent
 import logging.HasLogger
-import concurrent.{ sleep }
-import akka.dispatch.ExecutionContexts
 
 /**
  *
@@ -34,9 +39,9 @@ case class HttpServer(
   override def start = try {
     if (isEnabled) {
       serverChannel = ServerChannel.open(channelGroup).bind(new InetSocketAddress(port), backlog)
-
-      HttpAio.test(serverChannel)
-
+      reset {
+        handle(accept(serverChannel) ++ readRequest)
+      }
       debug(name + " has started.")
     }
     this

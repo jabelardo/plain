@@ -4,8 +4,6 @@ package lib
 
 package aio
 
-import scala.concurrent.util.Duration
-
 import bootstrap.BaseComponent
 
 /**
