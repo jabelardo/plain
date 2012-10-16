@@ -14,11 +14,6 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
 
   extends HasLogger {
 
-  /**
-   * This is an expensive O(n) operation, call it with care.
-   */
-  def size = pool.size
-
   @tailrec def getBuffer: ByteBuffer = {
     if (trylock) {
       try pool match {

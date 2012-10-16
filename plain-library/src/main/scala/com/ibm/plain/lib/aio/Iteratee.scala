@@ -67,7 +67,7 @@ object Iteratee {
 
     def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = {
 
-      @tailrec def run(
+      @inline @tailrec def run(
         result: (Iteratee[E, Any], Input[E]),
         out: List[Any ⇒ Iteratee[E, Any]],
         in: List[Any ⇒ Iteratee[E, Any]]): (Iteratee[E, Any], Input[E]) = {
@@ -112,9 +112,7 @@ object Iteratees {
       case Eof ⇒ throw EOF
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
-        println("it take1 " + taken + more)
         val in = taken ++ more
-        println("it take2 " + n + " " + in.length + " " + in)
         if (in.length < n) {
           (Cont(cont(in)), Empty)
         } else {
@@ -130,14 +128,10 @@ object Iteratees {
       case Eof ⇒
         (Done(taken.decode), Eof)
       case Elem(more) ⇒
-        println("it peek1 " + taken + more)
         val in = taken ++ more
-        println("it peek2 " + n + " " + in.length)
         if (in.length < n) {
-          println("cont")
           (Cont(cont(in)), Empty)
         } else {
-          println("done")
           (Done(in.peek(n).decode), Elem(in))
         }
     }
@@ -149,15 +143,11 @@ object Iteratees {
       case Eof ⇒ throw EOF
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
-        println("it takeWhile1 " + taken + more)
         val in = taken ++ more
         val (found, remaining) = in.span(p)
-        println("it takeWhile2 " + found + " " + remaining)
         if (0 < remaining) {
-          println("done")
           (Done(in.take(found).decode), Elem(in))
         } else {
-          println("cont")
           (Cont(cont(in)), Empty)
         }
     }
@@ -171,15 +161,11 @@ object Iteratees {
       case Eof ⇒ throw EOF
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
-        println("it takeUntil1 " + taken + more)
         val in = taken ++ more
         val pos = in.indexOf(delimiter)
-        println("it takeUntil2 " + pos)
         if (0 > pos) {
-          println("cont")
           (Cont(cont(in)), Empty)
         } else {
-          println("done")
           (Done(in.take(pos).decode), Elem(in.drop(1)))
         }
     }
@@ -191,14 +177,10 @@ object Iteratees {
       case Eof ⇒ throw EOF
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
-        println("it drop1 " + more)
         val len = more.length
-        println("it drop2 " + n + " " + remaining + " " + len)
         if (remaining > len) {
-          println("cont")
           (Cont(cont(remaining - len)), Empty)
         } else {
-          println("done")
           (Done(()), Elem(more.drop(remaining)))
         }
     }
@@ -208,4 +190,3 @@ object Iteratees {
   private[this] lazy val EOF = new EOFException
 
 }
-

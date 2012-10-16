@@ -72,11 +72,11 @@ private object HttpIteratee {
 
   final val readToken = for {
     token ← takeWhile(token)(defaultCharacterSet)
-  } yield p(token)
+  } yield token
 
   final val readText = for {
     text ← takeWhile(text)(defaultCharacterSet)
-  } yield p(text)
+  } yield text
 
   final val readRequestLine = {
 
@@ -84,7 +84,7 @@ private object HttpIteratee {
 
       def readUriSegment(allowed: Set[Int]): Iteratee[Io, String] = for {
         segment ← takeWhile(allowed)(defaultCharacterSet)
-      } yield if (disableUrlDecoding) p(segment) else p(codec.decode(segment))
+      } yield if (disableUrlDecoding) segment else codec.decode(segment)
 
       val readPath: Iteratee[Io, List[String]] = {
 
@@ -93,7 +93,7 @@ private object HttpIteratee {
             _ ← drop(1)
             segment ← readUriSegment(path)
             more ← cont(if (0 < segment.length) segment :: segments else segments)
-          } yield p(more)
+          } yield more
           case a ⇒ Done(segments.reverse)
         }
 
@@ -104,7 +104,7 @@ private object HttpIteratee {
         case `?` ⇒ for {
           _ ← drop(1)
           query ← readUriSegment(query)
-        } yield p(Some(query))
+        } yield Some(query)
         case _ ⇒ Done(None)
       }
 
@@ -112,7 +112,7 @@ private object HttpIteratee {
         case `/` ⇒ for {
           path ← readPath
           query ← readQuery
-        } yield p((path, query))
+        } yield (path, query)
         case _ ⇒ throw BadRequest("Invalid request URI.")
       }
     }
@@ -123,7 +123,7 @@ private object HttpIteratee {
       _ ← takeWhile(whitespace)
       version ← takeUntil(`\r`)
       _ ← drop(1)
-    } yield p((HttpMethod(method), uri, query, HttpVersion(version)))
+    } yield (HttpMethod(method), uri, query, HttpVersion(version))
 
   }
 
@@ -150,7 +150,7 @@ private object HttpIteratee {
           _ ← drop(1)
           morelines ← cont(line)
         } yield morelines
-      } yield p(HttpHeader(name, value))
+      } yield HttpHeader(name, value)
 
     }
 
@@ -176,15 +176,15 @@ private object HttpIteratee {
     (method, path, query, version) ← readRequestLine
     headers ← readRequestHeaders
     body ← readRequestBody(headers)
-  } yield p(HttpRequest(method, path, query, version, headers, body))
+  } yield HttpRequest(method, path, query, version, headers, body)
 
   final val readRequest2 = for {
     _ ← drop(4)
     peek ← peek(12)
     all ← take(158)
-  } yield p((peek, all, all.length))
+  } yield (peek, all, all.length)
 
-  private[this] final def p[A](a: A): A = { if (true) println("result [" + a + "]"); a }
+  // @inline private[this] final def p[A](a: A): A = a // { if (true) println("result [" + a + "]"); a }
 
 }
 

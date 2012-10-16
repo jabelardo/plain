@@ -59,7 +59,6 @@ abstract sealed class IoHelper[E <: Io] {
     val l = buffer.limit
     var i = p
     while (i < l && b != buffer.get(i)) i += 1
-    println("indexOf " + i + " " + buffer)
     if (i == l) -1 else i - p
   }
 
@@ -69,7 +68,6 @@ abstract sealed class IoHelper[E <: Io] {
     val l = buffer.limit
     var i = pos
     while (i < l && p(buffer.get(i))) i += 1
-    println("span " + i + buffer)
     (i - pos, l - i)
   }
 
@@ -88,7 +86,7 @@ abstract sealed class IoHelper[E <: Io] {
     a
   }
 
-  final def render[A](a: A): A = { println(a + " [" + asString + "]" + buffer + " " + limitmark + " " + positionmark); a }
+  final def render[A](a: A): A = a // { println(a + " [" + asString + "]" + buffer + " " + limitmark + " " + positionmark); a }
 
   final def asString = {
     val a = new Array[Byte](buffer.remaining)
@@ -147,31 +145,19 @@ final case class Io(
   /**
    * The trick method of the entire algorithm, it should be called only when the buffer is too small and on start with Io.empty.
    */
-  def ++(that: Io): Io = {
-    println("++ " + this + that)
-    if (this eq that) {
-      this
-    } else if (0 == this.length) {
-      that
-    } else if (0 == that.length) {
-      this
-    } else {
-      if (this.buffer eq that.buffer) {
-        println("same bytebuffers")
-        this
-      } else {
-        println("not same bytebuffers")
-        val len = this.length + that.length
-        println("len " + len)
-        val b = bestFitByteBuffer(len)
-        b.put(this.readBytes)
-        releaseByteBuffer(this.buffer)
-        b.put(that.buffer)
-        releaseByteBuffer(that.buffer)
-        b.flip
-        that ++ b
-      }
-    }
+  final def ++(that: Io): Io = if (0 == this.length) {
+    that
+  } else if (0 == that.length) {
+    this
+  } else {
+    val len = this.length + that.length
+    val b = bestFitByteBuffer(len)
+    b.put(this.readBytes)
+    releaseByteBuffer(this.buffer)
+    b.put(that.buffer)
+    releaseByteBuffer(that.buffer)
+    b.flip
+    that ++ b
   }
 
 }
@@ -243,10 +229,8 @@ object Io
       case io ⇒ io.iteratee(Eof)
     }) match {
       case (cont @ Cont(_), Empty) ⇒
-        println("!!!!!!need to read more " + io)
         handle(io ++ cont ++ defaultByteBuffer)
       case (e @ Done(a), el @ Elem(io)) ⇒
-        // println("[" + a + "]")
         releaseByteBuffer(io.buffer)
         respond(io ++ ByteBuffer.wrap(response))
         handle(io ++ defaultByteBuffer)
