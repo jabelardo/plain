@@ -145,7 +145,7 @@ final case class Io(
   @inline def ++(expected: Long) = Io(server, channel, buffer, iteratee, k, readwritten, expected)
 
   /**
-   * The trick method of the entire algorithm, it should be called only when the buffer is too small.
+   * The trick method of the entire algorithm, it should be called only when the buffer is too small and on start with Io.empty.
    */
   def ++(that: Io): Io = {
     println("++ " + this + that)

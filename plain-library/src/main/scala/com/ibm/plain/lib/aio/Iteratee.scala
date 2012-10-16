@@ -150,14 +150,15 @@ object Iteratees {
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
         println("it takeWhile1 " + taken + more)
-        val (found, remaining) = more.span(p)
+        val in = taken ++ more
+        val (found, remaining) = in.span(p)
         println("it takeWhile2 " + found + " " + remaining)
         if (0 < remaining) {
           println("done")
-          (Done((taken ++ more).take(found).decode), Elem(more))
+          (Done(in.take(found).decode), Elem(in))
         } else {
           println("cont")
-          (Cont(cont(taken ++ more)), Empty)
+          (Cont(cont(in)), Empty)
         }
     }
     Cont(cont(Io.empty))
