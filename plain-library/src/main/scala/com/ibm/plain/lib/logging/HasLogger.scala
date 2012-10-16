@@ -9,15 +9,15 @@ package logging
  */
 trait HasLogger {
 
-  protected[this] final def debug(s: String) = log.debug(s)
+  protected final def debug(s: String) = log.debug(s)
 
-  protected[this] final def info(s: String) = log.info(s)
+  protected final def info(s: String) = log.info(s)
 
-  protected[this] final def warning(s: String) = log.warning(s)
+  protected final def warning(s: String) = log.warning(s)
 
-  protected[this] final def error(s: String) = log.error(s)
+  protected final def error(s: String) = log.error(s)
 
-  protected[this] implicit final val log = createLogger(this)
+  implicit protected final val log = createLogger(this)
 
 }
 

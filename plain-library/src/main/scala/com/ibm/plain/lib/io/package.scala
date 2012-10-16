@@ -108,9 +108,9 @@ package object io
   /**
    * To make deleteDirectory more robust.
    */
-  val deleteDirectoryRetries = getInt("plain.io.delete-directory-retries")
+  val deleteDirectoryRetries = getInt("plain.io.delete-directory-retries", 5)
 
-  val deleteDirectoryTimeout = getMilliseconds("plain.io.delete-directory-timeout")
+  val deleteDirectoryPauseBetweenRetries = getMilliseconds("plain.io.delete-directory-pause-between-retries", 10000)
 
   final val temp = try {
     val tmp = getString("plain.temp", System.getenv("TMP"))
@@ -161,7 +161,7 @@ package object io
         while (0 < retries) {
           try {
             createLogger(this).info("deleteDirectory : retry " + retries + " " + directory)
-            sleep(deleteDirectoryTimeout)
+            sleep(deleteDirectoryPauseBetweenRetries)
             FileUtils.deleteDirectory(directory)
             retries = 0
           } catch {

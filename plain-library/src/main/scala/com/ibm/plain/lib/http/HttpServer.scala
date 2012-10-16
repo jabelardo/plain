@@ -4,17 +4,17 @@ package lib
 
 package http
 
-import java.net.InetSocketAddress
-import java.nio.ByteBuffer
+import java.net.{ InetSocketAddress, StandardSocketOptions }
 import java.nio.channels.{ AsynchronousChannelGroup ⇒ Group, AsynchronousServerSocketChannel ⇒ ServerChannel }
 import java.util.concurrent.TimeUnit
 
 import scala.concurrent.util.Duration
-import scala.util.continuations.{ reset, shift, suspendable }
+import scala.util.continuations.reset
+
+import com.ibm.plain.lib.bootstrap.BaseComponent
 
 import HttpIteratee.readRequest
-import aio.{ Cont, Done, Error }
-import aio.Io._
+import aio.Io.{ accept, handle }
 import bootstrap.BaseComponent
 import logging.HasLogger
 
@@ -38,7 +38,10 @@ case class HttpServer(
 
   override def start = try {
     if (isEnabled) {
-      serverChannel = ServerChannel.open(channelGroup).bind(new InetSocketAddress(port), backlog)
+      serverChannel = ServerChannel.open(channelGroup)
+      serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
+      serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(aio.defaultBufferSize))
+      serverChannel.bind(new InetSocketAddress(port), backlog)
       reset {
         handle(accept(serverChannel) ++ readRequest)
       }

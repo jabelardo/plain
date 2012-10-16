@@ -70,17 +70,12 @@ case object TRACE extends HttpMethod("TRACE")
 abstract sealed class HttpRequestBody
 
 /**
- * The 'non-existent' request body.
- */
-case object NoneRequestBody extends HttpRequestBody
-
-/**
  * The body represented by an Array[Byte] that was fully read together with the request header.
  */
 case class BytesRequestBody(bytes: Array[Byte]) extends HttpRequestBody
 
 /**
- * The body represented by a String converted from a ByteBuffer that was fully read together with the request header.
+ * The body represented by a String converted from a ByteBuffer using the specific Charset that was fully read together with the request header.
  */
 case class StringRequestBody(value: String) extends HttpRequestBody
 
@@ -105,5 +100,5 @@ case class HttpRequest(
   query: Option[String],
   version: HttpVersion,
   headers: List[HttpHeader],
-  body: HttpRequestBody)
+  body: Option[HttpRequestBody])
 

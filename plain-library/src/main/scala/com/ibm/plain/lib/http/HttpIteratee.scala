@@ -24,14 +24,16 @@ import time.infoNanos
  */
 private object HttpConstants {
 
-  final val ` ` = " ".getBytes
-  final val `\t` = "\t".getBytes
-  final val `:` = ":".getBytes
+  final val ` ` = ' '.toByte
+  final val `\t` = '\t'.toByte
+  final val `:` = ':'.toByte
+  final val `\r` = '\r'.toByte
+  final val del = 127.toByte
+
   final val `/` = "/"
   final val `?` = "?"
-  final val `\r\n` = "\r\n".getBytes
-  final val crlf = "\r\n"
-  final val del = 127.toByte
+  final val cr = "\r"
+  final val lf = "\n"
 
   final val char = b(0 to 127)
   final val lower = b('a' to 'z')
@@ -70,11 +72,11 @@ private object HttpIteratee {
 
   final val readToken = for {
     token ← takeWhile(token)(defaultCharacterSet)
-  } yield token
+  } yield p(token)
 
   final val readText = for {
     text ← takeWhile(text)(defaultCharacterSet)
-  } yield text
+  } yield p(text)
 
   final val readRequestLine = {
 
@@ -119,7 +121,8 @@ private object HttpIteratee {
       method ← takeUntil(` `)
       (uri, query) ← readRequestUri
       _ ← takeWhile(whitespace)
-      version ← takeUntil(`\r\n`)
+      version ← takeUntil(`\r`)
+      _ ← drop(1)
     } yield p((HttpMethod(method), uri, query, HttpVersion(version)))
 
   }
@@ -131,7 +134,8 @@ private object HttpIteratee {
       @noinline def cont(lines: String): Iteratee[Io, String] = peek(1) >>> {
         case " " | "\t" ⇒ for {
           _ ← drop(1)
-          line ← takeUntil(`\r\n`)
+          line ← takeUntil(`\r`)
+          _ ← drop(1)
           more ← cont(lines + line)
         } yield more
         case _ ⇒ Done(lines)
@@ -142,7 +146,8 @@ private object HttpIteratee {
         _ ← takeUntil(`:`)
         _ ← takeWhile(whitespace)
         value ← for {
-          line ← takeUntil(`\r\n`)
+          line ← takeUntil(`\r`)
+          _ ← drop(1)
           morelines ← cont(line)
         } yield morelines
       } yield p(HttpHeader(name, value))
@@ -151,7 +156,7 @@ private object HttpIteratee {
 
     @noinline def cont(headers: List[HttpHeader]): Iteratee[Io, List[HttpHeader]] = peek(2) >>> {
       case "\r\n" ⇒ for {
-        _ ← takeUntil(`\r\n`)
+        _ ← drop(2)
         done ← Done(headers.reverse)
       } yield done
       case _ ⇒ for {
@@ -163,8 +168,8 @@ private object HttpIteratee {
     cont(List.empty)
   }
 
-  final def readRequestBody(headers: List[HttpHeader]): Iteratee[Io, HttpRequestBody] = {
-    Done(NoneRequestBody)
+  final def readRequestBody(headers: List[HttpHeader]): Iteratee[Io, Option[HttpRequestBody]] = {
+    Done(None)
   }
 
   final val readRequest = for {
@@ -173,7 +178,13 @@ private object HttpIteratee {
     body ← readRequestBody(headers)
   } yield p(HttpRequest(method, path, query, version, headers, body))
 
-  private[this] final def p[A](a: A): A = { if (false) println("result " + a); a }
+  final val readRequest2 = for {
+    _ ← drop(4)
+    peek ← peek(12)
+    all ← take(158)
+  } yield p((peek, all, all.length))
+
+  private[this] final def p[A](a: A): A = { if (true) println("result [" + a + "]"); a }
 
 }
 

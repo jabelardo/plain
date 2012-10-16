@@ -8,11 +8,14 @@ import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicBoolean
 
 import scala.annotation.tailrec
+import logging.HasLogger
 
-final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int) {
+final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
+
+  extends HasLogger {
 
   /**
-   * This is an expensive O(n), call it with care.
+   * This is an expensive O(n) operation, call it with care.
    */
   def size = pool.size
 
@@ -20,7 +23,9 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int) {
     if (trylock) {
       try pool match {
         case head :: tail ⇒ pool = tail; head
-        case Nil ⇒ ByteBuffer.allocateDirect(buffersize)
+        case Nil ⇒
+          warning("ByteBufferPool exhausted : " + buffersize + ", " + initialpoolsize)
+          ByteBuffer.allocateDirect(buffersize)
       } finally unlock
 
     } else {
@@ -57,6 +62,8 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int) {
   private[this] val locked = new AtomicBoolean(false)
 
   (0 until initialpoolsize).foreach(_ ⇒ releaseBuffer(ByteBuffer.allocateDirect(buffersize)))
+
+  debug("ByteBufferPool preallocated : " + buffersize + ", " + initialpoolsize)
 
 }
 

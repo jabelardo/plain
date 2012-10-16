@@ -67,7 +67,7 @@ object Iteratee {
 
     def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = {
 
-      @inline @tailrec def run(
+      @tailrec def run(
         result: (Iteratee[E, Any], Input[E]),
         out: List[Any ⇒ Iteratee[E, Any]],
         in: List[Any ⇒ Iteratee[E, Any]]): (Iteratee[E, Any], Input[E]) = {
@@ -112,11 +112,13 @@ object Iteratees {
       case Eof ⇒ throw EOF
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
+        println("it take1 " + taken + more)
         val in = taken ++ more
-        if (in.bytestring.length < n) {
+        println("it take2 " + n + " " + in.length + " " + in)
+        if (in.length < n) {
           (Cont(cont(in)), Empty)
         } else {
-          (Done(decode(in.bytestring.take(n))), Elem(in ++ in.drop(n)))
+          (Done(in.take(n).decode), Elem(in.drop(n)))
         }
     }
     Cont(cont(Io.empty))
@@ -126,13 +128,17 @@ object Iteratees {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Failure(e) ⇒ (Error(e), input)
       case Eof ⇒
-        (Done(decode(taken)), Eof)
+        (Done(taken.decode), Eof)
       case Elem(more) ⇒
+        println("it peek1 " + taken + more)
         val in = taken ++ more
-        if (in.bytestring.length < n) {
+        println("it peek2 " + n + " " + in.length)
+        if (in.length < n) {
+          println("cont")
           (Cont(cont(in)), Empty)
         } else {
-          (Done(decode(in.bytestring.take(n))), Elem(in))
+          println("done")
+          (Done(in.peek(n).decode), Elem(in))
         }
     }
     Cont(cont(Io.empty))
@@ -143,12 +149,15 @@ object Iteratees {
       case Eof ⇒ throw EOF
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
-        val pp: Byte ⇒ Boolean = b ⇒ p(b)
-        val (found, remaining) = more.span(pp)
-        if (remaining.isEmpty) {
-          (Cont(cont(taken ++ more ++ found)), Empty)
+        println("it takeWhile1 " + taken + more)
+        val (found, remaining) = more.span(p)
+        println("it takeWhile2 " + found + " " + remaining)
+        if (0 < remaining) {
+          println("done")
+          (Done((taken ++ more).take(found).decode), Elem(more))
         } else {
-          (Done(decode(taken ++ more ++ found)), Elem(more ++ remaining))
+          println("cont")
+          (Cont(cont(taken ++ more)), Empty)
         }
     }
     Cont(cont(Io.empty))
@@ -156,17 +165,21 @@ object Iteratees {
 
   def takeUntil(p: Int ⇒ Boolean)(implicit cset: Charset): Iteratee[Io, String] = takeWhile(b ⇒ !p(b))(cset)
 
-  def takeUntil(delimiter: Array[Byte])(implicit cset: Charset): Iteratee[Io, String] = {
+  def takeUntil(delimiter: Byte)(implicit cset: Charset): Iteratee[Io, String] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Eof ⇒ throw EOF
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
+        println("it takeUntil1 " + taken + more)
         val in = taken ++ more
-        val pos = in.indexOfSlice(delimiter, max(taken.length - delimiter.length, 0))
-        if (0 <= pos) {
-          (Done(decode(in.take(pos))), Elem(in ++ in.drop(pos + delimiter.length)))
-        } else {
+        val pos = in.indexOf(delimiter)
+        println("it takeUntil2 " + pos)
+        if (0 > pos) {
+          println("cont")
           (Cont(cont(in)), Empty)
+        } else {
+          println("done")
+          (Done(in.take(pos).decode), Elem(in.drop(1)))
         }
     }
     Cont(cont(Io.empty))
@@ -177,11 +190,15 @@ object Iteratees {
       case Eof ⇒ throw EOF
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
+        println("it drop1 " + more)
         val len = more.length
+        println("it drop2 " + n + " " + remaining + " " + len)
         if (remaining > len) {
+          println("cont")
           (Cont(cont(remaining - len)), Empty)
         } else {
-          (Done(()), Elem(more ++ more.drop(remaining)))
+          println("done")
+          (Done(()), Elem(more.drop(remaining)))
         }
     }
     Cont(cont(n))

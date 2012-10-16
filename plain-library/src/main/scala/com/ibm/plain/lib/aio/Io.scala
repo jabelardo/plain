@@ -6,6 +6,7 @@ package aio
 
 import language.implicitConversions
 
+import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousServerSocketChannel ⇒ ServerChannel, AsynchronousSocketChannel ⇒ Channel, CompletionHandler ⇒ Handler }
 import java.nio.charset.Charset
@@ -14,13 +15,93 @@ import scala.util.continuations.{ reset, shift, suspendable }
 import scala.annotation.tailrec
 import scala.math.min
 
-import akka.util.ByteString
-
 import text.{ ASCII, UTF8 }
 
 import logging.HasLogger
 
 import aio.Input.{ Elem, Eof, Empty }
+
+/**
+ * Helper for Io with all low-level ByteBuffer methods.
+ */
+abstract sealed class IoHelper[E <: Io] {
+
+  private[this] val self: E = this.asInstanceOf[E]
+
+  import self._
+
+  final def decode(implicit cset: Charset): String = resetBuffer(new String(readBytes, cset))
+
+  final def length: Int = buffer.remaining
+
+  final def take(n: Int): Io = {
+    render("take " + n)
+    markLimit
+    buffer.limit(min(buffer.limit, buffer.position + n))
+    render(self)
+  }
+
+  final def peek(n: Int): Io = {
+    render("peek " + n)
+    markPosition
+    take(n)
+  }
+
+  final def drop(n: Int): Io = {
+    render("drop " + n)
+    buffer.position(min(buffer.limit, buffer.position + n))
+    render(self)
+  }
+
+  final def indexOf(b: Byte): Int = {
+    render("indexOf")
+    val p = buffer.position
+    val l = buffer.limit
+    var i = p
+    while (i < l && b != buffer.get(i)) i += 1
+    println("indexOf " + i + " " + buffer)
+    if (i == l) -1 else i - p
+  }
+
+  final def span(p: Int ⇒ Boolean): (Int, Int) = {
+    render("span")
+    val pos = buffer.position
+    val l = buffer.limit
+    var i = pos
+    while (i < l && p(buffer.get(i))) i += 1
+    println("span " + i + buffer)
+    (i - pos, l - i)
+  }
+
+  @inline protected final def readBytes: Array[Byte] = render(Array.fill(buffer.remaining)(buffer.get))
+
+  @inline private[this] final def markLimit: Unit = render(limitmark = buffer.limit)
+
+  @inline private[this] final def markPosition: Unit = render(positionmark = buffer.position)
+
+  @inline private[this] final def resetBuffer[A](a: A): A = {
+    render(a.toString)
+    require(-1 < limitmark)
+    buffer.limit(limitmark)
+    if (-1 < positionmark) { buffer.position(positionmark); positionmark = -1 }
+    render("out")
+    a
+  }
+
+  final def render[A](a: A): A = { println(a + " [" + asString + "]" + buffer + " " + limitmark + " " + positionmark); a }
+
+  final def asString = {
+    val a = new Array[Byte](buffer.remaining)
+    val p = buffer.position
+    for (i ← 0 until buffer.remaining) a.update(i, buffer.get(p + i))
+    new String(a)
+  }
+
+  private[this] final var limitmark = -1
+
+  private[this] final var positionmark = -1
+
+}
 
 /**
  * Io represents the context of an asynchronous i/o operation.
@@ -33,38 +114,65 @@ final case class Io(
 
   buffer: ByteBuffer,
 
-  bytestring: ByteString,
-
   iteratee: Iteratee[Io, _],
 
   k: Io.IoHandler,
 
-  n: Int,
+  readwritten: Int,
 
-  expected: Long) {
+  expected: Long)
+
+  extends IoHelper[Io] {
+
+  val self = this
 
   import Io._
 
-  def ++(server: ServerChannel) = Io(server, channel, buffer, bytestring, iteratee, k, n, expected)
+  override def toString = render("buffer")
 
-  def ++(channel: Channel) = Io(server, channel, buffer, bytestring, iteratee, k, n, expected)
+  @inline def ++(server: ServerChannel) = Io(server, channel, buffer, iteratee, k, readwritten, expected)
 
-  def ++(buffer: ByteBuffer) = Io(server, channel, buffer, bytestring, iteratee, k, n, expected)
+  @inline def ++(channel: Channel) = Io(server, channel, buffer, iteratee, k, readwritten, expected)
 
-  def ++(bytestring: ByteString) = Io(server, channel, buffer, bytestring, iteratee, k, n, expected)
+  @inline def ++(buffer: ByteBuffer) = Io(server, channel, buffer, iteratee, k, readwritten, expected)
 
-  def ++(iteratee: Iteratee[Io, _]) = Io(server, channel, buffer, bytestring, iteratee, k, n, expected)
+  @inline def ++(iteratee: Iteratee[Io, _]) = Io(server, channel, buffer, iteratee, k, readwritten, expected)
 
-  def ++(k: IoHandler) = Io(server, channel, buffer, bytestring, iteratee, k, n, expected)
+  @inline def ++(k: IoHandler) = Io(server, channel, buffer, iteratee, k, readwritten, expected)
 
-  def ++(n: Int) = Io(server, channel, buffer, bytestring, iteratee, k, n, expected)
+  @inline def ++(readwritten: Int) = Io(server, channel, buffer, iteratee, k, readwritten, expected)
 
-  def ++(expected: Long) = Io(server, channel, buffer, bytestring, iteratee, k, n, expected)
+  @inline def ++(expected: Long) = Io(server, channel, buffer, iteratee, k, readwritten, expected)
 
   /**
-   * The Io 'that' always reflects the most current state, therefore it returns that ++ (this.bytestring + that.bytestring)
+   * The trick method of the entire algorithm, it should be called only when the buffer is too small.
    */
-  def ++(that: Io): Io = that ++ (this.bytestring ++ that.bytestring)
+  def ++(that: Io): Io = {
+    println("++ " + this + that)
+    if (this eq that) {
+      this
+    } else if (0 == this.length) {
+      that
+    } else if (0 == that.length) {
+      this
+    } else {
+      if (this.buffer eq that.buffer) {
+        println("same bytebuffers")
+        this
+      } else {
+        println("not same bytebuffers")
+        val len = this.length + that.length
+        println("len " + len)
+        val b = bestFitByteBuffer(len)
+        b.put(this.readBytes)
+        releaseByteBuffer(this.buffer)
+        b.put(that.buffer)
+        releaseByteBuffer(that.buffer)
+        b.flip
+        that ++ b
+      }
+    }
+  }
 
 }
 
@@ -78,31 +186,28 @@ object Io
   /**
    * Helpers
    */
-  final val empty = Io(null, null, null, ByteString.empty, null, null, -1, -1)
+  final val empty = Io(null, null, ByteBuffer.allocateDirect(0), null, null, -1, -1)
 
   type IoHandler = Io ⇒ Unit
-
-  implicit def io2bytestring(io: Io): ByteString = io.bytestring
-
-  @inline final def decode(io: Io)(implicit cset: Charset): String = io.bytestring.decodeString(cset.toString)
-
-  @inline final def decode(bytestring: ByteString)(implicit cset: Charset): String = bytestring.decodeString(cset.toString)
 
   /**
    * Aio handling.
    */
   private[this] val accepthandler = new Handler[Channel, Io] {
 
-    def completed(c: Channel, io: Io) = {
+    def completed(c: Channel, io: Io) = try {
       import io._
       server.accept(io, this)
       k(io ++ c ++ defaultByteBuffer)
+    } catch {
+      case e: Throwable ⇒ e.printStackTrace
     }
 
     def failed(e: Throwable, io: Io) = {
       import io._
       if (server.isOpen) {
         server.accept(io, this)
+        warning("accept failed : " + e)
       }
     }
 
@@ -110,16 +215,10 @@ object Io
 
   private[this] val iohandler = new Handler[Integer, Io] {
 
-    def completed(count: Integer, io: Io) = try {
+    def completed(n: Integer, io: Io) = try {
       import io._
-      if (-1 < count) buffer.flip else channel.close
-      k(io ++ count)
-    } catch {
-      case _: java.io.IOException ⇒
-      case e: Throwable ⇒
-        warning("iohandler error : " + e)
-        e.printStackTrace
-        io.channel.close
+      if (-1 < n) buffer.flip else channel.close
+      k(io ++ n)
     }
 
     def failed(e: Throwable, io: Io) = {
@@ -140,19 +239,22 @@ object Io
 
   final def handle(io: Io): Unit @suspendable = {
     (read(io) match {
-      case io if -1 < io.n ⇒ io.iteratee(Elem(io ++ ByteString(io.buffer)))
+      case io if -1 < io.readwritten ⇒ io.iteratee(Elem(io))
       case io ⇒ io.iteratee(Eof)
     }) match {
       case (cont @ Cont(_), Empty) ⇒
-        warning("need to read more")
-        handle(io ++ cont)
+        println("!!!!!!need to read more " + io)
+        handle(io ++ cont ++ defaultByteBuffer)
       case (e @ Done(a), el @ Elem(io)) ⇒
-        //        println(a)
-        // dispatch here, dispatched request will eventually respond
+        // println("[" + a + "]")
         releaseByteBuffer(io.buffer)
         respond(io ++ ByteBuffer.wrap(response))
         handle(io ++ defaultByteBuffer)
-      case (e, io) ⇒
+      case r @ (Error(e), io) ⇒ e match {
+        case _: IOException ⇒
+        case e: Throwable ⇒ debug(text.stackTraceToString(e))
+      }
+      case e ⇒ error("unhandled " + e)
     }
   }
 

@@ -1,8 +1,10 @@
-package com.ibm.plain.lib
+package com.ibm.plain
+
+package lib
 
 import org.junit.Test
 
-import concurrent._
+import concurrent.schedule
 import logging.defaultLogger._
 import os._
 import json._
@@ -22,7 +24,7 @@ import http._
       val d = temporaryDirectory
       println(f)
       println(d)
-      debug("debug")
+      debug("debug") 
       info("info")
       warning("warning")
       error("error")

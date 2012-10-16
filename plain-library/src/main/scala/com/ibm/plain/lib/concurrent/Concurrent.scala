@@ -6,11 +6,10 @@ package concurrent
 
 import scala.concurrent.util.Duration
 
-import com.ibm.plain.lib.bootstrap.BaseComponent
-
 import akka.actor.ActorSystem
 import akka.dispatch.ExecutorServiceDelegate
 import config.config2RichConfig
+import lib.bootstrap.BaseComponent
 
 /**
  * Just needed for inheritance.

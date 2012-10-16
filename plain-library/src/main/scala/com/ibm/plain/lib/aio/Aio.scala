@@ -16,6 +16,7 @@ abstract sealed class Aio
   override def start = {
     if (isEnabled) {
       defaultBufferPool
+      tinyBufferPool
       largeBufferPool
     }
     this
@@ -24,12 +25,15 @@ abstract sealed class Aio
   override def stop = {
     if (isStarted) {
       defaultBufferPool.clear
+      tinyBufferPool.clear
       largeBufferPool.clear
     }
     this
   }
 
   final lazy val defaultBufferPool = ByteBufferPool(defaultBufferSize, defaultBufferPoolSize)
+
+  final lazy val tinyBufferPool = ByteBufferPool(tinyBufferSize, tinyBufferPoolSize)
 
   final lazy val largeBufferPool = ByteBufferPool(largeBufferSize, largeBufferPoolSize)
 

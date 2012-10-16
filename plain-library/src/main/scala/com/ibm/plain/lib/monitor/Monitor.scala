@@ -7,11 +7,10 @@ package monitor
 import scala.collection.JavaConversions.asScalaSet
 import scala.concurrent.util.Duration
 
-import com.ibm.plain.lib.bootstrap.BaseComponent
-
 import bootstrap.{ BaseComponent, application }
 import logging.{ HasLogger, Logging }
 import concurrent.scheduleOnce
+import lib.bootstrap.BaseComponent
 
 /**
  * Implementation of a simple Monitor to manage a 'plain' application.

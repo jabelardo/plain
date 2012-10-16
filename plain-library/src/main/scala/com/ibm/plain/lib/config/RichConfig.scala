@@ -20,6 +20,8 @@ class RichConfig(self: Config) {
 
   def getInt(key: String, default: Int) = if (self.hasPath(key)) self.getInt(key) else default
 
+  def getMilliseconds(key: String, default: Long): Long = if (self.hasPath(key)) self.getMilliseconds(key) else default
+
   def getBoolean(key: String, default: Boolean) = if (self.hasPath(key)) self.getBoolean(key) else default
 
   def getBytes(key: String, default: Long): Long = if (self.hasPath(key)) self.getBytes(key) else default
