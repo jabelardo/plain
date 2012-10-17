@@ -22,67 +22,71 @@ sealed abstract class HttpHeader {
 }
 
 /**
- * Predefined request headers, they can contain header specific logic and behavior.
- */
-abstract sealed class PredefinedHttpHeader extends HttpHeader {
-
-  lazy final val name = getClass.getSimpleName
-
-}
-
-sealed trait GeneralHttpHeader extends PredefinedHttpHeader
-
-sealed trait RequestHttpHeader extends PredefinedHttpHeader
-
-sealed trait ResponseHttpHeader extends PredefinedHttpHeader
-
-sealed trait EntityHttpHeader extends PredefinedHttpHeader
-
-/**
- * Helpers to parse the values of header fields.
- */
-trait HttpHeaderValue { val value: String }
-
-/**
- * HttpHeader.value contains a list of Tokens.
- */
-trait TokenList extends HttpHeaderValue {
-
-  lazy val tokens = value.split(",").map(_.trim)
-
-}
-
-/**
- * HttpHeader.value contains an Int.
- */
-trait IntValue extends HttpHeaderValue {
-
-  lazy val intValue = value.trim.toInt
-
-}
-
-/**
- * HttpHeader.value contains a java.util.Date.
- */
-trait DateValue extends HttpHeaderValue {
-
-  lazy val dateValue = DateValue.format.parse(value.trim)
-
-}
-
-/**
- * The DateValue object provides the SimpleDateFormat used in http header fields.
- */
-object DateValue {
-
-  private lazy final val format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z")
-
-}
-
-/**
  * The HttpHeader object.
  */
 object HttpHeader {
+
+  /**
+   * Predefined request headers, they can contain header specific logic and behavior.
+   */
+  abstract sealed class PredefinedHttpHeader extends HttpHeader {
+
+    lazy final val name = getClass.getSimpleName
+
+  }
+
+  sealed trait GeneralHttpHeader extends PredefinedHttpHeader
+
+  sealed trait RequestHttpHeader extends PredefinedHttpHeader
+
+  sealed trait ResponseHttpHeader extends PredefinedHttpHeader
+
+  sealed trait EntityHttpHeader extends PredefinedHttpHeader
+
+  /**
+   * Helpers to parse the values of header fields.
+   */
+  trait HttpHeaderValue { val value: String }
+
+  object HttpHeaderValue {
+
+    /**
+     * HttpHeader.value contains a list of Tokens.
+     */
+    trait TokenList extends HttpHeaderValue {
+
+      lazy val tokens = value.split(",").map(_.trim)
+
+    }
+
+    /**
+     * HttpHeader.value contains an Int.
+     */
+    trait IntValue extends HttpHeaderValue {
+
+      lazy val intValue = value.trim.toInt
+
+    }
+
+    /**
+     * HttpHeader.value contains a java.util.Date.
+     */
+    trait DateValue extends HttpHeaderValue {
+
+      lazy val dateValue = DateValue.format.parse(value.trim)
+
+    }
+
+    /**
+     * The DateValue object provides the SimpleDateFormat used in http header fields.
+     */
+    object DateValue {
+
+      private lazy final val format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z")
+
+    }
+
+  }
 
   /**
    * Here we go... What about HttpHeader.getAllSubClasses?
@@ -149,7 +153,7 @@ object HttpHeader {
 
     extends GeneralHttpHeader
 
-    with TokenList {
+    with HttpHeaderValue.TokenList {
 
     def isKeepAlive = tokens.exists("keep-alive".equalsIgnoreCase)
 
@@ -157,7 +161,7 @@ object HttpHeader {
 
   }
 
-  case class `Date`(value: String) extends GeneralHttpHeader with DateValue
+  case class `Date`(value: String) extends GeneralHttpHeader with HttpHeaderValue.DateValue
 
   case class `Pragma`(value: String) extends GeneralHttpHeader
 
@@ -225,7 +229,7 @@ object HttpHeader {
 
   case class `Content-Language`(value: String) extends EntityHttpHeader
 
-  case class `Content-Length`(value: String) extends EntityHttpHeader with IntValue
+  case class `Content-Length`(value: String) extends EntityHttpHeader with HttpHeaderValue.IntValue
 
   case class `Content-Location`(value: String) extends EntityHttpHeader
 
@@ -237,7 +241,7 @@ object HttpHeader {
 
   case class `Expires`(value: String) extends EntityHttpHeader
 
-  case class `Last-Modified`(value: String) extends EntityHttpHeader with DateValue
+  case class `Last-Modified`(value: String) extends EntityHttpHeader with HttpHeaderValue.DateValue
 
   /**
    * Response header fields.

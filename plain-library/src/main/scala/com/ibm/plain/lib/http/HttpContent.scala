@@ -20,23 +20,23 @@ abstract sealed class ContentType {
 }
 
 /**
- *
- */
-abstract sealed class PredefinedContentType extends ContentType {
-
-  final val mimetype = MimeType(getClass.getSimpleName)
-
-  final val charset: Option[Charset] = None
-
-}
-
-/**
  * The ContentType object.
  */
 object ContentType {
 
   def apply(name: String): ContentType = name.toLowerCase match {
     case _ ⇒ null
+  }
+
+  /**
+   *
+   */
+  abstract sealed class PredefinedContentType extends ContentType {
+
+    final val mimetype = MimeType(getClass.getSimpleName)
+
+    final val charset: Option[Charset] = None
+
   }
 
   case object `text/plain` extends PredefinedContentType

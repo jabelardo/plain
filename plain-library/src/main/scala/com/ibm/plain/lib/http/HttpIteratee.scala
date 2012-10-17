@@ -12,9 +12,9 @@ import org.apache.commons.codec.net.URLCodec
 
 import com.ibm.plain.lib.aio.Iteratee
 
-import HttpConstants.codec
-import aio.{ Io, Done, Input, Iteratee }
-import aio.Iteratees.{ drop, peek, take, takeUntil, takeWhile }
+import aio.Iteratee._
+import aio.Iteratees._
+import aio._
 import logging.HasLogger
 import text.{ ASCII, UTF8 }
 import time.infoNanos
@@ -113,7 +113,7 @@ private object HttpIteratee {
           path ← readPath
           query ← readQuery
         } yield (path, query)
-        case _ ⇒ throw BadRequest("Invalid request URI.")
+        case _ ⇒ throw HttpException.BadRequest("Invalid request URI.")
       }
     }
 
@@ -181,43 +181,11 @@ private object HttpIteratee {
   /**
    * simple testing
    */
-  //  final val readRequest2 = for {
-  //    _ ← drop(4)
-  //    peek ← peek(12)
-  //    all ← take(158)
-  //  } yield (peek, all, all.length)
+  final val readRequestTest = for {
+    all ← take(100)
+  } yield all
 
-  /**
-   * debug helper
-   */
-  // @inline private[this] final def p[A](a: A): A = a // { if (true) println("result [" + a + "]"); a }
-
-}
-
-object HttpTest extends App with HasLogger {
-
-  import HttpIteratee._
-
-  def apply = try {
-
-    println(HttpConstants.token)
-    println(HttpConstants.hex)
-
-    // val req = "GET /a/b//////c/d/e//XYZ/abc/def/?thisquery HTTP/1.1\r\n".getBytes(UTF8)
-    // val req = "GET /a/b//////c/%32%33d/e//XYZ/%c3%84_%c3%96_%c3%9c_%c3%a4_%c3%b6_%c3%bc_%c3%9f/%E9%BA%B5%E5%8C%85/?this%20query%21%E4%BA%8C%E4%B8%8D%E4%BA%8C%E7%9A%84%E4%BA%8C/%21 HTTP/1.1\r\n".getBytes(UTF8)
-
-    val req = "GET /a/b//////c/%32%33d/e//XYZ/%c3%84_%c3%96_%c3%9c_%c3%a4_%c3%b6_%c3%bc_%c3%9f/%E9%BA%B5%E5%8C%85/?this%20query%21%E4%BA%8C%E4%B8%8D%E4%BA%8C%E7%9A%84%E4%BA%8C/%21#this_is_fragment HTTP/1.1\r\nHost: localhost:7500\r\nAccept: */*\r\nAccept-Encoding: gzip, deflate; g=1.0\r\nUser-Agent: JoeDog/1.00 [en] (X11; I; Siege 2.72)\r\n more user agent.\r\nConnection: keep-alive\r\n\r\n".getBytes(UTF8)
-
-    for (_ ← 1 to 1) infoNanos(try {
-      val input = Input.Elem(Io.empty ++ ByteBuffer.wrap(req))
-      readRequest(input) match {
-        case (Done(r), _) ⇒ // println(r)
-        case e ⇒ println(e)
-      }
-    } catch { case e: Throwable ⇒ throw e })
-  } catch {
-    case e: Throwable ⇒ e.printStackTrace
-  }
+  // @inline private[this] final def p[A](a: A): A = a // { println("result [" + a + "]"); a }
 
 }
 

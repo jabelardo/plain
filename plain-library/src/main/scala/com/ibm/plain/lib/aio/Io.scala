@@ -103,17 +103,17 @@ abstract sealed class IoHelper[E <: Io] {
 /**
  * Io represents the context of an asynchronous i/o operation.
  */
-final case class Io(
+final class Io private (
 
   var server: ServerChannel,
 
-  var channel: Channel,
+  val channel: Channel,
 
   var buffer: ByteBuffer,
 
   var iteratee: Iteratee[Io, _],
 
-  k: Io.IoHandler,
+  var k: Io.IoHandler,
 
   var readwritten: Int,
 
@@ -121,19 +121,17 @@ final case class Io(
 
   extends IoHelper[Io] {
 
-  val self = this
-
   import Io._
 
   @inline def ++(server: ServerChannel) = { this.server = server; this }
 
-  @inline def ++(channel: Channel) = Io(server, channel, buffer, iteratee, k, readwritten, expected)
+  @inline def ++(channel: Channel) = new Io(server, channel, buffer, iteratee, k, readwritten, expected)
 
   @inline def ++(buffer: ByteBuffer) = { this.buffer = buffer; this }
 
   @inline def ++(iteratee: Iteratee[Io, _]) = { this.iteratee = iteratee; this }
 
-  @inline def ++(k: IoHandler) = Io(server, channel, buffer, iteratee, k, readwritten, expected)
+  @inline def ++(k: IoHandler) = { this.k = k; this }
 
   @inline def ++(readwritten: Int) = { this.readwritten = readwritten; this }
 
@@ -152,7 +150,7 @@ final case class Io(
   } else if (0 == that.length) {
     this
   } else {
-    logging.defaultLogger.warning("Chunked input found. Maybe default buffer size is too small or load is very high. Need to combine input " + this.length + " + " + that.length)
+    warn
     val len = this.length + that.length
     val b = ByteBuffer.allocate(len)
     b.put(this.readBytes)
@@ -172,12 +170,13 @@ object Io
 
   extends HasLogger {
 
-  /**
-   * Helpers
-   */
+  import Iteratee._
+
+  final private def warn = warning("Chunked input found. Enlarge aio.default-buffer-size : " + defaultBufferSize)
+
   final val emptyBuffer = ByteBuffer.allocate(0)
 
-  final val empty = Io(null, null, emptyBuffer, null, null, -1, -1)
+  final def empty = new Io(null, null, emptyBuffer, null, null, -1, -1)
 
   type IoHandler = Io ⇒ Unit
 

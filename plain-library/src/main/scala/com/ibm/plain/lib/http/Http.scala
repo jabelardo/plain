@@ -28,16 +28,16 @@ object HttpVersion {
       if (treatAnyVersionAs11)
         `HTTP/1.1`
       else
-        throw BadRequest("Unsupported http version: [" + v + "]")
+        throw HttpException.BadRequest("Unsupported http version: [" + v + "]")
   }
 
-}
+  /**
+   * We implement support for HTTP/1.1 only, but eventually allow 1.0 and treat it like 1.1.
+   */
+  case object `HTTP/1.0` extends HttpVersion
+  case object `HTTP/1.1` extends HttpVersion
 
-/**
- * We implement support for HTTP/1.1 only, but eventually allow 1.0 and treat it like 1.1.
- */
-case object `HTTP/1.0` extends HttpVersion
-case object `HTTP/1.1` extends HttpVersion
+}
 
 /**
  * Supported http methods.
@@ -55,46 +55,57 @@ object HttpMethod {
     case "OPTIONS" ⇒ OPTIONS
     case "CONNECT" ⇒ CONNECT
     case "TRACE" ⇒ TRACE
-    case n ⇒ throw BadRequest("Invalid method " + n)
+    case n ⇒ throw HttpException.BadRequest("Invalid method " + n)
   }
 
-}
+  case object GET extends HttpMethod("GET")
+  case object HEAD extends HttpMethod("HEAD")
+  case object PUT extends HttpMethod("PUT")
+  case object POST extends HttpMethod("POST")
+  case object DELETE extends HttpMethod("DELETE")
+  case object OPTIONS extends HttpMethod("OPTIONS")
+  case object CONNECT extends HttpMethod("CONNECT")
+  case object TRACE extends HttpMethod("TRACE")
 
-case object GET extends HttpMethod("GET")
-case object HEAD extends HttpMethod("HEAD")
-case object PUT extends HttpMethod("PUT")
-case object POST extends HttpMethod("POST")
-case object DELETE extends HttpMethod("DELETE")
-case object OPTIONS extends HttpMethod("OPTIONS")
-case object CONNECT extends HttpMethod("CONNECT")
-case object TRACE extends HttpMethod("TRACE")
+}
 
 /**
  * Base class for the body of an HttpRequest.
  */
 abstract sealed class HttpRequestBody
 
-/**
- * The body represented by an Array[Byte] that was fully read together with the request header.
- */
-case class BytesRequestBody(bytes: Array[Byte]) extends HttpRequestBody
+object HttpRequestBody {
 
-/**
- * The body represented by a String converted from a ByteBuffer using the specific Charset that was fully read together with the request header.
- */
-case class StringRequestBody(value: String) extends HttpRequestBody
+  /**
+   * The body represented by an Array[Byte] that was fully read together with the request header.
+   */
+  case class BytesRequestBody(bytes: Array[Byte]) extends HttpRequestBody
 
-/**
- * The body represented by an Io instance, it is incomplete on creation and must be processed asynchronously.
- */
-case class IoRequestBody(io: Io) extends HttpRequestBody
+  /**
+   * The body represented by a String converted from a ByteBuffer using the specific Charset that was fully read together with the request header.
+   */
+  case class StringRequestBody(value: String) extends HttpRequestBody
+
+  /**
+   * The body represented by an Io instance, it is incomplete on creation and must be processed asynchronously.
+   */
+  case class IoRequestBody(io: Io) extends HttpRequestBody
+
+}
 
 /**
  * Http error handling.
  */
 sealed abstract class HttpException(message: String) extends Exception(message) with NoStackTrace
 
-case class BadRequest(message: String) extends HttpException(message)
+object HttpException {
+
+  /**
+   * 400
+   */
+  case class BadRequest(message: String) extends HttpException(message)
+
+}
 
 /**
  * The classic http request.

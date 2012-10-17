@@ -13,11 +13,6 @@ import org.junit.Test
 @Test class TestHttp {
 
   @Test def testA = {
-    println("TestHttp")
-    run(15.seconds) {
-      HttpTest.apply
-      lib.application.teardown
-    }
     assert(true)
   }
 

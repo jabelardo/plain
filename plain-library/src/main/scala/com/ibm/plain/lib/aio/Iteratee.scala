@@ -34,7 +34,7 @@ sealed abstract class Iteratee[E, +A] {
   final def result: A = this(Eof)._1 match {
     case Done(a) ⇒ a
     case Error(e) ⇒ throw e
-    case Cont(_) ⇒ throw notyetdone
+    case Cont(_) ⇒ throw NotYetDone
   }
 
   final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = this match {
@@ -54,6 +54,12 @@ sealed abstract class Iteratee[E, +A] {
 
 object Iteratee {
 
+  final case class Done[E, +A](a: A) extends Iteratee[E, A]
+
+  final case class Error[E](e: Throwable) extends Iteratee[E, Nothing]
+
+  final case class Cont[E, +A](cont: Input[E] ⇒ (Iteratee[E, A], Input[E])) extends Iteratee[E, A]
+
   private object Compose {
 
     def apply[E, A](k: Input[E] ⇒ (Iteratee[E, A], Input[E])) = new Compose[E, A](k, Nil, Nil)
@@ -63,12 +69,16 @@ object Iteratee {
 
   }
 
-  private final case class Compose[E, +A] private (
+  // var count = 0L
+
+  private final class Compose[E, +A] private (
     k: Input[E] ⇒ (Iteratee[E, Any], Input[E]),
     out: List[Any ⇒ Iteratee[E, Any]],
     in: List[Any ⇒ Iteratee[E, Any]])
 
     extends (Input[E] ⇒ (Iteratee[E, A], Input[E])) {
+
+    //   count += 1L; println(count)
 
     def ++[B](f: A ⇒ Iteratee[E, B]) = new Compose[E, B](k, out, f.asInstanceOf[Any ⇒ Iteratee[E, Any]] :: in)
 
@@ -97,15 +107,9 @@ object Iteratee {
 
   }
 
-  private final val notyetdone = new IllegalStateException("Not yet done.")
+  private final lazy val NotYetDone = new IllegalStateException("Not yet done.")
 
 }
-
-final case class Done[E, +A](a: A) extends Iteratee[E, A]
-
-final case class Error[E](e: Throwable) extends Iteratee[E, Nothing]
-
-final case class Cont[E, +A](cont: Input[E] ⇒ (Iteratee[E, A], Input[E])) extends Iteratee[E, A]
 
 /**
  * The minimum needed Iteratees to fold over a stream of bytes to produce an HttpRequest object.
@@ -113,6 +117,7 @@ final case class Cont[E, +A](cont: Input[E] ⇒ (Iteratee[E, A], Input[E])) exte
 object Iteratees {
 
   import Io._
+  import Iteratee._
 
   def take(n: Int)(implicit cset: Charset) = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {

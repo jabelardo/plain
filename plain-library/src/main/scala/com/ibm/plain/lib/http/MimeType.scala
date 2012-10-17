@@ -18,17 +18,6 @@ abstract class MimeType {
 }
 
 /**
- *
- */
-abstract class PredefinedMimeType(ext: Seq[String] = Seq.empty) extends MimeType {
-
-  lazy final val name = getClass.getSimpleName
-
-  lazy final val extensions = ext.toSet
-
-}
-
-/**
  * The MimeType object.
  */
 object MimeType {
@@ -38,6 +27,17 @@ object MimeType {
     case "audio/mp4" ⇒ `audio/mp4`
     case "text/plain" ⇒ `text/plain`
     case n ⇒ `User-defined`(n)
+  }
+
+  /**
+   *
+   */
+  abstract class PredefinedMimeType(ext: Seq[String] = Seq.empty) extends MimeType {
+
+    lazy final val name = getClass.getSimpleName
+
+    lazy final val extensions = ext.toSet
+
   }
 
   abstract class `audio/*`(ext: String*) extends PredefinedMimeType(ext)

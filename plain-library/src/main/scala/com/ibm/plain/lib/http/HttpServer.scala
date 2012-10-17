@@ -56,6 +56,9 @@ case class HttpServer(
     if (isStarted) synchronized {
       serverChannel.close
       serverChannel = null
+      /**
+       * do not shutdown the shared channelGroup here
+       */
       debug(name + " has stopped.")
     }
     this
