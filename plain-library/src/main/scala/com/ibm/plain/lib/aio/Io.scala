@@ -35,26 +35,22 @@ abstract sealed class IoHelper[E <: Io] {
   final def length: Int = buffer.remaining
 
   final def take(n: Int): Io = {
-    render("take " + n)
     markLimit
     buffer.limit(min(buffer.limit, buffer.position + n))
-    render(self)
+    self
   }
 
   final def peek(n: Int): Io = {
-    render("peek " + n)
     markPosition
     take(n)
   }
 
   final def drop(n: Int): Io = {
-    render("drop " + n)
     buffer.position(min(buffer.limit, buffer.position + n))
-    render(self)
+    self
   }
 
   final def indexOf(b: Byte): Int = {
-    render("indexOf")
     val p = buffer.position
     val l = buffer.limit
     var i = p
@@ -63,7 +59,6 @@ abstract sealed class IoHelper[E <: Io] {
   }
 
   final def span(p: Int ⇒ Boolean): (Int, Int) = {
-    render("span")
     val pos = buffer.position
     val l = buffer.limit
     var i = pos
@@ -71,29 +66,33 @@ abstract sealed class IoHelper[E <: Io] {
     (i - pos, l - i)
   }
 
-  @inline protected final def readBytes: Array[Byte] = render(Array.fill(buffer.remaining)(buffer.get))
+  @inline protected final def readBytes: Array[Byte] = Array.fill(buffer.remaining)(buffer.get)
 
-  @inline private[this] final def markLimit: Unit = render(limitmark = buffer.limit)
+  @inline private[this] final def markLimit = limitmark = buffer.limit
 
-  @inline private[this] final def markPosition: Unit = render(positionmark = buffer.position)
+  @inline private[this] final def markPosition = positionmark = buffer.position
 
   @inline private[this] final def resetBuffer[A](a: A): A = {
-    render(a.toString)
     require(-1 < limitmark)
     buffer.limit(limitmark)
     if (-1 < positionmark) { buffer.position(positionmark); positionmark = -1 }
-    render("out")
     a
   }
 
-  final def render[A](a: A): A = a // { println(a + " [" + asString + "]" + buffer + " " + limitmark + " " + positionmark); a }
+  /**
+   * debug helper
+   */
+  //  final def render[A](a: A): A = { println(a + " [" + asString + "]" + buffer + " " + limitmark + " " + positionmark); a }
 
-  final def asString = {
-    val a = new Array[Byte](buffer.remaining)
-    val p = buffer.position
-    for (i ← 0 until buffer.remaining) a.update(i, buffer.get(p + i))
-    new String(a)
-  }
+  /**
+   * debug helper
+   */
+  //  final def asString = {
+  //    val a = new Array[Byte](buffer.remaining)
+  //    val p = buffer.position
+  //    for (i ← 0 until buffer.remaining) a.update(i, buffer.get(p + i))
+  //    new String(a)
+  //  }
 
   private[this] final var limitmark = -1
 
@@ -125,8 +124,6 @@ final case class Io(
   val self = this
 
   import Io._
-
-  override def toString = render("buffer")
 
   @inline def ++(server: ServerChannel) = Io(server, channel, buffer, iteratee, k, readwritten, expected)
 
