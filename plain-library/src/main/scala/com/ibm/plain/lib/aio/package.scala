@@ -33,6 +33,9 @@ package object aio
 
   def largeByteBuffer = Aio.largeBufferPool.getBuffer
 
+  /**
+   * Quite dangerous, never call this function on a buffer more than once or it could be later used by more than one at the same time.
+   */
   def releaseByteBuffer(buffer: ByteBuffer) = buffer.capacity match {
     case `tinyBufferSize` ⇒ Aio.tinyBufferPool.releaseBuffer(buffer)
     case `defaultBufferSize` ⇒ Aio.defaultBufferPool.releaseBuffer(buffer)
@@ -58,7 +61,7 @@ package object aio
   final val defaultBufferPoolSize = getBytes("plain.aio.default-buffer-pool-size", 512).toInt
 
   /**
-   * If not set differently this will result to 2k which proved to provide best performance under high load.
+   * Something between 16 and 512.
    */
   final val tinyBufferSize = getBytes("plain.aio.tiny-buffer-size", 128).toInt
 

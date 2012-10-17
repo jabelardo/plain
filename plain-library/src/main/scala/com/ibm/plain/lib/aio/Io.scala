@@ -152,6 +152,7 @@ final case class Io(
   } else if (0 == that.length) {
     this
   } else {
+    logging.defaultLogger.warning("Chunked input found. Maybe default buffer size is too small or load is very high. Need to combine input " + this.length + " + " + that.length)
     val len = this.length + that.length
     val b = ByteBuffer.allocate(len)
     b.put(this.readBytes)
@@ -225,9 +226,14 @@ object Io
   final def accept(server: ServerChannel): Io @suspendable =
     shift { k: IoHandler ⇒ server.accept(Io.empty ++ server ++ k, accepthandler) }
 
-  final def read(io: Io): Io @suspendable = {
+  private[this] final def read(io: Io): Io @suspendable = {
     import io._
     shift { k: IoHandler ⇒ buffer.clear; channel.read(buffer, io ++ k, iohandler) }
+  }
+
+  private[this] final def respond(io: Io): Io @suspendable = {
+    import io._
+    shift { k: IoHandler ⇒ channel.write(io.buffer, io ++ k, iohandler) }
   }
 
   final def handle(io: Io): Unit @suspendable = {
@@ -239,29 +245,25 @@ object Io
     }) match {
       case (cont @ Cont(_), Empty) ⇒
         handle(io ++ cont ++ defaultByteBuffer)
-      case (e @ Done(a), el @ Elem(io)) ⇒
+      case (e @ Done(a), el @ Elem(io)) ⇒ // move handling/dispatching outside 
         io.releaseBuffer
         respond(io ++ ByteBuffer.wrap(response))
         handle(io ++ defaultByteBuffer)
-      case (Error(e), Elem(io)) if e.isInstanceOf[http.HttpException] ⇒
+      case (Error(e), Elem(io)) if e.isInstanceOf[http.HttpException] ⇒ // move error handling outside
         println(e)
         io.releaseBuffer
         respond(io ++ ByteBuffer.wrap(badrequest))
         io.channel.close
       case r @ (Error(e), Elem(io)) ⇒
         io.releaseBuffer
+        io.channel.close
         e match {
           case _: IOException ⇒
           case e: Throwable ⇒ debug(text.stackTraceToString(e))
         }
       case (Error(_), Eof) ⇒
-      case e ⇒ println("Unhandled : " + e)
+      case e ⇒ error("Unhandled : " + e)
     }
-  }
-
-  final def respond(io: Io): Io @suspendable = {
-    import io._
-    shift { k: IoHandler ⇒ channel.write(io.buffer, io ++ k, iohandler) }
   }
 
   private final val response = """HTTP/1.1 200 OK
