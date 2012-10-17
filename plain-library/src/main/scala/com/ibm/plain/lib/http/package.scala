@@ -16,9 +16,9 @@ package object http
 
   final val backlog = getInt("plain.http.backlog", 10000)
 
-  final val tread10VersionAs11 = getBoolean("plain.http.feature.allow-version-1.0-but-tread-it-like-1.1", false)
+  final val treat10VersionAs11 = getBoolean("plain.http.feature.allow-version-1.0-but-treat-it-like-1.1", false)
 
-  final val treadAnyVersionAs11 = getBoolean("plain.http.feature.allow-any-version-but-tread-it-like-1.1", false)
+  final val treatAnyVersionAs11 = getBoolean("plain.http.feature.allow-any-version-but-treat-it-like-1.1", false)
 
   final val defaultCharacterSet = Charset.forName(getString("plain.http.feature.default-character-set", "UTF-8"))
 

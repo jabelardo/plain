@@ -19,11 +19,18 @@ sealed abstract class Iteratee[E, +A] {
 
   import Iteratee._
 
-  final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = this match {
-    case Cont(f) ⇒ f(input)
-    case it ⇒ (it, input)
+  final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = try {
+    this match {
+      case Cont(f) ⇒ f(input)
+      case it ⇒ (it, input)
+    }
+  } catch {
+    case e: Throwable ⇒ (Error(e), input)
   }
 
+  /**
+   * Not really useful, use a match/case instead.
+   */
   final def result: A = this(Eof)._1 match {
     case Done(a) ⇒ a
     case Error(e) ⇒ throw e
@@ -109,7 +116,7 @@ object Iteratees {
 
   def take(n: Int)(implicit cset: Charset) = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
-      case Eof ⇒ throw EOF
+      case Eof ⇒ (Error(EOF), input)
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
         val in = taken ++ more
@@ -140,7 +147,7 @@ object Iteratees {
 
   def takeWhile(p: Int ⇒ Boolean)(implicit cset: Charset): Iteratee[Io, String] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
-      case Eof ⇒ throw EOF
+      case Eof ⇒ (Error(EOF), input)
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
         val in = taken ++ more
@@ -158,7 +165,7 @@ object Iteratees {
 
   def takeUntil(delimiter: Byte)(implicit cset: Charset): Iteratee[Io, String] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
-      case Eof ⇒ throw EOF
+      case Eof ⇒ (Error(EOF), input)
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
         val in = taken ++ more
@@ -174,7 +181,7 @@ object Iteratees {
 
   def drop(n: Int): Iteratee[Io, Unit] = {
     def cont(remaining: Int)(input: Input[Io]): (Iteratee[Io, Unit], Input[Io]) = input match {
-      case Eof ⇒ throw EOF
+      case Eof ⇒ (Error(EOF), input)
       case Failure(e) ⇒ (Error(e), input)
       case Elem(more) ⇒
         val len = more.length
@@ -187,6 +194,6 @@ object Iteratees {
     Cont(cont(n))
   }
 
-  private[this] lazy val EOF = new EOFException
+  private[this] final val EOF = new EOFException("Unexpected EOF")
 
 }

@@ -105,19 +105,19 @@ abstract sealed class IoHelper[E <: Io] {
  */
 final case class Io(
 
-  server: ServerChannel,
+  var server: ServerChannel,
 
-  channel: Channel,
+  var channel: Channel,
 
-  buffer: ByteBuffer,
+  var buffer: ByteBuffer,
 
-  iteratee: Iteratee[Io, _],
+  var iteratee: Iteratee[Io, _],
 
   k: Io.IoHandler,
 
-  readwritten: Int,
+  var readwritten: Int,
 
-  expected: Long)
+  var expected: Long)
 
   extends IoHelper[Io] {
 
@@ -125,19 +125,24 @@ final case class Io(
 
   import Io._
 
-  @inline def ++(server: ServerChannel) = Io(server, channel, buffer, iteratee, k, readwritten, expected)
+  @inline def ++(server: ServerChannel) = { this.server = server; this }
 
   @inline def ++(channel: Channel) = Io(server, channel, buffer, iteratee, k, readwritten, expected)
 
-  @inline def ++(buffer: ByteBuffer) = Io(server, channel, buffer, iteratee, k, readwritten, expected)
+  @inline def ++(buffer: ByteBuffer) = { this.buffer = buffer; this }
 
-  @inline def ++(iteratee: Iteratee[Io, _]) = Io(server, channel, buffer, iteratee, k, readwritten, expected)
+  @inline def ++(iteratee: Iteratee[Io, _]) = { this.iteratee = iteratee; this }
 
   @inline def ++(k: IoHandler) = Io(server, channel, buffer, iteratee, k, readwritten, expected)
 
-  @inline def ++(readwritten: Int) = Io(server, channel, buffer, iteratee, k, readwritten, expected)
+  @inline def ++(readwritten: Int) = { this.readwritten = readwritten; this }
 
-  @inline def ++(expected: Long) = Io(server, channel, buffer, iteratee, k, readwritten, expected)
+  @inline def ++(expected: Long) = { this.expected = expected; this }
+
+  @inline def releaseBuffer = {
+    releaseByteBuffer(buffer)
+    buffer = emptyBuffer
+  }
 
   /**
    * The trick method of the entire algorithm, it should be called only when the buffer is too small and on start with Io.empty.
@@ -148,11 +153,11 @@ final case class Io(
     this
   } else {
     val len = this.length + that.length
-    val b = bestFitByteBuffer(len)
+    val b = ByteBuffer.allocate(len)
     b.put(this.readBytes)
-    releaseByteBuffer(this.buffer)
+    this.releaseBuffer
     b.put(that.buffer)
-    releaseByteBuffer(that.buffer)
+    that.releaseBuffer
     b.flip
     that ++ b
   }
@@ -169,7 +174,9 @@ object Io
   /**
    * Helpers
    */
-  final val empty = Io(null, null, ByteBuffer.allocateDirect(0), null, null, -1, -1)
+  final val emptyBuffer = ByteBuffer.allocate(0)
+
+  final val empty = Io(null, null, emptyBuffer, null, null, -1, -1)
 
   type IoHandler = Io ⇒ Unit
 
@@ -190,7 +197,10 @@ object Io
       import io._
       if (server.isOpen) {
         server.accept(io, this)
-        warning("accept failed : " + e)
+        e match {
+          case _: IOException ⇒
+          case e: Throwable ⇒ warning("accept failed : " + io + " " + e)
+        }
       }
     }
 
@@ -223,19 +233,29 @@ object Io
   final def handle(io: Io): Unit @suspendable = {
     (read(io) match {
       case io if -1 < io.readwritten ⇒ io.iteratee(Elem(io))
-      case io ⇒ io.iteratee(Eof)
+      case io ⇒
+        io.releaseBuffer
+        io.iteratee(Eof)
     }) match {
       case (cont @ Cont(_), Empty) ⇒
         handle(io ++ cont ++ defaultByteBuffer)
       case (e @ Done(a), el @ Elem(io)) ⇒
-        releaseByteBuffer(io.buffer)
+        io.releaseBuffer
         respond(io ++ ByteBuffer.wrap(response))
         handle(io ++ defaultByteBuffer)
-      case r @ (Error(e), io) ⇒ e match {
-        case _: IOException ⇒
-        case e: Throwable ⇒ debug(text.stackTraceToString(e))
-      }
-      case e ⇒ error("unhandled " + e)
+      case (Error(e), Elem(io)) if e.isInstanceOf[http.HttpException] ⇒
+        println(e)
+        io.releaseBuffer
+        respond(io ++ ByteBuffer.wrap(badrequest))
+        io.channel.close
+      case r @ (Error(e), Elem(io)) ⇒
+        io.releaseBuffer
+        e match {
+          case _: IOException ⇒
+          case e: Throwable ⇒ debug(text.stackTraceToString(e))
+        }
+      case (Error(_), Eof) ⇒
+      case e ⇒ println("Unhandled : " + e)
     }
   }
 
@@ -251,5 +271,12 @@ Content-Length: 5
 Connection: keep-alive
 
 PONG!""".getBytes
+
+  private final val badrequest = """HTTP/1.1 400 Bad Request
+Date: Mon, 10 Sep 2012 15:06:09 GMT
+Connection: close
+
+""".getBytes
+
 }
 

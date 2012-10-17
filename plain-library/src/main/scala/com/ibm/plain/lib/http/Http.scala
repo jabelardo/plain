@@ -6,6 +6,8 @@ package http
 
 import java.nio.ByteBuffer
 
+import scala.util.control.NoStackTrace
+
 import aio.Io
 
 /**
@@ -20,10 +22,10 @@ sealed abstract class HttpVersion {
 object HttpVersion {
 
   def apply(version: String): HttpVersion = version match {
-    case "HTTP/1.0" ⇒ if (tread10VersionAs11) `HTTP/1.1` else `HTTP/1.0`
+    case "HTTP/1.0" if treat10VersionAs11 ⇒ `HTTP/1.1`
     case "HTTP/1.1" ⇒ `HTTP/1.1`
     case v ⇒
-      if (treadAnyVersionAs11)
+      if (treatAnyVersionAs11)
         `HTTP/1.1`
       else
         throw BadRequest("Unsupported http version: [" + v + "]")
@@ -31,6 +33,9 @@ object HttpVersion {
 
 }
 
+/**
+ * We implement support for HTTP/1.1 only, but eventually allow 1.0 and treat it like 1.1.
+ */
 case object `HTTP/1.0` extends HttpVersion
 case object `HTTP/1.1` extends HttpVersion
 
@@ -87,7 +92,7 @@ case class IoRequestBody(io: Io) extends HttpRequestBody
 /**
  * Http error handling.
  */
-sealed abstract class HttpException(message: String) extends Exception(message)
+sealed abstract class HttpException(message: String) extends Exception(message) with NoStackTrace
 
 case class BadRequest(message: String) extends HttpException(message)
 

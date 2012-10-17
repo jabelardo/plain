@@ -134,7 +134,7 @@ private object HttpIteratee {
       @noinline def cont(lines: String): Iteratee[Io, String] = peek(1) >>> {
         case " " | "\t" ⇒ for {
           _ ← drop(1)
-          line ← takeUntil(`\r`)
+          line ← takeUntil(`\r`)(defaultCharacterSet)
           _ ← drop(1)
           more ← cont(lines + line)
         } yield more
@@ -143,10 +143,10 @@ private object HttpIteratee {
 
       for {
         name ← readToken
-        _ ← takeUntil(`:`)
+        _ ← takeUntil(`:`)(defaultCharacterSet)
         _ ← takeWhile(whitespace)
         value ← for {
-          line ← takeUntil(`\r`)
+          line ← takeUntil(`\r`)(defaultCharacterSet)
           _ ← drop(1)
           morelines ← cont(line)
         } yield morelines
@@ -178,12 +178,18 @@ private object HttpIteratee {
     body ← readRequestBody(headers)
   } yield HttpRequest(method, path, query, version, headers, body)
 
-  final val readRequest2 = for {
-    _ ← drop(4)
-    peek ← peek(12)
-    all ← take(158)
-  } yield (peek, all, all.length)
+  /**
+   * simple testing
+   */
+  //  final val readRequest2 = for {
+  //    _ ← drop(4)
+  //    peek ← peek(12)
+  //    all ← take(158)
+  //  } yield (peek, all, all.length)
 
+  /**
+   * debug helper
+   */
   // @inline private[this] final def p[A](a: A): A = a // { if (true) println("result [" + a + "]"); a }
 
 }

@@ -22,15 +22,6 @@ abstract sealed class Aio
     this
   }
 
-  override def stop = {
-    if (isStarted) {
-      defaultBufferPool.clear
-      tinyBufferPool.clear
-      largeBufferPool.clear
-    }
-    this
-  }
-
   final lazy val defaultBufferPool = ByteBufferPool(defaultBufferSize, defaultBufferPoolSize)
 
   final lazy val tinyBufferPool = ByteBufferPool(tinyBufferSize, tinyBufferPoolSize)

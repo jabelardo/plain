@@ -14,49 +14,36 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
 
   extends HasLogger {
 
-  @tailrec def getBuffer: ByteBuffer = {
-    if (trylock) {
-      try pool match {
-        case head :: tail ⇒ pool = tail; head
-        case Nil ⇒
-          warning("ByteBufferPool exhausted : " + buffersize + ", " + initialpoolsize)
-          ByteBuffer.allocateDirect(buffersize)
-      } finally unlock
+  @tailrec def getBuffer: ByteBuffer = if (trylock) {
+    try pool match {
+      case head :: tail ⇒
+        pool = tail
+        head
+      case Nil ⇒
+        warning("ByteBufferPool exhausted : buffer size " + buffersize + ", initial pool size" + initialpoolsize)
+        ByteBuffer.allocateDirect(buffersize)
+    } finally unlock
 
-    } else {
-      getBuffer
-    }
+  } else {
+    getBuffer
   }
 
-  @tailrec def releaseBuffer(buffer: ByteBuffer): Unit = if (buffer.isDirect) {
-    if (trylock) {
-      try {
-        buffer.clear
-        pool = buffer :: pool
-      } finally unlock
-    } else {
-      releaseBuffer(buffer)
-    }
+  @tailrec def releaseBuffer(buffer: ByteBuffer): Unit = if (trylock) {
+    try {
+      buffer.clear
+      pool = buffer :: pool
+    } finally unlock
+  } else {
+    releaseBuffer(buffer)
   }
 
-  @tailrec def clear: Unit = {
-    if (trylock) {
-      try pool = Nil
-      finally unlock
-    } else {
-      clear
-    }
-  }
-
-  @volatile private[this] var pool: List[ByteBuffer] = Nil
+  @volatile private[this] var pool: List[ByteBuffer] = (0 until initialpoolsize).map(i ⇒ ByteBuffer.allocateDirect(buffersize)).toList
 
   @inline private[this] def trylock = locked.compareAndSet(false, true)
 
   @inline private[this] def unlock = locked.set(false)
 
   private[this] val locked = new AtomicBoolean(false)
-
-  (0 until initialpoolsize).foreach(_ ⇒ releaseBuffer(ByteBuffer.allocateDirect(buffersize)))
 
   debug("ByteBufferPool preallocated : " + buffersize + ", " + initialpoolsize)
 
