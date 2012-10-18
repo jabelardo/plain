@@ -4,7 +4,7 @@ package lib
 
 package aio
 
-import java.nio.ByteBuffer
+import java.nio.{ ByteBuffer, ByteOrder }
 import java.util.concurrent.atomic.AtomicBoolean
 
 import scala.annotation.tailrec
@@ -16,8 +16,8 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
   extends HasLogger
 
   with OnlyOnce {
-  
-  /** 
+
+  /**
    * This is an expensive O(n) operation.
    */
   def size = pool.size
@@ -29,7 +29,7 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
         head
       case Nil ⇒
         onlyonce { warning("ByteBufferPool exhausted : buffer size " + buffersize + ", initial pool size" + initialpoolsize) }
-        ByteBuffer.allocateDirect(buffersize)
+        ByteBuffer.allocateDirect(buffersize).order(ByteOrder.nativeOrder)
     } finally unlock
 
   } else {

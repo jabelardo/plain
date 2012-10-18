@@ -5,21 +5,17 @@ package lib
 package aio
 
 import language.implicitConversions
-
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousServerSocketChannel ⇒ ServerChannel, AsynchronousSocketChannel ⇒ Channel, CompletionHandler ⇒ Handler }
 import java.nio.charset.Charset
-
 import scala.util.continuations.{ reset, shift, suspendable }
 import scala.annotation.tailrec
 import scala.math.min
 
 import text.{ ASCII, UTF8 }
-
 import logging.HasLogger
 import concurrent.OnlyOnce
-
 import aio.Input.{ Elem, Eof, Empty }
 
 /**
@@ -31,7 +27,11 @@ abstract sealed class IoHelper[E <: Io] {
 
   import self._
 
-  final def decode(implicit cset: Charset): String = resetBuffer(new String(readBytes, cset))
+  final def decode(implicit cset: Charset): String = resetBuffer(
+    buffer.remaining match {
+      case 1 ⇒ String.valueOf(buffer.get.toChar)
+      case _ ⇒ new String(readBytes, cset)
+    })
 
   final def length: Int = buffer.remaining
 
@@ -74,7 +74,6 @@ abstract sealed class IoHelper[E <: Io] {
   @inline private[this] final def markPosition = positionmark = buffer.position
 
   @inline private[this] final def resetBuffer[A](a: A): A = {
-    require(-1 < limitmark)
     buffer.limit(limitmark)
     if (-1 < positionmark) { buffer.position(positionmark); positionmark = -1 }
     a

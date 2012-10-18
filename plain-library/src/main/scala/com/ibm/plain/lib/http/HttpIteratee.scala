@@ -181,11 +181,11 @@ object HttpIteratee {
   /**
    * simple testing
    */
-  final val readRequestTest = for {
-    all ← take(100)
-  } yield all
+  //  final val readRequest2 = for {
+  //    all ← take(100)
+  //  } yield all
 
-  // @inline private[this] final def p[A](a: A): A = a // { println("result [" + a + "]"); a }
+  //  @inline private[this] final def p[A](a: A): A = a // { println("result [" + a + "]"); a }
 
 }
 

@@ -43,6 +43,9 @@ object Uuid {
    */
   implicit def uuid2string(uuid: Uuid): String = uuid.toString
 
+  /**
+   * Converts a string to a Uuid.
+   */
   implicit def string2uuid(s: String): Uuid = fromString(s)
 
 }

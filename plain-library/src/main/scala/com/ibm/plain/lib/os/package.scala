@@ -50,12 +50,11 @@ package object os
    */
   final lazy val canonicalHostName = InetAddress.getLocalHost.getCanonicalHostName
 
-  sealed abstract class OperatingSystem(value: String) {
+  sealed abstract class OperatingSystem(value: String)
 
-    override lazy val toString = "OperatingSystem(" + value + ")"
-
-  }
-
+  /**
+   * The most important OSs. It does not mean we support them all. Our code was tested on AIX, Linux, OSX and Windows.
+   */
   object OperatingSystem {
 
     case object AIX extends OperatingSystem("AIX")

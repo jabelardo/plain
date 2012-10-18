@@ -9,7 +9,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import crypt.Uuid
 import crypt.Crypt
-import crypt.MD5
+import crypt.Digest._
 
 @Test private class TextTest {
 
@@ -60,6 +60,7 @@ import crypt.MD5
   }
 
   @Test def testMD5 = {
+    import crypt.Digest._
     assertTrue("19ff680c1fa57aafb74292dfda79ebc2" == MD5(s))
     assertTrue("eebfe82abd231302d8c0ef76f1b6b7cb" == MD5(longs))
     assertTrue("bb9956e992316cb90fa166a345838506" == MD5(muenchen))
