@@ -9,10 +9,18 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import scala.annotation.tailrec
 import logging.HasLogger
+import concurrent.OnlyOnce
 
 final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
 
-  extends HasLogger {
+  extends HasLogger
+
+  with OnlyOnce {
+  
+  /** 
+   * This is an expensive O(n) operation.
+   */
+  def size = pool.size
 
   @tailrec def getBuffer: ByteBuffer = if (trylock) {
     try pool match {
@@ -20,7 +28,7 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
         pool = tail
         head
       case Nil ⇒
-        warning("ByteBufferPool exhausted : buffer size " + buffersize + ", initial pool size" + initialpoolsize)
+        onlyonce { warning("ByteBufferPool exhausted : buffer size " + buffersize + ", initial pool size" + initialpoolsize) }
         ByteBuffer.allocateDirect(buffersize)
     } finally unlock
 
@@ -37,7 +45,7 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
     releaseBuffer(buffer)
   }
 
-  @volatile private[this] var pool: List[ByteBuffer] = (0 until initialpoolsize).map(i ⇒ ByteBuffer.allocateDirect(buffersize)).toList
+  @volatile private[this] var pool: List[ByteBuffer] = (0 until initialpoolsize).toList.map(_ ⇒ ByteBuffer.allocateDirect(buffersize))
 
   @inline private[this] def trylock = locked.compareAndSet(false, true)
 

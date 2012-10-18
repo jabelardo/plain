@@ -18,11 +18,13 @@ trait JmxMonitorMBean {
 
   def getConfiguration: Array[String]
 
-  def getFreeMemoryMb: Int
+  def getComponents: Array[String]
 
-  def getMaxMemoryMb: Int
+  def getMemoryMbFree: Int
 
-  def getTotalMemoryMb: Int
+  def getMemoryMbMax: Int
+
+  def getMemoryMbTotal: Int
 
   def getLogLevel: String
 
@@ -30,7 +32,11 @@ trait JmxMonitorMBean {
 
   def getUptimeInSeconds: Long
 
-  def getComponents: Array[String]
+  def getBufferPoolSizeDefault: Int
+
+  def getBufferPoolSizeTiny: Int
+
+  def getBufferPoolSizeLarge: Int
 
   def shutdown(token: String): String
 
@@ -55,7 +61,7 @@ abstract sealed class JmxMonitor
 
   private[this] final val server = ManagementFactory.getPlatformMBeanServer
 
-  private[this] final val name = new ObjectName("com.ibm.plain:type=JmxMonitor")
+  private[this] final val name = new ObjectName("com.ibm.plain:type=PlainApplication")
 
 }
 

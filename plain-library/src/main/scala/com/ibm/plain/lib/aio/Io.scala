@@ -84,10 +84,7 @@ abstract sealed class IoHelper[E <: Io] {
    * debug helper
    */
   //  final def render[A](a: A): A = { println(a + " [" + asString + "]" + buffer + " " + limitmark + " " + positionmark); a }
-
-  /**
-   * debug helper
-   */
+  //
   //  final def asString = {
   //    val a = new Array[Byte](buffer.remaining)
   //    val p = buffer.position
@@ -128,7 +125,11 @@ final class Io private (
 
   @inline def ++(channel: Channel) = new Io(server, channel, buffer, iteratee, k, readwritten, expected)
 
-  @inline def ++(buffer: ByteBuffer) = { this.buffer = buffer; this }
+  @inline def ++(buffer: ByteBuffer) = if (0 < this.buffer.remaining) {
+    new Io(server, channel, buffer, iteratee, k, readwritten, expected)
+  } else {
+    this + buffer
+  }
 
   @inline def ++(iteratee: Iteratee[Io, _]) = { this.iteratee = iteratee; this }
 
@@ -141,6 +142,12 @@ final class Io private (
   @inline def releaseBuffer = {
     releaseByteBuffer(buffer)
     buffer = emptyBuffer
+  }
+
+  @inline private def +(buffer: ByteBuffer) = {
+    releaseByteBuffer(this.buffer)
+    this.buffer = buffer
+    this
   }
 
   /**
@@ -159,7 +166,7 @@ final class Io private (
     b.put(that.buffer)
     that.releaseBuffer
     b.flip
-    that ++ b
+    that + b
   }
 
 }
@@ -230,7 +237,7 @@ object Io
 
   private[this] final def read(io: Io): Io @suspendable = {
     import io._
-    shift { k: IoHandler ⇒ buffer.clear; channel.read(buffer, io ++ k, iohandler) }
+    shift { k: IoHandler ⇒ channel.read(buffer, io ++ k, iohandler) }
   }
 
   private[this] final def respond(io: Io): Io @suspendable = {

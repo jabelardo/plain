@@ -41,11 +41,17 @@ abstract class Monitor
 
   def getConfiguration: Array[String] = _config
 
-  def getFreeMemoryMb = (Runtime.getRuntime.freeMemory / (1024 * 1024)).toInt
+  def getMemoryMbFree = (Runtime.getRuntime.freeMemory / (1024 * 1024)).toInt
 
-  def getMaxMemoryMb = (Runtime.getRuntime.maxMemory / (1024 * 1024)).toInt
+  def getMemoryMbMax = (Runtime.getRuntime.maxMemory / (1024 * 1024)).toInt
 
-  def getTotalMemoryMb = (Runtime.getRuntime.totalMemory / (1024 * 1024)).toInt
+  def getMemoryMbTotal = (Runtime.getRuntime.totalMemory / (1024 * 1024)).toInt
+
+  def getBufferPoolSizeDefault = aio.Aio.defaultBufferPool.size
+
+  def getBufferPoolSizeTiny = aio.Aio.tinyBufferPool.size
+
+  def getBufferPoolSizeLarge = aio.Aio.largeBufferPool.size
 
   def getLogLevel = Logging.getLogLevel
 

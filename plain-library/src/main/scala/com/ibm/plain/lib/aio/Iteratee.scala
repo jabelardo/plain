@@ -62,8 +62,9 @@ object Iteratee {
 
   private object Compose {
 
-    @inline def apply[E, A, B](k: Input[E] ⇒ (Iteratee[E, A], Input[E]), f: A ⇒ Iteratee[E, B]) =
+    @inline def apply[E, A, B](k: Input[E] ⇒ (Iteratee[E, A], Input[E]), f: A ⇒ Iteratee[E, B]) = {
       new Compose[E, B](k, PrimitiveList(f), PrimitiveList.empty)
+    }
 
   }
 
@@ -73,10 +74,6 @@ object Iteratee {
   private final class PrimitiveList private (
 
     tl: Int) {
-
-    import PrimitiveList._
-
-    private[this] final val entries = new Array[Any](2)
 
     def this(a: Any) = { this(1); entries.update(0, a) }
 
@@ -93,6 +90,8 @@ object Iteratee {
       case 2 ⇒ new PrimitiveList(entries(1))
     }
 
+    private[this] final val entries = new Array[Any](2)
+
   }
 
   private object PrimitiveList {
@@ -105,7 +104,7 @@ object Iteratee {
 
   private final class Compose[E, A] private (
 
-    k: Input[E] ⇒ (Iteratee[E, _], Input[E]),
+    var k: Input[E] ⇒ (Iteratee[E, _], Input[E]),
 
     out: PrimitiveList,
 
@@ -121,7 +120,6 @@ object Iteratee {
         result: (Iteratee[E, _], Input[E]),
         out: PrimitiveList,
         in: PrimitiveList): (Iteratee[E, _], Input[E]) = {
-
         if (out.isEmpty) {
           if (in.isEmpty) result else run(result, in, PrimitiveList.empty)
         } else {
