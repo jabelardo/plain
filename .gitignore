@@ -1,9 +1,11 @@
 target/
+**/target/
 build/
 bin/
 logs/
 tmp/
 temp/
+*.class
 */.cache
 *.cache
 */.classpath
@@ -17,3 +19,4 @@ temp/
 */.history
 */.localized
 **/*~
+

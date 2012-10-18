@@ -13,21 +13,23 @@ package object os
   /**
    * Get the current running operating system. Use match/case on val operatingSystem.
    */
-  final val operatingSystem: OperatingSystem =
+  final val operatingSystem: OperatingSystem = {
+
     if (IS_OS_AIX)
-      AIX
+      OperatingSystem.AIX
     else if (IS_OS_HP_UX)
-      HPUX
+      OperatingSystem.HPUX
     else if (IS_OS_SOLARIS)
-      SOLARIS
+      OperatingSystem.SOLARIS
     else if (IS_OS_LINUX)
-      LINUX
+      OperatingSystem.LINUX
     else if (IS_OS_MAC_OSX)
-      OSX
+      OperatingSystem.OSX
     else if (IS_OS_WINDOWS)
-      WINDOWS
+      OperatingSystem.WINDOWS
     else
-      UNKNOWN
+      OperatingSystem.UNKNOWN
+  }
 
   final val isUnix = IS_OS_UNIX
 
@@ -54,18 +56,22 @@ package object os
 
   }
 
-  case object AIX extends OperatingSystem("AIX")
+  object OperatingSystem {
 
-  case object HPUX extends OperatingSystem("HPUX")
+    case object AIX extends OperatingSystem("AIX")
 
-  case object SOLARIS extends OperatingSystem("SOLARIS")
+    case object HPUX extends OperatingSystem("HPUX")
 
-  case object LINUX extends OperatingSystem("LINUX")
+    case object SOLARIS extends OperatingSystem("SOLARIS")
 
-  case object OSX extends OperatingSystem("OSX")
+    case object LINUX extends OperatingSystem("LINUX")
 
-  case object WINDOWS extends OperatingSystem("WINDOWS")
+    case object OSX extends OperatingSystem("OSX")
 
-  case object UNKNOWN extends OperatingSystem("UNKNOWN")
+    case object WINDOWS extends OperatingSystem("WINDOWS")
+
+    case object UNKNOWN extends OperatingSystem("UNKNOWN")
+
+  }
 
 }

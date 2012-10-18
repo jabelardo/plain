@@ -18,6 +18,7 @@ import scala.math.min
 import text.{ ASCII, UTF8 }
 
 import logging.HasLogger
+import concurrent.OnlyOnce
 
 import aio.Input.{ Elem, Eof, Empty }
 
@@ -168,11 +169,13 @@ final class Io private (
  */
 object Io
 
-  extends HasLogger {
+  extends HasLogger
+
+  with OnlyOnce {
 
   import Iteratee._
 
-  final private def warn = warning("Chunked input found. Enlarge aio.default-buffer-size : " + defaultBufferSize)
+  final private def warn = onlyonce { warning("Chunked input found. Enlarge aio.default-buffer-size : " + defaultBufferSize) }
 
   final val emptyBuffer = ByteBuffer.allocate(0)
 
@@ -245,13 +248,22 @@ object Io
       case (cont @ Cont(_), Empty) ⇒
         handle(io ++ cont ++ defaultByteBuffer)
       case (e @ Done(a), el @ Elem(io)) ⇒ // move handling/dispatching outside 
+        // println(a)
         io.releaseBuffer
-        respond(io ++ ByteBuffer.wrap(response))
+        val r = defaultByteBuffer
+        r.put(response)
+        r.flip
+        respond(io ++ r)
+        io.releaseBuffer
         handle(io ++ defaultByteBuffer)
       case (Error(e), Elem(io)) if e.isInstanceOf[http.HttpException] ⇒ // move error handling outside
         println(e)
         io.releaseBuffer
-        respond(io ++ ByteBuffer.wrap(badrequest))
+        val r = defaultByteBuffer
+        r.put(badrequest)
+        r.flip
+        respond(io ++ r)
+        io.releaseBuffer
         io.channel.close
       case r @ (Error(e), Elem(io)) ⇒
         io.releaseBuffer
@@ -265,19 +277,9 @@ object Io
     }
   }
 
-  private final val response = """HTTP/1.1 200 OK
-Date: Mon, 10 Sep 2012 15:06:09 GMT
-Content-Type: text/plain
-Content-Length: 5
-Connection: keep-alive
+  private final val response = "HTTP/1.1 200 OK\r\nDate: Mon, 10 Sep 2012 15:06:09 GMT\r\nContent-Type: text/plain\r\nContent-Length: 5\r\nConnection: keep-alive\r\n\r\nPONG!".getBytes
 
-PONG!""".getBytes
-
-  private final val badrequest = """HTTP/1.1 400 Bad Request
-Date: Mon, 10 Sep 2012 15:06:09 GMT
-Connection: close
-
-""".getBytes
+  private final val badrequest = "HTTP/1.1 400 Bad Request\r\nDate: Mon, 10 Sep 2012 15:06:09 GMT\r\nConnection: close\r\n\r\n".getBytes
 
 }
 

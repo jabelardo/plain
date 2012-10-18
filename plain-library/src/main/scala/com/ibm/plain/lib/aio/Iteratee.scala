@@ -21,7 +21,7 @@ sealed abstract class Iteratee[E, +A] {
 
   final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = try {
     this match {
-      case Cont(f) ⇒ f(input)
+      case Cont(k) ⇒ k(input)
       case it ⇒ (it, input)
     }
   } catch {
@@ -40,7 +40,7 @@ sealed abstract class Iteratee[E, +A] {
   final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = this match {
     case Done(a) ⇒ f(a)
     case e @ Error(_) ⇒ e
-    case Cont(k: Compose[E, A]) ⇒ Cont(k ++ f)
+    case Cont(comp: Compose[E, A]) ⇒ Cont(comp ++ f)
     case Cont(k) ⇒ Cont(Compose(k, f))
   }
 
@@ -58,48 +58,83 @@ object Iteratee {
 
   final case class Error[E](e: Throwable) extends Iteratee[E, Nothing]
 
-  final case class Cont[E, +A](cont: Input[E] ⇒ (Iteratee[E, A], Input[E])) extends Iteratee[E, A]
+  final case class Cont[E, A](cont: Input[E] ⇒ (Iteratee[E, A], Input[E])) extends Iteratee[E, A]
 
   private object Compose {
 
-    def apply[E, A](k: Input[E] ⇒ (Iteratee[E, A], Input[E])) = new Compose[E, A](k, Nil, Nil)
-
-    def apply[E, A, B](k: Input[E] ⇒ (Iteratee[E, A], Input[E]), f: A ⇒ Iteratee[E, B]) =
-      new Compose[E, B](k, (f.asInstanceOf[Any ⇒ Iteratee[E, Any]]) :: Nil, Nil)
+    @inline def apply[E, A, B](k: Input[E] ⇒ (Iteratee[E, A], Input[E]), f: A ⇒ Iteratee[E, B]) =
+      new Compose[E, B](k, PrimitiveList(f), PrimitiveList.empty)
 
   }
 
-  // var count = 0L
+  /**
+   * Most trivial very! low level immutable list implementation with fixed size of 2 (yes 2). Enlarge size on ArrayIndexOutOfBounds exceptions.
+   */
+  private final class PrimitiveList private (
 
-  private final class Compose[E, +A] private (
-    k: Input[E] ⇒ (Iteratee[E, Any], Input[E]),
-    out: List[Any ⇒ Iteratee[E, Any]],
-    in: List[Any ⇒ Iteratee[E, Any]])
+    tl: Int) {
+
+    import PrimitiveList._
+
+    private[this] final val entries = new Array[Any](2)
+
+    def this(a: Any) = { this(1); entries.update(0, a) }
+
+    def this(a: Any, b: Any) = { this(2); entries.update(0, a); entries.update(1, b) }
+
+    def ++(a: Any): PrimitiveList = if (1 == tl) new PrimitiveList(entries(0), a) else new PrimitiveList(a)
+
+    @inline def isEmpty = 0 == tl
+
+    @inline def head: Any = entries(0)
+
+    @inline def tail: PrimitiveList = tl match {
+      case 1 ⇒ PrimitiveList.empty
+      case 2 ⇒ new PrimitiveList(entries(1))
+    }
+
+  }
+
+  private object PrimitiveList {
+
+    val empty = new PrimitiveList(0)
+
+    def apply(a: Any) = new PrimitiveList(a)
+
+  }
+
+  private final class Compose[E, A] private (
+
+    k: Input[E] ⇒ (Iteratee[E, _], Input[E]),
+
+    out: PrimitiveList,
+
+    in: PrimitiveList)
 
     extends (Input[E] ⇒ (Iteratee[E, A], Input[E])) {
 
-    //   count += 1L; println(count)
+    @inline final def ++[B](f: _ ⇒ Iteratee[E, B]) = new Compose[E, B](k, out, in ++ f)
 
-    def ++[B](f: A ⇒ Iteratee[E, B]) = new Compose[E, B](k, out, f.asInstanceOf[Any ⇒ Iteratee[E, Any]] :: in)
-
-    def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = {
+    final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = {
 
       @inline @tailrec def run(
-        result: (Iteratee[E, Any], Input[E]),
-        out: List[Any ⇒ Iteratee[E, Any]],
-        in: List[Any ⇒ Iteratee[E, Any]]): (Iteratee[E, Any], Input[E]) = {
+        result: (Iteratee[E, _], Input[E]),
+        out: PrimitiveList,
+        in: PrimitiveList): (Iteratee[E, _], Input[E]) = {
+
         if (out.isEmpty) {
-          if (in.isEmpty) result else run(result, in.reverse, Nil)
-        } else
+          if (in.isEmpty) result else run(result, in, PrimitiveList.empty)
+        } else {
           result match {
             case (Done(value), remaining) ⇒
-              out.head(value) match {
+              out.head.asInstanceOf[Any ⇒ Iteratee[E, _]](value) match {
                 case Cont(k) ⇒ run(k(remaining), out.tail, in)
-                case iter ⇒ run((iter, remaining), out.tail, in)
+                case e ⇒ run((e, remaining), out.tail, in)
               }
             case (Cont(k), remaining) ⇒ (Cont(new Compose(k, out, in)), remaining)
             case _ ⇒ result
           }
+        }
       }
 
       run(k(input), out, in).asInstanceOf[(Iteratee[E, A], Input[E])]

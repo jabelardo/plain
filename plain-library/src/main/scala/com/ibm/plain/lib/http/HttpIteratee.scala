@@ -64,7 +64,7 @@ private object HttpConstants {
 /**
  * Consuming the input stream to produce a HttpRequest.
  */
-private object HttpIteratee {
+object HttpIteratee {
 
   import HttpConstants._
 

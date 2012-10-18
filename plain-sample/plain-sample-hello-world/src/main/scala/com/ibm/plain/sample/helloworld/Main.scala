@@ -18,7 +18,7 @@ object Main extends App {
 
   // application.register(HttpServer(5757, 0))
 
-  run(150.seconds) {
+  run(1500.seconds) {
 
     println("Application " + application)
     println("executor " + Concurrent.executor)
