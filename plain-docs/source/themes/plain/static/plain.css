@@ -1,0 +1,124 @@
+/* plain custom styles */
+.lotusContent h1 {
+	display: none;
+}
+
+.lotusContent a {
+	text-decoration: none;
+}
+
+/* sidebar contents */
+div#toc {
+    margin-left: -16px;
+}
+
+div#toc ul {
+    list-style: none outside none;
+    margin: 0 0 5px 16px;
+    padding: 5px 0;
+}
+
+div#toc ul li {
+    font-weight: bold;
+    line-height: 105%;
+    padding-bottom: 8px;
+    width: 100%;
+}
+
+div#toc ul ul {
+    list-style: disc outside none;
+}
+
+div#toc ul li ul li {
+    font-weight: normal;
+    line-height: 18px;
+    padding-bottom: 0;
+}
+
+/* table of contents */
+
+.lotusContent ul {
+    list-style: disc outside none;
+}
+
+.lotusContent ul, .lotusContent ol {
+    margin: 0 0 9px 25px;
+    padding: 0;
+}
+
+.lotusContent ul ul, .lotusContent ul ol, .lotusContent ol ol, .lotusContent ol ul {
+    margin-bottom: 0;
+}
+
+.lotusContent .toctree-l1 {
+    font-size: 14px;
+    font-weight: bold;
+    padding-top: 4px;
+}
+
+.lotusContent .toctree-l2 {
+    font-weight: normal;
+    list-style: square outside none;
+}
+
+.lotusContent li {
+    line-height: 18px;
+}
+
+
+
+
+
+/*
+
+IBM ONE UI stuff
+
+*/
+/*
+.yourProductSprite-iconPlaceholder16{width:16px;height:16px;background-position:0 0}
+.yourProductSprite-iconPlaceholder24{width:24px;height:24px;background-position:0 -20px}
+.yourProductSprite-iconPlaceholder32{width:32px;height:32px;background-position:0 -48px}
+.yourProductSprite-bannerHelpNormal16{width:16px;height:16px;background-position:0 -84px}
+.yourProductSprite-Repost16{width:16px;height:16px;background-position:0 -104px}
+.yourProductSprite-ChatGray16{width:16px;height:16px;background-position:0 -124px}
+.yourProductSprite-ftBlogs16{width:16px;height:16px;background-position:0 -144px}
+.yourProductSprite-Comment16{width:16px;height:16px;background-position:0 -164px}
+.yourProductSprite-NoComment16{width:16px;height:16px;background-position:0 -184px}
+.yourProductSprite-stAvailable9{width:9px;height:9px;background-position:0 -204px}
+.yourProductSprite-ftGraphic16{width:16px;height:16px;background-position:0 -217px}
+.yourProductSprite-ftPresentation16{width:16px;height:16px;background-position:0 -237px}
+.yourProductSprite-ftFolder16{width:16px;height:16px;background-position:0 -257px}
+.yourProductSprite-ftText16{width:16px;height:16px;background-position:0 -277px}
+.yourProductSprite-msgWarning48{width:48px;height:48px;background-position:0 -297px}
+.yourProductSprite-msgError48{width:48px;height:48px;background-position:0 -349px}
+.yourProductSprite-RatingOff16{width:16px;height:16px;background-position:0 -401px}
+.yourProductSprite-RatingOn16{width:16px;height:16px;background-position:0 -421px}
+.yourProductSprite-Help12{width:12px;height:12px;background-position:0 -441px}
+.yourProductSprite-Help12-ar{width:12px;height:12px;background-position:0 -457px}
+.yourProductSprite-iconCollapseTree{width:14px;height:14px;background-position:0 -473px}
+.yourProductSprite-iconExpandTree{width:14px;height:14px;background-position:0 -491px}
+.yourProductSprite-javaCompatibleLogoWhite{width:60px;height:80px;background-position:0 -509px}
+.yourProductSprite-NoPhotoPerson24{width:24px;height:24px;background-position:0 -593px}
+.yourProductSprite-NoPhotoPerson32{width:32px;height:32px;background-position:0 -621px}
+.yourProductSprite-NoPhotoPerson48{width:48px;height:48px;background-position:0 -657px}
+.yourProductSprite-NoPhotoPerson64{width:64px;height:64px;background-position:0 -709px}
+.yourProductSprite-NoPhotoPerson128{width:128px;height:128px;background-position:0 -777px}
+*/
+/* .yourProductSprite{background-image:url('../devdocImages/yourProductSprite-8bit.png');background-repeat:no-repeat;display:-moz-inline-box;display:inline-block} */
+/* .lotusImagesOff .yourProductSprite{display:none} */
+/*  Licensed Materials - Property of IBM.
+    (c) Copyright IBM Corporation 2001, 2012.  All Rights Reserved.
+    U.S. Government Users Restricted Rights:  Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+This CSS was built on August 16 2012. (version: OneUI-3.0.3_20120816-1522)
+*/
+
+/* overrides go here */
+/*
+.yourProductSprite-bannerHelp16{width:16px;height:16px;background-position:0 -84px}
+
+
+
+
+.lotusui30 .lotusBanner .lotusLogo img {margin-top:7px; margin-bottom:7px; background-image:url('../devdocImages/yourProductSprite-8bit.png'); background-repeat:no-repeat; width:24px; height:24px; background-position:0 -20px;}
+.lotusui_ie .lotusui30 .lotusBanner .lotusLogo img {margin-top:6px; margin-bottom:6px;}
+*/

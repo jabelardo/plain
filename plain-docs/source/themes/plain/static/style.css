@@ -1,0 +1,48 @@
+body, html {
+	height: 100.1%;
+}
+
+.row {
+    margin-left: -20px;
+}
+
+.breadcrumb {
+    height: 18px;
+}
+
+.breadcrumb {
+    background-color: rgba(251, 251, 251, 0.7);
+    background-image: -moz-linear-gradient(center top , rgba(255, 255, 255, 0.7), rgba(245, 245, 245, 0.7));
+    background-repeat: repeat-x;
+    border: 1px solid #DDDDDD;
+    border-radius: 3px 3px 3px 3px;
+    box-shadow: 0 1px 0 #FFFFFF inset;
+    margin: 0 0 18px;
+    padding: 7px 14px;
+}
+
+ul {
+    list-style: disc outside none;
+}
+
+.breadcrumb li {
+    float: right;
+}
+
+.breadcrumb li {
+    display: inline;
+    text-shadow: 0 1px 0 #FFFFFF;
+}
+
+li {
+    line-height: 18px;
+}
+
+.breadcrumb .divider {
+    color: #999999;
+    padding: 0 5px;
+}
+
+.breadcrumb li a {
+    color: #447281;
+}

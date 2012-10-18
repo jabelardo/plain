@@ -1,0 +1,150 @@
+{#
+    plain/layout.html
+    ~~~~~~~~~~~~~~~~~
+#}
+
+{% extends "basic/layout.html" %}
+
+{% block doctype %}
+<!DOCTYPE html>
+{% endblock %}
+
+{% set css_files = ['_static/css/base/core.css', '_static/css/defaultTheme/defaultTheme.css', '_static/plain.css', '_static/style.css', '_static/prettify.css'] %}
+
+{% set script_files = script_files + ['_static/toc.js'] %}
+{% set script_files = script_files + ['_static/prettify.js'] %}
+{% set script_files = script_files + ['_static/highlightCode.js'] %}
+
+{# do not display relbars #}
+{% block relbar1 %}{% endblock %}
+{% block relbar2 %}{% endblock %}
+
+{% block extrahead %}
+	{# Add stuff which should be added to <head> #}
+	<script>
+		window.onload = function() {
+			document.getElementsByTagName("body")[0].className = "lotusui30_body lotusui30_fonts lotusui30";
+		}
+	</script>
+{% endblock %}
+
+{% block content %}
+	{%- block plainheader %}
+		<div class="lotusFrame lotusui30_layout lotusFixed">
+		<header role="banner">
+			<div class="lotusBanner">
+				<div class="lotusRightCorner">
+					<div class="lotusInner">
+						<a href="#lotusMainContent" accesskey="S" class="lotusAccess"><img src="{{pathto("_static/css/images/blank.gif", 1)}}" alt="Skip to main content link. Accesskey S" /></a>
+						<a class="lotusLogo" href="javascript:;"><img alt="Product Lifecycle Acceleration and Integration in a Nutshell" src="{{pathto("_static/css/images/blank.gif", 1)}}" /><span class="lotusAltText">PLAIN. Product Lifecycle Acceleration and Integration in a Nutshell.</span></a>
+				
+						<ul class="lotusInlinelist lotusUtility">
+							<li>
+								<span class="lotusBranding"><img src="{{pathto("_static/css/images/blank.gif", 1)}}" alt="IBM" class="lotusIBMLogo" /><span class="lotusAltText">IBM</span></span>
+							</li>
+						</ul>
+						<!-- nav is an HTML5 element. Use div if you are using HTML4. -->
+						<nav role="navigation" aria-label="[Product]">
+							<ul class="lotusInlinelist lotusLinks" role="toolbar">
+								<!--
+								<li class="lotusFirst lotusSelected" role="presentation">
+									<a href="javascript:;" role="button" aria-pressed="true"><strong>Home</strong></a>
+								</li>
+								<li role="presentation">
+									<a role="button" aria-haspopup="true" href="javascript:;">People <img class="lotusArrow lotusDropDownSprite" src="{{pathto("_static/css/images/blank.gif", 1)}}" alt="" aria-label="Show menu" /><span class="lotusAltText">&#x25bc;</span></a>
+								</li>
+								-->
+							</ul>
+						</nav>
+					</div>
+				</div>
+			</div><!--end lotusBanner-->
+			
+			
+			<div class="lotusTitleBar2">
+				<div class="lotusWrapper">
+					<div class="lotusInner"> 
+						<div class="lotusTitleBarContent">
+							<h2 class="lotusHeading">
+								<span class="lotusText">{{ title }}</span>
+							</h2>
+						</div>
+
+						<form class="lotusSearch" action="javascript:;" method="post" role="search">
+							<table class="lotusLayout" cellspacing="0" role="presentation">
+								<tr>
+									<td>
+										<a href="javascript:;" id="searchScope" class="lotusScope" role="button" aria-haspopup="true" aria-label="Refine search scope" title="Refine search scope">
+											<img class="lotusIcon yourProductSprite yourProductSprite-iconPlaceholder16" src="{{pathto("_static/css/images/blank.gif", 1)}}" alt="[Search scope]" />
+											<span class="lotusAltText">&#x25bc;</span>
+										</a>
+									</td>
+									<td>
+										<input id="lotusSearchtext" name="lotusSearchtext" class="lotusText lotusInactive" type="text" value="Search" title="Search" />
+									</td>
+									<td>
+										<span class="lotusBtnImg">
+											<input class="lotusSearchButton" type="image" alt="Submit search" title="Submit search" src="{{pathto("_static/css/images/blank.gif", 1)}}" />
+											<a href="javascript:;" class="lotusAltText">Search</a>
+										</span>
+									</td>
+								</tr>
+							</table>
+						</form>
+					</div>
+				</div>
+			</div><!--end titleBar-->
+			<div class="lotusTitleBarExt"><div class="lotusWrapper"><div class="lotusInner">
+				<ul class="lotusInlinelist lotusRight lotusActions">
+					<li class="lotusFirst"><a href="javascript:;" role="button">Version {{ version|e }}</a></li>
+					<li><a href="{{ pathto(master_doc) }}" role="button">{{ _('Contents') }}</a></li>
+					{%- if prev %}
+						<li><a href="{{ prev.link|e }}" role="button">Next: {{ prev.title }}</a></li>
+					{%- endif %}
+					{%- if next %}
+						<li><a href="{{ next.link|e }}" role="button">Prev: {{ next.title }}</a></li>
+					{%- endif %}
+				</ul>
+			</div></div></div><!--end lotusTitleBarExt-->
+		</header>
+	{%- endblock %}
+	
+	<div class="lotusMain">
+		<aside class="lotusColRight">
+			<section class="lotusSection2 lotusFirst">
+				<header class="lotusSectionHeader">
+					<div class="lotusInner">
+						<a class="lotusArrow" title="Collapse section" href="javascript:;" aria-controls="sectionBodyID" aria-expanded="true" role="button"><img class="lotusTwistyOpen" aria-label="Collapse section" alt="" src="{{pathto("_static/css/images/blank.gif", 1)}}"><span class="lotusAltText">▼</span></a>
+						<h2 class="lotusHeading"> Contents </h2>
+					</div>
+				</header>
+				<div id="toc" class="lotusSectionBody">
+
+				</div>
+			</section>
+		</aside>
+		
+		<a id="lotusMainContent" name="lotusMainContent"></a>
+		<div class="lotusContent" role="main" id="lotusMainContentContainer"> 	
+			{% block body %}{% endblock %}
+		</div>
+	</div>
+
+	<footer role="contentinfo">
+		<table class="lotusLegal" cellspacing="0" role="presentation">
+			<tr>
+				<td><img class="lotusIBMLogoFooter" src="../../css/images/blank.gif" alt="IBM" /></td>
+				<td class="lotusLicense">&copy; Copyright IBM Corporation 2012. For more information contact Guido Schmidt or Michael Wellner.</td>
+			</tr>
+		</table>
+	</footer>
+  </div>
+  {% block footer %}
+  {% endblock %}
+  
+	<script type="text/javascript">
+		$('#toc').toc({ context: ".lotusContent" });
+	</script>
+{% endblock %}
+
+
