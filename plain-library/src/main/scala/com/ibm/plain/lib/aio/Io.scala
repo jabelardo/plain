@@ -254,7 +254,7 @@ object Io
       case (cont @ Cont(_), Empty) ⇒
         handle(io ++ cont ++ defaultByteBuffer)
       case (e @ Done(a), el @ Elem(io)) ⇒ // move handling/dispatching outside 
-        // println(a)
+        println(a)
         io.releaseBuffer
         val r = defaultByteBuffer
         r.put(response)
@@ -262,7 +262,7 @@ object Io
         respond(io ++ r)
         io.releaseBuffer
         handle(io ++ defaultByteBuffer)
-      case (Error(e), Elem(io)) if e.isInstanceOf[http.HttpException] ⇒ // move error handling outside
+      case (Error(e), Elem(io)) if e.isInstanceOf[http.Status] ⇒ // move error handling outside
         println(e)
         io.releaseBuffer
         val r = defaultByteBuffer

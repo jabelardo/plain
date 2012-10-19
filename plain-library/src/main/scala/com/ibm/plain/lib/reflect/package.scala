@@ -45,4 +45,20 @@ package object reflect {
    * Returns the boxed value for the given primitive value: simply call p.asInstanceOf[AnyRef]
    */
 
+  /**
+   * Returns a 'scala-safe' getSimpleName for the provided object's Class
+   */
+  def simpleName(a: AnyRef): String = simpleName(a.getClass)
+
+  /**
+   * Returns a 'scala-safe' getSimpleName for the provided Class
+   */
+  def simpleName(cls: Class[_]): String = {
+    var n = cls.getName
+    if (n.endsWith("$")) n = n.take(n.length - 1)
+    val dollar = n.lastIndexOf('$')
+    val dot = n.lastIndexOf(".")
+    n.substring(scala.math.max(dollar, dot) + 1)
+  }
+
 }

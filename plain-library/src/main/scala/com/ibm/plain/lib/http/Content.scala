@@ -33,7 +33,7 @@ object ContentType {
    */
   abstract sealed class PredefinedContentType extends ContentType {
 
-    final val mimetype = MimeType(getClass.getSimpleName)
+    final val mimetype = MimeType(reflect.simpleName(getClass))
 
     final val charset: Option[Charset] = None
 

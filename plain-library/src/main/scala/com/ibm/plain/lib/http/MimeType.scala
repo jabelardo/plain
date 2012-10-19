@@ -34,7 +34,7 @@ object MimeType {
    */
   abstract class PredefinedMimeType(ext: Seq[String] = Seq.empty) extends MimeType {
 
-    lazy final val name = getClass.getSimpleName
+    lazy final val name = reflect.simpleName(getClass)
 
     lazy final val extensions = ext.toSet
 

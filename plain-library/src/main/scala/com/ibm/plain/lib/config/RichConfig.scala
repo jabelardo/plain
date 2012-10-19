@@ -4,7 +4,7 @@ package lib
 
 package config
 
-import scala.collection.JavaConversions.seqAsJavaList
+import scala.collection.JavaConversions.asScalaBuffer
 
 import com.typesafe.config.Config
 
@@ -15,8 +15,8 @@ class RichConfig(self: Config) {
 
   def getString(key: String, default: String) = if (self.hasPath(key)) self.getString(key) else default
 
-  def getStringList(key: String, default: List[String]): java.util.List[String] =
-    if (self.hasPath(key)) self.getStringList(key) else default
+  def getStringList(key: String, default: List[String]): List[String] =
+    if (self.hasPath(key)) self.getStringList(key).toList else default
 
   def getInt(key: String, default: Int) = if (self.hasPath(key)) self.getInt(key) else default
 

@@ -12,13 +12,19 @@ package object lib
   /**
    * This is the central point for registering Components to the application in the correct order.
    */
-  final lazy val application = bootstrap.application
-    .register(logging.Logging)
-    .register(concurrent.Concurrent)
-    .register(io.Io)
-    .register(aio.Aio)
-    .register(monitor.extension.jmx.JmxMonitor)
-    .register(http.HttpServer(http.port, http.backlog))
+  final lazy val application = {
+
+    val appl = bootstrap.application
+      .register(logging.Logging)
+      .register(concurrent.Concurrent)
+      .register(io.Io)
+      .register(aio.Aio)
+      .register(monitor.extension.jmx.JmxMonitor)
+
+    http.startupServers.foreach(path ⇒ appl.register(http.Server(path)))
+
+    appl
+  }
 
   def run(body: ⇒ Unit): Unit = run(Duration.Inf)(body)
 
@@ -27,7 +33,7 @@ package object lib
     body
     application.awaitTermination(timeout)
   } catch {
-    case e: Throwable ⇒ println("Uncaught exception: " + e)
+    case e: Throwable ⇒ println("Uncaught exception: " + e); e.printStackTrace
   } finally {
     try {
       application.teardown

@@ -10,65 +10,25 @@ import scala.collection.immutable.{ BitSet, NumericRange, Range ⇒ SRange }
 
 import org.apache.commons.codec.net.URLCodec
 
-import com.ibm.plain.lib.aio.Iteratee
-
 import aio.Iteratee._
 import aio.Iteratees._
 import aio._
 import logging.HasLogger
 import text.{ ASCII, UTF8 }
-import time.infoNanos
+import Status.ServerError.`501`
 
 /**
- * Basic parsing constants.
+ * Consuming the input stream to produce a Request.
  */
-private object HttpConstants {
+class RequestIteratee()(implicit server: Server) {
 
-  final val ` ` = ' '.toByte
-  final val `\t` = '\t'.toByte
-  final val `:` = ':'.toByte
-  final val `\r` = '\r'.toByte
-  final val del = 127.toByte
+  import RequestConstants._
 
-  final val `/` = "/"
-  final val `?` = "?"
-  final val cr = "\r"
-  final val lf = "\n"
-
-  final val char = b(0 to 127)
-  final val lower = b('a' to 'z')
-  final val upper = b('A' to 'Z')
-  final val alpha = lower | upper
-  final val digit = b('0' to '9')
-  final val hex = digit | b('a' to 'f') | b('A' to 'F')
-  final val control = b(0 to 31) + del
-  final val whitespace = b(' ', '\t')
-  final val separators = whitespace | b('(', ')', '[', ']', '<', '>', '@', ',', ';', ':', '\\', '\"', '/', '?', '=', '{', '}')
-  final val text = char -- control ++ whitespace
-  final val token = char -- control -- separators
-  final val gendelimiters = b(':', '/', '?', '#', '[', ']', '@')
-  final val subdelimiters = b('!', '$', '&', '\'', '(', ')', '*', '+', ',', ';', '=')
-  final val reserved = gendelimiters | subdelimiters
-  final val unreserved = alpha | digit | b('-', '.', '_', '~')
-  final val path = unreserved | subdelimiters | b(':', '@', '%')
-  final val query = path | b('/', '?', '#')
-
-  final lazy val codec = new URLCodec(defaultCharacterSet.toString)
-
-  @inline private[this] def b(in: Int*): Set[Int] = BitSet(in: _*)
-  @inline private[this] def b(in: SRange.Inclusive): Set[Int] = BitSet(in: _*)
-  @inline private[this] def b(in: NumericRange.Inclusive[Char]): Set[Int] = BitSet(in.map(_.toInt): _*)
-
-}
-
-/**
- * Consuming the input stream to produce a HttpRequest.
- */
-object HttpIteratee {
-
-  import HttpConstants._
+  import server.settings.{ defaultCharacterSet, disableUrlDecoding }
 
   private[this] implicit final val ascii = ASCII
+
+  private[this] final lazy val codec = new URLCodec(defaultCharacterSet.toString)
 
   final val readToken = for {
     token ← takeWhile(token)(defaultCharacterSet)
@@ -113,7 +73,7 @@ object HttpIteratee {
           path ← readPath
           query ← readQuery
         } yield (path, query)
-        case _ ⇒ throw HttpException.BadRequest("Invalid request URI.")
+        case _ ⇒ throw new `501`
       }
     }
 
@@ -123,13 +83,13 @@ object HttpIteratee {
       _ ← takeWhile(whitespace)
       version ← takeUntil(`\r`)
       _ ← drop(1)
-    } yield (HttpMethod(method), uri, query, HttpVersion(version))
+    } yield (Method(method), uri, query, Version(version))
 
   }
 
-  final val readRequestHeaders: Iteratee[Io, List[HttpHeader]] = {
+  final val readRequestHeaders: Iteratee[Io, List[Header]] = {
 
-    val readHeader: Iteratee[Io, HttpHeader] = {
+    val readHeader: Iteratee[Io, Header] = {
 
       @noinline def cont(lines: String): Iteratee[Io, String] = peek(1) >>> {
         case " " | "\t" ⇒ for {
@@ -150,11 +110,11 @@ object HttpIteratee {
           _ ← drop(1)
           morelines ← cont(line)
         } yield morelines
-      } yield HttpHeader(name, value)
+      } yield Header(name, value)
 
     }
 
-    @noinline def cont(headers: List[HttpHeader]): Iteratee[Io, List[HttpHeader]] = peek(2) >>> {
+    @noinline def cont(headers: List[Header]): Iteratee[Io, List[Header]] = peek(2) >>> {
       case "\r\n" ⇒ for {
         _ ← drop(2)
         done ← Done(headers.reverse)
@@ -168,7 +128,7 @@ object HttpIteratee {
     cont(List.empty)
   }
 
-  final def readRequestBody(headers: List[HttpHeader]): Iteratee[Io, Option[HttpRequestBody]] = {
+  final def readRequestBody(headers: List[Header]): Iteratee[Io, Option[RequestBody]] = {
     Done(None)
   }
 
@@ -176,16 +136,7 @@ object HttpIteratee {
     (method, path, query, version) ← readRequestLine
     headers ← readRequestHeaders
     body ← readRequestBody(headers)
-  } yield HttpRequest(method, path, query, version, headers, body)
-
-  /**
-   * simple testing
-   */
-  //  final val readRequest2 = for {
-  //    all ← take(100)
-  //  } yield all
-
-  //  @inline private[this] final def p[A](a: A): A = a // { println("result [" + a + "]"); a }
+  } yield Request(method, path, query, version, headers, body)
 
 }
 
