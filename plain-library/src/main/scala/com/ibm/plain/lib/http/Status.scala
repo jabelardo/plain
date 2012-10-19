@@ -4,9 +4,11 @@ package lib
 
 package http
 
-import java.nio.CharBuffer
+import java.nio.ByteBuffer
 
 import scala.util.control.ControlThrowable
+
+import text.ASCII
 
 import ResponseConstants._
 
@@ -19,16 +21,22 @@ sealed abstract class Status
 
   with Renderable {
 
+  /**
+   * Only [0-9]3 are allowed here.
+   */
   val code: String
 
+  /**
+   * Only US-ASCII characters are allowed here.
+   */
   val reason: String
 
-  @inline final def render(implicit buffer: CharBuffer) = buffer.put(code).put(` `).put(reason)
+  @inline final def render(implicit buffer: ByteBuffer) = buffer.put(code.getBytes(ASCII)).put(` `).put(reason.getBytes(ASCII))
 
 }
 
 /**
- * The HttpStatus object.
+ * The Status object.
  */
 object Status {
 
@@ -40,115 +48,115 @@ object Status {
 
   }
 
-  sealed trait Information extends BaseStatus
+  sealed abstract class Information(val reason: String) extends BaseStatus
 
-  sealed trait Success extends BaseStatus
+  sealed abstract class Success(val reason: String) extends BaseStatus
 
-  sealed trait ClientError extends BaseStatus
+  sealed abstract class ClientError(val reason: String) extends BaseStatus
 
-  sealed trait Redirection extends BaseStatus
+  sealed abstract class Redirection(val reason: String) extends BaseStatus
 
-  sealed trait ServerError extends BaseStatus
+  sealed abstract class ServerError(val reason: String) extends BaseStatus
 
   object Information {
 
-    case class `100`(reason: String) extends Information { def this() = this("Continue") }
+    case object `100` extends Information("Continue")
 
-    case class `101`(reason: String) extends Information { def this() = this("Switching Protocols") }
+    case object `101` extends Information("Switching Protocals")
 
   }
 
   object Success {
 
-    case class `200`(reason: String) extends Success { def this() = this("OK") }
+    case object `200` extends Success("OK")
 
-    case class `201`(reason: String) extends Success { def this() = this("Created") }
+    case object `201` extends Success("Created")
 
-    case class `202`(reason: String) extends Success { def this() = this("Accepted") }
+    case object `202` extends Success("Accepted")
 
-    case class `203`(reason: String) extends Success { def this() = this("Non-Authoritative Information") }
+    case object `203` extends Success("Non-Authoritative Information")
 
-    case class `204`(reason: String) extends Success { def this() = this("No Content") }
+    case object `204` extends Success("No Content")
 
-    case class `205`(reason: String) extends Success { def this() = this("Reset Content") }
+    case object `205` extends Success("Reset Content")
 
-    case class `206`(reason: String) extends Success { def this() = this("Partial Content") }
+    case object `206` extends Success("Partial Content")
 
   }
 
   object Redirection {
 
-    case class `300`(reason: String) extends Redirection { def this() = this("Multiple Choices") }
+    case object `300` extends Redirection("Multiple Choices")
 
-    case class `301`(reason: String) extends Redirection { def this() = this("Moved Permanently") }
+    case object `301` extends Redirection("Moved Permanently")
 
-    case class `302`(reason: String) extends Redirection { def this() = this("Found") }
+    case object `302` extends Redirection("Found")
 
-    case class `303`(reason: String) extends Redirection { def this() = this("See Other") }
+    case object `303` extends Redirection("See Other")
 
-    case class `304`(reason: String) extends Redirection { def this() = this("Not Modified") }
+    case object `304` extends Redirection("Not Modified")
 
-    case class `305`(reason: String) extends Redirection { def this() = this("Use Proxy") }
+    case object `305` extends Redirection("Use Proxy")
 
-    case class `306`(reason: String) extends Redirection { def this() = this("Unused") }
+    case object `306` extends Redirection("Unused")
 
-    case class `307`(reason: String) extends Redirection { def this() = this("Temporary Redirect") }
+    case object `307` extends Redirection("Temporary Redirect")
 
   }
 
   object ClientError {
 
-    case class `400`(reason: String) extends ClientError { def this() = this("Bad Request") }
+    case object `400` extends ClientError("Bad Request")
 
-    case class `401`(reason: String) extends ClientError { def this() = this("Unauthorized") }
+    case object `401` extends ClientError("Unauthorized")
 
-    case class `402`(reason: String) extends ClientError { def this() = this("Payment Required") }
+    case object `402` extends ClientError("Payment Required")
 
-    case class `403`(reason: String) extends ClientError { def this() = this("Forbidden") }
+    case object `403` extends ClientError("Forbidden")
 
-    case class `404`(reason: String) extends ClientError { def this() = this("Not Found") }
+    case object `404` extends ClientError("Not Found")
 
-    case class `405`(reason: String) extends ClientError { def this() = this("Method Not Allowed") }
+    case object `405` extends ClientError("Method Not Allowed")
 
-    case class `406`(reason: String) extends ClientError { def this() = this("Not Acceptable") }
+    case object `406` extends ClientError("Not Acceptable")
 
-    case class `407`(reason: String) extends ClientError { def this() = this("Proxy Authentication Required") }
+    case object `407` extends ClientError("Proxy Authentication Required")
 
-    case class `408`(reason: String) extends ClientError { def this() = this("Request Time-out") }
+    case object `408` extends ClientError("Request Time-out")
 
-    case class `409`(reason: String) extends ClientError { def this() = this("Conflict") }
+    case object `409` extends ClientError("Conflict")
 
-    case class `410`(reason: String) extends ClientError { def this() = this("Gone") }
+    case object `410` extends ClientError("Gone")
 
-    case class `411`(reason: String) extends ClientError { def this() = this("Length Required") }
+    case object `411` extends ClientError("Length Required")
 
-    case class `412`(reason: String) extends ClientError { def this() = this("Precondition Failed") }
+    case object `412` extends ClientError("Precondition Failed")
 
-    case class `413`(reason: String) extends ClientError { def this() = this("Request Entity Too Large") }
+    case object `413` extends ClientError("Request Entity Too Large")
 
-    case class `414`(reason: String) extends ClientError { def this() = this("Request-URI Too Large") }
+    case object `414` extends ClientError("Request-URI Too Large")
 
-    case class `415`(reason: String) extends ClientError { def this() = this("Unsupported Media Type") }
+    case object `415` extends ClientError("Unsupported Media Type")
 
-    case class `416`(reason: String) extends ClientError { def this() = this("Requested range not satisfiable") }
+    case object `416` extends ClientError("Requested range not satisfiable")
 
-    case class `417`(reason: String) extends ClientError { def this() = this("Expectation Failed") }
+    case object `417` extends ClientError("Expectation Failed")
 
   }
 
   object ServerError {
 
-    case class `500`(reason: String) extends ServerError { def this() = this("Internal Server Error") }
+    case object `500` extends ServerError("Internal Server Error")
 
-    case class `501`(reason: String) extends ServerError { def this() = this("Not Implemented") }
+    case object `501` extends ServerError("Not Implemented")
 
-    case class `502`(reason: String) extends ServerError { def this() = this("Bad Gateway") }
+    case object `502` extends ServerError("Bad Gateway")
 
-    case class `503`(reason: String) extends ServerError { def this() = this("Service Unavailable") }
+    case object `503` extends ServerError("Service Unavailable")
 
-    case class `504`(reason: String) extends ServerError { def this() = this("Gateway Time-out") }
+    case object `504` extends ServerError("Gateway Time-out")
 
-    case class `505`(reason: String) extends ServerError { def this() = this("HTTP Version not supported") }
+    case object `505` extends ServerError("HTTP Version not supported")
 
   }
 

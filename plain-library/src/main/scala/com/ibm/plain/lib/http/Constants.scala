@@ -6,10 +6,12 @@ package http
 
 import scala.collection.immutable.{ BitSet, NumericRange, Range ⇒ SRange }
 
+import text.ASCII
+
 /**
  * Basic http request parsing constants.
  */
-object RequestConstants {
+private[http] object RequestConstants {
 
   final val ` ` = ' '.toByte
   final val `\t` = '\t'.toByte
@@ -49,10 +51,10 @@ object RequestConstants {
 /**
  * Basic constants used for rendering an http response.
  */
-object ResponseConstants {
+private[http] object ResponseConstants {
 
-  final val `\r\n` = "\r\n"
-  final val ` ` = ' '
+  final val `\r\n` = "\r\n".getBytes(ASCII)
+  final val ` ` = ' '.toByte
   final val `\t` = '\t'
   final val `:` = ':'
 

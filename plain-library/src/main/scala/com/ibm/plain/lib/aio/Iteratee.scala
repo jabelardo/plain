@@ -37,18 +37,30 @@ sealed abstract class Iteratee[E, +A] {
     case Cont(_) ⇒ throw NotYetDone
   }
 
-  final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = this match {
+  /**
+   * All lines in a for-comprehension except the last one.
+   */
+  @inline final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = this match {
     case Done(a) ⇒ f(a)
     case e @ Error(_) ⇒ e
     case Cont(comp: Compose[E, A]) ⇒ Cont(comp ++ f)
     case Cont(k) ⇒ Cont(Compose(k, f))
   }
 
-  final def map[B](f: A ⇒ B): Iteratee[E, B] = flatMap(a ⇒ Done(f(a)))
+  /**
+   * The last line in a for-comprehension.
+   */
+  @inline final def map[B](f: A ⇒ B): Iteratee[E, B] = flatMap(a ⇒ Done(f(a)))
 
-  final def >>>[B](f: A ⇒ Iteratee[E, B]) = flatMap(f)
+  /**
+   * A synonym for flatmap.
+   */
+  @inline final def >>>[B](f: A ⇒ Iteratee[E, B]) = flatMap(f)
 
-  final def >>[B](f: A ⇒ B) = map(f)
+  /**
+   * A synonym for map.
+   */
+  @inline final def >>[B](f: A ⇒ B) = map(f)
 
 }
 
@@ -102,6 +114,9 @@ object Iteratee {
 
   }
 
+  /**
+   * This class is a performance bottleneck and could use some refinement.
+   */
   private final class Compose[E, A] private (
 
     var k: Input[E] ⇒ (Iteratee[E, _], Input[E]),
@@ -114,6 +129,9 @@ object Iteratee {
 
     @inline final def ++[B](f: _ ⇒ Iteratee[E, B]) = new Compose[E, B](k, out, in ++ f)
 
+    /**
+     * A plain application spends most of its time in this method.
+     */
     final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = {
 
       @inline @tailrec def run(
@@ -232,6 +250,7 @@ object Iteratees {
     Cont(cont(n))
   }
 
-  private[this] final val EOF = new EOFException("Unexpected EOF")
+  private[this] final lazy val EOF = new EOFException("Unexpected EOF")
 
 }
+

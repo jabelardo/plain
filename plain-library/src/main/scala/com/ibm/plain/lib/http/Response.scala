@@ -4,7 +4,7 @@ package lib
 
 package http
 
-import java.nio.CharBuffer
+import java.nio.ByteBuffer
 
 import ResponseConstants._
 
@@ -13,7 +13,7 @@ import ResponseConstants._
  */
 trait Renderable {
 
-  def render(implicit buffer: CharBuffer)
+  def render(implicit buffer: ByteBuffer)
 
 }
 
@@ -30,7 +30,7 @@ case class Response(
 
   extends Renderable {
 
-  final def render(implicit buffer: CharBuffer) = {
+  final def render(implicit buffer: ByteBuffer) = {
     version.render
     buffer.put(` `)
     status.render

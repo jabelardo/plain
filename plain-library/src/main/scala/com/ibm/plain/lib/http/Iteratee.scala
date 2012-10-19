@@ -73,7 +73,7 @@ class RequestIteratee()(implicit server: Server) {
           path ← readPath
           query ← readQuery
         } yield (path, query)
-        case _ ⇒ throw new `501`
+        case _ ⇒ throw `501`
       }
     }
 

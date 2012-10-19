@@ -28,7 +28,7 @@ object Method {
     case "OPTIONS" ⇒ OPTIONS
     case "CONNECT" ⇒ CONNECT
     case "TRACE" ⇒ TRACE
-    case n ⇒ throw `405`("Invalid method " + n)
+    case n ⇒ throw `405`
   }
 
   case object GET extends Method("GET")

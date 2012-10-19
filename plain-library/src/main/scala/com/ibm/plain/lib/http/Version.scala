@@ -4,11 +4,12 @@ package lib
 
 package http
 
-import java.nio.{ ByteBuffer, CharBuffer }
+import java.nio.ByteBuffer
 
 import scala.util.control.NoStackTrace
 
 import aio.Io
+import text.ASCII
 
 import Status.ServerError.`505`
 
@@ -21,7 +22,7 @@ sealed abstract class Version
 
   final val version = reflect.simpleName(getClass)
 
-  @inline final def render(implicit buffer: CharBuffer) = buffer.put(version)
+  @inline final def render(implicit buffer: ByteBuffer) = buffer.put(version.getBytes(ASCII))
 
 }
 
@@ -34,7 +35,7 @@ object Version {
       if (server.settings.treatAnyVersionAs11)
         `HTTP/1.1`
       else
-        throw new `505`
+        throw `505`
   }
 
   /**

@@ -51,9 +51,7 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
 
   @inline private[this] def unlock = locked.set(false)
 
-  private[this] val locked = new AtomicBoolean(false)
-
-  debug("ByteBufferPool preallocated : " + buffersize + ", " + initialpoolsize)
+  private[this] final val locked = new AtomicBoolean(false)
 
 }
 

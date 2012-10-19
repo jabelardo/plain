@@ -62,15 +62,13 @@ package object reflect {
   }
 
   /**
-   * Returns a 'scala-safe' getSimpleName for the provided class parent.
+   * Returns a 'scala-safe' getSimpleName for the provided class' parent.
    */
   def simpleParentName(cls: Class[_]): String = {
     val n = cls.getName
-    println(n)
     val last = n.lastIndexOf('$')
     if (-1 < last) {
       val previous = n.take(last - 1).lastIndexOf('$')
-      println(last + " " + previous)
       n.substring(previous + 1, last)
     } else n
   }

@@ -4,19 +4,18 @@ package lib
 
 package aio
 
-import language.implicitConversions
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousServerSocketChannel ⇒ ServerChannel, AsynchronousSocketChannel ⇒ Channel, CompletionHandler ⇒ Handler }
 import java.nio.charset.Charset
-import scala.util.continuations.{ reset, shift, suspendable }
-import scala.annotation.tailrec
-import scala.math.min
 
-import text.{ ASCII, UTF8 }
-import logging.HasLogger
+import scala.math.min
+import scala.util.continuations.{ shift, suspendable }
+
+import Iteratee.{ Cont, Done, Error }
+import aio.Input.{ Elem, Empty, Eof }
 import concurrent.OnlyOnce
-import aio.Input.{ Elem, Eof, Empty }
+import logging.HasLogger
 
 /**
  * Helper for Io with all low-level ByteBuffer methods.
@@ -78,18 +77,6 @@ abstract sealed class IoHelper[E <: Io] {
     if (-1 < positionmark) { buffer.position(positionmark); positionmark = -1 }
     a
   }
-
-  /**
-   * debug helper
-   */
-  //  final def render[A](a: A): A = { println(a + " [" + asString + "]" + buffer + " " + limitmark + " " + positionmark); a }
-  //
-  //  final def asString = {
-  //    val a = new Array[Byte](buffer.remaining)
-  //    val p = buffer.position
-  //    for (i ← 0 until buffer.remaining) a.update(i, buffer.get(p + i))
-  //    new String(a)
-  //  }
 
   private[this] final var limitmark = -1
 
@@ -157,7 +144,7 @@ final class Io private (
   } else if (0 == that.length) {
     this
   } else {
-    warn
+    warnOnce
     val len = this.length + that.length
     val b = ByteBuffer.allocate(len)
     b.put(this.readBytes)
@@ -181,7 +168,7 @@ object Io
 
   import Iteratee._
 
-  final private def warn = onlyonce { warning("Chunked input found. Enlarge aio.default-buffer-size : " + defaultBufferSize) }
+  final private def warnOnce = onlyonce { warning("Chunked input found. Enlarge aio.default-buffer-size : " + defaultBufferSize) }
 
   final val emptyBuffer = ByteBuffer.allocate(0)
 
@@ -194,12 +181,10 @@ object Io
    */
   private[this] val accepthandler = new Handler[Channel, Io] {
 
-    def completed(c: Channel, io: Io) = try {
+    def completed(c: Channel, io: Io) = {
       import io._
       server.accept(io, this)
       k(io ++ c ++ defaultByteBuffer)
-    } catch {
-      case e: Throwable ⇒ e.printStackTrace
     }
 
     def failed(e: Throwable, io: Io) = {
@@ -283,6 +268,9 @@ object Io
     }
   }
 
+  /**
+   * testing
+   */
   private final val response = "HTTP/1.1 200 OK\r\nDate: Mon, 10 Sep 2012 15:06:09 GMT\r\nContent-Type: text/plain\r\nContent-Length: 5\r\nConnection: keep-alive\r\n\r\nPONG!".getBytes
 
   private final val badrequest = "HTTP/1.1 400 Bad Request\r\nDate: Mon, 10 Sep 2012 15:06:09 GMT\r\nConnection: close\r\n\r\n".getBytes
