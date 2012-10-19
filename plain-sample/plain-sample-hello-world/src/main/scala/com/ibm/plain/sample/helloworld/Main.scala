@@ -10,11 +10,7 @@ import com.ibm.plain.lib.run
  */
 object Main extends App {
 
-  val duration = settings.getDuration("how-long-to-run", 1.minute)
-
-  run(duration) {}
-
-  println("Good bye.")
+  run(settings.getDuration("how-long-to-run")) {}
 
 }
 

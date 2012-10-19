@@ -26,6 +26,9 @@ class RichConfig(config: Config) {
 
   def getBytes(key: String, default: Long): Long = if (config.hasPath(key)) config.getBytes(key) else default
 
+  /**
+   * shadowed by someone
+   */
   def getDuration(key: String) = Duration(config.getMilliseconds(key), java.util.concurrent.TimeUnit.MILLISECONDS)
 
   def getDuration(key: String, default: Duration) = if (config.hasPath(key)) Duration(config.getMilliseconds(key), java.util.concurrent.TimeUnit.MILLISECONDS) else default

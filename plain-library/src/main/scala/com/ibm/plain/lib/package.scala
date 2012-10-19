@@ -26,11 +26,9 @@ package object lib
     appl
   }
 
-  def run(body: ⇒ Unit): Unit = run(Duration.Inf)(body)
-
   def run(timeout: Duration)(body: ⇒ Unit): Unit = try {
     application.bootstrap
-    body
+    body      
     application.awaitTermination(timeout)
   } catch {
     case e: Throwable ⇒ println("Uncaught exception: " + e); e.printStackTrace
@@ -53,7 +51,7 @@ package object lib
    * check requirements
    */
   require(null != home, "Neither plain.home config setting nor PLAIN_HOME environment variable are set.")
-  require(requiredVersion == config.version, String.format("plain.version (%s) does not match internal version (%s).", config.version, requiredVersion))
+  require(requiredVersion == config.version, String.format("plain.version in *.conf files (%s) does not match internal version (%s).", config.version, requiredVersion))
 
 }
 

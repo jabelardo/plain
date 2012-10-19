@@ -40,7 +40,7 @@ sealed abstract class Iteratee[E, +A] {
   /**
    * All lines in a for-comprehension except the last one.
    */
-  @inline final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = this match {
+  final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = this match {
     case Done(a) ⇒ f(a)
     case e @ Error(_) ⇒ e
     case Cont(comp: Compose[E, A]) ⇒ Cont(comp ++ f)

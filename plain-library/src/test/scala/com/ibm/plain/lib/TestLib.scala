@@ -2,6 +2,8 @@ package com.ibm.plain
 
 package lib
 
+import scala.concurrent.util.duration.intToDurationInt
+
 import org.junit.Test
 
 import concurrent.schedule
@@ -14,7 +16,7 @@ import http._
 @Test class TestLib {
 
   @Test def testA = {
-    run {
+    run(1.minute) {
       println(requiredVersion)
       println(operatingSystem)
       println(userName)
@@ -24,7 +26,7 @@ import http._
       val d = temporaryDirectory
       println(f)
       println(d)
-      debug("debug") 
+      debug("debug")
       info("info")
       warning("warning")
       error("error")
@@ -37,7 +39,6 @@ import http._
         warning("warning " + c)
         error("error " + c)
       }
-      //test(server)
       println("after serve")
     }
   }
