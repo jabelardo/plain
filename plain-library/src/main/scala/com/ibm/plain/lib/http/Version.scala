@@ -4,7 +4,7 @@ package lib
 
 package http
 
-import java.nio.ByteBuffer
+import java.nio.{ ByteBuffer, CharBuffer }
 
 import scala.util.control.NoStackTrace
 
@@ -15,9 +15,13 @@ import Status.ServerError.`505`
 /**
  * Supported http versions. The current implementation only supports HTTP/1.1.
  */
-sealed abstract class Version {
+sealed abstract class Version
+
+  extends Renderable {
 
   final val version = reflect.simpleName(getClass)
+
+  @inline final def render(implicit buffer: CharBuffer) = buffer.put(version)
 
 }
 

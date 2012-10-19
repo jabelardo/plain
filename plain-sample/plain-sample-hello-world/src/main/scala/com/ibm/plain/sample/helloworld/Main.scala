@@ -1,8 +1,8 @@
 package com.ibm.plain.sample.helloworld
 
-import language.postfixOps
 import scala.concurrent.util.duration.intToDurationInt
 
+import com.ibm.plain.lib.config.{ config2RichConfig, settings }
 import com.ibm.plain.lib.run
 
 /**
@@ -10,7 +10,9 @@ import com.ibm.plain.lib.run
  */
 object Main extends App {
 
-  run(5 minutes) {}
+  val duration = settings.getDuration("how-long-to-run", 1.minute)
+
+  run(duration) {}
 
   println("Good bye.")
 

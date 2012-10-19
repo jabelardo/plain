@@ -254,7 +254,7 @@ object Io
       case (cont @ Cont(_), Empty) ⇒
         handle(io ++ cont ++ defaultByteBuffer)
       case (e @ Done(a), el @ Elem(io)) ⇒ // move handling/dispatching outside 
-        println(a)
+        // println(a)
         io.releaseBuffer
         val r = defaultByteBuffer
         r.put(response)

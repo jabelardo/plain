@@ -52,9 +52,9 @@ object RequestConstants {
 object ResponseConstants {
 
   final val `\r\n` = "\r\n"
-  final val ` ` = " "
-  final val `\t` = "\t"
-  final val `:` = ":"
+  final val ` ` = ' '
+  final val `\t` = '\t'
+  final val `:` = ':'
 
 }
 

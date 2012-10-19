@@ -11,6 +11,9 @@ package object config
 
   extends CheckedConfig {
 
+  /**
+   * The "global" plain application configuration settings.
+   */
   final val settings: Config = {
     val config = ConfigFactory.load
     config.checkValid(config, "plain")

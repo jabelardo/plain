@@ -46,19 +46,33 @@ package object reflect {
    */
 
   /**
-   * Returns a 'scala-safe' getSimpleName for the provided object's Class
+   * Returns a 'scala-safe' getSimpleName for the provided object's class.
    */
   def simpleName(a: AnyRef): String = simpleName(a.getClass)
 
   /**
-   * Returns a 'scala-safe' getSimpleName for the provided Class
+   * Returns a 'scala-safe' getSimpleName for the provided class.
    */
   def simpleName(cls: Class[_]): String = {
     var n = cls.getName
     if (n.endsWith("$")) n = n.take(n.length - 1)
     val dollar = n.lastIndexOf('$')
-    val dot = n.lastIndexOf(".")
+    val dot = n.lastIndexOf('.')
     n.substring(scala.math.max(dollar, dot) + 1)
+  }
+
+  /**
+   * Returns a 'scala-safe' getSimpleName for the provided class parent.
+   */
+  def simpleParentName(cls: Class[_]): String = {
+    val n = cls.getName
+    println(n)
+    val last = n.lastIndexOf('$')
+    if (-1 < last) {
+      val previous = n.take(last - 1).lastIndexOf('$')
+      println(last + " " + previous)
+      n.substring(previous + 1, last)
+    } else n
   }
 
 }

@@ -23,10 +23,7 @@ sealed abstract class Status
 
   val reason: String
 
-  final def render(buffer: CharBuffer): Unit = {
-    import buffer._
-    put(code).put(` `).put(reason)
-  }
+  @inline final def render(implicit buffer: CharBuffer) = buffer.put(code).put(` `).put(reason)
 
 }
 
@@ -37,9 +34,9 @@ object Status {
 
   abstract sealed class BaseStatus extends Status {
 
-    lazy final val code = reflect.simpleName(getClass)
+    final lazy val code = reflect.simpleName(getClass)
 
-    override def toString = code + "(" + reason + ")"
+    override lazy val toString = reflect.simpleParentName(getClass) + "(code=" + code + ", reason=" + reason + ")"
 
   }
 
