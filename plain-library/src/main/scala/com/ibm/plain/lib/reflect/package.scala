@@ -73,4 +73,9 @@ package object reflect {
     } else n
   }
 
+  /**
+   * Returns the class name stripped of any '$', this way classes and companion objects can be set equal.
+   */
+  def strippedName(cls: Class[_]): String = cls.getName.replace("$", "")
+
 }

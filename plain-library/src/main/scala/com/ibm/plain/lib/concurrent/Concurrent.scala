@@ -18,12 +18,16 @@ abstract sealed class Concurrent
 
   extends BaseComponent[Concurrent]("plain-concurrent") {
 
-  override def isStopped = actorSystem.isTerminated
+  override def isStopped = null != actorSystem && actorSystem.isTerminated
 
   override def start = {
     if (isEnabled) {
       if (isStopped) throw new IllegalStateException("Underlying system already terminated and cannot be started more than once.")
-      actorSystem
+      if (null == actorSystem) actorSystem = {
+        import config._
+        import config.settings._
+        ActorSystem(getString("plain.concurrent.actorsystem", "default"), config.settings)
+      }
     }
     this
   }
@@ -35,26 +39,27 @@ abstract sealed class Concurrent
 
   override def awaitTermination(timeout: Duration) = if (!actorSystem.isTerminated) actorSystem.awaitTermination(timeout)
 
-  lazy val dispatcher = actorSystem.dispatcher
+  final def dispatcher = actorSystem.dispatcher
 
-  lazy val scheduler = actorSystem.scheduler
+  final def scheduler = actorSystem.scheduler
 
   /**
    * Provide access to the protected field 'executorService' of the dispatcher in order to share the nicely configured threadpool from akka.
    */
-  lazy val executor = {
+  final lazy val executor = {
     import language.existentials
+    if (null == actorSystem) actorSystem = {
+      import config._
+      import config.settings._
+      ActorSystem(getString("plain.concurrent.actorsystem", "default"), config.settings)
+    }
     val clazz = actorSystem.dispatcher.getClass
     val executorService = clazz.getDeclaredMethod("executorService")
     executorService.setAccessible(true)
     executorService.invoke(actorSystem.dispatcher).asInstanceOf[ExecutorServiceDelegate].executor
   }
 
-  private[this] final lazy val actorSystem = {
-    import config._
-    import config.settings._
-    ActorSystem(getString("plain.concurrent.actorsystem", "default"), config.settings)
-  }
+  @volatile private[this] var actorSystem: ActorSystem = null
 
 }
 

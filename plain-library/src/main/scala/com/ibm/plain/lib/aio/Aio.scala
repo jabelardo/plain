@@ -13,20 +13,11 @@ abstract sealed class Aio
 
   extends BaseComponent[Aio]("plain-aio") {
 
-  override def start = {
-    if (isEnabled) {
-      defaultBufferPool
-      tinyBufferPool
-      largeBufferPool
-    }
-    this
-  }
+  final val defaultBufferPool = ByteBufferPool(defaultBufferSize, defaultBufferPoolSize)
 
-  final lazy val defaultBufferPool = ByteBufferPool(defaultBufferSize, defaultBufferPoolSize)
+  final val tinyBufferPool = ByteBufferPool(tinyBufferSize, tinyBufferPoolSize)
 
-  final lazy val tinyBufferPool = ByteBufferPool(tinyBufferSize, tinyBufferPoolSize)
-
-  final lazy val largeBufferPool = ByteBufferPool(largeBufferSize, largeBufferPoolSize)
+  final val largeBufferPool = ByteBufferPool(largeBufferSize, largeBufferPoolSize)
 
 }
 

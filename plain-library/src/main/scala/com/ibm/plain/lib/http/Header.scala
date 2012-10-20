@@ -13,9 +13,13 @@ import scala.Array.canBuildFrom
  */
 sealed abstract class Header {
 
-  val name: String
+  def name: String
 
   val value: String
+
+  override def equals(that: Any) = reflect.strippedName(getClass) == reflect.strippedName(that.getClass)
+
+  override def hashCode = name.hashCode
 
   final def render = name + ": " + value
 
@@ -26,16 +30,12 @@ sealed abstract class Header {
  */
 object Header {
 
-  private val t = new java.util.concurrent.atomic.AtomicLong
-
-  private val c = new java.util.concurrent.atomic.AtomicLong
-
   /**
    * Predefined request headers, they can contain header specific logic and behavior.
    */
   abstract sealed class PredefinedHeader extends Header {
 
-    lazy final val name = reflect.simpleName(getClass)
+    final def name = reflect.simpleName(getClass)
 
   }
 
@@ -57,22 +57,22 @@ object Header {
     /**
      * Header.value contains a list of Tokens.
      */
-    trait TokenList extends Value { lazy val tokens = value.split(",").map(_.trim) }
+    trait TokenList extends Value { final def tokens = value.split(",").map(_.trim) }
 
     /**
      * Header.value contains an Int.
      */
-    trait IntValue extends Value { lazy val intValue = value.trim.toInt }
+    trait IntValue extends Value { final def intValue = value.trim.toInt }
 
     /**
      * Header.value contains a java.util.Date.
      */
-    trait DateValue extends Value { lazy val dateValue = dateformat.parse(value.trim) }
+    trait DateValue extends Value { final def dateValue = dateformat.parse(value.trim) }
 
     /**
      * The DateValue object provides the SimpleDateFormat used in http header fields.
      */
-    private lazy final val dateformat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z")
+    private final val dateformat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z")
 
   }
 
@@ -274,7 +274,12 @@ object Header {
   /**
    * Non-predefined header fields.
    */
-  case class `User-Defined`(name: String, value: String) extends Header
+  class `User-Defined` private (val name: String, val value: String) extends Header
+
+  object `User-Defined` {
+
+    def apply(name: String, value: String) = new `User-Defined`(name.toLowerCase, value)
+
+  }
 
 }
-

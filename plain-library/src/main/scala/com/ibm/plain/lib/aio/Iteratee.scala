@@ -158,7 +158,7 @@ object Iteratee {
 
   }
 
-  private final lazy val NotYetDone = new IllegalStateException("Not yet done.")
+  private final val NotYetDone = new IllegalStateException("Not yet done.")
 
 }
 
@@ -250,7 +250,7 @@ object Iteratees {
     Cont(cont(n))
   }
 
-  private[this] final lazy val EOF = new EOFException("Unexpected EOF")
+  private[this] final val EOF = new EOFException("Unexpected EOF")
 
 }
 

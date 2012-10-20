@@ -24,7 +24,7 @@ sealed abstract class Status
   /**
    * Only [0-9]3 are allowed here.
    */
-  val code: String
+  def code: String
 
   /**
    * Only US-ASCII characters are allowed here.
@@ -42,9 +42,9 @@ object Status {
 
   abstract sealed class BaseStatus extends Status {
 
-    final lazy val code = reflect.simpleName(getClass)
+    final def code = reflect.simpleName(getClass)
 
-    override lazy val toString = reflect.simpleParentName(getClass) + "(code=" + code + ", reason=" + reason + ")"
+    override final def toString = reflect.simpleParentName(getClass) + "(code=" + code + ", reason=" + reason + ")"
 
   }
 

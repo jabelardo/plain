@@ -9,9 +9,9 @@ package http
  */
 abstract class MimeType {
 
-  val name: String
+  def name: String
 
-  val extensions: Set[String]
+  def extensions: Set[String]
 
   final def render = name
 
@@ -34,9 +34,9 @@ object MimeType {
    */
   abstract class PredefinedMimeType(ext: Seq[String] = Seq.empty) extends MimeType {
 
-    lazy final val name = reflect.simpleName(getClass)
+    final def name = reflect.simpleName(getClass)
 
-    lazy final val extensions = ext.toSet
+    final def extensions = ext.toSet
 
   }
 

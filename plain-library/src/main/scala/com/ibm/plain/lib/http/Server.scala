@@ -81,9 +81,9 @@ case class Server(
 
   override def awaitTermination(timeout: Duration) = if (!channelGroup.isShutdown) channelGroup.awaitTermination(if (Duration.Inf == timeout) -1 else timeout.toMillis, TimeUnit.MILLISECONDS)
 
-  final lazy val settings = ServerConfiguration(path, false)
-
   private[this] var serverChannel: ServerChannel = null
+
+  private[http] final lazy val settings = ServerConfiguration(path, false)
 
   private[this] final lazy val address = if ("*" == settings.address)
     new InetSocketAddress(port.getOrElse(settings.portRange.head))

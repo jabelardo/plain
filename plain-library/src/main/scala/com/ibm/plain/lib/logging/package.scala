@@ -13,11 +13,11 @@ package object logging
   import config._
   import config.settings._
 
-  def createLogger(any: Any) = Logging.createLogger(any)
+  final def createLogger(any: Any) = Logging.createLogger(any)
 
-  def createLogger(name: String) = Logging.createLogger(name)
+  final def createLogger(name: String) = Logging.createLogger(name)
 
-  final lazy val defaultLogger = Logging.createLogger(Logging.name)
+  final def defaultLogger = Logging.createLogger(Logging.name)
 
   final val loggingLevel = {
     val level = getString("plain.logging.level").toUpperCase

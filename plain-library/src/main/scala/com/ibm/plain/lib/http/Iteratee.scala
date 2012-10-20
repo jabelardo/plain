@@ -10,7 +10,9 @@ import aio._
 import aio.Iteratee._
 import aio.Iteratees._
 import text.{ ASCII, UTF8 }
+
 import Status.ServerError.`501`
+import Header.Entity.`Content-Length`
 
 /**
  * Consuming the input stream to produce a Request.
@@ -23,7 +25,7 @@ class RequestIteratee()(implicit server: Server) {
 
   private[this] implicit final val ascii = ASCII
 
-  private[this] final lazy val codec = new URLCodec(defaultCharacterSet.toString)
+  private[this] final val codec = new URLCodec(defaultCharacterSet.toString)
 
   final val readRequestLine = {
 
@@ -116,6 +118,10 @@ class RequestIteratee()(implicit server: Server) {
   }
 
   final def readRequestBody(headers: List[Header]): Iteratee[Io, Option[RequestBody]] = {
+    headers.find(_ == `Content-Length`) match {
+      case Some(`Content-Length`(length)) ⇒ println(length)
+      case _ ⇒
+    }
     Done(None)
   }
 

@@ -25,7 +25,7 @@ abstract sealed class ContentType {
 object ContentType {
 
   def apply(name: String): ContentType = name.toLowerCase match {
-    case _ ⇒ null
+    case _ ⇒ null // :TODO:
   }
 
   /**
@@ -40,6 +40,12 @@ object ContentType {
   }
 
   case object `text/plain` extends PredefinedContentType
+
+  case object `text/xml` extends PredefinedContentType
+
+  case object `application/xml` extends PredefinedContentType
+
+  case object `application/json` extends PredefinedContentType
 
   case object `application/octet-stream` extends PredefinedContentType
 

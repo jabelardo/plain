@@ -7,7 +7,7 @@ import scala.concurrent.duration._
 import org.junit.Test
 
 import concurrent.schedule
-import logging.defaultLogger._
+import logging.defaultLogger
 import os._
 import json._
 import io._
@@ -26,14 +26,16 @@ import http._
       val d = temporaryDirectory
       println(f)
       println(d)
-      debug("debug")
-      info("info")
-      warning("warning")
-      error("error")
+      defaultLogger.debug("debug")
+      defaultLogger.info("info")
+      defaultLogger.warning("warning")
+      defaultLogger.error("error")
       var c = 0
       schedule(1000, 2000) {
         c += 1
         println("print " + c)
+        val log = defaultLogger
+        import log._
         debug("debug " + c)
         info("info " + c)
         warning("warning " + c)

@@ -92,7 +92,7 @@ abstract sealed class Logging
     case _ ⇒ loggingSystem.eventStream.logLevel
   })
 
-  private[this] final lazy val loggingSystem = {
+  private[this] lazy val loggingSystem = {
     val system = ActorSystem(name)
     system.eventStream.setLogLevel(levelFor(loggingLevel).getOrElse(DebugLevel))
     system

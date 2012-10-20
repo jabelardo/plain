@@ -11,12 +11,12 @@ import language.implicitConversions
  *
  * @constructor Is private, use Uuid.newType4Uuid instead.
  */
-class Uuid private (private[this] val uuid: java.util.UUID) {
+final class Uuid private (private[this] val uuid: java.util.UUID) {
 
   /**
    * Removes all "-", length is always 32, all lowercase.
    */
-  override lazy val toString = uuid.toString.replace("-", "")
+  override def toString = uuid.toString.replace("-", "")
 
 }
 
