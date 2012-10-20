@@ -5,7 +5,7 @@ package lib
 package monitor
 
 import scala.collection.JavaConversions.asScalaSet
-import scala.concurrent.util.Duration
+import scala.concurrent.duration._
 
 import bootstrap.{ BaseComponent, application }
 import logging.{ HasLogger, Logging }

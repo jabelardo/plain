@@ -1,6 +1,6 @@
 package com.ibm.plain
 
-import scala.concurrent.util.Duration
+import scala.concurrent.duration.Duration
 
 package object lib
 

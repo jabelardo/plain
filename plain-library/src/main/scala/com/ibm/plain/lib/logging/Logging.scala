@@ -7,7 +7,7 @@ package logging
 import java.io.{ FileOutputStream, PrintStream }
 import java.nio.file.{ Files, Paths }
 
-import scala.concurrent.util.Duration
+import scala.concurrent.duration._
 
 import org.slf4j.LoggerFactory
 

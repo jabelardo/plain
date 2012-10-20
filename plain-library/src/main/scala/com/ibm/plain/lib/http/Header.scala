@@ -26,6 +26,10 @@ sealed abstract class Header {
  */
 object Header {
 
+  private val t = new java.util.concurrent.atomic.AtomicLong
+
+  private val c = new java.util.concurrent.atomic.AtomicLong
+
   /**
    * Predefined request headers, they can contain header specific logic and behavior.
    */
@@ -78,8 +82,9 @@ object Header {
   import Request._
   import Response._
   import Entity._
+
   /**
-   * Here we go... What about Header.getAllSubClasses?
+   * Map header.name.toLowerCase with its corresponding case class.
    */
   def apply(name: String, value: String): Header = name.toLowerCase match {
     case "accept" ⇒ `Accept`(value)

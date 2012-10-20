@@ -2,7 +2,7 @@ package com.ibm.plain
 
 package lib
 
-import scala.concurrent.util.duration.intToDurationInt
+import scala.concurrent.duration._
 
 import org.junit.Test
 

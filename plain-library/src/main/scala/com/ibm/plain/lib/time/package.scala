@@ -3,7 +3,7 @@ package com.ibm.plain
 package lib
 
 import language.postfixOps
-import scala.concurrent.util.duration.longToDurationLong
+import scala.concurrent.duration._
 
 import akka.event.LoggingAdapter
 import config.CheckedConfig
@@ -71,8 +71,8 @@ package object time
   final val never = 0L seconds
 
   /**
-   * 1000 years.
+   * 291 years (upper limit for scala.concurrent.duration.Duration).
    */
-  final val forever = 1000L * 365 days
+  final val forever = (365 * 291) days
 
 }

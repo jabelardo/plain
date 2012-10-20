@@ -1,7 +1,5 @@
 package com.ibm.plain.sample.helloworld
 
-import scala.concurrent.util.duration.intToDurationInt
-
 import com.ibm.plain.lib.config.{ config2RichConfig, settings }
 import com.ibm.plain.lib.run
 

@@ -5,7 +5,7 @@ package lib
 package config
 
 import scala.collection.JavaConversions.asScalaBuffer
-import scala.concurrent.util.Duration
+import scala.concurrent.duration.Duration
 
 import com.typesafe.config.Config
 

@@ -5,7 +5,7 @@ package lib
 package bootstrap
 
 import scala.collection.mutable.{ ArrayBuffer, SynchronizedBuffer }
-import scala.concurrent.util.Duration
+import scala.concurrent.duration.Duration
 
 import time.now
 import concurrent.OnlyOnce

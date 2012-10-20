@@ -3,14 +3,13 @@ package com.ibm.plain
 
 package lib
 
-import scala.collection.mutable.{ ArrayBuffer, SynchronizedBuffer }
 import scala.concurrent.Future
-import scala.concurrent.util.Duration
-import scala.concurrent.util.duration.longToDurationLong
+import scala.concurrent.duration.DurationLong
 
-import akka.actor.{ ActorSystem, Cancellable }
+import com.ibm.plain.lib.concurrent.Concurrent
+
+import akka.actor.Cancellable
 import akka.dispatch.MessageDispatcher
-import config.config2RichConfig
 
 package object concurrent
 

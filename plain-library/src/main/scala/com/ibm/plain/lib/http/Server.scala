@@ -9,7 +9,7 @@ import java.nio.channels.{ AsynchronousChannelGroup ⇒ Group, AsynchronousServe
 import java.nio.charset.Charset
 import java.util.concurrent.TimeUnit
 
-import scala.concurrent.util.Duration
+import scala.concurrent.duration._
 import scala.util.continuations.reset
 
 import com.typesafe.config.{ Config, ConfigFactory }
@@ -95,6 +95,8 @@ case class Server(
     ", backlog=" + settings.backlog +
     (if (settings.loadBalancingEnable && application.isDefined) ", load-balancing-path=" + settings.loadBalancingBalancingPath else "") +
     ")"
+
+  if (1 < settings.portRange.size && !settings.loadBalancingEnable) warning(name + " : port-range > 1 with load-balancing.enable=off")
 
 }
 

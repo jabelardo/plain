@@ -42,9 +42,9 @@ private[http] object RequestConstants {
   final val path = unreserved | subdelimiters | b(':', '@', '%')
   final val query = path | b('/', '?', '#')
 
-  @inline private[this] def b(in: Int*): Set[Int] = BitSet(in: _*)
-  @inline private[this] def b(in: SRange.Inclusive): Set[Int] = BitSet(in: _*)
-  @inline private[this] def b(in: NumericRange.Inclusive[Char]): Set[Int] = BitSet(in.map(_.toInt): _*)
+  private[this] final def b(in: Int*): Set[Int] = BitSet(in: _*)
+  private[this] final def b(in: SRange.Inclusive): Set[Int] = BitSet(in: _*)
+  private[this] final def b(in: NumericRange.Inclusive[Char]): Set[Int] = BitSet(in.map(_.toInt): _*)
 
 }
 

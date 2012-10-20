@@ -6,7 +6,7 @@ package bootstrap
 
 import java.util.concurrent.TimeoutException
 
-import scala.concurrent.util.Duration
+import scala.concurrent.duration.Duration
 
 import concurrent.sleep
 

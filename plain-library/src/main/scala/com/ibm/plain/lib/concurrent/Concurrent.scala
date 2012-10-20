@@ -4,7 +4,7 @@ package lib
 
 package concurrent
 
-import scala.concurrent.util.Duration
+import scala.concurrent.duration.Duration
 
 import akka.actor.ActorSystem
 import akka.dispatch.ExecutorServiceDelegate

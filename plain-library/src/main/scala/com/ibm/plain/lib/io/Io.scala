@@ -7,7 +7,7 @@ package io
 import java.io.File
 
 import scala.collection.mutable.{ HashSet, SynchronizedSet }
-import scala.concurrent.util.Duration
+import scala.concurrent.duration._
 
 import org.apache.commons.io.FileUtils
 

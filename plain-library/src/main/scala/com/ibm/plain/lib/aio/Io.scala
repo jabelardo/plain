@@ -11,7 +11,7 @@ import java.nio.charset.Charset
 
 import scala.math.min
 import scala.util.continuations.{ shift, suspendable }
-import scala.concurrent.util.Duration
+import scala.concurrent.duration.Duration
 
 import Iteratee.{ Cont, Done, Error }
 import aio.Input.{ Elem, Empty, Eof }
