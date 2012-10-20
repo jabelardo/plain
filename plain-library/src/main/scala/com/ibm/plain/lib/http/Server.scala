@@ -15,16 +15,20 @@ import scala.util.continuations.reset
 import com.typesafe.config.{ Config, ConfigFactory }
 
 import aio.Io.{ accept, handle }
-import bootstrap.BaseComponent
+import bootstrap.{ Application, BaseComponent }
 import logging.HasLogger
-import config.CheckedConfig
+import config.{ CheckedConfig, config2RichConfig }
 
 /**
  *
  */
 case class Server(
 
-  private val path: String)
+  private val path: String,
+
+  private val application: Option[Application],
+
+  private val port: Option[Int])
 
   extends BaseComponent[Server](null)
 
@@ -36,17 +40,27 @@ case class Server(
 
   override def start = try {
     if (isEnabled) {
-      serverChannel = ServerChannel.open(channelGroup)
-      serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
-      serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(aio.defaultBufferSize))
-      serverChannel.bind(address, settings.backlog)
-      val iteratee = new RequestIteratee()(this)
-      reset {
-        handle(accept(serverChannel) ++ iteratee.readRequest)
+
+      def startOne = {
+        serverChannel = ServerChannel.open(channelGroup)
+        serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
+        serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(aio.defaultBufferSize))
+        serverChannel.bind(address, settings.backlog)
+        val iteratee = new RequestIteratee()(this)
+        reset {
+          handle(accept(serverChannel, settings.pauseBetweenAccepts) ++ iteratee.readRequest)
+        }
+        debug(name + " has started.")
       }
-      debug(name + " has started.")
+
+      application match {
+        case Some(appl) if settings.loadBalancingEnable ⇒
+          startOne
+          settings.portRange.tail.foreach { p ⇒ appl.register(Server(path, None, Some(p)).start) }
+        case _ ⇒ startOne
+      }
     }
-    Server.this
+    this
   } catch {
     case e: Throwable ⇒ error(name + " failed to start : " + e); throw e
   }
@@ -60,9 +74,9 @@ case class Server(
        */
       debug(name + " has stopped.")
     }
-    Server.this
+    this
   } catch {
-    case e: Throwable ⇒ error(name + " failed to stop : " + e); Server.this
+    case e: Throwable ⇒ error(name + " failed to stop : " + e); this
   }
 
   override def awaitTermination(timeout: Duration) = if (!channelGroup.isShutdown) channelGroup.awaitTermination(if (Duration.Inf == timeout) -1 else timeout.toMillis, TimeUnit.MILLISECONDS)
@@ -71,9 +85,16 @@ case class Server(
 
   private[this] var serverChannel: ServerChannel = null
 
-  private[this] final lazy val address = if ("*" == settings.address) new InetSocketAddress(settings.port) else new InetSocketAddress(settings.address, settings.port)
+  private[this] final lazy val address = if ("*" == settings.address)
+    new InetSocketAddress(port.getOrElse(settings.portRange.head))
+  else
+    new InetSocketAddress(settings.address, port.getOrElse(settings.portRange.head))
 
-  override final val name = "HttpServer(name=" + settings.displayName + ", address=" + address + ", backlog=" + settings.backlog + ")"
+  override final val name = "HttpServer(name=" + settings.displayName +
+    ", address=" + address +
+    ", backlog=" + settings.backlog +
+    (if (settings.loadBalancingEnable && application.isDefined) ", load-balancing-path=" + settings.loadBalancingBalancingPath else "") +
+    ")"
 
 }
 
@@ -104,17 +125,31 @@ object Server {
 
     final val address = getString("address")
 
-    final val port = getInt("port")
+    final val portRange = getIntList("port-range", List.empty)
 
     final val backlog = getInt("backlog")
 
-    final val treat10VersionAs11 = getBoolean("feature.allow-version-1.0-but-treat-it-like-1.1")
+    final val loadBalancingEnable = getBoolean("feature.load-balancing.enable")
 
-    final val treatAnyVersionAs11 = getBoolean("feature.allow-any-version-but-treat-it-like-1.1")
+    final val loadBalancingBalancingPath = getString("feature.load-balancing.balancing-path")
+
+    final val loadBalancingRedirectionPath = getString("feature.load-balancing.redirection-path")
+
+    final val pauseBetweenAccepts = settings.getDuration("feature.pause-between-accepts")
+
+    final val treat10VersionAs11 = getBoolean("feature.allow-version-1-0-but-treat-it-like-1-1")
+
+    final val treatAnyVersionAs11 = getBoolean("feature.allow-any-version-but-treat-it-like-1-1")
 
     final val defaultCharacterSet = Charset.forName(getString("feature.default-character-set"))
 
     final val disableUrlDecoding = getBoolean("feature.disable-url-decoding")
+
+    require(0 < portRange.size, "You must at least specify one port for 'port-range'.")
+
+    require(if (1 == portRange.size) !loadBalancingEnable else true, "You cannot enable load-balancing for a port-range of size 1.")
+
+    require(portRange.size < Runtime.getRuntime.availableProcessors, "Your port-range size must be smaller than the number of cores available on this system.")
 
   }
 
@@ -126,11 +161,23 @@ object Server {
 	
     address = localhost
 	
-    port = 7500
+    port-range = [ 7500, 7501, 7502 ]
 
     backlog = 1000
 
     feature {
+        
+        load-balancing {
+        
+    		enable = on
+         
+    		balancing-path = /
+        
+    		redirection-path = /
+        
+    	}
+        
+        pause-between-accepts = 0
 	
 		allow-version-1.0-but-treat-it-like-1.1 = on
 	

@@ -4,16 +4,11 @@ package lib
 
 package http
 
-import java.nio.ByteBuffer
-
-import scala.collection.immutable.{ BitSet, NumericRange, Range ⇒ SRange }
-
 import org.apache.commons.codec.net.URLCodec
 
+import aio._
 import aio.Iteratee._
 import aio.Iteratees._
-import aio._
-import logging.HasLogger
 import text.{ ASCII, UTF8 }
 import Status.ServerError.`501`
 
@@ -29,14 +24,6 @@ class RequestIteratee()(implicit server: Server) {
   private[this] implicit final val ascii = ASCII
 
   private[this] final lazy val codec = new URLCodec(defaultCharacterSet.toString)
-
-  final val readToken = for {
-    token ← takeWhile(token)(defaultCharacterSet)
-  } yield token
-
-  final val readText = for {
-    text ← takeWhile(text)(defaultCharacterSet)
-  } yield text
 
   final val readRequestLine = {
 
@@ -102,7 +89,7 @@ class RequestIteratee()(implicit server: Server) {
       }
 
       for {
-        name ← readToken
+        name ← takeWhile(token)(defaultCharacterSet)
         _ ← takeUntil(`:`)(defaultCharacterSet)
         _ ← takeWhile(whitespace)
         value ← for {
@@ -139,4 +126,3 @@ class RequestIteratee()(implicit server: Server) {
   } yield Request(method, path, query, version, headers, body)
 
 }
-

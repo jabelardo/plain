@@ -21,14 +21,14 @@ package object lib
       .register(aio.Aio)
       .register(monitor.extension.jmx.JmxMonitor)
 
-    http.startupServers.foreach(path ⇒ appl.register(http.Server(path)))
+    http.startupServers.foreach(path ⇒ appl.register(http.Server(path, Some(appl), None)))
 
     appl
   }
 
   def run(timeout: Duration)(body: ⇒ Unit): Unit = try {
     application.bootstrap
-    body      
+    body
     application.awaitTermination(timeout)
   } catch {
     case e: Throwable ⇒ println("Uncaught exception: " + e); e.printStackTrace

@@ -11,10 +11,11 @@ import java.nio.charset.Charset
 
 import scala.math.min
 import scala.util.continuations.{ shift, suspendable }
+import scala.concurrent.util.Duration
 
 import Iteratee.{ Cont, Done, Error }
 import aio.Input.{ Elem, Empty, Eof }
-import concurrent.OnlyOnce
+import concurrent.{ OnlyOnce, scheduleOnce }
 import logging.HasLogger
 
 /**
@@ -179,17 +180,25 @@ object Io
   /**
    * Aio handling.
    */
-  private[this] val accepthandler = new Handler[Channel, Io] {
+  private[this] final case class AcceptHandler(pauseinmilliseconds: Long)
+
+    extends Handler[Channel, Io] {
 
     def completed(c: Channel, io: Io) = {
       import io._
-      server.accept(io, this)
+      if (0 == pauseinmilliseconds)
+        server.accept(io, this)
+      else
+        scheduleOnce(pauseinmilliseconds)(server.accept(io, this))
       k(io ++ c ++ defaultByteBuffer)
     }
 
     def failed(e: Throwable, io: Io) = {
       import io._
       if (server.isOpen) {
+        /**
+         * Do not pause here, in case of failure we want to be back online asap.
+         */
         server.accept(io, this)
         e match {
           case _: IOException ⇒
@@ -216,8 +225,8 @@ object Io
 
   }
 
-  final def accept(server: ServerChannel): Io @suspendable =
-    shift { k: IoHandler ⇒ server.accept(Io.empty ++ server ++ k, accepthandler) }
+  final def accept(server: ServerChannel, pausebetweenaccepts: Duration): Io @suspendable =
+    shift { k: IoHandler ⇒ server.accept(Io.empty ++ server ++ k, AcceptHandler(pausebetweenaccepts.toMillis)) }
 
   private[this] final def read(io: Io): Io @suspendable = {
     import io._

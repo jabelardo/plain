@@ -18,6 +18,8 @@ class RichConfig(config: Config) {
 
   def getStringList(key: String, default: List[String]): List[String] = if (config.hasPath(key)) config.getStringList(key).toList else default
 
+  def getIntList(key: String, default: List[Int]): List[Int] = if (config.hasPath(key)) config.getIntList(key).toList.map(_.toInt) else default
+
   def getInt(key: String, default: Int) = if (config.hasPath(key)) config.getInt(key) else default
 
   def getMilliseconds(key: String, default: Long): Long = if (config.hasPath(key)) config.getMilliseconds(key) else default
