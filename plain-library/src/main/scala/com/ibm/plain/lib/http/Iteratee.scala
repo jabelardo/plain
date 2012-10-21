@@ -4,15 +4,18 @@ package lib
 
 package http
 
+import scala.collection.mutable.{ HashMap, MutableList }
+
 import org.apache.commons.codec.net.URLCodec
 
 import aio._
 import aio.Iteratee._
 import aio.Iteratees._
 import text.{ ASCII, UTF8 }
-
 import Status.ServerError.`501`
-import Header.Entity.`Content-Length`
+import Header._
+import Header.Entity._
+import Entity._
 
 /**
  * Consuming the input stream to produce a Request.
@@ -37,16 +40,16 @@ class RequestIteratee()(implicit server: Server) {
 
       val readPath: Iteratee[Io, List[String]] = {
 
-        @noinline def cont(segments: List[String]): Iteratee[Io, List[String]] = peek(1) >>> {
+        @noinline def cont(segments: MutableList[String]): Iteratee[Io, List[String]] = peek(1) >>> {
           case `/` ⇒ for {
             _ ← drop(1)
             segment ← readUriSegment(path)
-            more ← cont(if (0 < segment.length) segment :: segments else segments)
+            more ← cont(if (0 < segment.length) segments += segment else segments)
           } yield more
-          case a ⇒ Done(segments.reverse)
+          case a ⇒ Done(segments.toList)
         }
 
-        cont(List.empty)
+        cont(MutableList.empty)
       }
 
       val readQuery: Iteratee[Io, Option[String]] = peek(1) >>> {
@@ -73,20 +76,19 @@ class RequestIteratee()(implicit server: Server) {
       version ← takeUntil(`\r`)
       _ ← drop(1)
     } yield (Method(method), uri, query, Version(version))
-
   }
 
-  final val readRequestHeaders: Iteratee[Io, List[Header]] = {
+  final val readHeaders: Iteratee[Io, Headers] = {
 
-    val readHeader: Iteratee[Io, Header] = {
+    val readHeader: Iteratee[Io, (String, String)] = {
 
       @noinline def cont(lines: String): Iteratee[Io, String] = peek(1) >>> {
         case " " | "\t" ⇒ for {
           _ ← drop(1)
           line ← takeUntil(`\r`)(defaultCharacterSet)
           _ ← drop(1)
-          more ← cont(lines + line)
-        } yield more
+          morelines ← cont(lines + line)
+        } yield morelines
         case _ ⇒ Done(lines)
       }
 
@@ -99,36 +101,36 @@ class RequestIteratee()(implicit server: Server) {
           _ ← drop(1)
           morelines ← cont(line)
         } yield morelines
-      } yield Header(name, value)
-
+      } yield (name.toLowerCase, value)
     }
 
-    @noinline def cont(headers: List[Header]): Iteratee[Io, List[Header]] = peek(2) >>> {
+    @noinline def cont(headers: HashMap[String, String]): Iteratee[Io, Headers] = peek(2) >>> {
       case "\r\n" ⇒ for {
         _ ← drop(2)
-        done ← Done(headers.reverse)
+        done ← Done(headers.toMap)
       } yield done
       case _ ⇒ for {
         header ← readHeader
-        moreheaders ← cont(header :: headers)
+        moreheaders ← cont(headers += header)
       } yield moreheaders
     }
 
-    cont(List.empty)
+    cont(HashMap.empty)
   }
 
-  final def readRequestBody(headers: List[Header]): Iteratee[Io, Option[RequestBody]] = {
-    headers.find(_ == `Content-Length`) match {
-      case Some(`Content-Length`(length)) ⇒ println(length)
-      case _ ⇒
-    }
-    Done(None)
-  }
+  final def readEntity(headers: Headers): Iteratee[Io, Option[Entity]] = Done(
+    `Content-Length`(headers) match {
+      case Some(l) ⇒ Some(`Content-Type`(headers) match {
+        case Some(t) ⇒ ContentEntity(l.toInt, t)
+        case None ⇒ ContentEntity(l.toInt, "text/plain")
+      })
+      case _ ⇒ None
+    })
 
   final val readRequest = for {
     (method, path, query, version) ← readRequestLine
-    headers ← readRequestHeaders
-    body ← readRequestBody(headers)
-  } yield Request(method, path, query, version, headers, body)
+    headers ← readHeaders
+    entity ← readEntity(headers)
+  } yield Request(method, path, query, version, headers, entity)
 
 }

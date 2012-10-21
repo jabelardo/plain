@@ -25,6 +25,7 @@ abstract sealed class ContentType {
 object ContentType {
 
   def apply(name: String): ContentType = name.toLowerCase match {
+    case "text/plain" ⇒ `text/plain`
     case _ ⇒ null // :TODO:
   }
 

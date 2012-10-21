@@ -17,7 +17,6 @@ case class Request(
 
   version: Version,
 
-  headers: List[Header],
+  headers: Map[String, String],
 
-  body: Option[RequestBody])
-
+  entity: Option[Entity]) 

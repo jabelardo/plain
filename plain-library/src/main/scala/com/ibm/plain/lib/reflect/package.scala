@@ -54,7 +54,7 @@ package object reflect {
    * Returns a 'scala-safe' getSimpleName for the provided class.
    */
   def simpleName(cls: Class[_]): String = {
-    var n = cls.getName
+    var n = cls.getName.replace("$minus", "-")
     if (n.endsWith("$")) n = n.take(n.length - 1)
     val dollar = n.lastIndexOf('$')
     val dot = n.lastIndexOf('.')

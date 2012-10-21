@@ -67,7 +67,7 @@ abstract sealed class IoHelper[E <: Io] {
     (i - pos, l - i)
   }
 
-  @inline protected final def readBytes: Array[Byte] = Array.fill(buffer.remaining)(buffer.get)
+  final def readBytes: Array[Byte] = Array.fill(buffer.remaining)(buffer.get)
 
   @inline private[this] final def markLimit = limitmark = buffer.limit
 
@@ -248,8 +248,9 @@ object Io
       case (cont @ Cont(_), Empty) ⇒
         handle(io ++ cont ++ defaultByteBuffer)
       case (e @ Done(a), el @ Elem(io)) ⇒ // move handling/dispatching outside 
-        // println(a)
-        // println(io.buffer + " remaining " + io.buffer.remaining)
+        //        println(a)
+        //        println(io.expected)
+        //        println(io.buffer + " remaining " + io.buffer.remaining)
         io.releaseBuffer
         val r = defaultByteBuffer
         r.put(response)

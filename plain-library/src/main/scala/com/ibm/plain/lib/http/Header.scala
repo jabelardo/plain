@@ -6,22 +6,25 @@ package http
 
 import java.text.SimpleDateFormat
 
-import scala.Array.canBuildFrom
+import Header._
 
 /**
- * A simple Header case class hierarchy.
+ * A maybe not so simple Header case class hierarchy.
  */
-sealed abstract class Header {
+sealed abstract class Header[A]
+
+  extends (Headers ⇒ Option[A]) {
+
+  override final def toString = name
 
   def name: String
 
-  val value: String
+  def value(s: String): A
 
-  override def equals(that: Any) = reflect.strippedName(getClass) == reflect.strippedName(that.getClass)
-
-  override def hashCode = name.hashCode
-
-  final def render = name + ": " + value
+  final def apply(headers: Headers): Option[A] = headers.get(name.toLowerCase) match {
+    case Some(s) ⇒ Some(value(s))
+    case _ ⇒ None
+  }
 
 }
 
@@ -31,43 +34,55 @@ sealed abstract class Header {
 object Header {
 
   /**
+   * Just an abbreviation for Map[String, String].
+   */
+  type Headers = Map[String, String]
+
+  /**
    * Predefined request headers, they can contain header specific logic and behavior.
    */
-  abstract sealed class PredefinedHeader extends Header {
+  abstract sealed class PredefinedHeader[A]
+
+    extends Header[A] {
 
     final def name = reflect.simpleName(getClass)
 
   }
 
-  sealed trait General extends PredefinedHeader
+  sealed trait General[A] extends PredefinedHeader[A]
 
-  sealed trait Request extends PredefinedHeader
+  sealed trait Request[A] extends PredefinedHeader[A]
 
-  sealed trait Response extends PredefinedHeader
+  sealed trait Response[A] extends PredefinedHeader[A]
 
-  sealed trait Entity extends PredefinedHeader
+  sealed trait Entity[A] extends PredefinedHeader[A]
 
   /**
    * Helpers to parse the values of header fields.
    */
-  trait Value { val value: String }
+  trait Value[A] { def value(s: String): A }
 
   object Value {
 
     /**
      * Header.value contains a list of Tokens.
      */
-    trait TokenList extends Value { final def tokens = value.split(",").map(_.trim) }
+    trait TokenList extends Value[Array[String]] { final def value(s: String): Array[String] = s.split(",").map(_.trim) }
+
+    /**
+     * Header.value contains a String (identity).
+     */
+    trait StringValue extends Value[String] { final def value(s: String) = s.trim }
 
     /**
      * Header.value contains an Int.
      */
-    trait IntValue extends Value { final def intValue = value.trim.toInt }
+    trait IntValue extends Value[Int] { final def value(s: String) = s.trim.toInt }
 
     /**
      * Header.value contains a java.util.Date.
      */
-    trait DateValue extends Value { final def dateValue = dateformat.parse(value.trim) }
+    trait DateValue extends Value[java.util.Date] { final def value(s: String) = dateformat.parse(s.trim) }
 
     /**
      * The DateValue object provides the SimpleDateFormat used in http header fields.
@@ -78,144 +93,75 @@ object Header {
 
   import Value._
 
-  import General._
-  import Request._
-  import Response._
-  import Entity._
-
-  /**
-   * Map header.name.toLowerCase with its corresponding case class.
-   */
-  def apply(name: String, value: String): Header = name.toLowerCase match {
-    case "accept" ⇒ `Accept`(value)
-    case "accept-charset" ⇒ `Accept-Charset`(value)
-    case "accept-encoding" ⇒ `Accept-Encoding`(value)
-    case "accept-language" ⇒ `Accept-Language`(value)
-    case "accept-ranges" ⇒ `Accept-Ranges`(value)
-    case "age" ⇒ `Age`(value)
-    case "allow" ⇒ `Allow`(value)
-    case "authorization" ⇒ `Authorization`(value)
-    case "cache-control" ⇒ `Cache-Control`(value)
-    case "connection" ⇒ `Connection`(value)
-    case "content-disposition" ⇒ `Content-Disposition`(value)
-    case "content-encoding" ⇒ `Content-Encoding`(value)
-    case "content-language" ⇒ `Content-Language`(value)
-    case "content-length" ⇒ `Content-Length`(value)
-    case "content-location" ⇒ `Content-Location`(value)
-    case "content-md5" ⇒ `Content-MD5`(value)
-    case "content-range" ⇒ `Content-Range`(value)
-    case "content-type" ⇒ `Content-Type`(value)
-    case "date" ⇒ `Date`(value)
-    case "etag" ⇒ `ETag`(value)
-    case "expect" ⇒ `Expect`(value)
-    case "expires" ⇒ `Expires`(value)
-    case "from" ⇒ `From`(value)
-    case "host" ⇒ `Host`(value)
-    case "if-match" ⇒ `If-Match`(value)
-    case "if-modified-since" ⇒ `If-Modified-Since`(value)
-    case "if-none-match" ⇒ `If-None-Match`(value)
-    case "if-range" ⇒ `If-Range`(value)
-    case "if-unmodified-since" ⇒ `If-Unmodified-Since`(value)
-    case "last-modified" ⇒ `Last-Modified`(value)
-    case "location" ⇒ `Location`(value)
-    case "max-forwards" ⇒ `Max-Forwards`(value)
-    case "pragma" ⇒ `Pragma`(value)
-    case "proxy-authenticate" ⇒ `Proxy-Authenticate`(value)
-    case "proxy-authorization" ⇒ `Proxy-Authorization`(value)
-    case "range" ⇒ `Range`(value)
-    case "referer" ⇒ `Referer`(value)
-    case "retry-after" ⇒ `Retry-After`(value)
-    case "server" ⇒ `Server`(value)
-    case "te" ⇒ `TE`(value)
-    case "trailer" ⇒ `Trailer`(value)
-    case "transfer-encoding" ⇒ `Transfer-Encoding`(value)
-    case "upgrade" ⇒ `Upgrade`(value)
-    case "user-agent" ⇒ `User-Agent`(value)
-    case "vary" ⇒ `Vary`(value)
-    case "via" ⇒ `Via`(value)
-    case "warning" ⇒ `Warning`(value)
-    case "www-authenticate" ⇒ `WWW-Authenticate`(value)
-    case "x-forwarded-for" ⇒ `X-Forwarded-For`(value)
-    case userdefined ⇒ `User-Defined`(userdefined, value)
-  }
-
   /**
    * General header fields.
    */
   object General {
 
-    case class `Cache-Control`(value: String) extends General
+    object `Cache-Control` extends General[String] with StringValue
 
-    case class `Connection`(value: String)
+    object `Connection` extends General[Array[String]] with TokenList
 
-      extends General
+    object `Date` extends General[String] with StringValue with DateValue
 
-      with TokenList {
+    object `Pragma` extends General[String] with StringValue
 
-      def isKeepAlive = tokens.exists("keep-alive".equalsIgnoreCase)
+    object `Trailer` extends General[String] with StringValue
 
-      def isClose = tokens.exists("close".equalsIgnoreCase)
+    object `Transfer-Encoding` extends General[String] with StringValue
 
-    }
+    object `Upgrade` extends General[String] with StringValue
+
+    object `Via` extends General[String] with StringValue
+
+    object `Warning` extends General[String] with StringValue
+
+    object `X-Forwarded-For` extends General[String] with StringValue
+
   }
-  case class `Date`(value: String) extends General with DateValue
-
-  case class `Pragma`(value: String) extends General
-
-  case class `Trailer`(value: String) extends General
-
-  case class `Transfer-Encoding`(value: String) extends General
-
-  case class `Upgrade`(value: String) extends General
-
-  case class `Via`(value: String) extends General
-
-  case class `Warning`(value: String) extends General
-
-  case class `X-Forwarded-For`(value: String) extends General
 
   /**
    * Request header fields.
    */
   object Request {
 
-    case class `Accept`(value: String) extends Request
+    object `Accept` extends Request[String] with StringValue
 
-    case class `Accept-Charset`(value: String) extends Request
+    object `Accept-Charset` extends Request[String] with StringValue
 
-    case class `Accept-Encoding`(value: String) extends Request
+    object `Accept-Encoding` extends Request[String] with StringValue
 
-    case class `Accept-Language`(value: String) extends Request
+    object `Accept-Language` extends Request[String] with StringValue
 
-    case class `Authorization`(value: String) extends Request
+    object `Authorization` extends Request[String] with StringValue
 
-    case class `Expect`(value: String) extends Request
+    object `Expect` extends Request[String] with StringValue
 
-    case class `From`(value: String) extends Request
+    object `From` extends Request[String] with StringValue
 
-    case class `Host`(value: String) extends Request
+    object `Host` extends Request[String] with StringValue
 
-    case class `If-Match`(value: String) extends Request
+    object `If-Match` extends Request[String] with StringValue
 
-    case class `If-Modified-Since`(value: String) extends Request
+    object `If-Modified-Since` extends Request[String] with StringValue
 
-    case class `If-None-Match`(value: String) extends Request
+    object `If-None-Match` extends Request[String] with StringValue
 
-    case class `If-Range`(value: String) extends Request
+    object `If-Range` extends Request[String] with StringValue
 
-    case class `If-Unmodified-Since`(value: String) extends Request
+    object `If-Unmodified-Since` extends Request[String] with StringValue
 
-    case class `Max-Forwards`(value: String) extends Request
+    object `Max-Forwards` extends Request[String] with StringValue
 
-    case class `Proxy-Authorization`(value: String) extends Request
+    object `Proxy-Authorization` extends Request[String] with StringValue
 
-    case class `Range`(value: String) extends Request
+    object `Range` extends Request[String] with StringValue
 
-    case class `Referer`(value: String) extends Request
+    object `Referer` extends Request[String] with StringValue
 
-    case class `TE`(value: String) extends Request
+    object `TE` extends Request[String] with StringValue
 
-    case class `User-Agent`(value: String) extends Request
+    object `User-Agent` extends Request[String] with StringValue
 
   }
 
@@ -224,62 +170,57 @@ object Header {
    */
   object Entity {
 
-    case class `Allow`(value: String) extends Entity
+    object `Allow` extends Entity[String] with StringValue
 
-    case class `Content-Disposition`(value: String) extends Entity
+    object `Content-Disposition` extends Entity[String] with StringValue
 
-    case class `Content-Encoding`(value: String) extends Entity
+    object `Content-Encoding` extends Entity[String] with StringValue
 
-    case class `Content-Language`(value: String) extends Entity
+    object `Content-Language` extends Entity[String] with StringValue
 
-    case class `Content-Length`(value: String) extends Entity with IntValue
+    object `Content-Length` extends Entity[Int] with IntValue
 
-    case class `Content-Location`(value: String) extends Entity
+    object `Content-Location` extends Entity[String] with StringValue
 
-    case class `Content-MD5`(value: String) extends Entity
+    object `Content-MD5` extends Entity[String] with StringValue
 
-    case class `Content-Range`(value: String) extends Entity
+    object `Content-Range` extends Entity[String] with StringValue
 
-    case class `Content-Type`(value: String) extends Entity
+    object `Content-Type` extends Entity[String] with StringValue
 
-    case class `Expires`(value: String) extends Entity
+    object `Expires` extends Entity[String] with StringValue
 
-    case class `Last-Modified`(value: String) extends Entity with DateValue
+    object `Last-Modified` extends Entity[java.util.Date] with DateValue
 
   }
+
   /**
-   * Response header fields.
+   *  Response header fields.
    */
   object Response {
 
-    case class `Accept-Ranges`(value: String) extends Response
+    object `Accept-Ranges` extends Response[String] with StringValue
 
-    case class `Age`(value: String) extends Response
+    object `Age` extends Response[String] with StringValue
 
-    case class `ETag`(value: String) extends Response
+    object `ETag` extends Response[String] with StringValue
 
-    case class `Location`(value: String) extends Response
+    object `Location` extends Response[String] with StringValue
 
-    case class `Proxy-Authenticate`(value: String) extends Response
+    object `Proxy-Authenticate` extends Response[String] with StringValue
 
-    case class `Retry-After`(value: String) extends Response
+    object `Retry-After` extends Response[String] with StringValue
 
-    case class `Server`(value: String) extends Response
+    object `Server` extends Response[String] with StringValue
 
-    case class `Vary`(value: String) extends Response
+    object `Vary` extends Response[String] with StringValue
 
-    case class `WWW-Authenticate`(value: String) extends Response
+    object `WWW-Authenticate` extends Response[String] with StringValue
 
   }
   /**
    * Non-predefined header fields.
    */
-  class `User-Defined` private (val name: String, val value: String) extends Header
-
-  object `User-Defined` {
-
-    def apply(name: String, value: String) = new `User-Defined`(name.toLowerCase, value)
-
-  }
+  case class `User-Defined`(name: String) extends Header[String] with StringValue
 
 }
