@@ -102,7 +102,7 @@ object Header {
 
     object `Connection` extends General[Array[String]] with TokenList
 
-    object `Date` extends General[String] with StringValue with DateValue
+    object `Date` extends General[java.util.Date] with DateValue
 
     object `Pragma` extends General[String] with StringValue
 
