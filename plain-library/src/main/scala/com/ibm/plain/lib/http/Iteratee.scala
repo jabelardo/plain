@@ -16,6 +16,7 @@ import Status.ServerError.`501`
 import Header._
 import Header.Entity._
 import Entity._
+import ContentType._
 
 /**
  * Consuming the input stream to produce a Request.
@@ -120,9 +121,9 @@ class RequestIteratee()(implicit server: Server) {
 
   final def readEntity(headers: Headers): Iteratee[Io, Option[Entity]] = Done(
     `Content-Length`(headers) match {
-      case Some(l) ⇒ Some(`Content-Type`(headers) match {
-        case Some(t) ⇒ ContentEntity(l.toInt, t)
-        case None ⇒ ContentEntity(l.toInt, "text/plain")
+      case Some(length) ⇒ Some(`Content-Type`(headers) match {
+        case Some(typus) ⇒ ContentEntity(length, typus)
+        case None ⇒ ContentEntity(length, `text/plain`)
       })
       case _ ⇒ None
     })

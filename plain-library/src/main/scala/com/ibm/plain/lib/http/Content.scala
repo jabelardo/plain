@@ -24,17 +24,12 @@ abstract sealed class ContentType {
  */
 object ContentType {
 
-  def apply(name: String): ContentType = name.toLowerCase match {
-    case "text/plain" ⇒ `text/plain`
-    case _ ⇒ null // :TODO:
-  }
-
   /**
    *
    */
   abstract sealed class PredefinedContentType extends ContentType {
 
-    final val mimetype = MimeType(reflect.simpleName(getClass))
+    final val mimetype = MimeType(toString)
 
     final val charset: Option[Charset] = None
 
@@ -50,13 +45,21 @@ object ContentType {
 
   case object `application/octet-stream` extends PredefinedContentType
 
-  case class `User-defined`(private val mtype: String, private val cset: String) extends ContentType {
-
-    val mimetype = MimeType(mtype)
-
-    val charset = try { Some(Charset.forName(cset)) } catch { case _: Throwable ⇒ None }
-
-  }
+  case class `User-defined`(mimetype: MimeType, charset: Option[Charset]) extends ContentType
 
 }
 
+trait ContentTypeValue extends Header.Value[ContentType] {
+
+  import ContentType._
+
+  def value(name: String): ContentType = name match {
+    case "text/plain" ⇒ `text/plain`
+    case "text/xml" ⇒ `text/xml`
+    case "application/xml" ⇒ `application/xml`
+    case "application/json" ⇒ `application/json`
+    case "application/octet-stream" ⇒ `application/octet-stream`
+    case userdefined ⇒ `User-defined`(MimeType(userdefined), None)
+  }
+
+}

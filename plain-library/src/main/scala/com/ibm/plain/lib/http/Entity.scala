@@ -17,9 +17,13 @@ abstract sealed class Entity
 object Entity {
 
   /**
-   * The Entity that only knows how big it will get in the end.
+   * The Entity that only knows how it will look like in the end.
    */
-  case class ContentEntity(length: Int, typus: String) extends Entity
+  case class ContentEntity(
+
+    length: Int,
+
+    typus: ContentType) extends Entity
 
   /**
    * The Entity represented by an Array[Byte] that was fully read together with the request header.

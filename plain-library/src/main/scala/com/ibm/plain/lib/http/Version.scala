@@ -6,8 +6,6 @@ package http
 
 import java.nio.ByteBuffer
 
-import scala.util.control.NoStackTrace
-
 import aio.Io
 import text.ASCII
 
@@ -20,7 +18,7 @@ sealed abstract class Version
 
   extends Renderable {
 
-  final val version = reflect.simpleName(getClass)
+  final val version = toString
 
   @inline final def render(implicit buffer: ByteBuffer) = buffer.put(version.getBytes(ASCII))
 
@@ -31,11 +29,11 @@ object Version {
   def apply(version: String)(implicit server: Server): Version = version match {
     case "HTTP/1.0" if server.settings.treat10VersionAs11 ⇒ `HTTP/1.1`
     case "HTTP/1.1" ⇒ `HTTP/1.1`
-    case v ⇒
-      if (server.settings.treatAnyVersionAs11)
-        `HTTP/1.1`
-      else
-        throw `505`
+    case _ ⇒ if (server.settings.treatAnyVersionAs11)
+      `HTTP/1.1`
+    else {
+      throw `505`
+    }
   }
 
   /**

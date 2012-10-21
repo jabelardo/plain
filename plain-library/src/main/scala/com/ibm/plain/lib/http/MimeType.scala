@@ -4,6 +4,8 @@ package lib
 
 package http
 
+import Status.ClientError.`415`
+
 /**
  *
  */
@@ -26,7 +28,8 @@ object MimeType {
     case "*/*" ⇒ `*/*`
     case "audio/mp4" ⇒ `audio/mp4`
     case "text/plain" ⇒ `text/plain`
-    case n ⇒ `User-defined`(n)
+    // more you lazy ...
+    case n ⇒ `User-defined`(n) // :TODO:
   }
 
   /**
@@ -34,9 +37,9 @@ object MimeType {
    */
   abstract class PredefinedMimeType(ext: Seq[String] = Seq.empty) extends MimeType {
 
-    final def name = reflect.simpleName(getClass)
+    final val name = toString
 
-    final def extensions = ext.toSet
+    final val extensions = ext.toSet
 
   }
 
@@ -107,11 +110,21 @@ object MimeType {
   /**
    * Non-predefined mime type.
    */
-  case class `User-defined`(name: String) extends MimeType {
+  class `User-defined` private (val name: String)
 
-    require(2 == name.split("/").length, "Invalid user-defined MimeType : " + name)
+    extends MimeType {
 
     val extensions: Set[String] = Set.empty
+
+    if (2 != name.split("/").length) throw `415`
+
+    override final def toString = name
+
+  }
+
+  object `User-defined` {
+
+    def apply(name: String) = new `User-defined`(name.toLowerCase)
 
   }
 

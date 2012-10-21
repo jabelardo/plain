@@ -42,40 +42,49 @@ package object reflect {
   }
 
   /**
-   * Returns the boxed value for the given primitive value: simply call p.asInstanceOf[AnyRef]
-   */
-
-  /**
-   * Returns a 'scala-safe' getSimpleName for the provided object's class.
-   */
-  def simpleName(a: AnyRef): String = simpleName(a.getClass)
-
-  /**
    * Returns a 'scala-safe' getSimpleName for the provided class.
    */
-  def simpleName(cls: Class[_]): String = {
-    var n = cls.getName.replace("$minus", "-")
-    if (n.endsWith("$")) n = n.take(n.length - 1)
-    val dollar = n.lastIndexOf('$')
-    val dot = n.lastIndexOf('.')
-    n.substring(scala.math.max(dollar, dot) + 1)
+  def simpleName(n: String): String = {
+    val last = n.lastIndexOf('$')
+    if (-1 < last) {
+      val prev = n.lastIndexOf('$', last - 1)
+      n.substring(prev + 1, last)
+    } else n
   }
 
   /**
    * Returns a 'scala-safe' getSimpleName for the provided class' parent.
    */
-  def simpleParentName(cls: Class[_]): String = {
-    val n = cls.getName
-    val last = n.lastIndexOf('$')
+  def simpleParentName(n: String): String = {
+    val last = n.lastIndexOf('$', n.length - 2)
     if (-1 < last) {
-      val previous = n.take(last - 1).lastIndexOf('$')
-      n.substring(previous + 1, last)
+      val prev = n.lastIndexOf('$', last - 1)
+      n.substring(prev + 1, last)
     } else n
   }
 
   /**
-   * Returns the class name stripped of any '$', this way classes and companion objects can be set equal.
+   * Return a 'beautiful' name for a class/object that was named with ``, this is so! expensive please only call it only once e.g. on  objects.
+   * Please note: Usually case class/object .toString does exactly this, alas sometimes it doesn't, e.g. if your hierarchy extends from a Function.
    */
-  def strippedName(cls: Class[_]): String = cls.getName.replace("$", "")
+  def scalifiedName(cls: Class[_]): String = simpleName(cls.getName
+    .replace("$eq", "=")
+    .replace("$greater", ">")
+    .replace("$less", "<")
+    .replace("$plus", "+")
+    .replace("$minus", "-")
+    .replace("$times", "*")
+    .replace("$div", "/")
+    .replace("$bang", "!")
+    .replace("$at", "@")
+    .replace("$hash", "#")
+    .replace("$percent", "%")
+    .replace("$up", "^")
+    .replace("$amp", "&")
+    .replace("$tilde", "~")
+    .replace("$qmark", "?")
+    .replace("$bar", "|")
+    .replace("$bslash", "\\")
+    .replace("$colon", ":"))
 
 }

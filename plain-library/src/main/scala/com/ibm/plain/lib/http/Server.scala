@@ -181,9 +181,9 @@ object Server {
         
         pause-between-accepts = 0
 	
-		allow-version-1.0-but-treat-it-like-1.1 = on
+		allow-version-1-0-but-treat-it-like-1-1 = on
 	
-		allow-any-version-but-treat-it-like-1.1 = off
+		allow-any-version-but-treat-it-like-1-1 = off
 		
 		default-character-set = UTF-8
 		

@@ -29,7 +29,7 @@ sealed abstract class Status
   /**
    * Only US-ASCII characters are allowed here.
    */
-  val reason: String
+  def reason: String
 
   @inline final def render(implicit buffer: ByteBuffer) = buffer.put(code.getBytes(ASCII)).put(` `).put(reason.getBytes(ASCII))
 
@@ -42,9 +42,9 @@ object Status {
 
   abstract sealed class BaseStatus extends Status {
 
-    final def code = reflect.simpleName(getClass)
+    final val code = reflect.simpleName(getClass.getName)
 
-    override final def toString = reflect.simpleParentName(getClass) + "(code=" + code + ", reason=" + reason + ")"
+    override final val toString = reflect.simpleParentName(getClass.getName) + "(code=" + code + ", reason=" + reason + ")"
 
   }
 

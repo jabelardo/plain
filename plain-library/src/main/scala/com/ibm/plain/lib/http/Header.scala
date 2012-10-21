@@ -15,13 +15,11 @@ sealed abstract class Header[A]
 
   extends (Headers ⇒ Option[A]) {
 
-  override final def toString = name
-
   def name: String
 
   def value(s: String): A
 
-  final def apply(headers: Headers): Option[A] = headers.get(name.toLowerCase) match {
+  final def apply(headers: Headers): Option[A] = headers.get(name) match {
     case Some(s) ⇒ Some(value(s))
     case _ ⇒ None
   }
@@ -41,21 +39,21 @@ object Header {
   /**
    * Predefined request headers, they can contain header specific logic and behavior.
    */
-  abstract sealed class PredefinedHeader[A]
+  sealed abstract class PredefinedHeader[A]
 
     extends Header[A] {
 
-    final def name = reflect.simpleName(getClass)
+    final val name = reflect.scalifiedName(getClass).toLowerCase
 
   }
 
-  sealed trait General[A] extends PredefinedHeader[A]
+  sealed abstract class General[A] extends PredefinedHeader[A]
 
-  sealed trait Request[A] extends PredefinedHeader[A]
+  sealed abstract class Request[A] extends PredefinedHeader[A]
 
-  sealed trait Response[A] extends PredefinedHeader[A]
+  sealed abstract class Response[A] extends PredefinedHeader[A]
 
-  sealed trait Entity[A] extends PredefinedHeader[A]
+  sealed abstract class Entity[A] extends PredefinedHeader[A]
 
   /**
    * Helpers to parse the values of header fields.
@@ -186,7 +184,7 @@ object Header {
 
     object `Content-Range` extends Entity[String] with StringValue
 
-    object `Content-Type` extends Entity[String] with StringValue
+    object `Content-Type` extends Entity[ContentType] with ContentTypeValue
 
     object `Expires` extends Entity[String] with StringValue
 
@@ -221,6 +219,12 @@ object Header {
   /**
    * Non-predefined header fields.
    */
-  case class `User-Defined`(name: String) extends Header[String] with StringValue
+  class `User-Defined` private (val name: String) extends Header[String] with StringValue
+
+  object `User-Defined` {
+
+    def apply(name: String) = new `User-Defined`(name.toLowerCase)
+
+  }
 
 }
