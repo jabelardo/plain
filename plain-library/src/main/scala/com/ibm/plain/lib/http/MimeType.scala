@@ -4,18 +4,23 @@ package lib
 
 package http
 
+import java.nio.ByteBuffer
+
+import Renderable._
 import Status.ClientError.`415`
 
 /**
  *
  */
-abstract class MimeType {
+abstract class MimeType
+
+  extends Renderable {
 
   def name: String
 
   def extensions: Set[String]
 
-  final def render = name
+  @inline final def render(implicit buffer: ByteBuffer) = new r(name)
 
 }
 
@@ -116,9 +121,9 @@ object MimeType {
 
     val extensions: Set[String] = Set.empty
 
-    if (2 != name.split("/").length) throw `415`
+    if (1 != (name.size - name.replace("/", "").size)) throw `415`
 
-    override final def toString = name
+    override final val toString = name
 
   }
 

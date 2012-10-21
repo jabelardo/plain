@@ -4,9 +4,7 @@ package lib
 
 package http
 
-import java.text.SimpleDateFormat
-
-import Header._
+import Request.Headers
 
 /**
  * A maybe not so simple Header case class hierarchy.
@@ -32,11 +30,6 @@ sealed abstract class Header[A]
 object Header {
 
   /**
-   * Just an abbreviation for Map[String, String].
-   */
-  type Headers = Map[String, String]
-
-  /**
    * Predefined request headers, they can contain header specific logic and behavior.
    */
   sealed abstract class PredefinedHeader[A]
@@ -55,41 +48,7 @@ object Header {
 
   sealed abstract class Entity[A] extends PredefinedHeader[A]
 
-  /**
-   * Helpers to parse the values of header fields.
-   */
-  trait Value[A] { def value(s: String): A }
-
-  object Value {
-
-    /**
-     * Header.value contains a list of Tokens.
-     */
-    trait TokenList extends Value[Array[String]] { final def value(s: String): Array[String] = s.split(",").map(_.trim) }
-
-    /**
-     * Header.value contains a String (identity).
-     */
-    trait StringValue extends Value[String] { final def value(s: String) = s.trim }
-
-    /**
-     * Header.value contains an Int.
-     */
-    trait IntValue extends Value[Int] { final def value(s: String) = s.trim.toInt }
-
-    /**
-     * Header.value contains a java.util.Date.
-     */
-    trait DateValue extends Value[java.util.Date] { final def value(s: String) = dateformat.parse(s.trim) }
-
-    /**
-     * The DateValue object provides the SimpleDateFormat used in http header fields.
-     */
-    private final val dateformat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z")
-
-  }
-
-  import Value._
+  import HeaderValue._
 
   /**
    * General header fields.

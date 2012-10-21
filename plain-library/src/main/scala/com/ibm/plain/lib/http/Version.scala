@@ -9,6 +9,7 @@ import java.nio.ByteBuffer
 import aio.Io
 import text.ASCII
 
+import Renderable._
 import Status.ServerError.`505`
 
 /**
@@ -18,9 +19,9 @@ sealed abstract class Version
 
   extends Renderable {
 
-  final val version = toString
+  final val version = toString.getBytes(ASCII)
 
-  @inline final def render(implicit buffer: ByteBuffer) = buffer.put(version.getBytes(ASCII))
+  @inline final def render(implicit buffer: ByteBuffer) = r(version)
 
 }
 

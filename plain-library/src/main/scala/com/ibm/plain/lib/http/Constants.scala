@@ -48,15 +48,3 @@ private[http] object RequestConstants {
 
 }
 
-/**
- * Basic constants used for rendering an http response.
- */
-private[http] object ResponseConstants {
-
-  final val `\r\n` = "\r\n".getBytes(ASCII)
-  final val ` ` = ' '.toByte
-  final val `\t` = '\t'
-  final val `:` = ':'
-
-}
-

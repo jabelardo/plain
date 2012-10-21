@@ -49,7 +49,7 @@ object ContentType {
 
 }
 
-trait ContentTypeValue extends Header.Value[ContentType] {
+trait ContentTypeValue extends HeaderValue[ContentType] {
 
   import ContentType._
 

@@ -10,7 +10,7 @@ import scala.util.control.ControlThrowable
 
 import text.ASCII
 
-import ResponseConstants._
+import Renderable._
 
 /**
  * A typical 'flow control' type of exception. Used for Http error/success handling.
@@ -24,14 +24,14 @@ sealed abstract class Status
   /**
    * Only [0-9]3 are allowed here.
    */
-  def code: String
+  def code: Array[Byte]
 
   /**
    * Only US-ASCII characters are allowed here.
    */
-  def reason: String
+  def reason: Array[Byte]
 
-  @inline final def render(implicit buffer: ByteBuffer) = buffer.put(code.getBytes(ASCII)).put(` `).put(reason.getBytes(ASCII))
+  @inline final def render(implicit buffer: ByteBuffer) = r(code) + ` ` + r(reason)
 
 }
 
@@ -40,23 +40,25 @@ sealed abstract class Status
  */
 object Status {
 
-  abstract sealed class BaseStatus extends Status {
+  abstract sealed class BaseStatus(r: String) extends Status {
 
-    final val code = reflect.simpleName(getClass.getName)
+    final val code = reflect.simpleName(getClass.getName).getBytes(ASCII)
 
-    override final val toString = reflect.simpleParentName(getClass.getName) + "(code=" + code + ", reason=" + reason + ")"
+    final val reason = r.getBytes(ASCII)
+
+    override final def toString = reflect.simpleParentName(getClass.getName) + "(code=" + new String(code) + ", reason=" + r + ")"
 
   }
 
-  sealed abstract class Information(val reason: String) extends BaseStatus
+  sealed abstract class Information(r: String) extends BaseStatus(r)
 
-  sealed abstract class Success(val reason: String) extends BaseStatus
+  sealed abstract class Success(r: String) extends BaseStatus(r)
 
-  sealed abstract class ClientError(val reason: String) extends BaseStatus
+  sealed abstract class ClientError(r: String) extends BaseStatus(r)
 
-  sealed abstract class Redirection(val reason: String) extends BaseStatus
+  sealed abstract class Redirection(r: String) extends BaseStatus(r)
 
-  sealed abstract class ServerError(val reason: String) extends BaseStatus
+  sealed abstract class ServerError(r: String) extends BaseStatus(r)
 
   object Information {
 

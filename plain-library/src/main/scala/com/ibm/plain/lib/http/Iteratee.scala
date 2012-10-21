@@ -12,11 +12,11 @@ import aio._
 import aio.Iteratee._
 import aio.Iteratees._
 import text.{ ASCII, UTF8 }
+import Request.{ Headers, Path }
 import Status.ServerError.`501`
-import Header._
 import Header.Entity._
-import Entity._
-import ContentType._
+import Entity.ContentEntity
+import ContentType.`text/plain`
 
 /**
  * Consuming the input stream to produce a Request.
@@ -31,23 +31,27 @@ class RequestIteratee()(implicit server: Server) {
 
   private[this] final val codec = new URLCodec(defaultCharacterSet.toString)
 
+  private[this] final type MHeaders = scala.collection.mutable.HashMap[String, String]
+
+  private[this] final type MPath = scala.collection.mutable.MutableList[String]
+
   final val readRequestLine = {
 
-    val readRequestUri: Iteratee[Io, (List[String], Option[String])] = {
+    val readRequestUri: Iteratee[Io, (Path, Option[String])] = {
 
       def readUriSegment(allowed: Set[Int]): Iteratee[Io, String] = for {
         segment ← takeWhile(allowed)(defaultCharacterSet)
       } yield if (disableUrlDecoding) segment else codec.decode(segment)
 
-      val readPath: Iteratee[Io, List[String]] = {
+      val readPath: Iteratee[Io, scala.collection.Seq[String]] = {
 
-        @noinline def cont(segments: MutableList[String]): Iteratee[Io, List[String]] = peek(1) >>> {
+        @noinline def cont(segments: MPath): Iteratee[Io, Path] = peek(1) >>> {
           case `/` ⇒ for {
             _ ← drop(1)
             segment ← readUriSegment(path)
             more ← cont(if (0 < segment.length) segments += segment else segments)
           } yield more
-          case a ⇒ Done(segments.toList)
+          case a ⇒ Done(segments)
         }
 
         cont(MutableList.empty)
@@ -108,7 +112,7 @@ class RequestIteratee()(implicit server: Server) {
     @noinline def cont(headers: HashMap[String, String]): Iteratee[Io, Headers] = peek(2) >>> {
       case "\r\n" ⇒ for {
         _ ← drop(2)
-        done ← Done(headers.toMap)
+        done ← Done(headers)
       } yield done
       case _ ⇒ for {
         header ← readHeader
