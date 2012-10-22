@@ -238,7 +238,7 @@ object Io
     shift { k: IoHandler ⇒ channel.write(io.buffer, io ++ k, iohandler) }
   }
 
-  final def handle(io: Io): Unit @suspendable = {
+  final def handle[A](io: Io, handler: AioHandler[A]): Unit @suspendable = {
     (read(io) match {
       case io if -1 < io.readwritten ⇒ io.iteratee(Elem(io))
       case io ⇒
@@ -246,25 +246,19 @@ object Io
         io.iteratee(Eof)
     }) match {
       case (cont @ Cont(_), Empty) ⇒
-        handle(io ++ cont ++ defaultByteBuffer)
-      case (e @ Done(a), el @ Elem(io)) ⇒ // move handling/dispatching outside 
-        println(a)
-        //        a.asInstanceOf[http.Request].entity match {
-        //          case Some(http.Entity.ContentEntity(length, _)) ⇒
-        //            if (length == io.buffer.remaining) {
-        //              println("entity " + new String(io.readBytes))
-        //            }
-        //          case _ ⇒
-        //        }
+        handle(io ++ cont ++ defaultByteBuffer, handler)
+      case (e @ Done(a), el @ Elem(io)) ⇒
+        // handler.completed(a.asInstanceOf[A], io)
+        // println(a)
         io.releaseBuffer
         val r = defaultByteBuffer
         r.put(response)
         r.flip
         respond(io ++ r)
         io.releaseBuffer
-        handle(io ++ defaultByteBuffer)
-      case (Error(e), Elem(io)) if e.isInstanceOf[http.Status] ⇒ // move error handling outside
-        println(e)
+        handle(io ++ defaultByteBuffer, handler)
+      case (Error(e), Elem(io)) ⇒
+        handler.failed(e, io)
         io.releaseBuffer
         val r = defaultByteBuffer
         r.put(badrequest)
@@ -272,14 +266,7 @@ object Io
         respond(io ++ r)
         io.releaseBuffer
         io.channel.close
-      case r @ (Error(e), Elem(io)) ⇒
-        io.releaseBuffer
-        io.channel.close
-        e match {
-          case _: IOException ⇒
-          case e: Throwable ⇒ debug(text.stackTraceToString(e))
-        }
-      case (Error(_), Eof) ⇒
+      case (Error(_), Eof) ⇒ // peer closed connection
       case e ⇒ error("Unhandled : " + e)
     }
   }

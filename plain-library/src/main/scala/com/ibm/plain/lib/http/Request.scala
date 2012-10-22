@@ -27,8 +27,8 @@ case class Request(
 
 object Request {
 
-  type Path = scala.collection.Seq[String]
+  type Path = scala.collection.immutable.Seq[String]
 
-  type Headers = scala.collection.Map[String, String]
+  type Headers = scala.collection.immutable.Map[String, String]
 
 }

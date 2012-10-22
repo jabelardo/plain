@@ -4,8 +4,6 @@ package lib
 
 package http
 
-import scala.collection.mutable.{ HashMap, MutableList }
-
 import org.apache.commons.codec.net.URLCodec
 
 import aio._
@@ -31,10 +29,6 @@ class RequestIteratee()(implicit server: Server) {
 
   private[this] final val codec = new URLCodec(defaultCharacterSet.toString)
 
-  private[this] final type MHeaders = scala.collection.mutable.HashMap[String, String]
-
-  private[this] final type MPath = scala.collection.mutable.MutableList[String]
-
   final val readRequestLine = {
 
     val readRequestUri: Iteratee[Io, (Path, Option[String])] = {
@@ -43,24 +37,28 @@ class RequestIteratee()(implicit server: Server) {
         segment ← takeWhile(allowed)(defaultCharacterSet)
       } yield if (disableUrlDecoding) segment else codec.decode(segment)
 
-      val readPath: Iteratee[Io, scala.collection.Seq[String]] = {
+      val readPathSegment = readUriSegment(path)
 
-        @noinline def cont(segments: MPath): Iteratee[Io, Path] = peek(1) >>> {
+      val readQuerySegment = readUriSegment(query)
+
+      val readPath: Iteratee[Io, Path] = {
+
+        @noinline def cont(segments: List[String]): Iteratee[Io, Path] = peek(1) >>> {
           case `/` ⇒ for {
             _ ← drop(1)
-            segment ← readUriSegment(path)
-            more ← cont(if (0 < segment.length) segments += segment else segments)
+            segment ← readPathSegment
+            more ← cont(if (0 < segment.length) segment :: segments else segments)
           } yield more
-          case a ⇒ Done(segments)
+          case a ⇒ Done(segments.reverse)
         }
 
-        cont(MutableList.empty)
+        cont(List.empty)
       }
 
       val readQuery: Iteratee[Io, Option[String]] = peek(1) >>> {
         case `?` ⇒ for {
           _ ← drop(1)
-          query ← readUriSegment(query)
+          query ← readQuerySegment
         } yield Some(query)
         case _ ⇒ Done(None)
       }
@@ -99,7 +97,7 @@ class RequestIteratee()(implicit server: Server) {
 
       for {
         name ← takeWhile(token)(defaultCharacterSet)
-        _ ← takeUntil(`:`)(defaultCharacterSet)
+        _ ← takeUntil(`:`)
         _ ← takeWhile(whitespace)
         value ← for {
           line ← takeUntil(`\r`)(defaultCharacterSet)
@@ -109,18 +107,18 @@ class RequestIteratee()(implicit server: Server) {
       } yield (name.toLowerCase, value)
     }
 
-    @noinline def cont(headers: HashMap[String, String]): Iteratee[Io, Headers] = peek(2) >>> {
-      case "\r\n" ⇒ for {
+    @noinline def cont(headers: List[(String, String)]): Iteratee[Io, Headers] = peek(1) >>> {
+      case "\r" ⇒ for {
         _ ← drop(2)
-        done ← Done(headers)
+        done ← Done(null)
       } yield done
       case _ ⇒ for {
         header ← readHeader
-        moreheaders ← cont(headers += header)
+        moreheaders ← cont( /*header :: */ headers)
       } yield moreheaders
     }
 
-    cont(HashMap.empty)
+    cont(List.empty)
   }
 
   final def readEntity(headers: Headers): Iteratee[Io, Option[Entity]] = Done(
@@ -132,10 +130,15 @@ class RequestIteratee()(implicit server: Server) {
       case _ ⇒ None
     })
 
-  final val readRequest = for {
+  final val readRequest2 = for {
     (method, path, query, version) ← readRequestLine
     headers ← readHeaders
     entity ← readEntity(headers)
   } yield Request(method, path, query, version, headers, entity)
+
+  final val readRequest = for {
+    (method, path, query, version) ← readRequestLine
+    headers ← readHeaders
+  } yield (method, path, query, version, headers)
 
 }

@@ -5,11 +5,11 @@ package lib
 package aio
 
 import java.nio.{ ByteBuffer, ByteOrder }
-import java.util.concurrent.atomic.AtomicBoolean
 
-import scala.annotation.tailrec
-import logging.HasLogger
+import scala.collection.mutable.DoubleLinkedList
+
 import concurrent.OnlyOnce
+import logging.HasLogger
 
 final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
 
@@ -17,41 +17,25 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
 
   with OnlyOnce {
 
-  /**
-   * This is an expensive O(n) operation.
-   */
-  def size = pool.size
+  def size = synchronized(pool.size)
 
-  @tailrec def getBuffer: ByteBuffer = if (trylock) {
-    try pool match {
+  def getBuffer: ByteBuffer = synchronized {
+    pool match {
       case head :: tail ⇒
         pool = tail
         head
-      case Nil ⇒
+      case _ ⇒
         onlyonce { warning("ByteBufferPool exhausted : buffer size " + buffersize + ", initial pool size" + initialpoolsize) }
         ByteBuffer.allocateDirect(buffersize).order(ByteOrder.nativeOrder)
-    } finally unlock
-
-  } else {
-    getBuffer
+    }
   }
 
-  @tailrec def releaseBuffer(buffer: ByteBuffer): Unit = if (trylock) {
-    try {
-      buffer.clear
-      pool = buffer :: pool
-    } finally unlock
-  } else {
-    releaseBuffer(buffer)
+  def releaseBuffer(buffer: ByteBuffer) = synchronized {
+    buffer.clear
+    pool = buffer :: pool
   }
 
-  @volatile private[this] var pool: List[ByteBuffer] = (0 until initialpoolsize).toList.map(_ ⇒ ByteBuffer.allocateDirect(buffersize))
-
-  @inline private[this] def trylock = locked.compareAndSet(false, true)
-
-  @inline private[this] def unlock = locked.set(false)
-
-  private[this] final val locked = new AtomicBoolean(false)
+  private[this] var pool: List[ByteBuffer] = (0 until initialpoolsize).toList.map(_ ⇒ ByteBuffer.allocateDirect(buffersize).order(ByteOrder.nativeOrder))
 
 }
 

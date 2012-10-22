@@ -75,42 +75,8 @@ object Iteratee {
   private object Compose {
 
     @inline def apply[E, A, B](k: Input[E] ⇒ (Iteratee[E, A], Input[E]), f: A ⇒ Iteratee[E, B]) = {
-      new Compose[E, B](k, PrimitiveList(f), PrimitiveList.empty)
+      new Compose[E, B](k, f :: Nil, Nil)
     }
-
-  }
-
-  /**
-   * Most trivial very! low level immutable list implementation with fixed size of 2 (yes 2). Enlarge size on ArrayIndexOutOfBounds exceptions.
-   */
-  private final class PrimitiveList private (
-
-    tl: Int) {
-
-    def this(a: Any) = { this(1); entries.update(0, a) }
-
-    def this(a: Any, b: Any) = { this(2); entries.update(0, a); entries.update(1, b) }
-
-    def ++(a: Any): PrimitiveList = if (1 == tl) new PrimitiveList(entries(0), a) else new PrimitiveList(a)
-
-    @inline def isEmpty = 0 == tl
-
-    @inline def head: Any = entries(0)
-
-    @inline def tail: PrimitiveList = tl match {
-      case 1 ⇒ PrimitiveList.empty
-      case 2 ⇒ new PrimitiveList(entries(1))
-    }
-
-    private[this] final val entries = new Array[Any](2)
-
-  }
-
-  private object PrimitiveList {
-
-    val empty = new PrimitiveList(0)
-
-    def apply(a: Any) = new PrimitiveList(a)
 
   }
 
@@ -121,13 +87,13 @@ object Iteratee {
 
     var k: Input[E] ⇒ (Iteratee[E, _], Input[E]),
 
-    out: PrimitiveList,
+    out: List[_],
 
-    in: PrimitiveList)
+    in: List[_])
 
     extends (Input[E] ⇒ (Iteratee[E, A], Input[E])) {
 
-    @inline final def ++[B](f: _ ⇒ Iteratee[E, B]) = new Compose[E, B](k, out, in ++ f)
+    @inline final def ++[B](f: _ ⇒ Iteratee[E, B]) = new Compose[E, B](k, out, f :: in)
 
     /**
      * A plain application spends most of its time in this method.
@@ -136,10 +102,10 @@ object Iteratee {
 
       @inline @tailrec def run(
         result: (Iteratee[E, _], Input[E]),
-        out: PrimitiveList,
-        in: PrimitiveList): (Iteratee[E, _], Input[E]) = {
+        out: List[_],
+        in: List[_]): (Iteratee[E, _], Input[E]) = {
         if (out.isEmpty) {
-          if (in.isEmpty) result else run(result, in, PrimitiveList.empty)
+          if (in.isEmpty) result else run(result, in.reverse, Nil)
         } else {
           result match {
             case (Done(value), remaining) ⇒

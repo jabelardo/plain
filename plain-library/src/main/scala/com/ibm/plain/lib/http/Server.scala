@@ -48,7 +48,9 @@ case class Server(
         serverChannel.bind(address, settings.backlog)
         val iteratee = new RequestIteratee()(this)
         reset {
-          handle(accept(serverChannel, settings.pauseBetweenAccepts) ++ iteratee.readRequest)
+          handle(
+            accept(serverChannel, settings.pauseBetweenAccepts) ++ iteratee.readRequest,
+            new RequestHandler)
         }
         debug(name + " has started.")
       }
