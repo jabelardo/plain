@@ -33,13 +33,13 @@ final class RequestIteratee()(implicit server: Server) {
 
     val readRequestUri: Iteratee[Io, (Path, Option[String])] = {
 
-      @inline def readUriSegment(allowed: Set[Int]): Iteratee[Io, String] = for {
+      @inline def readUriSegment(allowed: Set[Int], nodecoding: Boolean): Iteratee[Io, String] = for {
         segment ← takeWhile(allowed)(defaultCharacterSet)
-      } yield if (disableUrlDecoding) segment else codec.decode(segment)
+      } yield if (nodecoding) segment else codec.decode(segment)
 
-      val readPathSegment = readUriSegment(path)
+      val readPathSegment = readUriSegment(path, disableUrlDecoding)
 
-      val readQuerySegment = readUriSegment(query)
+      val readQuerySegment = readUriSegment(query, false)
 
       val readPath: Iteratee[Io, Path] = {
 
