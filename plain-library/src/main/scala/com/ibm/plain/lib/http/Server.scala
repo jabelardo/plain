@@ -50,7 +50,7 @@ case class Server(
         reset {
           loop(
             accept(serverChannel, settings.pauseBetweenAccepts) ++ iteratee.readRequest,
-            new RequestHandler)
+            new RequestHandler(this))
         }
         debug(name + " has started.")
       }

@@ -238,7 +238,7 @@ object Io
     shift { k: IoHandler ⇒ channel.write(io.buffer, io ++ k, iohandler) }
   }
 
-  final def loop[A](io: Io, handler: AioHandler[A]): Unit @suspendable = {
+  final def loop[E, A](io: Io, handler: AioHandler[E, A]): Unit @suspendable = {
     (read(io) match {
       case io if -1 < io.readwritten ⇒ io.iteratee(Elem(io))
       case io ⇒
@@ -247,16 +247,14 @@ object Io
     }) match {
       case (cont @ Cont(_), Empty) ⇒
         loop(io ++ cont ++ defaultByteBuffer, handler)
-      case (e @ Done(a), el @ Elem(io)) ⇒
-        handler.completed(a.asInstanceOf[A], io)
+      case (e, Elem(io)) ⇒
+        handler.handle(e.asInstanceOf[Iteratee[Io, E]], io)
         respond(io ++ ok)
         io.releaseBuffer
-        loop(io ++ defaultByteBuffer, handler)
-      case (Error(e), Elem(io)) ⇒
-        handler.failed(e, io)
-        respond(io ++ bad)
-        io.releaseBuffer
-        io.channel.close
+        if (0 == io.expected)
+          io.channel.close
+        else
+          loop(io ++ defaultByteBuffer, handler)
       case (Error(_), Eof) ⇒
       case e ⇒ error("Unhandled : " + e)
     }
