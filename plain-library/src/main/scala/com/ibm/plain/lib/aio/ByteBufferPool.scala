@@ -29,7 +29,7 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
         head
       case Nil ⇒
         onlyonce { warning("ByteBufferPool exhausted : buffer size " + buffersize + ", initial pool size" + initialpoolsize) }
-        ByteBuffer.allocateDirect(buffersize).order(ByteOrder.nativeOrder)
+        ByteBuffer.allocateDirect(buffersize)
     } finally unlock
   } else {
     Thread.sleep(0, 50)
@@ -46,12 +46,12 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
     releaseBuffer(buffer)
   }
 
+  @inline private[this] final def trylock = locked.compareAndSet(false, true)
+
+  @inline private[this] final def unlock = locked.set(false)
+
   @volatile private[this] var pool: List[ByteBuffer] =
-    (0 until initialpoolsize).toList.map(_ ⇒ ByteBuffer.allocateDirect(buffersize).order(ByteOrder.nativeOrder))
-
-  @inline private[this] def trylock = locked.compareAndSet(false, true)
-
-  @inline private[this] def unlock = locked.set(false)
+    (0 until initialpoolsize).toList.map(_ ⇒ ByteBuffer.allocateDirect(buffersize))
 
   private[this] final val locked = new AtomicBoolean(false)
 
