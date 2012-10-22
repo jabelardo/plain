@@ -14,7 +14,7 @@ import scala.util.continuations.reset
 
 import com.typesafe.config.{ Config, ConfigFactory }
 
-import aio.Io.{ accept, handle }
+import aio.Io.{ accept, loop }
 import bootstrap.{ Application, BaseComponent }
 import logging.HasLogger
 import config.{ CheckedConfig, config2RichConfig }
@@ -48,7 +48,7 @@ case class Server(
         serverChannel.bind(address, settings.backlog)
         val iteratee = new RequestIteratee()(this)
         reset {
-          handle(
+          loop(
             accept(serverChannel, settings.pauseBetweenAccepts) ++ iteratee.readRequest,
             new RequestHandler)
         }

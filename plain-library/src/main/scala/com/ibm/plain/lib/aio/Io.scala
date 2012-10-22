@@ -238,7 +238,7 @@ object Io
     shift { k: IoHandler ⇒ channel.write(io.buffer, io ++ k, iohandler) }
   }
 
-  final def handle[A](io: Io, handler: AioHandler[A]): Unit @suspendable = {
+  final def loop[A](io: Io, handler: AioHandler[A]): Unit @suspendable = {
     (read(io) match {
       case io if -1 < io.readwritten ⇒ io.iteratee(Elem(io))
       case io ⇒
@@ -246,37 +246,43 @@ object Io
         io.iteratee(Eof)
     }) match {
       case (cont @ Cont(_), Empty) ⇒
-        handle(io ++ cont ++ defaultByteBuffer, handler)
+        loop(io ++ cont ++ defaultByteBuffer, handler)
       case (e @ Done(a), el @ Elem(io)) ⇒
-        // handler.completed(a.asInstanceOf[A], io)
-        // println(a)
+        handler.completed(a.asInstanceOf[A], io)
+        respond(io ++ ok)
         io.releaseBuffer
-        val r = defaultByteBuffer
-        r.put(response)
-        r.flip
-        respond(io ++ r)
-        io.releaseBuffer
-        handle(io ++ defaultByteBuffer, handler)
+        loop(io ++ defaultByteBuffer, handler)
       case (Error(e), Elem(io)) ⇒
         handler.failed(e, io)
-        io.releaseBuffer
-        val r = defaultByteBuffer
-        r.put(badrequest)
-        r.flip
-        respond(io ++ r)
+        respond(io ++ bad)
         io.releaseBuffer
         io.channel.close
-      case (Error(_), Eof) ⇒ // peer closed connection
+      case (Error(_), Eof) ⇒
       case e ⇒ error("Unhandled : " + e)
     }
+
   }
 
   /**
    * testing
    */
-  private final val response = "HTTP/1.1 200 OK\r\nDate: Mon, 10 Sep 2012 15:06:09 GMT\r\nContent-Type: text/plain\r\nContent-Length: 5\r\nConnection: keep-alive\r\n\r\nPONG!".getBytes
+  private[this] final val response = "HTTP/1.1 200 OK\r\nDate: Mon, 10 Sep 2012 15:06:09 GMT\r\nContent-Type: text/plain\r\nContent-Length: 5\r\nConnection: keep-alive\r\n\r\nPONG!".getBytes
 
-  private final val badrequest = "HTTP/1.1 400 Bad Request\r\nDate: Mon, 10 Sep 2012 15:06:09 GMT\r\nConnection: close\r\n\r\n".getBytes
+  private[this] final val badrequest = "HTTP/1.1 400 Bad Request\r\nDate: Mon, 10 Sep 2012 15:06:09 GMT\r\nConnection: close\r\n\r\n".getBytes
+
+  private[this] final def ok = {
+    val r = defaultByteBuffer
+    r.put(response)
+    r.flip
+    r
+  }
+
+  private[this] final def bad = {
+    val r = defaultByteBuffer
+    r.put(response)
+    r.flip
+    r
+  }
 
 }
 

@@ -16,12 +16,13 @@ class RequestHandler
 
   def completed(request: Request, io: Io) = {
     import io._
-    //    println("moved out " + request)
     io.releaseBuffer
+    //    println("moved out " + request)
   }
 
   def failed(e: Throwable, io: Io) {
     import io._
+    io.releaseBuffer
     //    println("moved out failed " + e)
     ()
   }
