@@ -219,7 +219,6 @@ object Io
 
     def failed(e: Throwable, io: Io) = {
       import io._
-      println("io failed " + e)
       channel.close
       k(io ++ Error[Io](e))
     }
@@ -231,13 +230,15 @@ object Io
 
   private[this] final def read(io: Io): Io @suspendable = {
     import io._
-    shift { k: IoCont ⇒ buffer.clear; println("buffer " + buffer); channel.read(buffer, io ++ k ++ 0, iohandler) }
+    shift { k: IoCont ⇒ buffer.clear; channel.read(buffer, io ++ k, iohandler) }
   }
 
   private[this] final def write(io: Io): Io @suspendable = {
     import io._
-    shift { k: IoCont ⇒ buffer.flip; channel.write(io.buffer, io ++ k ++ 0, iohandler) }
+    shift { k: IoCont ⇒ buffer.flip; channel.write(io.buffer, io ++ k, iohandler) }
   }
+
+  private[this] final def unhandled(e: Any) = throw new Exception("unhandled " + e)
 
   final def loop[E, A](io: Io, processor: AioProcessor[E, A]): Unit @suspendable = {
 
@@ -245,17 +246,18 @@ object Io
 
     def readloop(io: Io): Unit @suspendable = {
       (read(io) match {
-        case io if -1 < io.readwritten ⇒
-          println("read " + io.readwritten); io.iteratee(Elem(io))
-        case io ⇒ println("read eof " + io.readwritten); io.iteratee(Eof)
+        case io if -1 < io.readwritten ⇒ io.iteratee(Elem(io))
+        case io ⇒ io.iteratee(Eof)
       }) match {
         case (cont @ Cont(_), Empty) ⇒
           readloop(io ++ cont ++ defaultByteBuffer)
-        case (request, Elem(io)) ⇒
-          println(request)
-          processloop(io ++ request)
-        case (_, Eof) ⇒ println("Eof")
-        case e ⇒ println("unhandled " + e)
+        case (e @ Done(request), Elem(io)) ⇒
+          processloop(io ++ e)
+        case (e @ Error(_), Elem(io)) ⇒
+          io.releaseBuffer
+          processloop(io ++ e)
+        case (_, Eof) ⇒
+        case e ⇒ unhandled(e)
       }
     }
 
@@ -265,18 +267,15 @@ object Io
         case io ⇒ io.iteratee
       }) match {
         case Done(response) ⇒
-          println(response)
           write(io ++ ok)
           readloop(io ++ readiteratee)
         case Error(e) ⇒
-          println(e)
           io.channel.close
-        case e ⇒ println("unhandled" + e)
+        case e ⇒ unhandled(e)
       }
     }
 
     readloop(io)
-    println("end")
     io.releaseBuffer
   }
 

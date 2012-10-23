@@ -17,6 +17,8 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
 
   with OnlyOnce {
 
+  val debug = false
+
   /**
    * This is an expensive O(n) operation.
    */
@@ -38,10 +40,10 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
 
   @tailrec def releaseBuffer(buffer: ByteBuffer): Unit = if (trylock) {
     try {
-      // require(!pool.exists(_ eq buffer), "buffer released twice " + pool.size)
+      if (debug) require(!pool.exists(_ eq buffer), "buffer released twice " + pool.size)
       buffer.clear
       pool = buffer :: pool
-      println("pool " + pool.size)
+      if (debug) println("pool " + pool.size)
     } finally unlock
   } else {
     Thread.sleep(0, 50)
