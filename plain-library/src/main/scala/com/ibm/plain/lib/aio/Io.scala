@@ -10,7 +10,7 @@ import java.nio.channels.{ AsynchronousServerSocketChannel ⇒ ServerChannel, As
 import java.nio.charset.Charset
 
 import scala.math.min
-import scala.util.continuations.{ reset, shift, suspendable }
+import scala.util.continuations.{ shift, suspendable }
 import scala.concurrent.duration.Duration
 
 import Iteratee.{ Cont, Done, Error }
@@ -238,7 +238,7 @@ object Io
     shift { k: IoCont ⇒ buffer.flip; channel.write(io.buffer, io ++ k, iohandler) }
   }
 
-  private[this] final def unhandled(e: Any) = throw new Exception("unhandled " + e)
+  private[this] final def unhandled(e: Any) = error("unhandled " + e)
 
   final def loop[E, A](io: Io, processor: AioProcessor[E, A]): Unit @suspendable = {
 
@@ -263,11 +263,11 @@ object Io
 
     def processloop(io: Io): Unit @suspendable = {
       (processor.process_(io) match {
-        case io if -1 < io.readwritten ⇒ io.iteratee
         case io ⇒ io.iteratee
       }) match {
         case Done(response) ⇒
-          write(io ++ ok)
+          ok(io)
+          write(io)
           readloop(io ++ readiteratee)
         case Error(e) ⇒
           io.channel.close
@@ -286,16 +286,10 @@ object Io
 
   private[this] final val badrequest = "HTTP/1.1 400 Bad Request\r\nDate: Mon, 10 Sep 2012 15:06:09 GMT\r\nConnection: close\r\n\r\n".getBytes
 
-  private[this] final def ok = {
-    val r = defaultByteBuffer
-    r.put(response)
-    r
-  }
-
-  private[this] final def bad = {
-    val r = defaultByteBuffer
-    r.put(badrequest)
-    r
+  private[this] final def ok(io: Io): Unit = {
+    import io._
+    buffer.clear
+    buffer.put(response)
   }
 
 }
