@@ -29,15 +29,6 @@ sealed abstract class Iteratee[E, +A] {
   }
 
   /**
-   * Not really useful, use a match/case instead.
-   */
-  final def result: A = this(Eof)._1 match {
-    case Done(a) ⇒ a
-    case Error(e) ⇒ throw e
-    case Cont(_) ⇒ throw NotYetDone
-  }
-
-  /**
    * All lines in a for-comprehension except the last one.
    */
   final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = this match {

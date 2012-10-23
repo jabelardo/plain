@@ -78,7 +78,18 @@ case class Response(
 
   extends Renderable {
 
+  def this(status: Status) = this(Version.`HTTP/1.1`, status, None)
+
   @inline final def render(implicit buffer: ByteBuffer) = version + ` ` + status + `\r\n`
+
+}
+
+/**
+ * The Response object.
+ */
+object Response {
+
+  def apply(status: Status) = new Response(Version.`HTTP/1.1`, status, None)
 
 }
 

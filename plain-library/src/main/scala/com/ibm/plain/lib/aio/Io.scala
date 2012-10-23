@@ -10,7 +10,7 @@ import java.nio.channels.{ AsynchronousServerSocketChannel ⇒ ServerChannel, As
 import java.nio.charset.Charset
 
 import scala.math.min
-import scala.util.continuations.{ shift, suspendable }
+import scala.util.continuations.{ reset, shift, suspendable }
 import scala.concurrent.duration.Duration
 
 import Iteratee.{ Cont, Done, Error }
@@ -98,7 +98,7 @@ final class Io private (
 
   var iteratee: Iteratee[Io, _],
 
-  var k: Io.IoHandler,
+  var k: Io.IoCont,
 
   var readwritten: Int,
 
@@ -112,29 +112,29 @@ final class Io private (
 
   @inline def ++(channel: Channel) = new Io(server, channel, buffer, iteratee, k, readwritten, expected)
 
+  @inline def ++(iteratee: Iteratee[Io, _]) = { this.iteratee = iteratee; this }
+
+  @inline def ++(k: IoCont) = { this.k = k; this }
+
+  @inline def ++(readwritten: Int) = { this.readwritten = readwritten; this }
+
+  @inline def ++(expected: Long) = { this.expected = expected; this }
+
   @inline def ++(buffer: ByteBuffer) = if (0 < this.buffer.remaining) {
     new Io(server, channel, buffer, iteratee, k, readwritten, expected)
   } else {
     this + buffer
   }
 
-  @inline def ++(iteratee: Iteratee[Io, _]) = { this.iteratee = iteratee; this }
-
-  @inline def ++(k: IoHandler) = { this.k = k; this }
-
-  @inline def ++(readwritten: Int) = { this.readwritten = readwritten; this }
-
-  @inline def ++(expected: Long) = { this.expected = expected; this }
-
-  @inline def releaseBuffer = {
-    releaseByteBuffer(buffer)
-    buffer = emptyBuffer
-  }
-
   @inline private def +(buffer: ByteBuffer) = {
-    releaseByteBuffer(this.buffer)
+    if (this.buffer ne emptyBuffer) releaseByteBuffer(this.buffer)
     this.buffer = buffer
     this
+  }
+
+  @inline private def releaseBuffer = if (buffer ne emptyBuffer) {
+    releaseByteBuffer(buffer)
+    buffer = emptyBuffer
   }
 
   /**
@@ -159,7 +159,7 @@ final class Io private (
 }
 
 /**
- * The Io object contains all the complex continuations stuff.
+ * The Io object contains all the complex continuations stuff, it is sort of an 'Io' monad.
  */
 object Io
 
@@ -169,13 +169,13 @@ object Io
 
   import Iteratee._
 
-  final private def warnOnce = onlyonce { warning("Chunked input found. Enlarge aio.default-buffer-size : " + defaultBufferSize) }
-
-  final val emptyBuffer = ByteBuffer.allocate(0)
-
   final def empty = new Io(null, null, emptyBuffer, null, null, -1, -1)
 
-  type IoHandler = Io ⇒ Unit
+  final private[aio]type IoCont = Io ⇒ Unit
+
+  final private def warnOnce = onlyonce { warning("Chunked input found. Enlarge aio.default-buffer-size : " + defaultBufferSize) }
+
+  final private val emptyBuffer = ByteBuffer.allocate(0)
 
   /**
    * Aio handling.
@@ -219,6 +219,7 @@ object Io
 
     def failed(e: Throwable, io: Io) = {
       import io._
+      println("io failed " + e)
       channel.close
       k(io ++ Error[Io](e))
     }
@@ -226,39 +227,57 @@ object Io
   }
 
   final def accept(server: ServerChannel, pausebetweenaccepts: Duration): Io @suspendable =
-    shift { k: IoHandler ⇒ server.accept(Io.empty ++ server ++ k, AcceptHandler(pausebetweenaccepts.toMillis)) }
+    shift { k: IoCont ⇒ server.accept(Io.empty ++ server ++ k, AcceptHandler(pausebetweenaccepts.toMillis)) }
 
   private[this] final def read(io: Io): Io @suspendable = {
     import io._
-    shift { k: IoHandler ⇒ channel.read(buffer, io ++ k, iohandler) }
+    shift { k: IoCont ⇒ buffer.clear; println("buffer " + buffer); channel.read(buffer, io ++ k ++ 0, iohandler) }
   }
 
-  private[this] final def respond(io: Io): Io @suspendable = {
+  private[this] final def write(io: Io): Io @suspendable = {
     import io._
-    shift { k: IoHandler ⇒ channel.write(io.buffer, io ++ k, iohandler) }
+    shift { k: IoCont ⇒ buffer.flip; channel.write(io.buffer, io ++ k ++ 0, iohandler) }
   }
 
-  final def loop[E, A](io: Io, handler: AioHandler[E, A]): Unit @suspendable = {
-    (read(io) match {
-      case io if -1 < io.readwritten ⇒ io.iteratee(Elem(io))
-      case io ⇒
-        io.releaseBuffer
-        io.iteratee(Eof)
-    }) match {
-      case (cont @ Cont(_), Empty) ⇒
-        loop(io ++ cont ++ defaultByteBuffer, handler)
-      case (e, Elem(io)) ⇒
-        handler.handle(e.asInstanceOf[Iteratee[Io, E]], io)
-        respond(io ++ ok)
-        io.releaseBuffer
-        if (0 == io.expected)
-          io.channel.close
-        else
-          loop(io ++ defaultByteBuffer, handler)
-      case (Error(_), Eof) ⇒
-      case e ⇒ error("Unhandled : " + e)
+  final def loop[E, A](io: Io, processor: AioProcessor[E, A]): Unit @suspendable = {
+
+    val readiteratee = io.iteratee
+
+    def readloop(io: Io): Unit @suspendable = {
+      (read(io) match {
+        case io if -1 < io.readwritten ⇒
+          println("read " + io.readwritten); io.iteratee(Elem(io))
+        case io ⇒ println("read eof " + io.readwritten); io.iteratee(Eof)
+      }) match {
+        case (cont @ Cont(_), Empty) ⇒
+          readloop(io ++ cont ++ defaultByteBuffer)
+        case (request, Elem(io)) ⇒
+          println(request)
+          processloop(io ++ request)
+        case (_, Eof) ⇒ println("Eof")
+        case e ⇒ println("unhandled " + e)
+      }
     }
 
+    def processloop(io: Io): Unit @suspendable = {
+      (processor.process_(io) match {
+        case io if -1 < io.readwritten ⇒ io.iteratee
+        case io ⇒ io.iteratee
+      }) match {
+        case Done(response) ⇒
+          println(response)
+          write(io ++ ok)
+          readloop(io ++ readiteratee)
+        case Error(e) ⇒
+          println(e)
+          io.channel.close
+        case e ⇒ println("unhandled" + e)
+      }
+    }
+
+    readloop(io)
+    println("end")
+    io.releaseBuffer
   }
 
   /**
@@ -271,14 +290,12 @@ object Io
   private[this] final def ok = {
     val r = defaultByteBuffer
     r.put(response)
-    r.flip
     r
   }
 
   private[this] final def bad = {
     val r = defaultByteBuffer
-    r.put(response)
-    r.flip
+    r.put(badrequest)
     r
   }
 
