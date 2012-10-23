@@ -26,6 +26,6 @@ trait AioProcessor[E, A]
     shift { k: Io.IoCont ⇒ doProcess(io ++ k) }
   }
 
-  private[this] def doProcess(io: Io) = try process(io) catch { case e: Throwable ⇒ failed(e, io) }
+  private[this] final def doProcess(io: Io) = try process(io) catch { case e: Throwable ⇒ failed(e, io) }
 
 }

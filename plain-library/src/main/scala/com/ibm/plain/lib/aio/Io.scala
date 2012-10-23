@@ -108,6 +108,25 @@ final class Io private (
 
   import Io._
 
+  /**
+   * The trick method of the entire algorithm, it should be called only when the buffer is too small and on start with Io.empty.
+   */
+  final def ++(that: Io): Io = if (0 == this.length) {
+    that
+  } else if (0 == that.length) {
+    this
+  } else {
+    warnOnce
+    val len = this.length + that.length
+    val b = ByteBuffer.allocate(len)
+    b.put(this.readBytes)
+    this.releaseBuffer
+    b.put(that.buffer)
+    that.releaseBuffer
+    b.flip
+    that + b
+  }
+
   @inline def ++(server: ServerChannel) = { this.server = server; this }
 
   @inline def ++(channel: Channel) = new Io(server, channel, buffer, iteratee, k, readwritten, expected)
@@ -137,23 +156,10 @@ final class Io private (
     buffer = emptyBuffer
   }
 
-  /**
-   * The trick method of the entire algorithm, it should be called only when the buffer is too small and on start with Io.empty.
-   */
-  final def ++(that: Io): Io = if (0 == this.length) {
-    that
-  } else if (0 == that.length) {
-    this
-  } else {
-    warnOnce
-    val len = this.length + that.length
-    val b = ByteBuffer.allocate(len)
-    b.put(this.readBytes)
-    this.releaseBuffer
-    b.put(that.buffer)
-    that.releaseBuffer
-    b.flip
-    that + b
+  @inline private def error(e: Throwable) = {
+    logger.debug(e.toString)
+    releaseBuffer
+    channel.close
   }
 
 }
@@ -174,6 +180,8 @@ object Io
   final private[aio]type IoCont = Io ⇒ Unit
 
   final private def warnOnce = onlyonce { warning("Chunked input found. Enlarge aio.default-buffer-size : " + defaultBufferSize) }
+
+  final private val logger = log
 
   final private val emptyBuffer = ByteBuffer.allocate(0)
 
@@ -211,10 +219,10 @@ object Io
 
   private[this] val iohandler = new Handler[Integer, Io] {
 
-    def completed(n: Integer, io: Io) = try {
+    def completed(processed: Integer, io: Io) = try {
       import io._
-      if (-1 < n) buffer.flip else channel.close
-      k(io ++ n)
+      buffer.flip
+      k(io ++ processed)
     }
 
     def failed(e: Throwable, io: Io) = {
@@ -240,6 +248,8 @@ object Io
 
   private[this] final def unhandled(e: Any) = error("unhandled " + e)
 
+  private[this] final def ignored = ()
+
   final def loop[E, A](io: Io, processor: AioProcessor[E, A]): Unit @suspendable = {
 
     val readiteratee = io.iteratee
@@ -256,7 +266,7 @@ object Io
         case (e @ Error(_), Elem(io)) ⇒
           io.releaseBuffer
           processloop(io ++ e)
-        case (_, Eof) ⇒
+        case (_, Eof) ⇒ ignored
         case e ⇒ unhandled(e)
       }
     }
@@ -270,7 +280,7 @@ object Io
           write(io)
           readloop(io ++ readiteratee)
         case Error(e) ⇒
-          io.channel.close
+          io.error(e)
         case e ⇒ unhandled(e)
       }
     }
@@ -288,6 +298,7 @@ object Io
 
   private[this] final def ok(io: Io): Unit = {
     import io._
+    if (io.buffer eq emptyBuffer) io ++ defaultByteBuffer
     buffer.clear
     buffer.put(response)
   }

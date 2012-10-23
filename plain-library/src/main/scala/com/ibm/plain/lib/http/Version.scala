@@ -6,11 +6,9 @@ package http
 
 import java.nio.ByteBuffer
 
-import aio.Io
-import text.ASCII
-
-import Renderable._
+import Renderable.r
 import Status.ServerError.`505`
+import text.ASCII
 
 /**
  * Supported http versions. The current implementation only supports HTTP/1.1.
@@ -27,9 +25,9 @@ sealed abstract class Version
 
 object Version {
 
-  def apply(version: String)(implicit server: Server): Version = version match {
-    case "HTTP/1.0" if server.settings.treat10VersionAs11 ⇒ `HTTP/1.1`
+  final def apply(version: String)(implicit server: Server): Version = version match {
     case "HTTP/1.1" ⇒ `HTTP/1.1`
+    case "HTTP/1.0" if server.settings.treat10VersionAs11 ⇒ `HTTP/1.1`
     case _ ⇒ if (server.settings.treatAnyVersionAs11)
       `HTTP/1.1`
     else {
@@ -44,4 +42,3 @@ object Version {
   case object `HTTP/1.1` extends Version
 
 }
-

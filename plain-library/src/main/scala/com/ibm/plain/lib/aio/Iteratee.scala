@@ -29,7 +29,7 @@ sealed abstract class Iteratee[E, +A] {
   }
 
   /**
-   * Used later on at api level, e.g. [http].
+   * Used later at api level, e.g. HttpProcessor.
    */
   final def result: A = this(Eof)._1 match {
     case Done(a) ⇒ a

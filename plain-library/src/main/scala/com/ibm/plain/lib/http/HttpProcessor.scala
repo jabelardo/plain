@@ -6,11 +6,11 @@ package http
 
 import java.io.IOException
 
-import aio.{ AioProcessor, Io, Iteratee }
-import aio.Iteratee.{ Done, Error }
+import com.ibm.plain.lib.aio.{ AioProcessor, Iteratee }
 
-import Status._
-import Version.`HTTP/1.1`
+import Status.{ ServerError, Success }
+import aio.Io
+import aio.Iteratee.{ Done, Error }
 
 /**
  *
@@ -21,10 +21,9 @@ final class HttpProcessor
 
   @inline final def process(io: Io) = {
     val request = io.iteratee.result
-    if (true)
-      completed(Response(Success.`200`), io)
-    else
-      throw ClientError.`404`
+    // we should do some dispatching here
+    // we might not come here as .result may throw an exception
+    completed(Response(Success.`200`), io)
   }
 
   @inline final def completed(response: Response, io: Io) = {
