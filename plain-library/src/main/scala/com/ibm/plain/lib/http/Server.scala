@@ -100,6 +100,10 @@ case class Server(
 
   if (1 < settings.portRange.size && !settings.loadBalancingEnable) warning(name + " : port-range > 1 with load-balancing.enable=off")
 
+  if (settings.portRange.size >= Runtime.getRuntime.availableProcessors) warning("Your port-range size should be smaller than the number of cores available on this system.")
+
+  if (1 == settings.portRange.size && settings.loadBalancingEnable) warning("You cannot enable load-balancing for a port-range of size 1.")
+
 }
 
 /**
@@ -147,10 +151,6 @@ object Server {
     final val disableUrlDecoding = getBoolean("feature.disable-url-decoding")
 
     require(0 < portRange.size, "You must at least specify one port for 'port-range'.")
-
-    require(if (1 == portRange.size) !loadBalancingEnable else true, "You cannot enable load-balancing for a port-range of size 1.")
-
-    require(portRange.size < Runtime.getRuntime.availableProcessors, "Your port-range size must be smaller than the number of cores available on this system.")
 
   }
 

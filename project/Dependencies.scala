@@ -20,7 +20,7 @@ object Dependencies {
 
   val junit         = "junit"                                   %   "junit"                       % "4.10"
   val junitItf      = "com.novocode"                            %   "junit-interface"             % "0.8"
-  val config        = "com.typesafe"                            %   "config"                      % "0.6.0"
+  val config        = "com.typesafe"                            %   "config"                      % "1.0.0"
   val logback       = "ch.qos.logback"                          %   "logback-classic"             % "1.0.4"
   val janino        = "janino"                                  %   "janino"                      % "2.5.10"
   val akkaActor     = "com.typesafe.akka"                       %   "akka-actor_2.10.0-RC1"        % "2.1.0-RC1"

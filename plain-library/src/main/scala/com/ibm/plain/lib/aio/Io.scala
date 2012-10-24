@@ -162,13 +162,17 @@ final class Io private (
 
   @inline private def clear = buffer.clear
 
+  @inline private def release = {
+    releaseBuffer
+    if (channel.isOpen) channel.close
+  }
+
   @inline private def error(e: Throwable) = {
     e match {
       case _: IOException ⇒
       case e ⇒ logger.debug(e.toString)
     }
     releaseBuffer
-    channel.close
   }
 
 }
@@ -240,7 +244,6 @@ object Io
 
     @inline final def failed(e: Throwable, io: Io) = {
       import io._
-      channel.close
       k(io ++ Error[Io](e))
     }
 
@@ -304,8 +307,9 @@ object Io
       }
     }
 
+    // sometime we do not get here (uncaught exception -Xss8m ?)
     readloop(io)
-    io.releaseBuffer
+    io.release
   }
 
   /**

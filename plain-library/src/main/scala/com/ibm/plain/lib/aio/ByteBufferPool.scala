@@ -38,7 +38,7 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
 
   @tailrec def releaseBuffer(buffer: ByteBuffer): Unit = if (trylock) {
     try {
-      // require(!pool.exists(_ eq buffer), "buffer released twice " + pool.size)
+      require(!pool.exists(_ eq buffer), "buffer released twice " + pool.size)
       buffer.clear
       pool = buffer :: pool
       // println("pool " + pool.size)
