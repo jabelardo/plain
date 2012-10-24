@@ -43,7 +43,7 @@ case class Server(
 
       def startOne = {
         serverChannel = ServerChannel.open(channelGroup)
-        serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
+        serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(false))
         serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(aio.defaultBufferSize))
         serverChannel.bind(address, settings.backlog)
         val iteratee = new RequestIteratee()(this)

@@ -5,9 +5,11 @@ package lib
 package aio
 
 import java.io.IOException
+import java.net.StandardSocketOptions
 import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousServerSocketChannel ⇒ ServerChannel, AsynchronousSocketChannel ⇒ Channel, CompletionHandler ⇒ Handler }
 import java.nio.charset.Charset
+import java.util.concurrent.TimeUnit
 
 import scala.math.min
 import scala.util.continuations.{ shift, suspendable }
@@ -215,7 +217,7 @@ object Io
         server.accept(io, this)
       else
         scheduleOnce(pauseinmilliseconds)(server.accept(io, this))
-      k(io ++ c ++ defaultByteBuffer)
+      k(io ++ tweak(c) ++ defaultByteBuffer)
     }
 
     @inline final def failed(e: Throwable, io: Io) = {
@@ -230,6 +232,16 @@ object Io
           case e: Throwable ⇒ warning("accept failed : " + io + " " + e)
         }
       }
+    }
+
+    @inline private[this] def tweak(channel: Channel): Channel = {
+      import scala.collection.JavaConversions._
+      channel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(false))
+      channel.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.box(false))
+      channel.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.box(true))
+      channel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(defaultBufferSize))
+      channel.setOption(StandardSocketOptions.SO_SNDBUF, Integer.valueOf(defaultBufferSize))
+      channel
     }
 
   }
@@ -254,12 +266,12 @@ object Io
 
   @inline private[this] final def read(io: Io): Io @suspendable = {
     import io._
-    shift { k: IoCont ⇒ buffer.clear; channel.read(buffer, io ++ k, iohandler) }
+    shift { k: IoCont ⇒ buffer.clear; channel.read(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, io ++ k, iohandler) }
   }
 
   @inline private[this] final def write(io: Io): Io @suspendable = {
     import io._
-    shift { k: IoCont ⇒ buffer.flip; channel.write(buffer, io ++ k, iohandler) }
+    shift { k: IoCont ⇒ buffer.flip; channel.write(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, io ++ k, iohandler) }
   }
 
   @inline private[this] final def unhandled(e: Any) = error("unhandled " + e)

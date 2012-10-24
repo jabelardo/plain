@@ -74,6 +74,8 @@ package object aio
 
   final val largeBufferPoolSize = getBytes("plain.aio.large-buffer-pool-size", 64).toInt
 
+  final val readWriteTimeout = getMilliseconds("plain.aio.read-write-timeout", 5000)
+
   /**
    * Check requirements.
    */
