@@ -83,8 +83,6 @@ case class Server(
 
   override def awaitTermination(timeout: Duration) = if (!channelGroup.isShutdown) channelGroup.awaitTermination(if (Duration.Inf == timeout) -1 else timeout.toMillis, TimeUnit.MILLISECONDS)
 
-  private[this] final val channelGroup = Group.withThreadPool(concurrent.executor)
-
   private[this] var serverChannel: ServerChannel = null
 
   private[http] final lazy val settings = ServerConfiguration(path, false)
@@ -108,6 +106,8 @@ case class Server(
  * Contains common things shared among several HttpServers, the configuration class, for instance.
  */
 object Server {
+
+  private final val channelGroup = Group.withThreadPool(concurrent.executor)
 
   /**
    * A per-server provided configuration, unspecified details will be inherited from defaultServerConfiguration.

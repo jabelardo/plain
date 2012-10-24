@@ -192,7 +192,7 @@ object Io
 
     extends Handler[Channel, Io] {
 
-    def completed(c: Channel, io: Io) = {
+    @inline final def completed(c: Channel, io: Io) = {
       import io._
       if (0 == pauseinmilliseconds)
         server.accept(io, this)
@@ -201,7 +201,7 @@ object Io
       k(io ++ c ++ defaultByteBuffer)
     }
 
-    def failed(e: Throwable, io: Io) = {
+    @inline final def failed(e: Throwable, io: Io) = {
       import io._
       if (server.isOpen) {
         /**
@@ -217,15 +217,15 @@ object Io
 
   }
 
-  private[this] val iohandler = new Handler[Integer, Io] {
+  private[this] final val iohandler = new Handler[Integer, Io] {
 
-    def completed(processed: Integer, io: Io) = try {
+    @inline final def completed(processed: Integer, io: Io) = {
       import io._
       buffer.flip
       k(io ++ processed)
     }
 
-    def failed(e: Throwable, io: Io) = {
+    @inline final def failed(e: Throwable, io: Io) = {
       import io._
       channel.close
       k(io ++ Error[Io](e))
@@ -243,12 +243,12 @@ object Io
 
   private[this] final def write(io: Io): Io @suspendable = {
     import io._
-    shift { k: IoCont ⇒ buffer.flip; channel.write(io.buffer, io ++ k, iohandler) }
+    shift { k: IoCont ⇒ buffer.flip; channel.write(buffer, io ++ k, iohandler) }
   }
 
   private[this] final def unhandled(e: Any) = error("unhandled " + e)
 
-  private[this] final def ignored = ()
+  private[this] final val ignored = ()
 
   final def loop[E, A](io: Io, processor: AioProcessor[E, A]): Unit @suspendable = {
 
@@ -264,7 +264,7 @@ object Io
         case (e @ Done(request), Elem(io)) ⇒
           processloop(io ++ e)
         case (e @ Error(_), Elem(io)) ⇒
-          io.releaseBuffer
+          io.buffer.clear
           processloop(io ++ e)
         case (_, Eof) ⇒ ignored
         case e ⇒ unhandled(e)
@@ -298,8 +298,7 @@ object Io
 
   private[this] final def ok(io: Io): Unit = {
     import io._
-    if (io.buffer eq emptyBuffer) io ++ defaultByteBuffer
-    buffer.clear
+    if (io.buffer ne emptyBuffer) buffer.clear else io ++ defaultByteBuffer
     buffer.put(response)
   }
 

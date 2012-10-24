@@ -15,6 +15,7 @@ temp/
 */.settings
 */.prefs
 *.prefs
+*.log
 */.DS_Store
 */.history
 */.localized
