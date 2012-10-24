@@ -29,6 +29,7 @@ abstract sealed class IoHelper[E <: Io] {
 
   final def decode(implicit cset: Charset): String = resetBuffer(
     buffer.remaining match {
+      case 0 ⇒ Io.emptyString
       case 1 ⇒ String.valueOf(buffer.get.toChar)
       case _ ⇒ new String(readBytes, cset)
     })
@@ -67,7 +68,10 @@ abstract sealed class IoHelper[E <: Io] {
     (i - pos, l - i)
   }
 
-  final def readBytes: Array[Byte] = Array.fill(buffer.remaining)(buffer.get)
+  final def readBytes: Array[Byte] = buffer.remaining match {
+    case 0 ⇒ Io.emptyArray
+    case n ⇒ Array.fill(buffer.remaining)(buffer.get)
+  }
 
   @inline private[this] final def markLimit = limitmark = buffer.limit
 
@@ -156,8 +160,13 @@ final class Io private (
     buffer = emptyBuffer
   }
 
+  @inline private def clear = buffer.clear
+
   @inline private def error(e: Throwable) = {
-    logger.debug(e.toString)
+    e match {
+      case _: IOException ⇒
+      case e ⇒ logger.debug(e.toString)
+    }
     releaseBuffer
     channel.close
   }
@@ -175,15 +184,19 @@ object Io
 
   import Iteratee._
 
-  final def empty = new Io(null, null, emptyBuffer, null, null, -1, -1)
+  @inline private[aio] final def empty = new Io(null, null, emptyBuffer, null, null, -1, -1)
 
   final private[aio]type IoCont = Io ⇒ Unit
+
+  final private[aio] val emptyArray = new Array[Byte](0)
+
+  final private[aio] val emptyBuffer = ByteBuffer.wrap(emptyArray)
+
+  final private[aio] val emptyString = new String
 
   final private def warnOnce = onlyonce { warning("Chunked input found. Enlarge aio.default-buffer-size : " + defaultBufferSize) }
 
   final private val logger = log
-
-  final private val emptyBuffer = ByteBuffer.allocate(0)
 
   /**
    * Aio handling.
@@ -236,52 +249,58 @@ object Io
   final def accept(server: ServerChannel, pausebetweenaccepts: Duration): Io @suspendable =
     shift { k: IoCont ⇒ server.accept(Io.empty ++ server ++ k, AcceptHandler(pausebetweenaccepts.toMillis)) }
 
-  private[this] final def read(io: Io): Io @suspendable = {
+  @inline private[this] final def read(io: Io): Io @suspendable = {
     import io._
     shift { k: IoCont ⇒ buffer.clear; channel.read(buffer, io ++ k, iohandler) }
   }
 
-  private[this] final def write(io: Io): Io @suspendable = {
+  @inline private[this] final def write(io: Io): Io @suspendable = {
     import io._
     shift { k: IoCont ⇒ buffer.flip; channel.write(buffer, io ++ k, iohandler) }
   }
 
-  private[this] final def unhandled(e: Any) = error("unhandled " + e)
+  @inline private[this] final def unhandled(e: Any) = error("unhandled " + e)
 
-  private[this] final val ignored = ()
+  @inline private[this] final val ignored = ()
 
   final def loop[E, A](io: Io, processor: AioProcessor[E, A]): Unit @suspendable = {
 
     val readiteratee = io.iteratee
 
-    def readloop(io: Io): Unit @suspendable = {
+    @inline def readloop(io: Io): Unit @suspendable = {
       (read(io) match {
-        case io if -1 < io.readwritten ⇒ io.iteratee(Elem(io))
-        case io ⇒ io.iteratee(Eof)
+        case io if -1 < io.readwritten ⇒
+          io.iteratee(Elem(io))
+        case io ⇒
+          io.iteratee(Eof)
       }) match {
         case (cont @ Cont(_), Empty) ⇒
           readloop(io ++ cont ++ defaultByteBuffer)
-        case (e @ Done(request), Elem(io)) ⇒
+        case (e @ Done(_), Elem(io)) ⇒
           processloop(io ++ e)
         case (e @ Error(_), Elem(io)) ⇒
-          io.buffer.clear
+          io.clear
           processloop(io ++ e)
-        case (_, Eof) ⇒ ignored
-        case e ⇒ unhandled(e)
+        case (_, Eof) ⇒
+          ignored
+        case e ⇒
+          unhandled(e)
       }
     }
 
-    def processloop(io: Io): Unit @suspendable = {
+    @inline def processloop(io: Io): Unit @suspendable = {
       (processor.process_(io) match {
-        case io ⇒ io.iteratee
+        case io ⇒
+          io.iteratee
       }) match {
-        case Done(response) ⇒
+        case Done(_) ⇒
           ok(io)
           write(io)
           readloop(io ++ readiteratee)
         case Error(e) ⇒
           io.error(e)
-        case e ⇒ unhandled(e)
+        case e ⇒
+          unhandled(e)
       }
     }
 

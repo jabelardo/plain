@@ -20,7 +20,7 @@ abstract class MimeType
 
   def extensions: Set[String]
 
-  @inline final def render(implicit buffer: ByteBuffer) = new r(name)
+  @inline final def render(implicit buffer: ByteBuffer) = r(name)
 
 }
 

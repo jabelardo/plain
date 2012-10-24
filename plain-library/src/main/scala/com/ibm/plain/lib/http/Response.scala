@@ -53,11 +53,15 @@ object Renderable {
 
   object `:` extends SimpleRenderable
 
-  case class r(bytes: Array[Byte]) extends Renderable {
-
-    def this(s: String) = this(s.getBytes(ASCII))
+  final case class r(bytes: Array[Byte]) extends Renderable {
 
     @inline final def render(implicit buffer: ByteBuffer) = buffer.put(bytes)
+
+  }
+
+  object r {
+
+    @inline final def apply(s: String) = new r(s.getBytes(ASCII))
 
   }
 
@@ -77,8 +81,6 @@ case class Response(
   more: Any)
 
   extends Renderable {
-
-  def this(status: Status) = this(Version.`HTTP/1.1`, status, None)
 
   @inline final def render(implicit buffer: ByteBuffer) = version + ` ` + status + `\r\n`
 

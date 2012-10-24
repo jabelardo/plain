@@ -52,7 +52,7 @@ final class RequestIteratee()(implicit server: Server) {
           case a ⇒ Done(segments.reverse)
         }
 
-        cont(List.empty)
+        cont(Nil)
       }
 
       val readQuery: Iteratee[Io, Option[String]] = peek(1) >>> {
@@ -107,7 +107,7 @@ final class RequestIteratee()(implicit server: Server) {
       } yield (name.toLowerCase, value)
     }
 
-    @inline def cont(headers: List[(String, String)]): Iteratee[Io, Headers] = peek(1) >>> {
+    @noinline def cont(headers: List[(String, String)]): Iteratee[Io, Headers] = peek(1) >>> {
       case "\r" ⇒ for {
         _ ← drop(2)
         done ← Done(headers.toMap)
@@ -118,7 +118,7 @@ final class RequestIteratee()(implicit server: Server) {
       } yield moreheaders
     }
 
-    cont(List.empty)
+    cont(Nil)
   }
 
   @inline private[this] final def readEntity(headers: Headers): Iteratee[Io, Option[Entity]] = Done(
