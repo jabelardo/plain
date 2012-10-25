@@ -26,7 +26,8 @@ object Entity {
 
   }
 
-  case class StringEntity(bytes: Array[Byte], cset: Charset) extends Entity {
+  // remove
+  case class StringEntity2(bytes: Array[Byte], cset: Charset) extends Entity {
 
     final def value = new String(bytes, cset)
 

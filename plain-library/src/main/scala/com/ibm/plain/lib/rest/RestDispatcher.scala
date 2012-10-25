@@ -21,10 +21,6 @@ abstract class RestDispatcher
 
   def dispatch(request: Request): Option[Response] = {
 
-    register(List("ping"), Class.forName("com.ibm.plain.lib.rest.PingResource").asInstanceOf[Class[Resource]])
-
-    println(request)
-
     // find the REST services classes now and dispatch to the right instance to the right method with all path variables set.
 
     resources.get(request.path) match {
@@ -45,6 +41,8 @@ abstract class RestDispatcher
   def register(path: Request.Path, clazz: Class[Resource]) = resources += ((path, clazz))
 
   private[this] final val resources = new scala.collection.mutable.HashMap[Request.Path, Class[Resource]]
+
+  register(List("ping"), Class.forName("com.ibm.plain.lib.rest.PingResource").asInstanceOf[Class[Resource]])
 
 }
 

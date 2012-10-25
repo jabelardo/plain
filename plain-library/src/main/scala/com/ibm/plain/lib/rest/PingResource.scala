@@ -17,8 +17,6 @@ class PingResource
 
   extends BaseResource {
 
-  override final def get = {
-    println("finally we are here")
-    Ok("PONG!")
-  }
+  override final def get = Ok("PONG!")
+
 }

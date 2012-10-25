@@ -44,7 +44,11 @@ trait Resource {
 
   def head: Status
 
+  def post: (Status, Option[Entity])
+
   def post(s: String): (Status, Option[Entity])
+
+  def put: (Status, Option[Entity])
 
   def put(s: String): (Status, Option[Entity])
 
@@ -83,7 +87,17 @@ abstract class BaseResource
 
   def head: Status = head(None)
 
+  /**
+   * All details in the query.
+   */
+  def post: (Status, Option[Entity]) = post(None)
+
   def post(s: String): (Status, Option[Entity]) = post(Some(BytesEntity(s.getBytes(UTF8))))
+
+  /**
+   * All details in the query.
+   */
+  def put: (Status, Option[Entity]) = put(None)
 
   def put(s: String): (Status, Option[Entity]) = put(Some(BytesEntity(s.getBytes(UTF8))))
 
