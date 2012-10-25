@@ -7,8 +7,8 @@ final class Dispatcher
 
   extends RestDispatcher {
 
-  def dispatch(request: Request): Option[Response] = {
-    Some(Response(Status.ClientError.`404`)) 
+  override def dispatch(request: Request): Option[Response] = {
+    Some(Response(Status.ClientError.`404`))
   }
 
 }

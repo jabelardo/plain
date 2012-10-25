@@ -8,6 +8,8 @@ import java.nio.ByteBuffer
 
 import text.ASCII
 
+import Request._
+
 /**
  * A Renderable can put its content or fields into a CharBuffer.
  */
@@ -76,13 +78,21 @@ case class Response(
 
   version: Version,
 
-  status: Status,
+  var status: Status,
 
-  more: Any)
+  var headers: Headers,
+
+  var entity: Option[Entity])
 
   extends Renderable {
 
   @inline final def render(implicit buffer: ByteBuffer) = version + ` ` + status + `\r\n`
+
+  @inline final def ++(status: Status) = { this.status = status; this }
+
+  @inline final def ++(headers: Headers) = { this.headers = headers; this }
+
+  @inline final def ++(entity: Option[Entity]) = { this.entity = entity; this }
 
 }
 
@@ -91,7 +101,11 @@ case class Response(
  */
 object Response {
 
-  def apply(status: Status) = new Response(Version.`HTTP/1.1`, status, None)
+  def apply(status: Status) = new Response(Version.`HTTP/1.1`, status, Map.empty, None)
+
+  def apply(resource: (Status, Option[Entity])) = new Response(Version.`HTTP/1.1`, resource._1, Map.empty, resource._2)
+
+  type Headers = scala.collection.immutable.Map[String, String]
 
 }
 

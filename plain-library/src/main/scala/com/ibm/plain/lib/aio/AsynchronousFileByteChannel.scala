@@ -27,12 +27,12 @@ class AsynchronousFileByteChannel private (
   /**
    * java.util.concurrent.Future is poorly implemented as it cannot be called asynchronously, therefore, these methods are not implemented.
    */
-  def read(buffer: ByteBuffer) = throw futureNotSupported
+  def read(buffer: ByteBuffer) = throw FutureNotSupported
 
   /**
    * java.util.concurrent.Future is poorly implemented as it cannot be called asynchronously, therefore, these methods are not implemented.
    */
-  def write(buffer: ByteBuffer) = throw futureNotSupported
+  def write(buffer: ByteBuffer) = throw FutureNotSupported
 
   def read[A](buffer: ByteBuffer, attachment: A, handler: CompletionHandler[Integer, _ >: A]) = {
     filechannel.read(buffer, readposition, attachment, new InnerCompletionHandler(true, handler))
@@ -70,9 +70,11 @@ class AsynchronousFileByteChannel private (
  */
 object AsynchronousFileByteChannel {
 
+  def apply(filechannel: AsynchronousFileChannel) = wrap(filechannel)
+
   def wrap(filechannel: AsynchronousFileChannel) = new AsynchronousFileByteChannel(filechannel)
 
-  private final val futureNotSupported = new UnsupportedOperationException("Future not supported.")
+  private final val FutureNotSupported = new UnsupportedOperationException("Future not supported.")
 
 }
 

@@ -13,7 +13,7 @@ import aio.Io
 import aio.Iteratee.{ Done, Error }
 
 /**
- *
+ * This is passed to aio.Io for processing the read input and produce output to be written.
  */
 abstract sealed class HttpProcessor
 
@@ -36,7 +36,7 @@ abstract sealed class HttpProcessor
 }
 
 /**
- * This could be the RestDispatcher, for instance. As instances of this class will be created via Class.newInstance it provides some ugly setters/getters to be called by this framework.
+ * This could be the RestDispatcher, for instance. As instances of this class will be created via Class.newInstance it provides some ugly vars to be set by this framework.
  */
 abstract class HttpDispatcher
 
@@ -50,14 +50,15 @@ abstract class HttpDispatcher
   def dispatch(request: Request): Option[Response]
 
   @inline final def process(io: Io) = {
+    this.io = io
     dispatch(io.iteratee.result.asInstanceOf[Request]) match {
       case None ⇒
       case Some(response) ⇒ completed(response, io)
     }
   }
 
-  final var server: Server = null
-
   final var name: String = null
+
+  final protected[this] var io: Io = null
 
 }

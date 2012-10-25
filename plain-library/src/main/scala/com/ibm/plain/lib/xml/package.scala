@@ -4,10 +4,10 @@ package lib
 
 import scala.annotation.meta.field
 
-import com.ibm.plain.lib.config.CheckedConfig
-
 import javax.xml.bind.annotation.{ XmlAnyElement, XmlAttribute, XmlElement, XmlElementRef, XmlElementRefs, XmlElementWrapper, XmlTransient }
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter
+
+import config.CheckedConfig
 
 package object xml
 

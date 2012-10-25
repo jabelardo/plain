@@ -309,10 +309,12 @@ object Io
           io.iteratee
       }) match {
         case Done(e) ⇒
+          println(e)
           ok(io)
           write(io)
           readloop(io ++ readiteratee)
         case Error(e) ⇒
+          println(e)
           io.error(e)
         case e ⇒
           unhandled(e)

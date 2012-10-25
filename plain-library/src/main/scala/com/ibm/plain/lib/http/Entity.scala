@@ -4,7 +4,9 @@ package lib
 
 package http
 
-import aio.Io
+import java.nio.charset.Charset
+
+import aio.{ AsynchronousReadChannel, AsynchronousWriteChannel }
 
 /**
  * Base class for the Entity of an Http request and/or response.
@@ -16,29 +18,27 @@ abstract sealed class Entity
  */
 object Entity {
 
-  /**
-   * The Entity that only knows how it will look like in the end.
-   */
-  case class ContentEntity(
+  case class ContentEntity(length: Int, typus: ContentType) extends Entity
 
-    length: Int,
+  case class BytesEntity(bytes: Array[Byte]) extends Entity {
 
-    typus: ContentType) extends Entity
+    override final def toString = "BytesEntity(length=" + bytes.length + ")"
 
-  /**
-   * The Entity represented by an Array[Byte] that was fully read together with the request header.
-   */
-  case class BytesEntity(bytes: Array[Byte]) extends Entity
+  }
 
-  /**
-   * The Entity represented by a String converted from a ByteBuffer using the specific Charset that was fully read together with the request header.
-   */
-  case class StringEntity(value: String) extends Entity
+  case class StringEntity(bytes: Array[Byte], cset: Charset) extends Entity {
 
-  /**
-   * The Entity represented by an aio.Io instance, it is not fully read on creation and must be processed asynchronously.
-   */
-  case class IoEntity(io: Io) extends Entity
+    final def value = new String(bytes, cset)
+
+    override final def toString = "StringEntity(length=" + value.length + ", value=" + value.take(20) + "...)"
+
+  }
+
+  abstract sealed class ChannelEntity extends Entity
+
+  case class RequestEntity(channel: AsynchronousReadChannel) extends ChannelEntity
+
+  case class ResponseEntity(channel: AsynchronousWriteChannel) extends ChannelEntity
 
 }
 
