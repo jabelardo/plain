@@ -19,7 +19,7 @@ import ContentType.`text/plain`
 /**
  * Consuming the input stream to produce a Request.
  */
-final class RequestIteratee()(implicit server: Server) {
+final class RequestIteratee private ()(implicit server: Server) {
 
   import RequestConstants._
 
@@ -135,5 +135,11 @@ final class RequestIteratee()(implicit server: Server) {
     headers ← readHeaders
     entity ← readEntity(headers)
   } yield Request(method, path, query, version, headers, entity)
+
+}
+
+object RequestIteratee {
+
+  def apply(server: Server) = new RequestIteratee()(server)
 
 }

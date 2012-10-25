@@ -24,7 +24,7 @@ import config.{ CheckedConfig, config2RichConfig }
  */
 case class Server(
 
-  private val path: String,
+  private val configpath: String,
 
   private val application: Option[Application],
 
@@ -39,26 +39,30 @@ case class Server(
   override def isStarted = synchronized { null != serverChannel }
 
   override def start = try {
+
+    import settings._
+
     if (isEnabled) {
 
       def startOne = {
         serverChannel = ServerChannel.open(channelGroup)
-        serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(false))
+        serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
         serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(aio.defaultBufferSize))
-        serverChannel.bind(address, settings.backlog)
-        val iteratee = new RequestIteratee()(this)
+        try serverChannel.bind(bindaddress, backlog) catch {
+          case e: Throwable ⇒ error("bind failed " + root.render); throw e
+        }
         reset {
           loop(
-            accept(serverChannel, settings.pauseBetweenAccepts) ++ iteratee.readRequest,
-            new HttpProcessor)
+            accept(serverChannel, pauseBetweenAccepts) ++ RequestIteratee(this).readRequest,
+            dispatcher)
         }
         debug(name + " has started.")
       }
 
       application match {
-        case Some(appl) if settings.loadBalancingEnable ⇒
+        case Some(appl) if loadBalancingEnable ⇒
           startOne
-          settings.portRange.tail.foreach { p ⇒ appl.register(Server(path, None, Some(p)).start) }
+          portRange.tail.foreach { p ⇒ appl.register(Server(configpath, None, Some(p)).start) }
         case _ ⇒ startOne
       }
     }
@@ -85,16 +89,17 @@ case class Server(
 
   private[this] var serverChannel: ServerChannel = null
 
-  private[http] final lazy val settings = ServerConfiguration(path, false)
+  private[http] final lazy val settings = ServerConfiguration(configpath, false)
 
-  private[this] final lazy val address = if ("*" == settings.address)
+  private[this] final lazy val bindaddress = if ("*" == settings.address)
     new InetSocketAddress(port.getOrElse(settings.portRange.head))
   else
     new InetSocketAddress(settings.address, port.getOrElse(settings.portRange.head))
 
   override final val name = "HttpServer(name=" + settings.displayName +
-    ", address=" + address +
+    ", address=" + bindaddress +
     ", backlog=" + settings.backlog +
+    ", dispatcher=" + settings.dispatcher.name +
     (if (settings.loadBalancingEnable && application.isDefined) ", load-balancing-path=" + settings.loadBalancingBalancingPath else "") +
     ")"
 
@@ -116,17 +121,30 @@ object Server {
   /**
    * A per-server provided configuration, unspecified details will be inherited from defaultServerConfiguration.
    */
-  case class ServerConfiguration(path: String, default: Boolean)
+  case class ServerConfiguration(
+
+    path: String,
+
+    default: Boolean)
 
     extends CheckedConfig {
 
     import ServerConfiguration._
 
-    final val settings: Config = config.settings.getConfig(path).withFallback(if (default) fallback else defaultServerConfiguration.settings)
+    final val cfg: Config = config.settings.getConfig(path).withFallback(if (default) fallback else defaultServerConfiguration.cfg)
 
-    import settings._
+    import cfg._
+
+    final def root = cfg.root
 
     final val displayName = getString("display-name")
+
+    final val dispatcher = {
+      val dconfig = config.settings.getConfig(getString("dispatcher"))
+      val d = dconfig.getInstanceFromClassName[HttpDispatcher]("class-name")
+      d.name = dconfig.getString("display-name", getString("dispatcher"))
+      d
+    }
 
     final val address = getString("address")
 
@@ -134,13 +152,13 @@ object Server {
 
     final val backlog = getInt("backlog")
 
-    final val loadBalancingEnable = getBoolean("feature.load-balancing.enable")
+    final val loadBalancingEnable = getBoolean("load-balancing.enable")
 
-    final val loadBalancingBalancingPath = getString("feature.load-balancing.balancing-path")
+    final val loadBalancingBalancingPath = getString("load-balancing.balancing-path")
 
-    final val loadBalancingRedirectionPath = getString("feature.load-balancing.redirection-path")
+    final val loadBalancingRedirectionPath = getString("load-balancing.redirection-path")
 
-    final val pauseBetweenAccepts = settings.getDuration("feature.pause-between-accepts")
+    final val pauseBetweenAccepts = cfg.getDuration("feature.pause-between-accepts")
 
     final val treat10VersionAs11 = getBoolean("feature.allow-version-1-0-but-treat-it-like-1-1")
 
@@ -159,24 +177,26 @@ object Server {
     final val fallback = ConfigFactory.parseString("""
         
     display-name = default
+        
+    dispatcher = plain.rest.default-dispatcher
 	
-    address = localhost
+    address = "*"
 	
     port-range = [ 7500, 7501, 7502 ]
 
-    backlog = 1000
+    backlog = 10000
 
+    load-balancing {
+    
+		enable = on
+     
+		balancing-path = /
+    
+		redirection-path = /
+    
+	}
+    
     feature {
-        
-        load-balancing {
-        
-    		enable = on
-         
-    		balancing-path = /
-        
-    		redirection-path = /
-        
-    	}
         
         pause-between-accepts = 0
 	

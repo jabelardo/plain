@@ -236,7 +236,7 @@ object Io
 
     @inline private[this] def tweak(channel: Channel): Channel = {
       import scala.collection.JavaConversions._
-      channel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(false))
+      channel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
       channel.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.box(false))
       channel.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.box(true))
       channel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(defaultBufferSize))
@@ -308,7 +308,7 @@ object Io
         case io ⇒
           io.iteratee
       }) match {
-        case Done(_) ⇒
+        case Done(e) ⇒
           ok(io)
           write(io)
           readloop(io ++ readiteratee)
@@ -319,7 +319,6 @@ object Io
       }
     }
 
-    // sometime we do not get here (uncaught exception -Xss8m ?)
     readloop(io)
     io.release
   }

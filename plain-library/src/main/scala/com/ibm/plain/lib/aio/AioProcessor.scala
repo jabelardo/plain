@@ -23,9 +23,7 @@ trait AioProcessor[E, A]
 
   private[aio] final def process_(io: Io): Io @suspendable = {
     import io._
-    shift { k: Io.IoCont ⇒ doProcess(io ++ k) }
+    shift { k: Io.IoCont ⇒ try process(io ++ k) catch { case e: Throwable ⇒ failed(e, io) } }
   }
-
-  private[this] final def doProcess(io: Io) = try process(io) catch { case e: Throwable ⇒ failed(e, io) }
 
 }
