@@ -117,3 +117,4 @@ object Resource {
   final def Ok(s: String, cset: Charset) = (Success.`200`, Some(BytesEntity(s.getBytes(cset))))
 
 }
+
