@@ -1,21 +1,27 @@
 package com.ibm.plain
+
 package lib
 
 package rest
 
-import java.nio.charset.Charset
-
-import text.UTF8
-
-import http.Status._
-import http.Entity._
-import http.{ Entity, Request, Status }
-
-import Resource._
+import Resource.Ok
 
 class PingResource
 
   extends BaseResource {
+
+  try {
+    val a = Template("system/division/{division}/department/{department}")
+    val b = Template("system/location/{location}")
+    val c = Template("user/{user}")
+    println(a)
+    println(b)
+    println(c)
+    val t = Templates(a, b, c)
+    println(t)
+  } catch {
+    case e: Throwable ⇒ e.printStackTrace
+  }
 
   override final def get = Ok("PONG!")
 
