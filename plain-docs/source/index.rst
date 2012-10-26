@@ -11,3 +11,4 @@ Contents
 
    rst/intro/index
    rst/monitoring/index
+   rst/development/index
