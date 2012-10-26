@@ -60,35 +60,64 @@ case class Template(
 
 import Templates._
 
-final class Templates private (
+case class Templates(resource: Option[ResourceClass], branch: Option[Either[(String, Templates), Map[String, Templates]]]) {
 
-  template: Template,
+  override final def toString = {
 
-  t: Map[String, Next]) {
-
-  val templates = if (null == template) t else t.get(template.root.name) match {
-    case None ⇒ template.root.next match {
-      case variable: Variable ⇒ t ++ Map(template.root.name -> Left(variable))
-      case segment: Segment ⇒ t ++ Map(template.root.name -> Right(Map(segment.name -> segment.next)))
-      case _ ⇒ invalid(template, "Found a null-path-element.")
+    def inner(node: Templates, indent: String): String = {
+      (node.resource match {
+        case Some(ResourceClass(resource)) ⇒ indent + " ⇒ " + resource.getName
+        case _ ⇒ ""
+      }) + (node.branch match {
+        case Some(Left((name, node))) ⇒ inner(node, indent + "/" + name)
+        case Some(Right(branch)) ⇒ branch.foldLeft("") { case (elem, e) ⇒ elem + inner(e._2, indent + "/" + e._1) }
+        case None ⇒ ""
+        case _ ⇒ "unhandled"
+      })
     }
-    case Some(Right(next)) ⇒ template.root.next match {
-      case segment: Segment ⇒ t ++ Map(template.root.name -> Right(next ++ Map(segment.name -> segment.next)))
-      case _ ⇒ invalid(template, "You must not mix path-segments and path-variables.")
-    }
-    case _ ⇒ invalid(template, "Only one path-variable is allowed at this path position.")
+
+    "Templates : " + inner(this, "\n").split("\n").sorted.mkString("\n")
   }
-
-  override final def toString = templates.toString
 
 }
 
 object Templates {
 
-  type Next = Either[Variable, Map[String, Element]]
+  def apply(templates: Template*): Templates = templates.foldLeft[Option[Templates]](None) {
+    case (elems, e) ⇒ apply(e, elems)
+  }.get
 
-  def apply(templates: Template*): Templates = templates.foldLeft[Templates](new Templates(null, Map.empty)) {
-    case (elems, e) ⇒ new Templates(e, elems.templates)
+  def apply(template: Template, node: Option[Templates]): Option[Templates] = {
+    def add(element: Element, node: Option[Templates]): Templates = element match {
+      case s @ Segment(name, next) ⇒
+        node match {
+          case None ⇒ Templates(None, Some(Right(Map(name -> add(next, None)))))
+          case Some(Templates(resource, Some(Right(branch)))) ⇒ branch.get(name) match {
+            case None ⇒ Templates(resource, Some(Right(branch ++ Map(name -> add(next, None)))))
+            case v @ Some(_) ⇒ Templates(resource, Some(Right(branch ++ Map(name -> add(next, v)))))
+          }
+          case Some(Templates(resource, Some(Left((_, _))))) ⇒ invalid(template, "Already a variable here.")
+          case Some(Templates(resource, None)) ⇒ Templates(resource, Some(Right(Map(name -> add(next, None)))))
+          case _ ⇒ invalid(template, "Not yet handled.")
+        }
+      case v @ Variable(name, next) ⇒
+        node match {
+          case None ⇒ Templates(None, Some(Left((v.name, add(next, None)))))
+          case Some(Templates(resource, Some(Left((oldname, branch))))) if oldname == v.name ⇒
+            Templates(resource, Some(Left((v.name, add(next, Some(branch))))))
+          case Some(Templates(resource, None)) ⇒ Templates(resource, Some(Left((v.name, add(next, None)))))
+          case Some(Templates(resource, Some(Right(_)))) ⇒ invalid(template, "Already a segment here.")
+          case _ ⇒ invalid(template, "Not yet handled.")
+        }
+      case r @ ResourceClass(resource) ⇒
+        node match {
+          case None ⇒ Templates(Some(r), None)
+          case Some(Templates(None, node)) ⇒ Templates(Some(r), node)
+          case _ ⇒ invalid(template, "Not yet handled.")
+        }
+    }
+
+    Some(add(template.root, node))
   }
 
   @inline final def invalid(template: Template, reason: String) = throw InvalidTemplate(template.template, reason)
