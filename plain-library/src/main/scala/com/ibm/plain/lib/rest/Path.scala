@@ -11,39 +11,45 @@ import scala.util.control.ControlThrowable
  */
 case class InvalidTemplate(
 
-  template: Template,
+  template: String,
 
   reason: String)
 
   extends ControlThrowable {
 
-  override final def toString = getClass.getName + "(template=" + template.template + ", reason=" + reason + ")"
+  override final def toString = getClass.getName + "(template=" + template + ", reason=" + reason + ")"
 
 }
 
 /**
  * A path-template is build from segments and variables: template ::= segment ( segment | variable ) * null
  */
-abstract sealed class Element(next: Element)
+abstract sealed class Element
 
-final case class Segment(name: String, next: Element) extends Element(next)
+final case class Segment(name: String, next: Element) extends Element
 
-final case class Variable(name: String, next: Element) extends Element(next)
+final case class Variable(name: String, next: Element) extends Element
 
-case object Null extends Element(null)
+final case class ResourceClass(resource: Class[Resource]) extends Element
 
 /**
  * for instance, "system/division/{division}/department/{department}"
  * for instance, "system/location/{location}"
  */
-case class Template(template: String) {
+case class Template(
 
-  val root = template.split("/").reverse.foldLeft[Element](Null) {
+  template: String,
+
+  clazz: Class[Resource]) {
+
+  val root = template.split("/").reverse.foldLeft[Element](ResourceClass(clazz)) {
     case (elems, e) ⇒
       if (e.startsWith("{") && e.endsWith("}"))
         Variable(e, elems)
-      else
+      else if (!(e.contains("{") || e.contains("}")))
         Segment(e, elems)
+      else
+        Templates.invalid(template, "Neither a segment nor a variable.")
   }.asInstanceOf[Segment]
 
   override final def toString = root.toString
@@ -58,24 +64,22 @@ final class Templates private (
 
   template: Template,
 
-  prev: Map[String, Next]) {
+  t: Map[String, Next]) {
 
-  val roots = if (null == template) prev else prev.get(template.root.name) match {
+  val templates = if (null == template) t else t.get(template.root.name) match {
     case None ⇒ template.root.next match {
-      case variable: Variable ⇒ prev ++ Map(template.root.name -> Left(variable))
-      case segment: Segment ⇒ prev ++ Map(template.root.name -> Right(Map(segment.name -> segment.next)))
+      case variable: Variable ⇒ t ++ Map(template.root.name -> Left(variable))
+      case segment: Segment ⇒ t ++ Map(template.root.name -> Right(Map(segment.name -> segment.next)))
       case _ ⇒ invalid(template, "Found a null-path-element.")
     }
     case Some(Right(next)) ⇒ template.root.next match {
-      case segment: Segment ⇒ prev ++ Map(template.root.name -> Right(next ++ Map(segment.name -> segment.next)))
+      case segment: Segment ⇒ t ++ Map(template.root.name -> Right(next ++ Map(segment.name -> segment.next)))
       case _ ⇒ invalid(template, "You must not mix path-segments and path-variables.")
     }
     case _ ⇒ invalid(template, "Only one path-variable is allowed at this path position.")
   }
 
-  override final def toString = roots.toString
-
-  @inline private[this] def invalid(template: Template, reason: String) = throw InvalidTemplate(template, reason)
+  override final def toString = templates.toString
 
 }
 
@@ -83,13 +87,13 @@ object Templates {
 
   type Next = Either[Variable, Map[String, Element]]
 
-  def apply(template: Template) = new Templates(template, Map.empty)
-
-  def apply(templates: Template*): Templates = templates.foldLeft[Templates](empty) {
-    case (elems, e) ⇒ new Templates(e, elems.roots)
+  def apply(templates: Template*): Templates = templates.foldLeft[Templates](new Templates(null, Map.empty)) {
+    case (elems, e) ⇒ new Templates(e, elems.templates)
   }
 
-  val empty = apply(null)
+  @inline final def invalid(template: Template, reason: String) = throw InvalidTemplate(template.template, reason)
+
+  @inline final def invalid(template: String, reason: String) = throw InvalidTemplate(template, reason)
 
 }
 

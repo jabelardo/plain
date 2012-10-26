@@ -11,14 +11,18 @@ class PingResource
   extends BaseResource {
 
   try {
-    val a = Template("system/division/{division}/department/{department}")
-    val b = Template("system/location/{location}")
-    val c = Template("user/{user}")
+    val resourceclass = Class.forName("com.ibm.plain.lib.rest.PingResource").asInstanceOf[Class[Resource]]
+
+    val a = Template("system/division/{division}/department/{department}", resourceclass)
+    val b = Template("system/division/{division}/manager/{manager}", resourceclass)
+    val c = Template("system/location/{location}", resourceclass)
+    val d = Template("user/{user}", resourceclass)
+    
     println(a)
     println(b)
     println(c)
-    val t = Templates(a, b, c)
-    println(t)
+    println(d)
+    println(Templates(a, b, c, d))
   } catch {
     case e: Throwable ⇒ e.printStackTrace
   }
