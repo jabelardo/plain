@@ -6,6 +6,8 @@ package rest
 
 import scala.util.control.ControlThrowable
 
+import http.Request
+
 /**
  * Error handling.
  */
@@ -59,8 +61,31 @@ case class Template(
 }
 
 import Templates._
+import scala.annotation.tailrec
 
-case class Templates(resource: Option[ResourceClass], branch: Option[Either[(String, Templates), Map[String, Templates]]]) {
+final case class Templates(resource: Option[ResourceClass], branch: Option[Either[(String, Templates), Map[String, Templates]]]) {
+
+  final def get(path: Request.Path): Option[(Class[Resource], Map[String, String])] = {
+
+    @inline @tailrec def get0(path: Request.Path, variables: Map[String, String], templates: Templates): Option[(Class[Resource], Map[String, String])] = {
+      path match {
+        case Nil ⇒ templates.resource match {
+          case Some(ResourceClass(resource)) ⇒ Some((resource, variables))
+          case None ⇒ None
+        }
+        case head :: tail ⇒ templates.branch match {
+          case Some(Right(branch)) ⇒ branch.get(head) match {
+            case Some(subbranch) ⇒ get0(tail, variables, subbranch)
+            case None ⇒ None
+          }
+          case Some(Left((name, branch))) ⇒ get0(tail, variables ++ Map(name.drop(1).dropRight(1) -> head), branch)
+          case _ ⇒ None
+        }
+      }
+    }
+
+    get0(path, Map.empty, this)
+  }
 
   override final def toString = {
 
