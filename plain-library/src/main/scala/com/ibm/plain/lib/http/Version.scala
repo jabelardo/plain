@@ -19,7 +19,7 @@ sealed abstract class Version
 
   final val version = toString.getBytes(ASCII)
 
-  final def render(implicit buffer: ByteBuffer) = r(version) + `@`
+  final def render(implicit buffer: ByteBuffer) = r(version) + ^
 
 }
 

@@ -71,9 +71,9 @@ object Renderable {
   }
 
   /**
-   * The 'flush' token for Renderables.
+   * The 'flush' token for Renderables, sequences of + must end with a ^.
    */
-  case object `@` extends Renderable { @inline final def render(implicit buffer: ByteBuffer) = () }
+  case object ^ extends Renderable { @inline final def render(implicit buffer: ByteBuffer) = () }
 
   case object ` ` extends SimpleRenderable(' '.toByte)
 

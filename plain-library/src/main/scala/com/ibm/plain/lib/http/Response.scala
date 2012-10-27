@@ -28,7 +28,7 @@ case class Response(
   with Renderable {
 
   @inline final def render(implicit buffer: ByteBuffer) = {
-    version + ` ` + status + `\r\n` + r("Connection: keep-alive") + `\r\n` + `\r\n` + `@`
+    version + ` ` + status + `\r\n` + r("Connection: keep-alive") + `\r\n` + r("Content-Type: text/plain") + `\r\n` + r("Content-Length: 5") + `\r\n` + `\r\n` + r("PONG!") + ^
   }
 
   @inline final def ++(status: Status) = { this.status = status; this }

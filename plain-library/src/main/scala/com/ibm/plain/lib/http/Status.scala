@@ -31,7 +31,7 @@ sealed abstract class Status
    */
   def reason: Array[Byte]
 
-  @inline final def render(implicit buffer: ByteBuffer) = r(code) + ` ` + r(reason) + `@`
+  @inline final def render(implicit buffer: ByteBuffer) = r(code) + ` ` + r(reason) + ^
 
 }
 
