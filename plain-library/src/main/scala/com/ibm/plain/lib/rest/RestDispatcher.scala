@@ -37,12 +37,11 @@ abstract class RestDispatcher
     //    }
 
     t.get(request.path) match {
-      case None ⇒
+      case None ⇒ throw ClientError.`404`
       case Some((resourceclass, _)) ⇒
         val r = resourceclass.newInstance.asInstanceOf[BaseResource]
-        r.get
+        Some(Response(r.get._1))
     }
-    throw ClientError.`404`
   }
 
   def register(path: Request.Path, clazz: Class[Resource]) = resources += ((path, clazz))

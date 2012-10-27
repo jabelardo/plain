@@ -48,9 +48,7 @@ case class Server(
         serverChannel = ServerChannel.open(channelGroup)
         serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
         serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(aio.defaultBufferSize))
-        try serverChannel.bind(bindaddress, backlog) catch {
-          case e: Throwable ⇒ error("bind failed " + root.render); throw e
-        }
+        serverChannel.bind(bindaddress, backlog)
         reset {
           loop(
             accept(serverChannel, pauseBetweenAccepts) ++ RequestIteratee(this).readRequest,

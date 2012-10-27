@@ -4,7 +4,7 @@ package lib
 
 package http
 
-import Request.Headers
+import Message.Headers
 
 /**
  * A maybe not so simple Header case class hierarchy.

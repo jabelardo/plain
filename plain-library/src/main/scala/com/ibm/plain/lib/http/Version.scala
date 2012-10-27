@@ -5,8 +5,8 @@ package lib
 package http
 
 import java.nio.ByteBuffer
-
-import Renderable.r
+import aio.Renderable
+import aio.Renderable._
 import Status.ServerError.`505`
 import text.ASCII
 
@@ -19,7 +19,7 @@ sealed abstract class Version
 
   final val version = toString.getBytes(ASCII)
 
-  @inline final def render(implicit buffer: ByteBuffer) = r(version)
+  final def render(implicit buffer: ByteBuffer) = r(version) + `@`
 
 }
 

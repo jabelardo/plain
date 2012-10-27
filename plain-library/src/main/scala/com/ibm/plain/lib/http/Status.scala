@@ -8,9 +8,9 @@ import java.nio.ByteBuffer
 
 import scala.util.control.ControlThrowable
 
+import aio.Renderable
+import aio.Renderable._
 import text.ASCII
-
-import Renderable._
 
 /**
  * A typical 'flow control' type of exception. Used for Http error/success handling.
@@ -31,7 +31,7 @@ sealed abstract class Status
    */
   def reason: Array[Byte]
 
-  @inline final def render(implicit buffer: ByteBuffer) = r(code) + ` ` + r(reason)
+  @inline final def render(implicit buffer: ByteBuffer) = r(code) + ` ` + r(reason) + `@`
 
 }
 

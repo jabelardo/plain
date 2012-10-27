@@ -108,7 +108,7 @@ final class Io private (
 
   var readwritten: Int,
 
-  var expected: Long)
+  var keepalive: Boolean)
 
   extends IoHelper[Io] {
 
@@ -135,7 +135,7 @@ final class Io private (
 
   @inline def ++(server: ServerChannel) = { this.server = server; this }
 
-  @inline def ++(channel: Channel) = new Io(server, channel, buffer, iteratee, k, readwritten, expected)
+  @inline def ++(channel: Channel) = new Io(server, channel, buffer, iteratee, k, readwritten, keepalive)
 
   @inline def ++(iteratee: Iteratee[Io, _]) = { this.iteratee = iteratee; this }
 
@@ -143,10 +143,10 @@ final class Io private (
 
   @inline def ++(readwritten: Int) = { this.readwritten = readwritten; this }
 
-  @inline def ++(expected: Long) = { this.expected = expected; this }
+  @inline def ++(keepalive: Boolean) = { if (this.keepalive) this.keepalive = keepalive; this }
 
   @inline def ++(buffer: ByteBuffer) = if (0 < this.buffer.remaining) {
-    new Io(server, channel, buffer, iteratee, k, readwritten, expected)
+    new Io(server, channel, buffer, iteratee, k, readwritten, keepalive)
   } else {
     this + buffer
   }
@@ -190,7 +190,7 @@ object Io
 
   import Iteratee._
 
-  @inline private[aio] final def empty = new Io(null, null, emptyBuffer, null, null, -1, -1)
+  @inline private[aio] final def empty = new Io(null, null, emptyBuffer, null, null, -1, true)
 
   final private[aio]type IoCont = Io ⇒ Unit
 
@@ -205,7 +205,7 @@ object Io
   final private val logger = log
 
   /**
-   * Aio handling.
+   * Accept.
    */
   private[this] final case class AcceptHandler(pauseinmilliseconds: Long)
 
@@ -246,11 +246,31 @@ object Io
 
   }
 
-  private[this] final val iohandler = new Handler[Integer, Io] {
+  /**
+   * Read.
+   */
+  private[this] object ReadHandler extends Handler[Integer, Io] {
 
     @inline final def completed(processed: Integer, io: Io) = {
       import io._
       buffer.flip
+      k(io ++ processed)
+    }
+
+    @inline final def failed(e: Throwable, io: Io) = {
+      import io._
+      k(io ++ Error[Io](e))
+    }
+
+  }
+
+  /**
+   * Write.
+   */
+  private[aio] object WriteHandler extends Handler[Integer, Io] {
+
+    @inline final def completed(processed: Integer, io: Io) = {
+      import io._
       k(io ++ processed)
     }
 
@@ -266,19 +286,14 @@ object Io
 
   @inline private[this] final def read(io: Io): Io @suspendable = {
     import io._
-    shift { k: IoCont ⇒ buffer.clear; channel.read(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, io ++ k, iohandler) }
-  }
-
-  @inline private[this] final def write(io: Io): Io @suspendable = {
-    import io._
-    shift { k: IoCont ⇒ buffer.flip; channel.write(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, io ++ k, iohandler) }
+    shift { k: IoCont ⇒ buffer.clear; channel.read(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, io ++ k, ReadHandler) }
   }
 
   @inline private[this] final def unhandled(e: Any) = error("unhandled " + e)
 
   @inline private[this] final val ignored = ()
 
-  final def loop[E, A](io: Io, processor: AioProcessor[E, A]): Unit @suspendable = {
+  final def loop[E, A <: Renderable](io: Io, processor: AioProcessor[E, A]): Unit @suspendable = {
 
     val readiteratee = io.iteratee
 
@@ -308,13 +323,11 @@ object Io
         case io ⇒
           io.iteratee
       }) match {
-        case Done(e) ⇒
-          // println(e)
-          ok(io)
-          write(io)
-          readloop(io ++ readiteratee)
+        case Done(result: Renderable) ⇒
+          result.render(io)
+          if (io.keepalive) readloop(io ++ readiteratee)
         case Error(e) ⇒
-          // println(e)
+          info(e.toString)
           io.error(e)
         case e ⇒
           unhandled(e)
@@ -323,19 +336,6 @@ object Io
 
     readloop(io)
     io.release
-  }
-
-  /**
-   * testing
-   */
-  private[this] final val response = "HTTP/1.1 200 OK\r\nDate: Mon, 10 Sep 2012 15:06:09 GMT\r\nContent-Type: text/plain\r\nContent-Length: 5\r\nConnection: keep-alive\r\n\r\nPONG!".getBytes
-
-  private[this] final val badrequest = "HTTP/1.1 400 Bad Request\r\nDate: Mon, 10 Sep 2012 15:06:09 GMT\r\nConnection: close\r\n\r\n".getBytes
-
-  private[this] final def ok(io: Io): Unit = {
-    import io._
-    if (io.buffer ne emptyBuffer) buffer.clear else io ++ defaultByteBuffer
-    buffer.put(response)
   }
 
 }

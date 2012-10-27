@@ -150,4 +150,3 @@ object Templates {
   @inline final def invalid(template: String, reason: String) = throw InvalidTemplate(template, reason)
 
 }
-

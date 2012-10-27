@@ -6,7 +6,8 @@ package http
 
 import java.nio.ByteBuffer
 
-import Renderable._
+import aio.Renderable
+import aio.Renderable.r
 import Status.ClientError.`415`
 
 /**

@@ -52,7 +52,7 @@ abstract class HttpDispatcher
   @inline final def process(io: Io) = {
     this.io = io
     dispatch(io.iteratee.result.asInstanceOf[Request]) match {
-      case None ⇒
+      case None ⇒ println("unhandled dispatch")
       case Some(response) ⇒ completed(response, io)
     }
   }

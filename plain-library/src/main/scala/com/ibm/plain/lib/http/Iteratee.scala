@@ -10,7 +10,8 @@ import aio._
 import aio.Iteratee._
 import aio.Iteratees._
 import text.{ ASCII, UTF8 }
-import Request.{ Headers, Path }
+import Message.Headers
+import Request.Path
 import Status.ServerError.`501`
 import Header.Entity._
 import Entity.ContentEntity
@@ -107,7 +108,7 @@ final class RequestIteratee private ()(implicit server: Server) {
       } yield (name.toLowerCase, value)
     }
 
-    @noinline def cont(headers: List[(String, String)]): Iteratee[Io, Headers] = peek(1) >>> {
+    def cont(headers: List[(String, String)]): Iteratee[Io, Headers] = peek(1) >>> {
       case "\r" ⇒ for {
         _ ← drop(2)
         done ← Done(headers.toMap)
