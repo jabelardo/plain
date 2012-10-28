@@ -324,7 +324,7 @@ object Io
           io.iteratee
       }) match {
         case Done(result: Renderable) ⇒
-          result.render(io)
+          result.doRender(io)
           if (io.keepalive) readloop(io ++ readiteratee)
         case Error(e) ⇒
           info(e.toString)

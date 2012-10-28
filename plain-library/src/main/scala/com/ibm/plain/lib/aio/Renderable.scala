@@ -4,10 +4,10 @@ package lib
 
 package aio
 
-import java.nio.ByteBuffer
+import java.nio.{ BufferOverflowException, ByteBuffer }
 import java.util.concurrent.TimeUnit
 
-import scala.util.continuations.{ shift, suspendable }
+import scala.util.continuations.{ reset, shift, suspendable }
 
 import Io.{ IoCont, WriteHandler }
 import Iteratee.Error
@@ -18,20 +18,34 @@ import text.ASCII
  */
 trait Renderable {
 
-  def render(implicit buffer: ByteBuffer): Unit
+  def render(implicit io: Io): Unit
 
-  def +(that: Renderable)(implicit buffer: ByteBuffer): Renderable = {
-    this.render(buffer)
+  def +(that: Renderable)(implicit io: Io): Renderable = {
+    import io._
+    try {
+      this.render(io)
+    } catch {
+      case e: BufferOverflowException if buffer.remaining == buffer.capacity ⇒
+        buffer.clear
+        fatal
+      case e: BufferOverflowException ⇒
+        warning
+        buffer.flip
+        reset { write(io); () }
+        buffer.clear
+        this + that
+      case e: Throwable ⇒ throw e
+    }
     that
   }
 
-  private[aio] final def render(io: Io): Io @suspendable = {
+  private[aio] final def doRender(io: Io): Io @suspendable = {
     import io._
     shift { k: IoCont ⇒
       buffer.clear
       io ++ k
       try {
-        render(buffer)
+        render(io)
         buffer.flip
         k(io)
       } catch {
@@ -47,6 +61,16 @@ trait Renderable {
     if (0 < io.buffer.remaining) write(io) else shift { k: IoCont ⇒ io ++ k; k(io) }
   }
 
+  private[this] def warning = {
+    logging.defaultLogger.warning("The aio.defaultBufferSize is too small to hold an entire http response header and should be enlarged: " + defaultBufferSize)
+  }
+
+  private[this] def fatal = {
+    val msg = "The aio.defaultBufferSize is too small to hold a single part of the http response header and must be enlarged: " + defaultBufferSize
+    logging.defaultLogger.error(msg)
+    throw new Exception(msg)
+  }
+
 }
 
 /**
@@ -56,7 +80,7 @@ object Renderable {
 
   case object `\r\n` extends Renderable {
 
-    @inline final def render(implicit buffer: ByteBuffer) = { buffer.put('\r'.toByte); buffer.put('\n'.toByte) }
+    @inline final def render(implicit io: Io) = { io.buffer.put('\r'.toByte); io.buffer.put('\n'.toByte) }
 
   }
 
@@ -66,14 +90,14 @@ object Renderable {
 
     extends Renderable {
 
-    @inline final def render(implicit buffer: ByteBuffer) = buffer.put(byte)
+    @inline final def render(implicit io: Io) = io.buffer.put(byte)
 
   }
 
   /**
    * The 'flush' token for Renderables, sequences of + must end with a ^.
    */
-  case object ^ extends Renderable { @inline final def render(implicit buffer: ByteBuffer) = () }
+  case object ^ extends Renderable { @inline final def render(implicit io: Io) = () }
 
   case object ` ` extends SimpleRenderable(' '.toByte)
 
@@ -85,7 +109,7 @@ object Renderable {
 
     extends Renderable {
 
-    @inline final def render(implicit buffer: ByteBuffer) = buffer.put(bytes)
+    @inline final def render(implicit io: Io) = io.buffer.put(bytes)
 
   }
 

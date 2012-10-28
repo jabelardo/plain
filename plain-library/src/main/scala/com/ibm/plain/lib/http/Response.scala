@@ -6,6 +6,7 @@ package http
 
 import java.nio.ByteBuffer
 
+import aio.Io
 import aio.Renderable
 import aio.Renderable._
 import Message._
@@ -27,8 +28,8 @@ case class Response(
 
   with Renderable {
 
-  @inline final def render(implicit buffer: ByteBuffer) = {
-    version + ` ` + status + `\r\n` + r("Connection: keep-alive") + `\r\n` + r("Content-Type: text/plain") + `\r\n` + r("Content-Length: 5") + `\r\n` + `\r\n` + r("PONG!") + ^
+  @inline final def render(implicit io: Io) = {
+    version + ` ` + status + `\r\n` + r("Connection: keep-alive") + `\r\n` + r("Content-Type: text/plain") + `\r\n` + r("Content-Length: 5") + `\r\n` + r("Blabla: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx") + `\r\n` + `\r\n` + r("PONG!") + ^
   }
 
   @inline final def ++(status: Status) = { this.status = status; this }

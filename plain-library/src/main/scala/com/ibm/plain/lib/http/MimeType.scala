@@ -6,6 +6,7 @@ package http
 
 import java.nio.ByteBuffer
 
+import aio.Io
 import aio.Renderable
 import aio.Renderable.r
 import Status.ClientError.`415`
@@ -21,7 +22,7 @@ abstract class MimeType
 
   def extensions: Set[String]
 
-  @inline final def render(implicit buffer: ByteBuffer) = r(name)
+  @inline final def render(implicit io: Io) = r(name)
 
 }
 

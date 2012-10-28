@@ -8,6 +8,7 @@ import java.nio.ByteBuffer
 
 import scala.util.control.ControlThrowable
 
+import aio.Io
 import aio.Renderable
 import aio.Renderable._
 import text.ASCII
@@ -31,7 +32,7 @@ sealed abstract class Status
    */
   def reason: Array[Byte]
 
-  @inline final def render(implicit buffer: ByteBuffer) = r(code) + ` ` + r(reason) + ^
+  @inline final def render(implicit io: Io) = r(code) + ` ` + r(reason) + ^
 
 }
 
