@@ -13,13 +13,16 @@ package object bootstrap
    */
   def terminateJvm(reason: Throwable, code: Int, stacktrace: Boolean = false): Nothing = try {
     if (stacktrace) reason.printStackTrace
+    try application.teardown catch { case e: Throwable ⇒ println(e) }
     val message = """
 plain-library : %s
-plain-library : Memory free/max/total : %d %d %d
-plain-library : Program will abort now"""
+plain-library : Memory used/free/max/total (mb) : %d %d %d %d
+plain-library : Program will abort now."""
     val runtime = Runtime.getRuntime
-    println(message.format(reason, runtime.freeMemory, runtime.maxMemory, runtime.totalMemory))
-    runtime.exit(code)
+    import runtime._
+    def m(b: Long) = (b / (1024 * 1024)).toLong
+    println(message.format(reason, m(maxMemory - freeMemory), m(freeMemory), m(maxMemory), m(totalMemory)))
+    exit(code)
     throw reason
   } catch {
     case e: Throwable ⇒

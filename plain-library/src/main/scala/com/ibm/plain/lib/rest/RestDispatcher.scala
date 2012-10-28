@@ -59,28 +59,31 @@ abstract class RestDispatcher
   val c = Template("system/location/{location}", resourceclass)
   val d = Template("user/{user}", resourceclass)
   val e = Template("ping", resourceclass)
+  val h = Template("", resourceclass)
 
-  //    println(f)
-  //    println(a)
-  //    println(b)
-  //    println(c)
-  //    println(d)
-  //    println(e)
+  println(h)
+  println(f)
+  println(a)
+  println(b)
+  println(c)
+  println(d)
+  println(e)
+  println(h)
+
+  val t = Templates(h, g, e, d, f, c, b, a).get
+  println(t)
 
   require(Templates(a, b, c, d, e, f, g).toString == Templates(g, f, e, d, c, b, a).toString)
   require(Templates(a, c, e, d, f, g, b).toString == Templates(g, e, d, f, c, b, a).toString)
-  //  println(Templates(g, e, d, f, c, b, a))
 
-  val t = Templates(g, e, d, f, c, b, a)
-
-  //  println(t.get(List("")))
-  //  println(t.get("system/division/FIS".split("/").toList))
-  //  println(t.get("system/division/FIS/department/F01".split("/").toList))
-  //  println(t.get("system/division/FIS/manager/Hahn/0".split("/").toList))
-  //  println(t.get("user/Michael".split("/").toList))
-  //  println(t.get("user////Michael/".split("/").toList))
-  //  println(t.get("user/Michael/X".split("/").toList))
-  //  println(t.get("ping".split("/").toList))
+  println(t.get(Nil))
+  println(t.get("system/division/FIS".split("/").toList))
+  println(t.get("system/division/FIS/department/F01".split("/").toList))
+  println(t.get("system/division/FIS/manager/Hahn/0".split("/").toList))
+  println(t.get("user/Michael".split("/").toList))
+  println(t.get("user////Michael/".split("/").toList))
+  println(t.get("user/Michael/X".split("/").toList))
+  println(t.get("ping".split("/").toList))
 
 }
 

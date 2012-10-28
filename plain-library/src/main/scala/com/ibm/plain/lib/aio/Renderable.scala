@@ -12,11 +12,14 @@ import scala.util.continuations.{ reset, shift, suspendable }
 import Io.{ IoCont, WriteHandler }
 import Iteratee.Error
 import text.ASCII
+import concurrent.OnlyOnce
 
 /**
  * A Renderable can put its content or fields into a ByteBuffer of an Io.
  */
 trait Renderable {
+
+  import Renderable._
 
   def render(implicit io: Io): Unit
 
@@ -61,22 +64,14 @@ trait Renderable {
     if (0 < io.buffer.remaining) write(io) else shift { k: IoCont ⇒ io ++ k; k(io) }
   }
 
-  private[this] def warning = {
-    logging.defaultLogger.warning("The aio.defaultBufferSize is too small to hold an entire http response header and should be enlarged: " + defaultBufferSize)
-  }
-
-  private[this] def fatal = {
-    val msg = "The aio.defaultBufferSize is too small to hold a single part of the http response header and must be enlarged: " + defaultBufferSize
-    logging.defaultLogger.error(msg)
-    throw new Exception(msg)
-  }
-
 }
 
 /**
  * Basic constants used for rendering an http response.
  */
-object Renderable {
+object Renderable
+
+  extends OnlyOnce {
 
   case object `\r\n` extends Renderable {
 
@@ -117,6 +112,16 @@ object Renderable {
 
     @inline final def apply(s: String) = new r(s.getBytes(ASCII))
 
+  }
+
+  private def warning = onlyonce {
+    logging.defaultLogger.warning("The aio.defaultBufferSize is too small to hold an entire http response header and should be enlarged: " + defaultBufferSize)
+  }
+
+  private def fatal = {
+    val msg = "The aio.defaultBufferSize is too small to hold a single part of the http response header and must be enlarged: " + defaultBufferSize
+    logging.defaultLogger.error(msg)
+    throw new Exception(msg)
   }
 
 }
