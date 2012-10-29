@@ -104,7 +104,17 @@ abstract class BaseResource
   def delete: (Status, Option[Entity]) = delete(None)
 
   def delete(s: String): (Status, Option[Entity]) = delete(Some(BytesEntity(s.getBytes(UTF8))))
-
+  
+  /**
+   * The plain REST DSL
+   */
+  def doGET(f: Function[String, String]) {
+    // MAGIC
+  }
+  
+  doGET { s: String =>
+    "Hallo"
+  }
 }
 
 /**
