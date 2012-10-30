@@ -15,8 +15,6 @@ trait Message {
 
   var entity: Option[Entity]
 
-  @inline final def ++(entity: Option[Entity]) = { this.entity = entity; this }
-
 }
 
 /**

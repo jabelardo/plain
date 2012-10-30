@@ -10,7 +10,7 @@ import Request._
 /**
  * The classic http request.
  */
-case class Request(
+final case class Request(
 
   method: Method,
 
@@ -24,13 +24,19 @@ case class Request(
 
   var entity: Option[Entity])
 
-  extends Message
+  extends Message {
+
+  @inline final def ++(entity: Option[Entity]): this.type = { this.entity = entity; this }
+
+}
 
 /**
  *
  */
 object Request {
 
-  type Path = scala.collection.immutable.Seq[String]
+  type Path = Seq[String]
+
+  type Variables = Map[String, String]
 
 }

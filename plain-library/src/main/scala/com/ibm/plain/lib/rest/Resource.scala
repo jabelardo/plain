@@ -7,114 +7,50 @@ package rest
 import java.nio.charset.Charset
 
 import text.UTF8
-
+import aio.Io
 import http.Status._
 import http.Entity._
-import http.{ Entity, Request, Status }
-
-import Resource._
+import http.Request._
+import http.{ Entity, Request, Response, Status }
 
 /**
- * The classic rest resource.
+ *
  */
 trait Resource {
 
-  def request: Request
+  def handle(request: Request): Option[Response]
 
-  def get(entity: Option[Entity]): (Status, Option[Entity])
+  def completed(response: Response)
 
-  def head(entity: Option[Entity]): Status
+  def failed(e: Throwable)
 
-  def post(entity: Option[Entity]): (Status, Option[Entity])
+  def variables: Variables
 
-  def put(entity: Option[Entity]): (Status, Option[Entity])
-
-  def delete(entity: Option[Entity]): (Status, Option[Entity])
-
-  def options(entity: Option[Entity]): (Status, Option[Entity])
-
-  def connect(entity: Option[Entity]): Status
-
-  def trace(entity: Option[Entity]): (Status, Entity)
-
-  /**
-   * convenience methods for the most common entity types.
-   */
-  def get: (Status, Option[Entity])
-
-  def head: Status
-
-  def post: (Status, Option[Entity])
-
-  def post(s: String): (Status, Option[Entity])
-
-  def put: (Status, Option[Entity])
-
-  def put(s: String): (Status, Option[Entity])
-
-  def delete: (Status, Option[Entity])
-
-  def delete(s: String): (Status, Option[Entity])
+  def remainder: Path
 
 }
 
 /**
- * A basic implementation of Resource.
+ *
  */
-abstract class BaseResource
+abstract class BaseResource {
 
-  extends Resource {
+  def handle(request: Request): Option[Response] = None
 
-  final var request: Request = null
+  final def completed(response: Response) = dispatcher.completed(response, io)
 
-  def get(entity: Option[Entity]): (Status, Option[Entity]) = (ClientError.`405`, None)
+  final def failed(e: Throwable) = dispatcher.failed(e, io)
 
-  def head(entity: Option[Entity]): Status = get(entity)._1
+  def variables = variables_
 
-  def post(entity: Option[Entity]): (Status, Option[Entity]) = (ClientError.`405`, None)
+  def remainder = remainder_
 
-  def put(entity: Option[Entity]): (Status, Option[Entity]) = (ClientError.`405`, None)
+  private[rest] var variables_ : Variables = null
 
-  def delete(entity: Option[Entity]): (Status, Option[Entity]) = (ClientError.`405`, None)
+  private[rest] var remainder_ : Path = null
 
-  def options(entity: Option[Entity]): (Status, Option[Entity]) = (ClientError.`405`, None)
+  private[rest] var dispatcher: RestDispatcher = null
 
-  def connect(entity: Option[Entity]): Status = ClientError.`405`
-
-  def trace(entity: Option[Entity]): (Status, Entity) = (Success.`200`, BytesEntity(request.toString.getBytes(UTF8)))
-
-  def get: (Status, Option[Entity]) = get(None)
-
-  def head: Status = head(None)
-
-  /**
-   * All details in the query.
-   */
-  def post: (Status, Option[Entity]) = post(None)
-
-  def post(s: String): (Status, Option[Entity]) = post(Some(BytesEntity(s.getBytes(UTF8))))
-
-  /**
-   * All details in the query.
-   */
-  def put: (Status, Option[Entity]) = put(None)
-
-  def put(s: String): (Status, Option[Entity]) = put(Some(BytesEntity(s.getBytes(UTF8))))
-
-  def delete: (Status, Option[Entity]) = delete(None)
-
-  def delete(s: String): (Status, Option[Entity]) = delete(Some(BytesEntity(s.getBytes(UTF8))))
+  protected[rest] var io: Io = null
 
 }
-
-/**
- * Often used helpers for users of this class.
- */
-object Resource {
-
-  final def Ok(s: String): (Status, Option[Entity]) = Ok(s, UTF8)
-
-  final def Ok(s: String, cset: Charset) = (Success.`200`, Some(BytesEntity(s.getBytes(cset))))
-
-}
-

@@ -14,7 +14,7 @@ import Message._
 /**
  * The classic http response.
  */
-case class Response(
+final case class Response(
 
   version: Version,
 
@@ -29,12 +29,14 @@ case class Response(
   with Renderable {
 
   @inline final def render(implicit io: Io) = {
-    version + ` ` + status + `\r\n` + r("Connection: keep-alive") + `\r\n` + r("Content-Type: text/plain") + `\r\n` + r("Content-Length: 5") + `\r\n` + r("Blabla: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx") + `\r\n` + `\r\n` + r("PONG!") + ^
+    version + ` ` + status + `\r\n` + r("Connection: keep-alive") + `\r\n` + r("Content-Type: text/plain") + `\r\n` + r("Content-Length: 5") + `\r\n` + `\r\n` + r("PONG!") + ^
   }
 
   @inline final def ++(status: Status) = { this.status = status; this }
 
   @inline final def ++(headers: Headers) = { this.headers = headers; this }
+
+  @inline final def ++(entity: Option[Entity]): this.type = { this.entity = entity; this }
 
 }
 

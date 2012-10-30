@@ -8,6 +8,7 @@ import scala.annotation.tailrec
 import scala.util.control.ControlThrowable
 
 import http.Request
+import http.Request._
 
 /**
  * Error handling.
@@ -72,22 +73,28 @@ final case class Templates(
 
   branch: Option[Either[(String, Templates), Map[String, Templates]]]) {
 
-  final def get(path: Request.Path): Option[(Class[Resource], Map[String, String])] = {
+  final def get(path: Path): Option[(Class[Resource], Variables, Path)] = {
 
     @inline @tailrec
-    def get0(path: Request.Path, variables: List[(String, String)], templates: Templates): Option[(Class[Resource], Map[String, String])] = {
+    def get0(
+      path: Path,
+      variables: List[(String, String)],
+      templates: Templates): Option[(Class[Resource], Variables, Path)] = {
+
+      @inline def resource(tail: Path) = templates.resource match {
+        case Some(resource) ⇒ Some((resource, variables.toMap, tail))
+        case _ ⇒ None
+      }
+
       path match {
-        case Nil ⇒ templates.resource match {
-          case Some(resource) ⇒ Some((resource, variables.toMap))
-          case _ ⇒ None
-        }
-        case head :: tail ⇒ templates.branch match {
+        case Nil ⇒ resource(Nil)
+        case l @ (head :: tail) ⇒ templates.branch match {
           case Some(Right(branch)) ⇒ branch.get(head) match {
             case Some(subbranch) ⇒ get0(tail, variables, subbranch)
-            case _ ⇒ None
+            case _ ⇒ resource(l)
           }
           case Some(Left((name, branch))) ⇒ get0(tail, (name, head) :: variables, branch)
-          case _ ⇒ None
+          case _ ⇒ resource(l)
         }
       }
     }

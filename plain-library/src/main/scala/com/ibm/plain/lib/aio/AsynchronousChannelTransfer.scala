@@ -4,21 +4,23 @@ package lib
 
 package aio
 
-import java.nio.channels.{ CompletionHandler, AsynchronousByteChannel }
 import java.nio.ByteBuffer
+import java.nio.channels.CompletionHandler
 
 class AsynchronousChannelTransfer[A] private (
-  src: AsynchronousByteChannel,
-  dst: AsynchronousByteChannel,
+  src: AsynchronousReadChannel,
+  dst: AsynchronousWriteChannel,
   outerattachment: A,
   outerhandler: CompletionHandler[Long, _ >: A],
-  buffer: ByteBuffer)
-
-  extends logging.HasLogger {
+  buffer: ByteBuffer) {
 
   def transfer = {
-    buffer.clear
-    src.read(buffer, null, readhandler)
+    if (0 < buffer.remaining) {
+      dst.write(buffer, Integer.valueOf(buffer.remaining), writehandler)
+    } else {
+      buffer.clear
+      src.read(buffer, null, readhandler)
+    }
   }
 
   type Integer = java.lang.Integer
@@ -29,7 +31,6 @@ class AsynchronousChannelTransfer[A] private (
       try {
         transferred += byteswritten.longValue
         if (byteswritten < bytesread) {
-          warning("Not written all, need more write " + byteswritten + " < " + bytesread + " " + buffer)
           dst.write(buffer, Integer.valueOf(bytesread.intValue - byteswritten.intValue), this)
         } else {
           buffer.clear
@@ -51,14 +52,14 @@ class AsynchronousChannelTransfer[A] private (
           dst.write(buffer, bytesread, writehandler)
         } else {
           src.close
-          outerhandler.completed(transferred, outerattachment)
+          if (null != outerhandler) outerhandler.completed(transferred, outerattachment)
         }
       } catch { case e: Throwable ⇒ failed(e, null) }
     }
 
     def failed(e: Throwable, attachment: Any) = {
       src.close
-      outerhandler.failed(e, outerattachment)
+      if (null != outerhandler) outerhandler.failed(e, outerattachment)
     }
 
   }
@@ -70,18 +71,23 @@ class AsynchronousChannelTransfer[A] private (
 object AsynchronousChannelTransfer {
 
   def apply[A](
-    in: AsynchronousByteChannel,
-    out: AsynchronousByteChannel,
+    in: AsynchronousReadChannel,
+    out: AsynchronousWriteChannel,
     attachment: A,
     handler: CompletionHandler[Long, _ >: A],
     buffer: ByteBuffer): Unit = new AsynchronousChannelTransfer(in, out, attachment, handler, buffer).transfer
 
   def apply[A](
-    in: AsynchronousByteChannel,
-    out: AsynchronousByteChannel,
+    in: AsynchronousReadChannel,
+    out: AsynchronousWriteChannel,
     attachment: A,
     handler: CompletionHandler[Long, _ >: A]): Unit =
     apply(in, out, attachment, handler, ByteBuffer.allocateDirect(defaultBufferSize))
+
+  def apply[A](
+    in: AsynchronousReadChannel,
+    out: AsynchronousWriteChannel): Unit =
+    apply(in, out, null, null, ByteBuffer.allocateDirect(defaultBufferSize))
 
 }
 
