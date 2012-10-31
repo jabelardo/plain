@@ -6,7 +6,6 @@ package rest
 
 package resource
 
-import concurrent.{ sleep, spawn }
 import http.{ Request, Response }
 import http.Status.Success
 

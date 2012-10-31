@@ -6,11 +6,9 @@ package rest
 
 import java.nio.channels.{ CompletionHandler ⇒ Handler }
 
-import scala.language.implicitConversions
-
 import aio.Io
 import http.Response
-import http.Status._
+import http.Status.Success
 
 final class Adaptor private (
 

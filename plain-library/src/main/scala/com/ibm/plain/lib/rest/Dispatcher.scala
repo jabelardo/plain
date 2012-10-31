@@ -4,12 +4,8 @@ package lib
 
 package rest
 
-import com.ibm.plain.lib.aio.ReadChannel.asynchronousByteChannel2ReadChannel
-import com.ibm.plain.lib.http.Response
-
 import aio.Io
-import http.{ Dispatcher ⇒ HttpDispatcher, Request }
-import http.Entity.{ ContentEntity, RequestEntity }
+import http.{ Dispatcher ⇒ HttpDispatcher, Request, Response }
 import http.Status.{ ClientError, ServerError }
 
 /**

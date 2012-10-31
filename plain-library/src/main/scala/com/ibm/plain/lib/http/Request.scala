@@ -4,8 +4,7 @@ package lib
 
 package http
 
-import Message._
-import Request._
+import Message.Headers
 
 /**
  * The classic http request.
@@ -14,7 +13,7 @@ final case class Request(
 
   method: Method,
 
-  path: Path,
+  path: Request.Path,
 
   query: Option[String],
 

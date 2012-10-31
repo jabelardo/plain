@@ -7,9 +7,9 @@ package http
 import java.io.IOException
 import java.nio.file.FileSystemException
 
-import com.ibm.plain.lib.aio.{ Processor ⇒ AioProcessor, Iteratee }
+import com.ibm.plain.lib.aio.{ Processor ⇒ AioProcessor }
 
-import Status.{ ServerError, Success }
+import Status.ServerError
 import aio.Io
 import aio.Iteratee.{ Done, Error }
 import logging.HasLogger

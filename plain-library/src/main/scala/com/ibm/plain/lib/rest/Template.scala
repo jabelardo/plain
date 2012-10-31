@@ -7,8 +7,7 @@ package rest
 import scala.annotation.tailrec
 import scala.util.control.ControlThrowable
 
-import http.Request
-import http.Request._
+import http.Request.{ Path, Variables }
 
 /**
  * Error handling.

@@ -6,15 +6,14 @@ package rest
 
 package resource
 
-import scala.util.continuations.reset
+import com.ibm.plain.lib.rest.{ Context, Resource }
 
 import aio.FileByteChannel.forWriting
 import aio.transfer
-import aio.Iteratee._
 import http.{ Request, Response }
-import http.Entity._
+import http.Entity.ContentEntity
 import http.Method.POST
-import http.Status.{ ClientError, Success }
+import http.Status.ClientError
 
 class EchoResource
 

@@ -4,9 +4,8 @@ package lib
 
 package rest
 
-import aio._
-import aio.Io._
-import http._
+import aio.AioDone
+import http.{ Request, Response }
 
 /**
  * As postulated by Roy Fielding, but it works asynchronously.

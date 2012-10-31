@@ -5,9 +5,7 @@ package lib
 package rest
 
 import aio.Io
-import http.Request
 import http.Request.{ Path, Variables }
-import http.Response
 
 /**
  * A wrapper to hold shared context among Uniforms.
