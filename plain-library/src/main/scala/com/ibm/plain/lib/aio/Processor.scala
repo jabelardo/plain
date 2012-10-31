@@ -15,15 +15,28 @@ trait Processor[E, A <: Renderable]
 
   extends Handler[A, Io] {
 
-  def process(io: Io)
+  import Processor._
+
+  def process(io: Io): Nothing
 
   def completed(result: A, io: Io)
 
   def failed(e: Throwable, io: Io)
 
-  private[aio] final def process_(io: Io): Io @suspendable = {
+  protected[this] final def processed = throw AioDone
+
+  private[aio] final def doProcess(io: Io): Io @suspendable = {
     import io._
-    shift { k: Io.IoCont ⇒ try process(io ++ k) catch { case e: Throwable ⇒ failed(e, io) } }
+    shift { k: Io.IoCont ⇒
+      try process(io ++ k) catch {
+        case AioDone ⇒
+        case e: Throwable ⇒ failed(e, io)
+      }
+    }
   }
+
+}
+
+object Processor {
 
 }

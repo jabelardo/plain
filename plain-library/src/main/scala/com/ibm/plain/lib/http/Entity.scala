@@ -18,7 +18,7 @@ abstract sealed class Entity
  */
 object Entity {
 
-  case class ContentEntity(length: Int, typus: ContentType) extends Entity
+  case class ContentEntity(length: Long, typus: ContentType) extends Entity
 
   case class BytesEntity(bytes: Array[Byte]) extends Entity {
 

@@ -12,13 +12,14 @@ import http.Status.Success
 
 class PingResource
 
-  extends BaseResource {
+  extends Resource {
 
-  override def handle(request: Request): Option[Response] = {
+  def handle(request: Request, context: Context): Nothing = {
     println(request)
-    println(variables + " " + remainder)
-    spawn { try { sleep(2000); println(1 / 0); completed(Response(Success.`200`)) } catch { case e: Throwable ⇒ failed(e) } }
-    None
+    println(context)
+    // spawn { try { completed(Response(Success.`200`)) } catch { case e: Throwable ⇒ failed(e) } }
+    completed(Response(Success.`200`), context)
+    handled
   }
 
 }

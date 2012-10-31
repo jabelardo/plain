@@ -15,11 +15,10 @@ import scala.math.min
 import scala.util.continuations.{ shift, suspendable }
 import scala.concurrent.duration.Duration
 
-import logging.HasLogger
-
 import Iteratee.{ Cont, Done, Error }
 import Input.{ Elem, Empty, Eof }
 import concurrent.{ OnlyOnce, scheduleOnce }
+import logging.HasLogger
 
 /**
  * Helper for Io with all low-level ByteBuffer methods.
@@ -109,6 +108,8 @@ final class Io private (
 
   var readwritten: Int,
 
+  var expected: Long,
+
   var keepalive: Boolean)
 
   extends IoHelper[Io] {
@@ -136,7 +137,7 @@ final class Io private (
 
   @inline def ++(server: ServerChannel) = { this.server = server; this }
 
-  @inline def ++(channel: Channel) = new Io(server, channel, buffer, iteratee, k, readwritten, keepalive)
+  @inline def ++(channel: Channel) = new Io(server, channel, buffer, iteratee, k, readwritten, expected, keepalive)
 
   @inline def ++(iteratee: Iteratee[Io, _]) = { this.iteratee = iteratee; this }
 
@@ -144,10 +145,12 @@ final class Io private (
 
   @inline def ++(readwritten: Int) = { this.readwritten = readwritten; this }
 
+  @inline def ++(expected: Long) = { this.expected = expected; this }
+
   @inline def ++(keepalive: Boolean) = { if (this.keepalive) this.keepalive = keepalive; this }
 
   @inline def ++(buffer: ByteBuffer) = if (0 < this.buffer.remaining) {
-    new Io(server, channel, buffer, iteratee, k, readwritten, keepalive)
+    new Io(server, channel, buffer, iteratee, k, readwritten, expected, keepalive)
   } else {
     this + buffer
   }
@@ -191,9 +194,9 @@ object Io
 
   import Iteratee._
 
-  @inline private[aio] final def empty = new Io(null, null, emptyBuffer, null, null, -1, true)
+  final type IoCont = Io ⇒ Unit
 
-  final private[aio]type IoCont = Io ⇒ Unit
+  @inline private[aio] final def empty = new Io(null, null, emptyBuffer, null, null, -1, -1L, true)
 
   final private[aio] val emptyArray = new Array[Byte](0)
 
@@ -320,13 +323,13 @@ object Io
     }
 
     @inline def processloop(io: Io): Unit @suspendable = {
-      (processor.process_(io) match {
+      (processor.doProcess(io) match {
         case io ⇒
           io.iteratee
       }) match {
         case Done(result: Renderable) ⇒
           result.doRender(io)
-          if (io.keepalive) readloop(io ++ readiteratee)
+          if (io.keepalive && false) readloop(io ++ readiteratee)
         case Error(e) ⇒
           info(e.toString)
           io.error(e)

@@ -1,6 +1,6 @@
 package com.ibm.plain.sample.helloworld
 
-import com.ibm.plain.lib.rest.RestDispatcher
+import com.ibm.plain.lib.rest.{ Dispatcher ⇒ RestDispatcher }
 
 final class Dispatcher
 

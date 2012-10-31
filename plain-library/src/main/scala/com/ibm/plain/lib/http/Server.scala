@@ -139,7 +139,7 @@ object Server {
 
     final val dispatcher = {
       val dconfig = config.settings.getConfig(getString("dispatcher"))
-      val d = dconfig.getInstanceFromClassName[HttpDispatcher]("class-name")
+      val d = dconfig.getInstanceFromClassName[Dispatcher]("class-name")
       d.name = dconfig.getString("display-name", getString("dispatcher"))
       d
     }

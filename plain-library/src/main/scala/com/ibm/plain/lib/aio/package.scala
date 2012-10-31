@@ -5,7 +5,8 @@ package lib
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousFileChannel
 
-import language.implicitConversions
+import scala.language.implicitConversions
+import scala.util.control.ControlThrowable
 
 import config.CheckedConfig
 
@@ -15,6 +16,11 @@ package object aio
 
   import config._
   import config.settings._
+
+  /**
+   * This should be thrown at the end of process or similar methods when the input was processed successfully, it is used as a success indicator at some points of AIO control flow.
+   */
+  final case object AioDone extends ControlThrowable
 
   def bestFitByteBuffer(length: Int) = {
     if (length <= tinyBufferSize)
