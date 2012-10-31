@@ -6,7 +6,7 @@ package http
 
 import java.nio.charset.Charset
 
-import aio.{ AsynchronousReadChannel, AsynchronousWriteChannel }
+import aio.{ ReadChannel, WriteChannel }
 
 /**
  * Base class for the Entity of an Http request and/or response.
@@ -37,9 +37,9 @@ object Entity {
 
   abstract sealed class ChannelEntity extends Entity
 
-  case class RequestEntity(channel: AsynchronousReadChannel) extends ChannelEntity
+  case class RequestEntity(channel: ReadChannel) extends ChannelEntity
 
-  case class ResponseEntity(channel: AsynchronousWriteChannel) extends ChannelEntity
+  case class ResponseEntity(channel: WriteChannel) extends ChannelEntity
 
 }
 

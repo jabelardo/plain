@@ -46,12 +46,12 @@ package object aio
   /**
    * Shorthand to object AsynchronousChannelTransfer.
    */
-  final val transfer = AsynchronousChannelTransfer
+  final val transfer = ChannelTransfer
 
   /**
    * Helper to use AsynchronousFileChannel directly for transfer.
    */
-  implicit def filechannel2filebytechannel(filechannel: AsynchronousFileChannel) = AsynchronousFileByteChannel.wrap(filechannel)
+  implicit def filechannel2filebytechannel(filechannel: AsynchronousFileChannel) = FileByteChannel.wrap(filechannel)
 
   /**
    * If not set differently this will result to 2k which proved to provide best performance under high load.

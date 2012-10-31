@@ -8,6 +8,7 @@ import java.nio.{ ByteBuffer, ByteOrder }
 import java.util.concurrent.atomic.AtomicBoolean
 
 import scala.annotation.tailrec
+
 import logging.HasLogger
 import concurrent.OnlyOnce
 

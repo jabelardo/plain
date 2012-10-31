@@ -28,7 +28,7 @@ abstract class RestDispatcher(templates: Option[Templates])
           resource.remainder_ = remainder
           resource.dispatcher = this
           resource.io = io
-          resource.handle(request ++ Some(RequestEntity(AsynchronousReadChannel(io.channel))))
+          resource.handle(request ++ Some(RequestEntity(io.channel)))
         case None ⇒ throw ClientError.`404`
       }
       case None ⇒ throw ServerError.`501`

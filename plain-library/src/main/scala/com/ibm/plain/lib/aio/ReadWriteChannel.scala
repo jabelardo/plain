@@ -7,16 +7,18 @@ package aio
 import java.nio.channels.{ CompletionHandler, AsynchronousChannel, AsynchronousByteChannel }
 import java.nio.ByteBuffer
 
+import scala.language.implicitConversions
+
 /**
  * Common wrapper around an AsynchronousByteChannel
  */
-abstract sealed class AsynchronousReadWriteChannel protected (
+abstract sealed class ReadWriteChannel protected (
 
   channel: AsynchronousByteChannel)
 
   extends AsynchronousChannel {
 
-  import AsynchronousReadWriteChannel._
+  type Integer = java.lang.Integer
 
   final def close = channel.close
 
@@ -24,11 +26,14 @@ abstract sealed class AsynchronousReadWriteChannel protected (
 
 }
 
-final class AsynchronousReadChannel private (
+/**
+ * A read-only channel.
+ */
+final class ReadChannel private (
 
   channel: AsynchronousByteChannel)
 
-  extends AsynchronousReadWriteChannel(channel) {
+  extends ReadWriteChannel(channel) {
 
   @inline final def read[A](buffer: ByteBuffer, attachment: A, handler: CompletionHandler[Integer, _ >: A]) = {
     channel.read(buffer, attachment, handler)
@@ -36,11 +41,14 @@ final class AsynchronousReadChannel private (
 
 }
 
-final class AsynchronousWriteChannel private (
+/**
+ * A write-only channel.
+ */
+final class WriteChannel private (
 
   channel: AsynchronousByteChannel)
 
-  extends AsynchronousReadWriteChannel(channel) {
+  extends ReadWriteChannel(channel) {
 
   @inline final def write[A](buffer: ByteBuffer, attachment: A, handler: CompletionHandler[Integer, _ >: A]) = {
     channel.write(buffer, attachment, handler)
@@ -49,33 +57,28 @@ final class AsynchronousWriteChannel private (
 }
 
 /**
- * Common things.
- */
-private object AsynchronousReadWriteChannel {
-
-  type Integer = java.lang.Integer
-
-}
-
-/**
  * A read-only wrapper around an AsynchronousByteChannel.
  */
-object AsynchronousReadChannel {
+object ReadChannel {
 
   def apply(channel: AsynchronousByteChannel) = wrap(channel)
 
-  def wrap(channel: AsynchronousByteChannel) = new AsynchronousReadChannel(channel)
+  def wrap(channel: AsynchronousByteChannel) = new ReadChannel(channel)
+
+  implicit def asynchronousByteChannel2ReadChannel(channel: AsynchronousByteChannel) = wrap(channel)
 
 }
 
 /**
  * A write-only wrapper around an AsynchronousByteChannel.
  */
-object AsynchronousWriteChannel {
+object WriteChannel {
 
   def apply(channel: AsynchronousByteChannel) = wrap(channel)
 
-  def wrap(channel: AsynchronousByteChannel) = new AsynchronousWriteChannel(channel)
+  def wrap(channel: AsynchronousByteChannel) = new WriteChannel(channel)
+
+  implicit def asynchronousByteChannel2WriteChannel(channel: AsynchronousByteChannel) = wrap(channel)
 
 }
 

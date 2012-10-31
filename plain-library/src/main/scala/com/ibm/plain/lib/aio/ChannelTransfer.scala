@@ -7,9 +7,9 @@ package aio
 import java.nio.ByteBuffer
 import java.nio.channels.CompletionHandler
 
-class AsynchronousChannelTransfer[A] private (
-  src: AsynchronousReadChannel,
-  dst: AsynchronousWriteChannel,
+final class ChannelTransfer[A] private (
+  src: ReadChannel,
+  dst: WriteChannel,
   outerattachment: A,
   outerhandler: CompletionHandler[Long, _ >: A],
   buffer: ByteBuffer) {
@@ -68,26 +68,21 @@ class AsynchronousChannelTransfer[A] private (
 
 }
 
-object AsynchronousChannelTransfer {
+object ChannelTransfer {
 
   def apply[A](
-    in: AsynchronousReadChannel,
-    out: AsynchronousWriteChannel,
+    in: ReadChannel,
+    out: WriteChannel,
     attachment: A,
     handler: CompletionHandler[Long, _ >: A],
-    buffer: ByteBuffer): Unit = new AsynchronousChannelTransfer(in, out, attachment, handler, buffer).transfer
+    buffer: ByteBuffer): Unit = new ChannelTransfer(in, out, attachment, handler, buffer).transfer
 
   def apply[A](
-    in: AsynchronousReadChannel,
-    out: AsynchronousWriteChannel,
+    in: ReadChannel,
+    out: WriteChannel,
     attachment: A,
     handler: CompletionHandler[Long, _ >: A]): Unit =
     apply(in, out, attachment, handler, ByteBuffer.allocateDirect(defaultBufferSize))
-
-  def apply[A](
-    in: AsynchronousReadChannel,
-    out: AsynchronousWriteChannel): Unit =
-    apply(in, out, null, null, ByteBuffer.allocateDirect(defaultBufferSize))
 
 }
 

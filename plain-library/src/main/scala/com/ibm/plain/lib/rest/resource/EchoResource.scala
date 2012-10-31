@@ -6,12 +6,10 @@ package rest
 
 package resource
 
-import java.nio.channels.AsynchronousFileChannel
-import java.nio.file.{ Paths, StandardOpenOption }
-
 import com.ibm.plain.lib.rest.BaseResource
 
-import aio.{ AsynchronousFileByteChannel, AsynchronousWriteChannel, transfer }
+import aio.FileByteChannel.forWriting
+import aio.transfer
 import http.{ Request, Response }
 import http.Entity.RequestEntity
 import http.Method.POST
@@ -25,10 +23,9 @@ class EchoResource
     case POST ⇒ request.entity match {
       case Some(RequestEntity(read)) ⇒
         println("echo")
-        val file = AsynchronousFileChannel.open(Paths.get("/tmp/bla1"), StandardOpenOption.CREATE, StandardOpenOption.WRITE)
         transfer.apply(
           read,
-          AsynchronousWriteChannel(AsynchronousFileByteChannel(file)),
+          forWriting("/tmp/bla1"),
           null,
           null,
           io.buffer)

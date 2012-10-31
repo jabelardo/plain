@@ -15,10 +15,11 @@ import scala.math.min
 import scala.util.continuations.{ shift, suspendable }
 import scala.concurrent.duration.Duration
 
-import Iteratee.{ Cont, Done, Error }
-import aio.Input.{ Elem, Empty, Eof }
-import concurrent.{ OnlyOnce, scheduleOnce }
 import logging.HasLogger
+
+import Iteratee.{ Cont, Done, Error }
+import Input.{ Elem, Empty, Eof }
+import concurrent.{ OnlyOnce, scheduleOnce }
 
 /**
  * Helper for Io with all low-level ByteBuffer methods.
@@ -293,7 +294,7 @@ object Io
 
   @inline private[this] final val ignored = ()
 
-  final def loop[E, A <: Renderable](io: Io, processor: AioProcessor[E, A]): Unit @suspendable = {
+  final def loop[E, A <: Renderable](io: Io, processor: Processor[E, A]): Unit @suspendable = {
 
     val readiteratee = io.iteratee
 

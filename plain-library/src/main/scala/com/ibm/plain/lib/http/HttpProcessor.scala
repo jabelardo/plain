@@ -6,7 +6,7 @@ package http
 
 import java.io.IOException
 
-import com.ibm.plain.lib.aio.{ AioProcessor, Iteratee }
+import com.ibm.plain.lib.aio.{ Processor, Iteratee }
 
 import Status.{ ServerError, Success }
 import aio.Io
@@ -17,14 +17,14 @@ import aio.Iteratee.{ Done, Error }
  */
 abstract sealed class HttpProcessor
 
-  extends AioProcessor[Request, Response] {
+  extends Processor[Request, Response] {
 
-  @inline final def completed(response: Response, io: Io) = {
+  final def completed(response: Response, io: Io) = {
     import io._
     k(io ++ Done[Io, Response](response))
   }
 
-  @inline final def failed(e: Throwable, io: Io) = {
+  final def failed(e: Throwable, io: Io) = {
     import io._
     k(io ++ (e match {
       case e: IOException ⇒ Error[Io](e)
@@ -36,7 +36,8 @@ abstract sealed class HttpProcessor
 }
 
 /**
- * This could be the RestDispatcher, for instance. As instances of this class will be created via Class.newInstance it provides some ugly vars to be set by this framework.
+ * This could be the RestDispatcher, for instance. As instances of this class will be created via Class.newInstance
+ * it provides some ugly vars to be set by this framework.
  */
 abstract class HttpDispatcher
 

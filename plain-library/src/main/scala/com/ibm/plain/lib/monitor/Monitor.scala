@@ -10,7 +10,7 @@ import scala.concurrent.duration._
 import bootstrap.{ BaseComponent, application }
 import logging.{ HasLogger, Logging }
 import concurrent.scheduleOnce
-import lib.bootstrap.BaseComponent
+import aio.Aio._
 
 /**
  * Implementation of a simple Monitor to manage a 'plain' application.
@@ -47,11 +47,11 @@ abstract class Monitor
 
   def getMemoryMbTotal = (Runtime.getRuntime.totalMemory / (1024 * 1024)).toInt
 
-  def getBufferPoolSizeDefault = aio.Aio.defaultBufferPool.size
+  def getBufferPoolSizeDefault = defaultBufferPool.size
 
-  def getBufferPoolSizeTiny = aio.Aio.tinyBufferPool.size
+  def getBufferPoolSizeTiny = tinyBufferPool.size
 
-  def getBufferPoolSizeLarge = aio.Aio.largeBufferPool.size
+  def getBufferPoolSizeLarge = largeBufferPool.size
 
   def getLogLevel = Logging.getLogLevel
 
