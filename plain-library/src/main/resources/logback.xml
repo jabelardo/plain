@@ -7,7 +7,7 @@
 				<encoder>
 					<pattern>${plain.logging.console.pattern}</pattern>
 				</encoder>
-				<filter class="com.ibm.plain.lib.logging.NameFilter" />
+				<filter class="com.ibm.plain.logging.NameFilter" />
 			</appender>
 		</then>
 	</if>
@@ -24,7 +24,7 @@
 				<encoder>
 					<pattern>${plain.logging.text.pattern}</pattern>
 				</encoder>
-				<filter class="com.ibm.plain.lib.logging.NameFilter" />
+				<filter class="com.ibm.plain.logging.NameFilter" />
 			</appender>
 		</then>
 	</if>
@@ -43,7 +43,7 @@
 						<pattern><![CDATA[%level%relative%replace(%replace(%replace(%replace(%replace(%replace(%msg){'&', '&amp;'}){'<', '&lt;'}){'>', '&gt;'}){'\n','<br>'}){'"', '&quot;'}){'\'', '&apos;'}%logger%X{sourceThread}]]></pattern>
 					</layout>
 				</encoder>
-				<filter class="com.ibm.plain.lib.logging.NameFilter" />
+				<filter class="com.ibm.plain.logging.NameFilter" />
 			</appender>
 		</then>
 	</if>
