@@ -45,6 +45,8 @@ abstract class Dispatcher(templates: Option[Templates])
 class DefaultDispatcher
 
   extends Dispatcher(Templates(
-    Template("user/{user}", Class.forName("com.ibm.plain.rest.resource.PingResource").asInstanceOf[Class[Resource]]),
-    Template("echo", Class.forName("com.ibm.plain.rest.resource.EchoResource").asInstanceOf[Class[Resource]])))
+    Template("user/{user}", Class.forName("com.ibm.plain.rest.resource.PingResource")),
+    Template("static", Class.forName("com.ibm.plain.rest.resource.DirectoryResource")),
+    Template("echo", Class.forName("com.ibm.plain.rest.resource.EchoResource")))) {
 
+}

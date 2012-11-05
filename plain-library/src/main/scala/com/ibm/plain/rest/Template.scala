@@ -5,6 +5,7 @@ package plain
 package rest
 
 import scala.annotation.tailrec
+import scala.language.existentials
 import scala.util.control.ControlThrowable
 
 import http.Request.{ Path, Variables }
@@ -42,12 +43,12 @@ final case class Template(
 
   path: String,
 
-  clazz: Class[Resource]) {
+  clazz: Class[_]) {
 
   final val root = if (0 == path.length) {
-    ResourceClass(clazz)
+    ResourceClass(clazz.asInstanceOf[Class[Resource]])
   } else {
-    path.split("/").reverse.foldLeft[Element](ResourceClass(clazz)) {
+    path.split("/").reverse.foldLeft[Element](ResourceClass(clazz.asInstanceOf[Class[Resource]])) {
       case (elems, e) ⇒
         if (e.startsWith("{") && e.endsWith("}"))
           Variable(e.drop(1).dropRight(1), elems)

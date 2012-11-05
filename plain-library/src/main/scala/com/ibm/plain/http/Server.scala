@@ -22,7 +22,7 @@ import config.{ CheckedConfig, config2RichConfig }
 /**
  *
  */
-case class Server(
+final case class Server(
 
   private val configpath: String,
 
@@ -119,7 +119,7 @@ object Server {
   /**
    * A per-server provided configuration, unspecified details will be inherited from defaultServerConfiguration.
    */
-  case class ServerConfiguration(
+  final case class ServerConfiguration(
 
     path: String,
 

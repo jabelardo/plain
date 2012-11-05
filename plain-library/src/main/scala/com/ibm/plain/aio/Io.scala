@@ -329,7 +329,7 @@ object Io
       }) match {
         case Done(result: Renderable) ⇒
           result.doRender(io)
-          if (io.keepalive && false) readloop(io ++ readiteratee)
+          if (io.keepalive) readloop(io ++ readiteratee)
         case Error(e) ⇒
           info(e.toString)
           io.error(e)
