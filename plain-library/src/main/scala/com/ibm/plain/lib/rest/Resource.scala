@@ -62,7 +62,7 @@ trait Resource {
 }
 
 /**
- * A basic implementation of Resource, containg plain ReST DSL.
+ * A basic implementation of Resource, containing plain ReST DSL.
  */
 abstract class PlainResource(val path: String)
 
@@ -125,7 +125,7 @@ abstract class PlainResource(val path: String)
         }
     }
 
-    @tailrec def ||(f: ResourceMethodImpl): ResourceMethod = next match {
+    def ||(f: ResourceMethodImpl): ResourceMethod = next match {
       case Some(next) =>
         ResourceMethod(_execute, Some(next || f))
       case None =>
