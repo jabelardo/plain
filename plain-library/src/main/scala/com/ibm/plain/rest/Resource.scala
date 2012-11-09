@@ -4,9 +4,12 @@ package plain
 
 package rest
 
+import aio.FileByteChannel.forWriting
+import aio.transfer
 import text.UTF8
 import http.Entity._
 import http.Message.Headers
+import http.Method._
 import http.Status._
 import http.{ Method, Request, Response, Status, Entity }
 import logging.HasLogger
@@ -33,7 +36,7 @@ trait Resource extends BaseUniform {
 /**
  *
  */
-trait PlainDSLResource
+trait IsPlainDSLResource
 
   extends Resource
 
@@ -78,13 +81,11 @@ trait PlainDSLResource
 
   }
 
-  case class ReqResEntVar(val request: Request, val response: Response, val entity: Option[Entity], val vars: Option[Map[String, String]])
+  case class ReqEntVar(val request: Request, val entity: Option[Entity], val vars: List[String])
 
   sealed abstract class Placeholder[A]
 
   object Request extends Placeholder[Request]
-
-  object Response extends Placeholder[Response]
 
   object Entity extends Placeholder[Entity]
 
@@ -103,21 +104,20 @@ trait PlainDSLResource
   /*
    * Some type definitions ...
    */
-  type ResourceMethodImpl = (ReqResEntVar ⇒ (Status, Option[Entity]))
+  type ResourceMethodImpl = (ReqEntVar ⇒ (Status, Option[Entity]))
   type MMap[A, B] = scala.collection.mutable.Map[A, B]
 
   val methods: Map[Method, MMap[Headers, ResourceMethod]] = Map(
-    Method.GET -> scala.collection.mutable.Map.empty,
-    Method.HEAD -> scala.collection.mutable.Map.empty) // TODO: Add other Methods...
+    GET -> scala.collection.mutable.Map.empty,
+    HEAD -> scala.collection.mutable.Map.empty) // TODO: Add other Methods...
 
   /*
    * Some help methods for DSL
    */
-  private def g[Z](arg: Placeholder[Z])(implicit params: ReqResEntVar): Z = params match {
-    case ReqResEntVar(req, res, ent, vars) ⇒
+  private def g[Z](arg: Placeholder[Z])(implicit params: ReqEntVar): Z = params match {
+    case ReqEntVar(req, ent, vars) ⇒
       arg match {
         case Request ⇒ req
-        case Response ⇒ res
         case Entity ⇒ ent.get
         case URLParams ⇒ List("Eins")
       }
@@ -147,15 +147,30 @@ trait PlainDSLResource
   def use[A, B, C](arg0: Placeholder[A], arg1: Placeholder[B], arg2: Placeholder[C])(f: PartialFunction[(A, B, C), (Status, Option[Entity])]): ResourceMethodImpl =
     implicit params ⇒ f(g(arg0), g(arg1), g(arg2))
 
-  def use[A, B, C, D](arg0: Placeholder[A], arg1: Placeholder[B], arg2: Placeholder[C], arg3: Placeholder[D])(f: PartialFunction[(A, B, C, D), (Status, Option[Entity])]): ResourceMethodImpl =
-    implicit params ⇒ f(g(arg0), g(arg1), g(arg2), g(arg3))
+  def onGET(header: Map[String, String])(f: ResourceMethodImpl): ResourceMethod = registerMethod(Method.GET, header, f)
+  
+  def onGET(f: ResourceMethodImpl): ResourceMethod = onGET(Map.empty.asInstanceOf[Map[String, String]])(f)
 
-  def onGET(header: Map[String, String])(f: ResourceMethodImpl) = registerMethod(Method.GET, header, f)
-
+  def onGET(header: (String, String) *)(f: ResourceMethodImpl): ResourceMethod = onGET(header.toMap)(f)
   /*
    * Uniform implementation
    */
   def handle(request: Request, context: Context): Nothing = request.method match {
+    case method @ (POST | GET | HEAD) =>
+      methods.get(method) match {
+        case Some(map) => map.find({ case (headers, _) => headers.toList.intersect(request.headers.toList).size == headers.size }) match {
+          case Some((_, resourceMethod)) =>
+            completed(Response(resourceMethod.execute(ReqEntVar(request, request.entity, context.variables.map(_._2).toList))), context)
+            handled
+          case None => throw ClientError.`400` // No applicable header fond ...
+        }
+
+        case None =>
+          throw ServerError.`500`
+      }
+
     case _ ⇒ throw ClientError.`405`
   }
 }
+
+abstract class PlainDSLResource(val path: String) extends IsPlainDSLResource

@@ -122,7 +122,9 @@ final case class Templates(
 
 object Templates {
 
-  def apply(templates: Template*) = templates.foldLeft[Option[Templates]](None) {
+  def apply(templates: Template*): Option[Templates] = this.apply(templates.toList)
+  
+  def apply(templates: List[Template]): Option[Templates] = templates.foldLeft[Option[Templates]](None) {
     case (elems, e) ⇒ add(e, elems)
   }
 

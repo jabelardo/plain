@@ -11,11 +11,14 @@ import http.Status.{ ClientError, ServerError }
 /**
  * The base class for all client rest dispatchers. The client rest dispatchers will be instantiated using their class name from the configuration via reflection.
  */
-abstract class Dispatcher(templates: Option[Templates])
+
+trait TemplatesDispatcher
 
   extends HttpDispatcher
 
   with BaseUniform {
+
+  val templates: Option[Templates]
 
   def dispatch(request: Request, io: Io): Nothing = handle(request, Context(io))
 
@@ -36,8 +39,9 @@ abstract class Dispatcher(templates: Option[Templates])
   override def completed(response: Response, context: Context) = completed(response, context.io)
 
   override def failed(e: Throwable, context: Context) = failed(e, context.io)
-
 }
+
+abstract class Dispatcher(val templates: Option[Templates]) extends TemplatesDispatcher
 
 /**
  * The default rest-dispatcher, it will always respond with 501.
@@ -49,4 +53,12 @@ class DefaultDispatcher
     Template("static", Class.forName("com.ibm.plain.rest.resource.DirectoryResource")),
     Template("echo", Class.forName("com.ibm.plain.rest.resource.EchoResource")))) {
 
+}
+
+class PlainDSLDispatcher(resources: List[Class[_ <: IsPlainDSLResource]])
+
+  extends TemplatesDispatcher {
+
+  val templates = Templates(resources.map(cl => Template(cl.newInstance().path, cl)))
+  
 }
