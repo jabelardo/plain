@@ -27,7 +27,7 @@ object Settings {
     resolvers += "cc.spray releases" at "http://repo.spray.cc",
     organization := "com.ibm.plain",
     version      := "1.0.1-SNAPSHOT",
-    scalaVersion := "2.10.0-RC1",
+    scalaVersion := "2.10.0-RC2",
     logLevel     := Level.Info
   ) 
 
@@ -44,12 +44,14 @@ object Settings {
   lazy val defaultSettings = baseSettings ++ eclipseSettings ++ formatSettings ++ mimaSettings ++ lsSettings ++ Seq(
 
     scalacOptions in Compile ++= Seq(
+		"-g:none",
 		"-optimize", 
 		"-encoding", "UTF-8", 
 		"-target:jvm-1.7", 
 		"-deprecation", 
 		"-feature", 
 		"-unchecked", 
+		"-Ydead-code",
 		"-Yinline",
 		"-Yinline-handlers",
 		"-Yinline-warnings",
