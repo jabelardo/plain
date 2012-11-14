@@ -5,11 +5,11 @@ package plain
 package http
 
 import java.nio.ByteBuffer
-
 import aio.Io
 import aio.Renderable
 import aio.Renderable._
 import Message._
+import Entity._
 
 /**
  * The classic http response.
@@ -29,7 +29,12 @@ final case class Response(
   with Renderable {
 
   @inline final def render(implicit io: Io) = {
-    version + ` ` + status + `\r\n` + r("Connection: keep-alive") + `\r\n` + r("Content-Type: text/plain") + `\r\n` + r("Content-Length: 5") + `\r\n` + `\r\n` + r("PONG!") + ^
+    entity match {
+      case Some(StringEntity(s, typus)) =>
+        version + ` ` + status + `\r\n` + r("Connection: keep-alive") + `\r\n` + r("Content-Type: " + typus.toString) + `\r\n` + r("Content-Length: " + s.length) + `\r\n` + `\r\n` + r(s) + ^
+      case _ =>
+      	version + ` ` + status + `\r\n` + r("Connection: keep-alive") + `\r\n` + r("Content-Type: text/plain") + `\r\n` + r("Content-Length: 5") + `\r\n` + `\r\n` + r("PONG!") + ^
+    }
   }
 
   @inline final def ++(status: Status) = { this.status = status; this }

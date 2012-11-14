@@ -18,7 +18,17 @@ abstract sealed class Entity
  */
 object Entity {
 
-  case class ContentEntity(length: Long, typus: ContentType) extends Entity
+  class ContentEntity(val _1: Long, val _2: ContentType) extends Entity
+  
+  object ContentEntity {
+    
+    def apply(length: Long, typus: ContentType) = new ContentEntity(length, typus)
+    
+    def unapply(e: ContentEntity): Option[(Long, ContentType)] = Some(e._1, e._2)
+    
+  }
+  
+  case class StringEntity(s: String, typus: ContentType) extends ContentEntity(s.length, typus)
 
   case class BytesEntity(bytes: Array[Byte]) extends Entity {
 

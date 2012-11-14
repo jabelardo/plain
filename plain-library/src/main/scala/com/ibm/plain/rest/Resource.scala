@@ -13,19 +13,20 @@ import http.Method._
 import http.Status._
 import http.{ Method, Request, Response, Status, Entity }
 import logging.HasLogger
-
 import scala.annotation.tailrec
 import scala.language.implicitConversions
 import java.nio.charset.Charset
+import com.ibm.plain.http.ContentType
+import com.ibm.plain.http.ContentType._
 
 /**
  *
  */
 trait Resource extends BaseUniform {
 
-  final def Ok(s: String): (Status, Option[Entity]) = Ok(s, UTF8)
+  final def Ok(s: String): (Status, Option[Entity]) = Ok(s, `text/plain`)
 
-  final def Ok(s: String, cset: Charset) = (Success.`200`, Some(BytesEntity(s.getBytes(cset))))
+  final def Ok(s: String, typus: ContentType) = (Success.`200`, Some(StringEntity(s, typus)))
 
   final def ServerException(s: String): (Status, Option[Entity]) = ServerException(s, UTF8)
 
@@ -160,6 +161,7 @@ trait IsPlainDSLResource
       methods.get(method) match {
         case Some(map) => map.find({ case (headers, _) => headers.toList.intersect(request.headers.toList).size == headers.size }) match {
           case Some((_, resourceMethod)) =>
+            debug("Found resource method: " + resourceMethod.toString)
             completed(Response(resourceMethod.execute(ReqEntVar(request, request.entity, context.variables.map(_._2).toList))), context)
             handled
           case None => throw ClientError.`400` // No applicable header fond ...
