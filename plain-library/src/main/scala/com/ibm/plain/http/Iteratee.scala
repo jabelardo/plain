@@ -13,8 +13,9 @@ import text.{ ASCII, UTF8 }
 import Message.Headers
 import Request.Path
 import Status.ServerError.`501`
-import Header.Entity._
-import Entity.ContentEntity
+import Header.Entity.`Content-Length`
+import Header.General.`Transfer-Encoding`
+import Entity.{ ContentEntity, TransferEncodedEntity }
 import ContentType.`text/plain`
 
 /**
@@ -124,11 +125,12 @@ final class RequestIteratee private ()(implicit server: Server) {
 
   @inline private[this] final def readEntity(headers: Headers): Iteratee[Io, Option[Entity]] = Done(
     `Content-Length`(headers) match {
-      case Some(length) ⇒ Some(`Content-Type`(headers) match {
-        case Some(typus) ⇒ ContentEntity(length, typus)
-        case None ⇒ ContentEntity(length, `text/plain`)
-      })
-      case _ ⇒ None
+      case Some(length) ⇒ Some(ContentEntity(length))
+      case None ⇒
+        `Transfer-Encoding`(headers) match {
+          case Some(value) ⇒ Some(TransferEncodedEntity(value))
+          case None ⇒ None
+        }
     })
 
   final val readRequest: Iteratee[Io, Request] = for {

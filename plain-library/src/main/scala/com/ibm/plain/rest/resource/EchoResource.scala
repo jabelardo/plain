@@ -21,7 +21,7 @@ class EchoResource
 
   def handle(request: Request, context: Context): Nothing = request.method match {
     case POST ⇒ request.entity match {
-      case Some(ContentEntity(length, _)) ⇒
+      case Some(ContentEntity(length, contenttype)) ⇒
         transfer(context.io ++ length, forWriting("/tmp/bla1"), Adaptor(this, context))
       case _ ⇒ throw ClientError.`400`
     }

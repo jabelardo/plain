@@ -21,11 +21,11 @@ final case class Request(
 
   headers: Headers,
 
-  var entity: Option[Entity])
+  entity: Option[Entity])
 
   extends Message {
 
-  @inline final def ++(entity: Option[Entity]): this.type = { this.entity = entity; this }
+  type Type = Request
 
 }
 

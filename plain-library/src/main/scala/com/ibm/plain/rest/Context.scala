@@ -10,7 +10,7 @@ import http.Request.{ Path, Variables }
 /**
  * A wrapper to hold shared context among Uniforms.
  */
-final case class Context(
+final class Context private (
 
   var io: Io,
 
@@ -35,6 +35,6 @@ final case class Context(
  */
 object Context {
 
-  def apply(io: Io): Context = new Context(io, null, null, null)
+  @inline def apply(io: Io): Context = new Context(io, null, null, null)
 
 }

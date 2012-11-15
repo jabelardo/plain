@@ -21,6 +21,7 @@ private[http] object RequestConstants {
 
   final val `/` = "/"
   final val `?` = "?"
+  final val `;` = ";"
   final val cr = "\r"
   final val lf = "\n"
 

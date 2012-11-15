@@ -18,28 +18,51 @@ abstract sealed class Entity
  */
 object Entity {
 
-  case class ContentEntity(length: Long, typus: ContentType) extends Entity
+  final case class ContentEntity(
 
-  case class BytesEntity(bytes: Array[Byte]) extends Entity {
+    var length: Long,
 
-    override final def toString = "BytesEntity(length=" + bytes.length + ")"
+    var contenttype: ContentType)
 
-  }
+    extends Entity {
 
-  // remove
-  case class StringEntity2(bytes: Array[Byte], cset: Charset) extends Entity {
+    final def ++(length: Long) = { this.length = length; this }
 
-    final def value = new String(bytes, cset)
-
-    override final def toString = "StringEntity(length=" + value.length + ", value=" + value.take(20) + "...)"
+    final def ++(contenttype: ContentType) = { this.contenttype = contenttype; this }
 
   }
 
-  abstract sealed class ChannelEntity extends Entity
+  object ContentEntity {
 
-  case class RequestEntity(channel: ReadChannel) extends ChannelEntity
+    @inline def apply(length: Long) = new ContentEntity(length, null)
 
-  case class ResponseEntity(channel: WriteChannel) extends ChannelEntity
+  }
+
+  sealed abstract class TransferEncodedEntity extends Entity
+
+  case object `identity` extends TransferEncodedEntity
+
+  case object `chunked` extends TransferEncodedEntity
+
+  case object `gzip` extends TransferEncodedEntity
+
+  case object `compress` extends TransferEncodedEntity
+
+  case object `deflate` extends TransferEncodedEntity
+
+  final case class `user-defined`(encoding: String) extends TransferEncodedEntity
+
+  object TransferEncodedEntity {
+
+    @inline def apply(value: String) = value.toLowerCase match {
+      case "identity" ⇒ `identity`
+      case "chunked" ⇒ `chunked`
+      case "gzip" ⇒ `gzip`
+      case "compress" ⇒ `compress`
+      case "deflate" ⇒ `deflate`
+      case other ⇒ `user-defined`(other)
+    }
+
+  }
 
 }
-

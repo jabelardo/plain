@@ -5,7 +5,10 @@ package plain
 package rest
 
 import aio.Io
-import http.{ Dispatcher ⇒ HttpDispatcher, Request, Response }
+import aio.Iteratees.drop
+import http.{ Request, Response }
+import http.{ Dispatcher ⇒ HttpDispatcher }
+import http.Entity.ContentEntity
 import http.Status.{ ClientError, ServerError }
 
 /**
@@ -17,14 +20,23 @@ abstract class Dispatcher(templates: Option[Templates])
 
   with BaseUniform {
 
-  def dispatch(request: Request, io: Io): Nothing = handle(request, Context(io))
+  final def dispatch(request: Request, io: Io): Nothing = handle(request, Context(io))
 
-  def handle(request: Request, context: Context): Nothing = {
+  final def handle(request: Request, context: Context): Nothing = {
+    import request._
     templates match {
       case Some(root) ⇒ root.get(request.path) match {
         case Some((clazz, variables, remainder)) ⇒
           clazz.newInstance match {
-            case resource: Resource ⇒ resource.handle(request, context ++ variables ++ remainder ++ this)
+            case resource: Resource ⇒
+              entity match {
+                case Some(ContentEntity(length, _)) if !method.entityallowed && length < Int.MaxValue ⇒ drop(length.toInt)
+                case Some(_) if !method.entityallowed ⇒ throw ServerError.`501`
+                case _ ⇒
+              }
+
+              resource.handle(request, context ++ variables ++ remainder ++ this)
+
             case _ ⇒ throw ServerError.`500`
           }
         case None ⇒ throw ClientError.`404`
@@ -33,9 +45,9 @@ abstract class Dispatcher(templates: Option[Templates])
     }
   }
 
-  override def completed(response: Response, context: Context) = completed(response, context.io)
+  override final def completed(response: Response, context: Context) = completed(response, context.io)
 
-  override def failed(e: Throwable, context: Context) = failed(e, context.io)
+  override final def failed(e: Throwable, context: Context) = failed(e, context.io)
 
 }
 

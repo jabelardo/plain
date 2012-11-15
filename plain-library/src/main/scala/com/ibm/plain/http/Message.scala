@@ -13,7 +13,9 @@ trait Message {
 
   def headers: Headers
 
-  var entity: Option[Entity]
+  def entity: Option[Entity]
+
+  type Type <: Message
 
 }
 
