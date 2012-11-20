@@ -9,7 +9,7 @@ import java.io.{ InputStream, OutputStream, Reader, StringReader, StringWriter, 
 import com.sun.jersey.api.json.JSONJAXBContext
 
 /**
- * Do not forget to implement a default no-parameters constructor for classes deriving from JsonMarshaled or you will get InvalidAnnotationExceptions.
+ * Do not forget to implement a default no-parameters constructor for classes deriving from JsonMarshaled or you will get an InvalidAnnotationException.
  */
 trait JsonMarshaled {
 

@@ -11,13 +11,11 @@ import Status.ClientError.`405`
  */
 sealed abstract class Method(
 
-    val safe: Boolean,
-    
-    val idempotent: Boolean,
-    
-    val entityallowed: Boolean
-    
-)
+  val safe: Boolean,
+
+  val idempotent: Boolean,
+
+  val entityallowed: Boolean)
 
 /**
  * Supported http methods.

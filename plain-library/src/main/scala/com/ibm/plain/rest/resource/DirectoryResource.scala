@@ -25,7 +25,7 @@ class DirectoryResource
 
   import DirectoryResource._
 
-  def handle(request: Request, context: Context): Nothing = {
+  override def handle(request: Request, context: Context): Nothing = {
     import settings._
     rootDirectory.resolve(context.remainder.mkString("/")) match {
       case file if exists(file) && isRegularFile(file) ⇒
@@ -34,7 +34,6 @@ class DirectoryResource
       case file if exists(file) ⇒ completed(Response(ClientError.`406`), context)
       case _ ⇒ completed(Response(ClientError.`404`), context)
     }
-    handled
   }
 
   private[this] val settings = DirectoryResourceConfiguration("plain")

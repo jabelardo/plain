@@ -19,7 +19,7 @@ class EchoResource
 
   extends Resource {
 
-  def handle(request: Request, context: Context): Nothing = request.method match {
+  override def handle(request: Request, context: Context): Nothing = request.method match {
     case POST ⇒ request.entity match {
       case Some(ContentEntity(length, contenttype)) ⇒
         transfer(context.io ++ length, forWriting("/tmp/bla1"), Adaptor(this, context))

@@ -126,11 +126,10 @@ final class RequestIteratee private ()(implicit server: Server) {
   @inline private[this] final def readEntity(headers: Headers): Iteratee[Io, Option[Entity]] = Done(
     `Content-Length`(headers) match {
       case Some(length) ⇒ Some(ContentEntity(length))
-      case None ⇒
-        `Transfer-Encoding`(headers) match {
-          case Some(value) ⇒ Some(TransferEncodedEntity(value))
-          case None ⇒ None
-        }
+      case None ⇒ `Transfer-Encoding`(headers) match {
+        case Some(value) ⇒ Some(TransferEncodedEntity(value))
+        case None ⇒ None
+      }
     })
 
   final val readRequest: Iteratee[Io, Request] = for {

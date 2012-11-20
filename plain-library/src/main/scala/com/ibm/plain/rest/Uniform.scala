@@ -4,7 +4,6 @@ package plain
 
 package rest
 
-import aio.AioDone
 import http.{ Request, Response }
 
 /**
@@ -14,9 +13,9 @@ trait Uniform {
 
   def handle(request: Request, context: Context): Nothing
 
-  def completed(response: Response, context: Context)
+  def completed(response: Response, context: Context): Nothing
 
-  def failed(e: Throwable, context: Context)
+  def failed(e: Throwable, context: Context): Nothing
 
 }
 
@@ -30,7 +29,5 @@ trait BaseUniform
   def completed(response: Response, context: Context) = context.parent.completed(response, context)
 
   def failed(e: Throwable, context: Context) = context.parent.failed(e, context)
-
-  protected[this] final def handled = throw AioDone
 
 }

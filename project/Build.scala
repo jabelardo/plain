@@ -23,6 +23,7 @@ object PlainBuild extends Build {
     .settings(cpsPlugin: _*)
     .settings(libraryDependencies ++= 
       compile(
+          scalareflect,
           config, 
           logback, 
           janino, 

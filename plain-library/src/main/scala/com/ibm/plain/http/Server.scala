@@ -28,7 +28,9 @@ final case class Server(
 
   private val application: Option[Application],
 
-  private val port: Option[Int])
+  private val port: Option[Int],
+
+  private val serverconfig: Option[Server.ServerConfiguration])
 
   extends BaseComponent[Server](null)
 
@@ -60,7 +62,7 @@ final case class Server(
       application match {
         case Some(appl) if loadBalancingEnable ⇒
           startOne
-          portRange.tail.foreach { p ⇒ appl.register(Server(configpath, None, Some(p)).start) }
+          portRange.tail.foreach { p ⇒ appl.register(Server(configpath, None, Some(p), Some(settings)).start) }
         case _ ⇒ startOne
       }
     }
@@ -87,7 +89,10 @@ final case class Server(
 
   private[this] var serverChannel: ServerChannel = null
 
-  private[http] final lazy val settings = ServerConfiguration(configpath, false)
+  private[http] final lazy val settings = serverconfig match {
+    case None ⇒ ServerConfiguration(configpath, false)
+    case Some(s) ⇒ s
+  }
 
   private[this] final lazy val bindaddress = if ("*" == settings.address)
     new InetSocketAddress(port.getOrElse(settings.portRange.head))

@@ -44,7 +44,7 @@ object Settings {
   lazy val defaultSettings = baseSettings ++ eclipseSettings ++ formatSettings ++ mimaSettings ++ lsSettings ++ Seq(
 
     scalacOptions in Compile ++= Seq(
-		"-g:none",
+		"-g:vars",
 		"-optimize", 
 		"-encoding", "UTF-8", 
 		"-target:jvm-1.7", 
@@ -55,7 +55,8 @@ object Settings {
 		"-Yinline",
 		"-Yinline-handlers",
 		"-Yinline-warnings",
-		"-Ywarn-adapted-args"
+		"-Ywarn-adapted-args",
+		"-Xexperimental"
     ),
     
 	javacOptions in Compile ++= Seq(

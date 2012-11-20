@@ -4,8 +4,6 @@ package plain
 
 import java.lang.reflect.{ Method, Modifier }
 
-import scala.reflect.ClassTag
-
 /**
  * Some tools to ease the use the Java reflection api in Scala.
  */

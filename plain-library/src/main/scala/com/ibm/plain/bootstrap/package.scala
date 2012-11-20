@@ -18,16 +18,14 @@ package object bootstrap
 %s
 Memory used/free/max/total (mb) : %d %d %d %d
 Program will abort now."""
-    val runtime = Runtime.getRuntime
+    val runtime = sys.runtime
     import runtime._
     def m(b: Long) = (b / (1024 * 1024)).toLong
     println(message.format(reason, m(maxMemory - freeMemory), m(freeMemory), m(maxMemory), m(totalMemory)))
-    exit(code)
-    throw reason
+    sys.exit(code)
   } catch {
     case e: Throwable ⇒
-      Runtime.getRuntime.exit(code)
-      throw reason
+      sys.exit(code)
   }
 
 }

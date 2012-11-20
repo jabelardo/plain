@@ -10,7 +10,7 @@ import java.nio.file.FileSystemException
 import aio.{ Processor ⇒ AioProcessor }
 
 import Status.ServerError
-import aio.Io
+import aio.{ Completed, Io }
 import aio.Iteratee.{ Done, Error }
 import logging.HasLogger
 
@@ -30,11 +30,14 @@ abstract class Processor
 
   final def failed(e: Throwable, io: Io) = {
     import io._
-    k(io ++ (e match {
-      case e: IOException if !e.isInstanceOf[FileSystemException] ⇒ Error[Io](e)
-      case status: Status ⇒ Done[Io, Response](Response(status))
-      case e ⇒ info("failed : " + e); Done[Io, Response](Response(ServerError.`500`))
-    }))
+    e match {
+      case Completed ⇒
+      case _ ⇒ k(io ++ (e match {
+        case e: IOException if !e.isInstanceOf[FileSystemException] ⇒ Error[Io](e)
+        case status: Status ⇒ Done[Io, Response](Response(status))
+        case e ⇒ info("failed : " + e); e.printStackTrace; Done[Io, Response](Response(ServerError.`500`))
+      }))
+    }
   }
 
 }

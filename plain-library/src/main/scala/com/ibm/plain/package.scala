@@ -21,7 +21,7 @@ package object plain
       .register(aio.Aio)
       .register(monitor.extension.jmx.JmxMonitor)
 
-    http.startupServers.foreach(path ⇒ appl.register(http.Server(path, Some(appl), None)))
+    http.startupServers.foreach(path ⇒ appl.register(http.Server(path, Some(appl), None, None)))
 
     appl
   }

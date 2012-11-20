@@ -4,7 +4,7 @@ package plain
 
 package rest
 
-import aio.Io
+import aio.{ Completed, Io }
 import aio.Iteratees.drop
 import http.{ Request, Response }
 import http.{ Dispatcher ⇒ HttpDispatcher }
@@ -25,7 +25,7 @@ abstract class Dispatcher(templates: Option[Templates])
   final def handle(request: Request, context: Context): Nothing = {
     import request._
     templates match {
-      case Some(root) ⇒ root.get(request.path) match {
+      case Some(root) ⇒ root.get(path) match {
         case Some((clazz, variables, remainder)) ⇒
           clazz.newInstance match {
             case resource: Resource ⇒
@@ -34,20 +34,19 @@ abstract class Dispatcher(templates: Option[Templates])
                 case Some(_) if !method.entityallowed ⇒ throw ServerError.`501`
                 case _ ⇒
               }
-
               resource.handle(request, context ++ variables ++ remainder ++ this)
 
             case _ ⇒ throw ServerError.`500`
           }
-        case None ⇒ throw ClientError.`404`
+        case _ ⇒ throw ClientError.`404`
       }
-      case None ⇒ throw ServerError.`501`
+      case _ ⇒ throw ServerError.`501`
     }
   }
 
-  override final def completed(response: Response, context: Context) = completed(response, context.io)
+  override final def completed(response: Response, context: Context): Nothing = { completed(response, context.io); throw Completed }
 
-  override final def failed(e: Throwable, context: Context) = failed(e, context.io)
+  override final def failed(e: Throwable, context: Context): Nothing = { failed(e, context.io); throw Completed }
 
 }
 
@@ -58,7 +57,10 @@ class DefaultDispatcher
 
   extends Dispatcher(Templates(
     Template("user/{user}", Class.forName("com.ibm.plain.rest.resource.PingResource")),
+    Template("ping", Class.forName("com.ibm.plain.rest.resource.PingResource")),
     Template("static", Class.forName("com.ibm.plain.rest.resource.DirectoryResource")),
     Template("echo", Class.forName("com.ibm.plain.rest.resource.EchoResource")))) {
+
+  Test.test
 
 }

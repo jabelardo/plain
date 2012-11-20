@@ -20,7 +20,7 @@ package object aio
   /**
    * This should be thrown at the end of process or similar methods when the input was processed successfully, it is used as a success indicator at some points of AIO control flow.
    */
-  final case object AioDone extends ControlThrowable
+  final case object Completed extends ControlThrowable
 
   def bestFitByteBuffer(length: Int) = {
     if (length <= tinyBufferSize)
