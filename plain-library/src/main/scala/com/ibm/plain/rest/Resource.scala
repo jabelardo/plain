@@ -32,7 +32,7 @@ trait Resource
 
   override final def delayedInit(body: ⇒ Unit): Unit = resourcemethods.get(getClass) match {
     case Some(methods) ⇒ this.methods = methods
-    case None ⇒ methods = new Methods; body; resourcemethods.put(getClass, methods)
+    case None ⇒ println("added " + getClass); methods = new Methods; body; resourcemethods.put(getClass, methods)
   }
 
   def completed(response: Response): Nothing = completed(response, context)
@@ -40,21 +40,33 @@ trait Resource
   def failed(e: Throwable): Nothing = failed(e, context)
 
   def handle(request: Request, context: Context): Nothing = {
-    println("methods" + methods)
-    println(resourcemethods)
-    println(methods.get(POST).get.get(Some(typeOf[String])).get.get(Some(typeOf[String])).get("this is the input"))
-    println(methods.get(POST).get.get(Some(typeOf[User])).get.get(Some(typeOf[User])).get(User("Mary", 7)))
-    println(methods.get(PUT).get.get(Some(typeOf[JObject])).get.get(Some(typeOf[Json])).get(Json.parse("{\"name\":\"value\"}").asObject))
-    println(methods.get(GET).get.get(None).get.get(Some(typeOf[scala.xml.Elem])).get(()))
-    println(new String(methods.get(GET).get.get(None).get.get(Some(typeOf[Array[Byte]])).get(()).asInstanceOf[Array[Byte]]))
-    println(methods.get(GET).get.get(None).get.get(Some(typeOf[java.lang.String])).get(()))
-    println(methods.get(GET).get.get(None).get.get(Some(typeOf[User])).get(()))
-    println(methods.get(GET).get.get(None).get.get(Some(typeOf[JsonMarshaled])).get(()).asInstanceOf[JsonMarshaled].toJson)
-    println(methods.get(GET).get.get(None).get.get(Some(typeOf[XmlMarshaled])).get(()).asInstanceOf[XmlMarshaled].toXml)
-
     request_ = request
     context_ = context
-    // now start to get real here!
+    //
+    //    println("methods" + methods)
+    //    println(resourcemethods)
+    //    println(methods.get(POST).get.get(Some(typeOf[String])).get.get(Some(typeOf[String])).get("this is the input"))
+    //    println(methods.get(POST).get.get(Some(typeOf[User])).get.get(Some(typeOf[User])).get(User("Mary", 7)))
+    //    println(methods.get(POST).get.get(Some(typeOf[Map[String, String]])).get.get(Some(typeOf[Predef.String])).get(Map("a" -> "x", "b" -> "y")))
+    //    println(methods.get(PUT).get.get(Some(typeOf[JObject])).get.get(Some(typeOf[Json])).get(Json.parse("{\"name\":\"value\"}").asObject))
+    //    println(methods.get(GET).get.get(None).get.get(Some(typeOf[scala.xml.Elem])).get(()))
+    //    println(new String(methods.get(GET).get.get(None).get.get(Some(typeOf[Array[Byte]])).get(()).asInstanceOf[Array[Byte]]))
+    //    println(methods.get(GET).get.get(None).get.get(Some(typeOf[java.lang.String])).get(()))
+    //    println(methods.get(GET).get.get(None).get.get(Some(typeOf[User])).get(()))
+    //    println(methods.get(GET).get.get(None).get.get(Some(typeOf[JsonMarshaled])).get(()).asInstanceOf[JsonMarshaled].toJson)
+    //    println(methods.get(GET).get.get(None).get.get(Some(typeOf[XmlMarshaled])).get(()).asInstanceOf[XmlMarshaled].toXml)
+    //    println(methods.get(GET).get.get(Some(typeOf[Map[String, String]])).get.get(Some(typeOf[scala.collection.immutable.Map[String, String]])).get(Map("a" -> "x", "b" -> "y")))
+
+    val methodbody: Body[Any, Any] = methods.get(request.method) match {
+      case Some(method) ⇒ method.toList.head._2.toList.head._2
+      case None ⇒ throw ClientError.`405`
+    }
+    val in: Option[Any] = request.entity match {
+      case Some(ContentEntity(length, contenttype)) if length <= maxEntityBufferSize ⇒ None
+      case _ ⇒ None
+    }
+    val out: Any = methodbody(in.getOrElse(()))
+    // println("out " + out)
     completed(response)
   }
 
@@ -62,23 +74,31 @@ trait Resource
     add(POST, Some(typeOf[E]), Some(typeOf[A]), body)
   }
 
+  final def Post[A: TypeTag](body: ⇒ A): Unit = {
+    add(POST, None, Some(typeOf[A]), (_: Unit) ⇒ body)
+  }
+
   final def Put[E: TypeTag, A: TypeTag](body: E ⇒ A): Unit = {
     add(PUT, Some(typeOf[E]), Some(typeOf[A]), body)
   }
 
   final def Delete[A: TypeTag](body: ⇒ A): Unit = {
-    def f(u: Unit): A = body
-    add(DELETE, None, Some(typeOf[A]), f)
+    add(DELETE, None, Some(typeOf[A]), (_: Unit) ⇒ body)
   }
 
   final def Get[A: TypeTag](body: ⇒ A): Unit = {
-    def f(u: Unit): A = body
-    add(GET, None, Some(typeOf[A]), f)
+    add(GET, None, Some(typeOf[A]), (_: Unit) ⇒ body)
+  }
+
+  /**
+   * called on a GET with an `application/x-www-form-urlencoded` query
+   */
+  final def Get[A: TypeTag](body: Map[String, String] ⇒ A): Unit = {
+    add(GET, Some(typeOf[Map[String, String]]), Some(typeOf[A]), body)
   }
 
   final def Head(body: ⇒ Unit): Unit = {
-    def f(u: Unit): Unit = body
-    add(HEAD, None, None, f)
+    add(HEAD, None, None, (_: Unit) ⇒ body)
   }
 
   private[this] final def add[E, A](method: Method, in: Option[Type], out: Option[Type], body: Body[E, A]) = methods.get(method) match {
@@ -150,6 +170,8 @@ class TestResource extends Resource {
 
   Post { user: User ⇒ User(user.name + " Smith", user.id + 10) }
 
+  Post { form: Map[String, String] ⇒ form.mkString("&") }
+
   Put { in: JObject ⇒ Json.parse("[1, 2, 3, " + Json.build(in) + "]") }
 
   Get { Json(List(request.query.getOrElse("no query").reverse)).asArray }
@@ -158,7 +180,7 @@ class TestResource extends Resource {
 
   Get { "pong!".getBytes(text.ASCII) }
 
-  Get { "pong!" } // need to lookup java.lang.String, this is a known bug in 2.10
+  Get { "pong!" } // need to lookup java.lang.String not just String, this is a known bug in 2.10
 
   Get { <a><b name="hello"/><c value="world">more</c></a> }
 
@@ -167,6 +189,8 @@ class TestResource extends Resource {
   Get[JsonMarshaled] { User("Paul", 2) }
 
   Get[XmlMarshaled] { User("Bob", 3) }
+
+  Get { form: Map[String, String] ⇒ form ++ Map("more" -> "values") }
 
   Head { response ++ Success.`206` }
 

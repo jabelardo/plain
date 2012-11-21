@@ -123,11 +123,11 @@ final class RequestIteratee private ()(implicit server: Server) {
     cont(Nil)
   }
 
-  @inline private[this] final def readEntity(headers: Headers): Iteratee[Io, Option[Entity]] = Done(
-    `Content-Length`(headers) match {
-      case Some(length) ⇒ Some(ContentEntity(length))
-      case None ⇒ `Transfer-Encoding`(headers) match {
-        case Some(value) ⇒ Some(TransferEncodedEntity(value))
+  private[this] final def readEntity(headers: Headers): Iteratee[Io, Option[Entity]] = Done(
+    `Transfer-Encoding`(headers) match {
+      case Some(value) ⇒ Some(TransferEncodedEntity(value))
+      case None ⇒ `Content-Length`(headers) match {
+        case Some(length) ⇒ Some(ContentEntity(length))
         case None ⇒ None
       }
     })

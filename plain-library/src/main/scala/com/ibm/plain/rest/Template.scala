@@ -34,21 +34,21 @@ final case class Segment(name: String, next: Element) extends Element
 
 final case class Variable(name: String, next: Element) extends Element
 
-final case class ResourceClass(resource: Class[Resource]) extends Element
+final case class ResourceClass(resource: Class[_ <: Resource]) extends Element
 
 /**
  *
  */
-final case class Template(
+final class Template private (
 
-  path: String,
+  val resource: Class[_ <: Resource],
 
-  clazz: Class[_]) {
+  val path: String) {
 
   final val root = if (0 == path.length) {
-    ResourceClass(clazz.asInstanceOf[Class[Resource]])
+    ResourceClass(resource)
   } else {
-    path.split("/").reverse.foldLeft[Element](ResourceClass(clazz.asInstanceOf[Class[Resource]])) {
+    path.split("/").reverse.foldLeft[Element](ResourceClass(resource)) {
       case (elems, e) ⇒
         if (e.startsWith("{") && e.endsWith("}"))
           Variable(e.drop(1).dropRight(1), elems)
@@ -65,21 +65,29 @@ final case class Template(
 
   require(!root.isInstanceOf[Variable], "A path-template must not start with a variable : " + path)
 
+  require(null != resource.newInstance.asInstanceOf[Resource], "Could not instantiate the given class, did you misspell the absolute class name? " + resource)
+
+}
+
+object Template {
+
+  def apply(path: String, clazz: Class[_]) = new Template(clazz.asInstanceOf[Class[_ <: Resource]], path)
+
 }
 
 final case class Templates(
 
-  resource: Option[Class[Resource]],
+  resource: Option[Class[_ <: Resource]],
 
   branch: Option[Either[(String, Templates), Map[String, Templates]]]) {
 
-  final def get(path: Path): Option[(Class[Resource], Variables, Path)] = {
+  final def get(path: Path): Option[(Class[_ <: Resource], Variables, Path)] = {
 
     @inline @tailrec
     def get0(
       path: Path,
       variables: List[(String, String)],
-      templates: Templates): Option[(Class[Resource], Variables, Path)] = {
+      templates: Templates): Option[(Class[_ <: Resource], Variables, Path)] = {
 
       @inline def resource(tail: Path) = templates.resource match {
         case Some(resource) ⇒ Some((resource, variables.toMap, tail))
