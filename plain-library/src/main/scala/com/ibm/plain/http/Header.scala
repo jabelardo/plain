@@ -135,7 +135,7 @@ object Header {
 
     object `Content-Language` extends Entity[String] with StringValue
 
-    object `Content-Length` extends Entity[Int] with IntValue
+    object `Content-Length` extends Entity[Long] with LongValue
 
     object `Content-Location` extends Entity[String] with StringValue
 

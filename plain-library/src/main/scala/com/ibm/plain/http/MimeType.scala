@@ -33,10 +33,78 @@ object MimeType {
 
   def apply(name: String): MimeType = name.toLowerCase match {
     case "*/*" ⇒ `*/*`
+
+    case "application/atom+xml" ⇒ `application/atom+xml`
+    case "cgr" | "application/cgr" | "application/x-cgr" | "application/catia-3d" ⇒ `application/vnd.catiav5-cgr`
+    case "3dxml" | "application/3dxml" | "application/x-3exml" | "application/vnd.catiav5-3dxml" ⇒ `application/vnd.catiav5-3dxml`
+    case "application/catiav5-local2d" | "application/vnd-catiav5-drawing" ⇒ `application/vnd.catiav5-drawing`
+    case "application/catiav5-part" | "application/vnd-catiav5-part" ⇒ `application/vnd.catiav5-part`
+    case "model" | "application/model" | "application/x-model" | "application/vnd-catiav5-model" ⇒ `application/vnd.catiav5-model`
+    case "application/catiav5-product" | "application/vnd-catiav5-product" ⇒ `application/vnd.catiav5-product`
+    case "application/catiav5-material" | "application/vnd-catiav5-material" ⇒ `application/vnd.catiav5-material`
+    case "application/catalog" | "application/vnd-catiav5-catalog" ⇒ `application/vnd.catiav5-catalog`
+    case "application/catiav5-analysis" | "application/vnd-catiav5-analysis" ⇒ `application/vnd.catiav5-analysis`
+    case "application/catiav5-process" | "application/vnd-catiav5-process" ⇒ `application/vnd.catiav5-process`
+    case "jt" | "application/jt" | "application/x-jt" | "application/vnd-siemens-plm-jt" ⇒ `application/vnd.siemens-plm-jt`
+    case "plmxml" | "application/plmxml" | "application/x-plmxml" | "application/unigraphics" | "application/vnd-siemens-plm-plmxml" ⇒ `application/vnd.siemens-plm-plmxml`
+    case "vfz" | "application/vfz" | "application/x-vfz" | "application/vnd-siemens-plm-vfz" ⇒ `application/vnd.siemens-plm-vfz`
+    case "application/gzip" | "application/x-gzip" ⇒ `application/gzip`
+    case "application/javascript" ⇒ `application/javascript`
+    case "application/x-jar" | "application/java-archive" ⇒ `application/java-archive`
+    case "application/json" | "text/x-json" | "text/json" ⇒ `application/json`
+    case "application/vnd.msexcel" | "application/msexcel" | "application.x-excel" ⇒ `application/vnd.msexcel`
+    case "application/vnd.mspowerpoint" | "application/mspowerpoint" | "application/x-mspowerpoint" ⇒ `application/vnd.mspowerpoint`
+    case "application/vnd.msword" | "application/msword" | "application/x-msword" ⇒ `application/vnd.msword`
+    case "application/octet-stream" ⇒ `application/octet-stream`
+    case "application/pdf" ⇒ `application/pdf`
+    case "application/postscript" ⇒ `application/postscript`
+    case "application/soap+xml" ⇒ `application/soap+xml`
+    case "application/tar" | "application/x-tar" ⇒ `application/tar`
+    case "application/xhtml+xml" ⇒ `application/xhtml+xml`
+    case "application/xml" ⇒ `application/xml`
+    case "application/xml+dtd" ⇒ `application/xml+dtd`
+    case "application/tgz" | "application/x-tgz" ⇒ `application/x-tgz`
+    case "application/x-7z-compressed" ⇒ `application/x-7z-compressed`
+    case "application/x-javascript" ⇒ `application/x-javascript`
+    case "application/x-shockwave-flash" ⇒ `application/x-shockwave-flash`
+    case "application/x-www-form-urlencoded" ⇒ `application/x-www-form-urlencoded`
+    case "application/zip" | "application/x-zip" ⇒ `application/zip`
+
+    case "audio/basic" ⇒ `audio/basic`
+    case "audio/mpeg" ⇒ `audio/mpeg`
     case "audio/mp4" ⇒ `audio/mp4`
-    case "text/plain" ⇒ `text/plain`
-    // more you lazy ...
-    case n ⇒ `User-defined`(n) // :TODO:
+    case "audio/mp4a-latm" ⇒ `audio/mp4a-latm`
+
+    case "image/gif" ⇒ `image/gif`
+    case "image/png" | "image/x-png" ⇒ `image/png`
+    case "image/jpeg" | "image/jpg" | "image/pjpeg" ⇒ `image/jpeg`
+    case "image/svg+xml" ⇒ `image/svg+xml`
+    case "image/tiff" | "application/raster" ⇒ `image/tiff`
+    case "image/vnd.microsoft.icon" ⇒ `image/vnd.microsoft.icon`
+    case "image/x-icon" ⇒ `image/x-icon`
+
+    case "message/html" ⇒ `message/html`
+    case "message/delivery-status" ⇒ `message/delivery-status`
+
+    case "multipart/form-data" ⇒ `multipart/form-data`
+
+    case "text/css" ⇒ `text/css`
+    case "text/comma-separated-values" ⇒ `text/comma-separated-values`
+    case "text/csv" ⇒ `text/csv`
+    case "text/html" ⇒ `text/html`
+    case "text/javascript" | "text/x-javascript" ⇒ `text/javascript`
+    case "text/plain" | "text/*" ⇒ `text/plain`
+    case "text/rtf" ⇒ `text/rtf`
+    case "text/tab-separated-values" ⇒ `text/tab-separated-values`
+    case "text/xml" ⇒ `text/xml`
+
+    case "video/mpeg" ⇒ `video/mpeg`
+    case "video/mp4" | "video/*" ⇒ `video/mp4`
+    case "video/quicktime" ⇒ `video/quicktime`
+    case "video/x-m4v" ⇒ `video/x-m4v`
+    case "video/x-msvideo" ⇒ `video/x-msvideo`
+
+    case n ⇒ `User-defined`(n)
   }
 
   /**
@@ -61,20 +129,37 @@ object MimeType {
   case object `*/*` extends PredefinedMimeType
 
   case object `application/atom+xml` extends `application/*`("xml")
-  case object `application/gzip` extends `application/*`("gz")
+  case object `application/vnd.catiav5-cgr` extends `application/*`("cgr")
+  case object `application/vnd.catiav5-3dxml` extends `application/*`("3dxml")
+  case object `application/vnd.catiav5-drawing` extends `application/*`("catdrawing")
+  case object `application/vnd.catiav5-model` extends `application/*`("model")
+  case object `application/vnd.catiav5-part` extends `application/*`("catpart")
+  case object `application/vnd.catiav5-product` extends `application/*`("catproduct")
+  case object `application/vnd.catiav5-material` extends `application/*`("catmaterial")
+  case object `application/vnd.catiav5-catalog` extends `application/*`("catcatalog")
+  case object `application/vnd.catiav5-analysis` extends `application/*`("catanalysis")
+  case object `application/vnd.catiav5-process` extends `application/*`("catcatalog")
+  case object `application/vnd.siemens-plm-jt` extends `application/*`("jt")
+  case object `application/vnd.siemens-plm-plmxml` extends `application/*`("plmxml")
+  case object `application/vnd.siemens-plm-vfz` extends `application/*`("vfz")
+  case object `application/gzip` extends `application/*`("gz", "gzip")
   case object `application/javascript` extends `application/*`("js")
+  case object `application/java-archive` extends `application/*`("jar")
   case object `application/json` extends `application/*`("json")
-  case object `application/msexcel` extends `application/*`("xls")
-  case object `application/mspowerpoint` extends `application/*`("ppt")
-  case object `application/msword` extends `application/*`("doc")
+  case object `application/vnd.msexcel` extends `application/*`("xls")
+  case object `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` extends `application/*`("xlsx")
+  case object `application/vnd.mspowerpoint` extends `application/*`("ppt")
+  case object `application/vnd.msword` extends `application/*`("doc")
   case object `application/octet-stream` extends `application/*`("bin", "class", "exe", "com", "dll", "lib", "a", "o")
   case object `application/pdf` extends `application/*`("pdf")
   case object `application/postscript` extends `application/*`("ps", "ai")
   case object `application/soap+xml` extends `application/*`("xml")
+  case object `application/tar` extends `application/*`("tar")
   case object `application/xhtml+xml` extends `application/*`("xml")
   case object `application/xml` extends `application/*`("xml")
   case object `application/xml+dtd` extends `application/*`("xml", "dtd")
   case object `application/x-7z-compressed` extends `application/*`("7z")
+  case object `application/x-tgz` extends `application/*`("tgz")
   case object `application/x-javascript` extends `application/*`("js")
   case object `application/x-shockwave-flash` extends `application/*`("swf")
   case object `application/x-www-form-urlencoded` extends `application/*`

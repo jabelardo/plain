@@ -13,9 +13,11 @@ trait Message {
 
   def headers: Headers
 
-  def entity: Option[Entity]
+  var entity: Option[Entity]
 
   type Type <: Message
+
+  final def ++(entity: Option[Entity]): Type = { this.entity = entity; this.asInstanceOf[Type] }
 
 }
 

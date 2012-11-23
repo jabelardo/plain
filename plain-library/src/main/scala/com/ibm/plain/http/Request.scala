@@ -21,7 +21,7 @@ final case class Request(
 
   headers: Headers,
 
-  entity: Option[Entity])
+  var entity: Option[Entity])
 
   extends Message {
 

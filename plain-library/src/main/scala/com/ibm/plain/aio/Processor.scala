@@ -21,7 +21,7 @@ trait Processor[E, A <: Renderable]
 
   def failed(e: Throwable, io: Io)
 
-//  protected[this] final def processed = throw AioDone
+  //  protected[this] final def processed = throw AioDone
 
   private[aio] final def doProcess(io: Io): Io @suspendable = {
     import io._

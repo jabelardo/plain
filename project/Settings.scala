@@ -55,8 +55,7 @@ object Settings {
 		"-Yinline",
 		"-Yinline-handlers",
 		"-Yinline-warnings",
-		"-Ywarn-adapted-args",
-		"-Xexperimental"
+		"-Ywarn-adapted-args"
     ),
     
 	javacOptions in Compile ++= Seq(

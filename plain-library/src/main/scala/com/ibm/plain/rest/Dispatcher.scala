@@ -30,7 +30,8 @@ abstract class Dispatcher(templates: Option[Templates])
           clazz.newInstance match {
             case resource: Resource ⇒
               entity match {
-                case Some(ContentEntity(length, _)) if !method.entityallowed && length < Int.MaxValue ⇒ drop(length.toInt)
+                case Some(ContentEntity(length)) if !method.entityallowed && length < Int.MaxValue ⇒
+                  drop(length.toInt); request ++ None
                 case Some(_) if !method.entityallowed ⇒ throw ServerError.`501`
                 case _ ⇒
               }
@@ -61,6 +62,6 @@ class DefaultDispatcher
     Template("static", Class.forName("com.ibm.plain.rest.resource.DirectoryResource")),
     Template("echo", Class.forName("com.ibm.plain.rest.resource.EchoResource")))) {
 
-  // Test.test
+  resource.Test.test
 
 }

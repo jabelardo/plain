@@ -39,8 +39,6 @@ final case class Response(
 
   @inline final def ++(headers: Headers): Type = { this.headers = headers; this }
 
-  @inline final def ++(entity: Option[Entity]): Type = { this.entity = entity; this }
-
 }
 
 /**

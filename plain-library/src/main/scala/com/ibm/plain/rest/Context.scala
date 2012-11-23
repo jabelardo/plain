@@ -10,7 +10,7 @@ import http.Request.{ Path, Variables }
 /**
  * A wrapper to hold shared context among Uniforms.
  */
-final class Context private (
+final case class Context private (
 
   var io: Io,
 

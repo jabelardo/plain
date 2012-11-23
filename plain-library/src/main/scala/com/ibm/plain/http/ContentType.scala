@@ -6,16 +6,25 @@ package http
 
 import java.nio.charset.Charset
 
+import Status.ClientError
+import aio.{ Io, Renderable }
+import aio.Renderable.r
+import text.fastSplit
+
 /**
  *
  */
-abstract sealed class ContentType {
+final case class ContentType private (
 
-  val mimetype: MimeType
+  mimetype: MimeType,
 
-  val charset: Option[Charset]
+  charset: Option[Charset])
 
-  final def render = mimetype + "; charset=" + charset
+  extends Renderable {
+
+  import ContentType._
+
+  @inline final def render(implicit io: Io) = mimetype + r(charset match { case None ⇒ "" case Some(c) ⇒ "; charset=" + c.displayName })
 
 }
 
@@ -24,42 +33,21 @@ abstract sealed class ContentType {
  */
 object ContentType {
 
+  def apply(mimetype: MimeType) = new ContentType(mimetype, None)
+
   /**
-   *
+   * Given a header value like "text/html; charset=ISO-8859-4" this will split it into a MimeType and a Charset.
    */
-  abstract sealed class PredefinedContentType extends ContentType {
-
-    final val mimetype = MimeType(toString)
-
-    final val charset: Option[Charset] = None
-
+  def apply(headervalue: String): ContentType = fastSplit(headervalue, ';') match {
+    case mimetype :: Nil ⇒ apply(MimeType(mimetype))
+    case mimetype :: charset :: Nil ⇒ apply(MimeType(mimetype.trim), Some(try Charset.forName(charset.trim.replace("charset=", "")) catch { case _: Throwable ⇒ Charset.defaultCharset }))
+    case _ ⇒ throw ClientError.`415`
   }
-
-  case object `text/plain` extends PredefinedContentType
-
-  case object `text/xml` extends PredefinedContentType
-
-  case object `application/xml` extends PredefinedContentType
-
-  case object `application/json` extends PredefinedContentType
-
-  case object `application/octet-stream` extends PredefinedContentType
-
-  case class `User-defined`(mimetype: MimeType, charset: Option[Charset]) extends ContentType
 
 }
 
 trait ContentTypeValue extends HeaderValue[ContentType] {
 
-  import ContentType._
-
-  def value(name: String): ContentType = name match {
-    case "text/plain" ⇒ `text/plain`
-    case "text/xml" ⇒ `text/xml`
-    case "application/xml" ⇒ `application/xml`
-    case "application/json" ⇒ `application/json`
-    case "application/octet-stream" ⇒ `application/octet-stream`
-    case userdefined ⇒ `User-defined`(MimeType(userdefined), None)
-  }
+  @inline def value(name: String) = ContentType(name)
 
 }

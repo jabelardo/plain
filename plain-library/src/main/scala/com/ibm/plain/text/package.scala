@@ -6,6 +6,8 @@ import java.io.{ ByteArrayOutputStream, OutputStreamWriter, PrintWriter, StringW
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets.{ US_ASCII, UTF_8 }
 
+import scala.annotation.tailrec
+
 import org.apache.commons.codec.binary.Base64
 
 import io.Base64OutputStream
@@ -49,6 +51,17 @@ package object text {
     throwable.printStackTrace(writer)
     writer.close
     new String(bos.toByteArray, "UTF-8")
+  }
+
+  /**
+   * 'borrowed' from spray.io
+   */
+  def fastSplit(s: String, delimiter: Char): List[String] = {
+    @tailrec def split(end: Int, elements: List[String]): List[String] = {
+      val i = s.lastIndexOf(delimiter, end - 1)
+      if (i < 0) s.substring(0, end) :: elements else split(i, s.substring(i + 1, end) :: elements)
+    }
+    split(s.length, Nil)
   }
 
   /**

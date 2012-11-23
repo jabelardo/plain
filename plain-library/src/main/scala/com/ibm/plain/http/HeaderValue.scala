@@ -29,6 +29,11 @@ object HeaderValue {
   trait IntValue extends HeaderValue[Int] { final def value(s: String) = s.trim.toInt }
 
   /**
+   * Header.value contains a Long.
+   */
+  trait LongValue extends HeaderValue[Long] { final def value(s: String) = s.trim.toLong }
+
+  /**
    * Header.value contains a java.util.Date.
    */
   trait DateValue extends HeaderValue[java.util.Date] { final def value(s: String) = dateformat.parse(s.trim) }

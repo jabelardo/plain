@@ -16,7 +16,6 @@ import Status.ServerError.`501`
 import Header.Entity.`Content-Length`
 import Header.General.`Transfer-Encoding`
 import Entity.{ ContentEntity, TransferEncodedEntity }
-import ContentType.`text/plain`
 
 /**
  * Consuming the input stream to produce a Request.
@@ -126,9 +125,9 @@ final class RequestIteratee private ()(implicit server: Server) {
   private[this] final def readEntity(headers: Headers): Iteratee[Io, Option[Entity]] = Done(
     `Transfer-Encoding`(headers) match {
       case Some(value) ⇒ Some(TransferEncodedEntity(value))
-      case None ⇒ `Content-Length`(headers) match {
+      case _ ⇒ `Content-Length`(headers) match {
         case Some(length) ⇒ Some(ContentEntity(length))
-        case None ⇒ None
+        case _ ⇒ None
       }
     })
 

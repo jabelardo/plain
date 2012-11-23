@@ -18,25 +18,7 @@ abstract sealed class Entity
  */
 object Entity {
 
-  final case class ContentEntity(
-
-    var length: Long,
-
-    var contenttype: ContentType)
-
-    extends Entity {
-
-    final def ++(length: Long) = { this.length = length; this }
-
-    final def ++(contenttype: ContentType) = { this.contenttype = contenttype; this }
-
-  }
-
-  object ContentEntity {
-
-    @inline def apply(length: Long) = new ContentEntity(length, null)
-
-  }
+  final case class ContentEntity(length: Long) extends Entity
 
   sealed abstract class TransferEncodedEntity extends Entity
 
@@ -50,7 +32,7 @@ object Entity {
 
   case object `deflate` extends TransferEncodedEntity
 
-  final case class `user-defined`(encoding: String) extends TransferEncodedEntity
+  final case class `User-defined`(encoding: String) extends TransferEncodedEntity
 
   object TransferEncodedEntity {
 
@@ -60,7 +42,7 @@ object Entity {
       case "gzip" ⇒ `gzip`
       case "compress" ⇒ `compress`
       case "deflate" ⇒ `deflate`
-      case other ⇒ `user-defined`(other)
+      case other ⇒ `User-defined`(other)
     }
 
   }
