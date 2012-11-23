@@ -6,10 +6,14 @@ package rest
 
 package resource
 
-class PingResource
+import http._
+
+final class PingResource
 
   extends Resource {
 
-  Get { "pong!" }
+  // Get { request: Request ⇒ response: Response ⇒ context: Context ⇒ "pong!" }
+
+  Get0 { 42 }
 
 }

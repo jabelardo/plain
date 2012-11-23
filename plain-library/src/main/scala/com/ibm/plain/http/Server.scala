@@ -207,7 +207,7 @@ object Server {
 	
 		allow-any-version-but-treat-it-like-1-1 = off
 		
-		default-character-set = UTF-8
+		default-character-set = ISO-8859-15
 		
 		disable-url-decoding = off
 		

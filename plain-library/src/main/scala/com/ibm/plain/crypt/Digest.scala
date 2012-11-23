@@ -27,7 +27,7 @@ object Digest {
     md5.digest().map(0xff & _).map { "%02x".format(_) }.foldLeft("") { _ + _ }
   }
 
-  def apply(s: String, method: String): String = apply(s.getBytes(text.UTF8), method)
+  def apply(s: String, method: String): String = apply(s.getBytes(text.`UTF-8`), method)
 
   /**
    * Convert bytes or a string into an MD5 hash simply by calling MD5(...).

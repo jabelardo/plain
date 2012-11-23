@@ -4,7 +4,7 @@ package plain
 
 import java.io.{ ByteArrayOutputStream, OutputStreamWriter, PrintWriter, StringWriter }
 import java.nio.charset.Charset
-import java.nio.charset.StandardCharsets.{ US_ASCII, UTF_8 }
+import java.nio.charset.StandardCharsets.{ ISO_8859_1, US_ASCII, UTF_8 }
 
 import scala.annotation.tailrec
 
@@ -17,12 +17,22 @@ package object text {
   /**
    * The most important standard character sets.
    */
-  val ASCII = US_ASCII
+  val `US-ASCII` = US_ASCII
 
   /**
    * The most important standard character sets.
    */
-  val UTF8 = UTF_8
+  val `UTF-8` = UTF_8
+
+  /**
+   * This is the default for HTTP/1.1.
+   */
+  val `ISO-8859-1` = ISO_8859_1
+
+  /**
+   * This overrides the default for HTTP/1.1 (ISO-8859-1) in our framework just because of the Euro sign (€).
+   */
+  val `ISO-8859-15` = Charset.forName("ISO-8859-15")
 
   /**
    * Convert input to readable output if input is base64-encoded else return input.
@@ -73,7 +83,7 @@ package object text {
    * Converts an UTF8 encoded string to a hex string, the hex characters are all uppercase; it is case sensitive.
    */
   def hexify(s: String): String = {
-    val bytes = s.getBytes(UTF8)
+    val bytes = s.getBytes(`UTF-8`)
     val buf = new StringBuilder(2 * bytes.length)
     var i = 0; while (i < bytes.length) { buf.append(hexarray(0xff & bytes(i))); i += 1 }
     buf.toString
@@ -91,14 +101,14 @@ package object text {
       buf(i) = ((Character.digit(hex.charAt(j), 16) << 4) + Character.digit(hex.charAt(j + 1), 16)).toByte
       i += 1
     }
-    new String(buf, UTF8)
+    new String(buf, `UTF-8`)
   }
 
   /**
    * Converts an UTF8 encoded string to a crypted hex string, the hex characters are all uppercase; it is case sensitive.
    */
   def hexifyCrypted(s: String): String = {
-    val bytes = s.getBytes(UTF8)
+    val bytes = s.getBytes(`UTF-8`)
     val buf = new StringBuilder(2 * bytes.length)
     var i = 0; while (i < bytes.length) {
       buf.append(hexcryptarray(((i & 15) << 8) + (0xff & bytes(i))))

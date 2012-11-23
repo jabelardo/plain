@@ -10,7 +10,7 @@ import aio.Io
 import aio.Renderable
 import aio.Renderable._
 import Status.ServerError.`505`
-import text.ASCII
+import text.`US-ASCII`
 
 /**
  * Supported http versions. The current implementation only supports HTTP/1.1.
@@ -19,7 +19,7 @@ sealed abstract class Version
 
   extends Renderable {
 
-  final val version = toString.getBytes(ASCII)
+  final val version = toString.getBytes(`US-ASCII`)
 
   final def render(implicit io: Io) = r(version) + ^
 

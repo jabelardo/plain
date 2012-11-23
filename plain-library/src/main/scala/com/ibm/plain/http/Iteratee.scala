@@ -9,7 +9,7 @@ import org.apache.commons.codec.net.URLCodec
 import aio._
 import aio.Iteratee._
 import aio.Iteratees._
-import text.{ ASCII, UTF8 }
+import text.`US-ASCII`
 import Message.Headers
 import Request.Path
 import Status.ServerError.`501`
@@ -26,7 +26,7 @@ final class RequestIteratee private ()(implicit server: Server) {
 
   import server.settings.{ defaultCharacterSet, disableUrlDecoding }
 
-  private[this] implicit final val ascii = ASCII
+  private[this] implicit final val ascii = `US-ASCII`
 
   private[this] final val codec = new URLCodec(defaultCharacterSet.toString)
 

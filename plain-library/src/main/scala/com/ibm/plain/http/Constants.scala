@@ -6,8 +6,6 @@ package http
 
 import scala.collection.immutable.{ BitSet, NumericRange, Range ⇒ SRange }
 
-import text.ASCII
-
 /**
  * Basic http request parsing constants.
  */

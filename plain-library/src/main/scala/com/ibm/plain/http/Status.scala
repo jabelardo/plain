@@ -11,7 +11,7 @@ import scala.util.control.ControlThrowable
 import aio.Io
 import aio.Renderable
 import aio.Renderable._
-import text.ASCII
+import text.`US-ASCII`
 
 /**
  * A typical 'flow control' type of exception. Used for Http error/success handling.
@@ -43,9 +43,9 @@ object Status {
 
   abstract sealed class BaseStatus(r: String) extends Status {
 
-    final val code = reflect.simpleName(getClass.getName).getBytes(ASCII)
+    final val code = reflect.simpleName(getClass.getName).getBytes(`US-ASCII`)
 
-    final val reason = r.getBytes(ASCII)
+    final val reason = r.getBytes(`US-ASCII`)
 
     override final def toString = reflect.simpleParentName(getClass.getName) + "(code=" + new String(code) + ", reason=" + r + ")"
 

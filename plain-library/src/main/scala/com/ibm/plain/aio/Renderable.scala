@@ -11,7 +11,7 @@ import scala.util.continuations.{ reset, shift, suspendable }
 
 import Io.{ IoCont, WriteHandler }
 import Iteratee.Error
-import text.ASCII
+import text.`US-ASCII`
 import concurrent.OnlyOnce
 
 /**
@@ -110,7 +110,7 @@ object Renderable
 
   object r {
 
-    @inline final def apply(s: String) = new r(s.getBytes(ASCII))
+    @inline final def apply(s: String) = new r(s.getBytes(`US-ASCII`))
 
   }
 
