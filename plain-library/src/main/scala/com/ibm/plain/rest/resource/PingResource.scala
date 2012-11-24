@@ -12,8 +12,6 @@ final class PingResource
 
   extends Resource {
 
-  // Get { request: Request ⇒ response: Response ⇒ context: Context ⇒ "pong!" }
-
-  Get0 { 42 }
+  Get { require(1 == request.path.length); "pong!" }
 
 }

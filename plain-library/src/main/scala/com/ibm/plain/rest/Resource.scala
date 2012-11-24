@@ -43,6 +43,7 @@ trait Resource
         }
       case _ ⇒
     }
+    val response = Response(Success.`200`)
     val body = methods.get(request.method) match {
       case Some(m) ⇒ m.toList.head._2.toList.head._2
       case None ⇒ throw ClientError.`405`
@@ -51,49 +52,50 @@ trait Resource
       case Some(ContentEntity(length)) if length <= maxEntityBufferSize ⇒ None
       case _ ⇒ None
     }
-    val response = Response(Success.`200`)
-    val r = body(in.getOrElse(()))(request, response, context)
-    println(r)
+    threadlocals.set((request, response, context))
+    val r = body(in.getOrElse(()))
+    // println(r)
+    threadlocals.remove
     completed(response, context)
   }
 
   def test = ()
 
   final def Post[E: TypeTag, A: TypeTag](body: E ⇒ A): Unit = {
-    //    add(POST, Some(typeOf[E]), Some(typeOf[A]), body)
+    add(POST, Some(typeOf[E]), Some(typeOf[A]), body)
   }
 
   final def Post[A: TypeTag](body: ⇒ A): Unit = {
-    //    add(POST, None, Some(typeOf[A]), (_: Unit) ⇒ body)
+    add(POST, None, Some(typeOf[A]), (_: Unit) ⇒ body)
   }
 
   final def Put[E: TypeTag, A: TypeTag](body: E ⇒ A): Unit = {
-    //    add(PUT, Some(typeOf[E]), Some(typeOf[A]), body)
+    add(PUT, Some(typeOf[E]), Some(typeOf[A]), body)
   }
 
   final def Delete[A: TypeTag](body: ⇒ A): Unit = {
-    //    add(DELETE, None, Some(typeOf[A]), (_: Unit) ⇒ body)
-  }
-
-  //  final def Get[A: TypeTag](body: ⇒ A): Unit = {
-  //    //    add(GET, None, Some(typeOf[A]), (_: Unit) ⇒ body)
-  //  }
-
-  final def Get[A: TypeTag](body: ⇒ (Request, Response, Context) ⇒ A): Unit = {
-    add(GET, None, Some(typeOf[A]), (_: Unit) ⇒ body)
+    add(DELETE, None, Some(typeOf[A]), (_: Unit) ⇒ body)
   }
 
   final def Get[A: TypeTag](body: ⇒ A): Unit = {
-    add(GET, None, Some(typeOf[A]), (_: Unit) ⇒ (_: Request, _: Response, _: Context) ⇒ body)
+    add(GET, None, Some(typeOf[A]), (_: Unit) ⇒ body)
   }
 
-  //  final def Get[A: TypeTag](body: Map[String, String] ⇒ A): Unit = {
-  //    //    add(GET, Some(typeOf[Map[String, String]]), Some(typeOf[A]), body)
-  //  }
+  final def Get[A: TypeTag](body: Map[String, String] ⇒ A): Unit = {
+    add(GET, Some(typeOf[Map[String, String]]), Some(typeOf[A]), body)
+  }
 
   final def Head(body: ⇒ Unit): Unit = {
-    //    (HEAD, None, None, (_: Unit) ⇒ body)
+    (HEAD, None, None, (_: Unit) ⇒ body)
   }
+
+  protected[this] final def request = threadlocals.get._1
+
+  protected[this] final def response = threadlocals.get._2
+
+  protected[this] final def context = threadlocals.get._3
+
+  def m = methods
 
   private[this] final def add[E, A](method: Method, in: Option[Type], out: Option[Type], body: Body[E, A]) = {
     val b = body.asInstanceOf[Body[Any, Any]]
@@ -106,8 +108,6 @@ trait Resource
     })
   }
 
-  def m = methods
-
   private[this] final var methods: Methods = null
 
 }
@@ -117,7 +117,7 @@ trait Resource
  */
 object Resource {
 
-  private type Body[E, A] = E ⇒ (Request, Response, Context) ⇒ A
+  private type Body[E, A] = E ⇒ A
 
   private type Methods = Map[Method, InOut]
 
@@ -126,6 +126,8 @@ object Resource {
   private type OutBody = Map[Option[Type], Body[Any, Any]]
 
   private final var resourcemethods: Map[Class[_ <: Resource], Methods] = Map.empty
+
+  private final val threadlocals = new ThreadLocal[(Request, Response, Context)]
 
 }
 
