@@ -6,17 +6,15 @@ package rest
 
 package resource
 
-import http._
-
 final class PingResource
 
   extends Resource {
 
   Get { "pong!" }
 
-  Get {
-    response ++ Status.Success.`206`
-    json.Json.parse("[1, 2, 3]").asArray
+  Get { form: Map[String, String] ⇒
+    response ++ http.Status.Success.`206`
+    json.Json(form).asObject
   } onComplete { response ⇒
     println("ping ok " + response + " " + context.##)
   } onFailure { e ⇒

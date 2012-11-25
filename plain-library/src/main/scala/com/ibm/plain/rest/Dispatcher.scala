@@ -62,6 +62,6 @@ class DefaultDispatcher
     Template("static", Class.forName("com.ibm.plain.rest.resource.DirectoryResource")),
     Template("echo", Class.forName("com.ibm.plain.rest.resource.EchoResource")))) {
 
-  // resource.Test.test
+  //  resource.Test.test
 
 }
