@@ -25,14 +25,15 @@ class DirectoryResource
 
   import DirectoryResource._
 
-  override def handle(request: Request, context: Context): Nothing = {
+  // needs more thinking first, configuration must only be parsed once
+  def handle2(request: Request, context: Context): Nothing = {
     import settings._
     rootDirectory.resolve(context.remainder.mkString("/")) match {
       case file if exists(file) && isRegularFile(file) ⇒
         println("size " + size(file));
         completed(Response(Success.`200`), context)
-      case file if exists(file) ⇒ completed(Response(ClientError.`406`), context)
-      case _ ⇒ completed(Response(ClientError.`404`), context)
+      case file if exists(file) ⇒ throw ClientError.`406`
+      case _ ⇒ throw ClientError.`404`
     }
   }
 

@@ -12,6 +12,15 @@ final class PingResource
 
   extends Resource {
 
-  Get { require(1 == request.path.length); "pong!" }
+  Get { "pong!" }
+
+  Get {
+    response ++ Status.Success.`206`
+    json.Json.parse("[1, 2, 3]").asArray
+  } onComplete { response ⇒
+    println("ping ok " + response + " " + context.##)
+  } onFailure { e ⇒
+    println("ping failed " + e + " " + context.##)
+  }
 
 }

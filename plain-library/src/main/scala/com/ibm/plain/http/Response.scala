@@ -11,11 +11,12 @@ import aio.Renderable
 import aio.Renderable._
 import Message._
 import Entity._
+import Status._
 
 /**
  * The classic http response.
  */
-final case class Response(
+final case class Response private (
 
   version: Version,
 
@@ -47,8 +48,6 @@ final case class Response(
 object Response {
 
   def apply(status: Status) = new Response(Version.`HTTP/1.1`, status, Map.empty, None)
-
-  def apply(resource: (Status, Option[Entity])) = new Response(Version.`HTTP/1.1`, resource._1, Map.empty, resource._2)
 
 }
 

@@ -24,6 +24,7 @@ abstract class Dispatcher(templates: Option[Templates])
 
   final def handle(request: Request, context: Context): Nothing = {
     import request._
+    import context.io
     templates match {
       case Some(root) ⇒ root.get(path) match {
         case Some((clazz, variables, remainder)) ⇒
@@ -35,7 +36,7 @@ abstract class Dispatcher(templates: Option[Templates])
                 case Some(_) if !method.entityallowed ⇒ throw ServerError.`501`
                 case _ ⇒
               }
-              resource.handle(request, context ++ variables ++ remainder ++ this)
+              resource.handle(request, Context(resource) ++ io ++ variables ++ remainder ++ this)
             case _ ⇒ throw ServerError.`500`
           }
         case _ ⇒ throw ClientError.`404`

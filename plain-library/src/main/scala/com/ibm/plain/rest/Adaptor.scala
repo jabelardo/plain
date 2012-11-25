@@ -18,7 +18,7 @@ final class Adaptor private (
 
   extends Handler[Long, Io] {
 
-  @inline final def completed(readwritten: Long, io: Io) = uniform.completed(Response(Success.`200`), context ++ io)
+  @inline final def completed(readwritten: Long, io: Io) = uniform.completed(context.response, context ++ io)
 
   @inline final def failed(e: Throwable, io: Io) = uniform.failed(e, context ++ io)
 
