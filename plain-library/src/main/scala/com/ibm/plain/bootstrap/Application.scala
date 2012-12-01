@@ -42,6 +42,7 @@ abstract sealed class Application
   private[this] final val components = new ArrayBuffer[BaseComponent[_]] with SynchronizedBuffer[BaseComponent[_]]
 
   private[this] final val starttime = now
+
 }
 
 /**

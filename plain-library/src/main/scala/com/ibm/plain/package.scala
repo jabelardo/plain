@@ -28,6 +28,7 @@ package object plain
 
   def run(timeout: Duration)(body: ⇒ Unit): Unit = try {
     application.bootstrap
+    concurrent.schedule(60000, 60000) { sys.runtime.gc } // :TODO: think about this!
     body
     application.awaitTermination(timeout)
   } catch {

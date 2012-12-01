@@ -10,7 +10,7 @@ import scala.language.implicitConversions
 
 import aio.FileByteChannel.forWriting
 import aio.transfer
-import http.{ Request, Response, Method, Status }
+import http.{ Entity, Request, Response, Method, Status }
 import http.Entity.ContentEntity
 import http.Method._
 import http.Status._
@@ -66,38 +66,28 @@ trait Resource
   final def failed(e: Throwable): Unit = failed(e, threadlocal.get)
 
   final def handle(request: Request, context: Context): Nothing = {
-    test
-    /**
-     * ugly and incomplete and stupid "dispatching"
-     */
-    request.entity match {
-      case Some(entity) ⇒
-        http.Header.Entity.`Content-Type`(request.headers) match {
-          case Some(value) ⇒ println(value)
-          case _ ⇒ println("no ct")
+    import request._
+    methods.get(method) match {
+      case Some(inout) ⇒
+        // transfer-decoding here
+        input(request) match {
+          case Some(in) ⇒ in match {
+            case Right(ContentEntity(length)) if length <= maxEntityBufferSize ⇒
+            case Left(query) ⇒
+            case _ ⇒ println("no correct input")
+          }
+          case None ⇒ println("no input")
         }
-      case _ ⇒
-    }
-    val methodbody = methods.get(request.method) match {
-      case Some(m) ⇒ m.toList.head._2.toList.head._2
+        val methodbody = resourcemethods.get(this.getClass).get.get(method).toList.head.get(None).get.toList.head._2
+        println(methodbody)
+        try {
+          threadlocal.set(context ++ methodbody ++ request ++ Response(Success.`200`))
+          methodbody.body(())
+          completed(response, context)
+        } finally {
+          threadlocal.remove
+        }
       case None ⇒ throw ClientError.`405`
-    }
-    val in: Option[Any] = request.entity match {
-      case Some(ContentEntity(length)) if length <= maxEntityBufferSize ⇒ None
-      case _ ⇒ None
-    }
-    /**
-     * fill up context with everything we have right now
-     */
-    context ++ request ++ Response(Success.`200`) ++ methodbody
-
-    try {
-      threadlocal.set(context)
-      val r = methodbody.body(in.getOrElse(()))
-      println(r)
-      completed(response, context)
-    } finally {
-      threadlocal.remove
     }
   }
 
@@ -137,8 +127,6 @@ trait Resource
 
   protected[this] final def context = threadlocal.get
 
-  def m = methods // for TestResource
-
   private[this] final def add[E, A](method: Method, in: Option[Type], out: Option[Type], body: Body[E, A]): MethodBody = {
     val methodbody = MethodBody(body.asInstanceOf[Body[Any, Any]])
     methods = methods ++ (methods.get(method) match {
@@ -151,6 +139,16 @@ trait Resource
     methodbody
   }
 
+  private[this] final def input(request: Request): Option[Either[String, Entity]] = request.entity match {
+    case Some(entity) ⇒ Some(Right(entity))
+    case None ⇒ request.query match {
+      case Some(query) ⇒ Some(Left(query))
+      case None ⇒ None
+    }
+  }
+
+  def m = methods // for TestResource
+
   private[this] final var methods: Methods = null
 
 }
@@ -160,7 +158,7 @@ trait Resource
  */
 object Resource {
 
-  class MethodBody private (
+  final class MethodBody private (
 
     val body: Body[Any, Any],
 
@@ -168,15 +166,15 @@ object Resource {
 
     var failed: Option[Throwable ⇒ Unit]) {
 
-    def onComplete(body: Response ⇒ Unit) = { completed = Some(body); this }
+    @inline final def onComplete(body: Response ⇒ Unit) = { completed = Some(body); this }
 
-    def onFailure(body: Throwable ⇒ Unit) = { failed = Some(body); this }
+    @inline final def onFailure(body: Throwable ⇒ Unit) = { failed = Some(body); this }
 
   }
 
   object MethodBody {
 
-    def apply(body: Body[Any, Any]) = new MethodBody(body, None, None)
+    @inline def apply(body: Body[Any, Any]) = new MethodBody(body, None, None)
 
   }
 
@@ -193,5 +191,3 @@ object Resource {
   private final val threadlocal = new ThreadLocal[Context]
 
 }
-
-

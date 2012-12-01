@@ -67,4 +67,3 @@ abstract sealed class Concurrent
  * The Concurrent object.
  */
 object Concurrent extends Concurrent
-
