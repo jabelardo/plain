@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit
 
 import scala.concurrent.duration._
 import scala.util.continuations.reset
+import scala.collection.JavaConversions._
 
 import com.typesafe.config.{ Config, ConfigFactory }
 
@@ -143,7 +144,7 @@ object Server {
     final val displayName = getString("display-name")
 
     final val dispatcher = {
-      val dconfig = config.settings.getConfig(getString("dispatcher"))
+      val dconfig = config.settings.getConfig(getString("dispatcher")).withFallback(config.settings.getConfig("plain.rest.default-dispatcher"))
       val d = dconfig.getInstanceFromClassName[Dispatcher]("class-name")
       d.name = dconfig.getString("display-name", getString("dispatcher"))
       d
@@ -170,6 +171,8 @@ object Server {
     final val defaultCharacterSet = Charset.forName(getString("feature.default-character-set"))
 
     final val disableUrlDecoding = getBoolean("feature.disable-url-decoding")
+
+    final val maxEntityBufferSize = getBytes("feature.max-entity-buffer-size", 16 * 1024).toInt
 
     require(0 < portRange.size, "You must at least specify one port for 'port-range'.")
 
@@ -211,7 +214,9 @@ object Server {
 		
 		disable-url-decoding = off
 		
-	}""")
+		max-entity-buffer-size = 16K
+
+    }""")
 
   }
 

@@ -9,7 +9,7 @@ import java.nio.charset.Charset
 import Status.ClientError
 import aio.{ Io, Renderable }
 import aio.Renderable.r
-import text.fastSplit
+import text.{ fastSplit, `ISO-8859-15` }
 
 /**
  *
@@ -24,7 +24,16 @@ final case class ContentType private (
 
   import ContentType._
 
+  @inline def charsetOrDefault = charset match { case Some(charset) ⇒ charset case None ⇒ `ISO-8859-15` }
+
   @inline final def render(implicit io: Io) = mimetype + r(charset match { case None ⇒ "" case Some(c) ⇒ "; charset=" + c.displayName })
+
+  @inline override def equals(other: Any) = other match {
+    case b: ContentType ⇒ mimetype == b.mimetype
+    case _ ⇒ false
+  }
+
+  @inline override def hashCode = mimetype.hashCode
 
 }
 

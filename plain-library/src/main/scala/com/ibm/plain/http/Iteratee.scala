@@ -13,9 +13,9 @@ import text.`US-ASCII`
 import Message.Headers
 import Request.Path
 import Status.ServerError.`501`
-import Header.Entity.`Content-Length`
+import Header.Entity.{ `Content-Length`, `Content-Type` }
 import Header.General.`Transfer-Encoding`
-import Entity.{ ContentEntity, TransferEncodedEntity }
+import Entity.{ ArrayEntity, StringEntity, ContentEntity, TransferEncodedEntity }
 
 /**
  * Consuming the input stream to produce a Request.
@@ -24,7 +24,7 @@ final class RequestIteratee private ()(implicit server: Server) {
 
   import RequestConstants._
 
-  import server.settings.{ defaultCharacterSet, disableUrlDecoding }
+  import server.settings.{ defaultCharacterSet, disableUrlDecoding, maxEntityBufferSize }
 
   private[this] implicit final val ascii = `US-ASCII`
 
@@ -108,7 +108,7 @@ final class RequestIteratee private ()(implicit server: Server) {
       } yield (name.toLowerCase, value)
     }
 
-    @inline def cont(headers: List[(String, String)]): Iteratee[Io, Headers] = peek(1) >>> {
+    def cont(headers: List[(String, String)]): Iteratee[Io, Headers] = peek(1) >>> {
       case "\r" ⇒ for {
         _ ← drop(2)
         done ← Done(headers.toMap)
@@ -122,19 +122,30 @@ final class RequestIteratee private ()(implicit server: Server) {
     cont(Nil)
   }
 
-  private[this] final def readEntity(headers: Headers): Iteratee[Io, Option[Entity]] = Done(
+  private[this] final def readEntity(headers: Headers, query: Option[String]): Iteratee[Io, Option[Entity]] = Done(
     `Transfer-Encoding`(headers) match {
       case Some(value) ⇒ Some(TransferEncodedEntity(value))
-      case _ ⇒ `Content-Length`(headers) match {
-        case Some(length) ⇒ Some(ContentEntity(length))
-        case _ ⇒ None
-      }
+      case _ ⇒
+        `Content-Type`(headers) match {
+          case Some(contenttype) ⇒
+            `Content-Length`(headers) match {
+              case Some(length) if length <= maxEntityBufferSize ⇒
+                val readArray = for (array ← takeBytes(length.toInt)) yield array
+                Some(ArrayEntity(readArray.result, contenttype))
+              case Some(length) ⇒ Some(ContentEntity(length, contenttype))
+              case _ ⇒ query match {
+                case Some(s) ⇒ Some(StringEntity(s, contenttype))
+                case _ ⇒ None
+              }
+            }
+          case _ ⇒ None
+        }
     })
 
   final val readRequest: Iteratee[Io, Request] = for {
     (method, path, query, version) ← readRequestLine
     headers ← readHeaders
-    entity ← readEntity(headers)
+    entity ← readEntity(headers, query)
   } yield Request(method, path, query, version, headers, entity)
 
 }

@@ -4,16 +4,14 @@ package plain
 
 package rest
 
-import scala.reflect._
 import scala.reflect.runtime.universe._
-import scala.language.implicitConversions
 
-import aio.FileByteChannel.forWriting
-import aio.transfer
-import http.{ Entity, Request, Response, Method, Status }
-import http.Entity.ContentEntity
-import http.Method._
-import http.Status._
+import http.{ Request, Response, Status }
+import http.Entity
+import http.Entity._
+import http.Method
+import http.Method.{ DELETE, GET, HEAD, POST, PUT }
+import http.Status.{ ClientError, Success }
 
 /**
  *
@@ -67,19 +65,8 @@ trait Resource
 
   final def handle(request: Request, context: Context): Nothing = {
     import request._
-    methods.get(method) match {
-      case Some(inout) ⇒
-        // transfer-decoding here
-        input(request) match {
-          case Some(in) ⇒ in match {
-            case Right(ContentEntity(length)) if length <= maxEntityBufferSize ⇒
-            case Left(query) ⇒
-            case _ ⇒ println("no correct input")
-          }
-          case None ⇒ println("no input")
-        }
-        val methodbody = resourcemethods.get(this.getClass).get.get(method).toList.head.get(None).get.toList.head._2
-        println(methodbody)
+    matchBody(method, entity, None) match {
+      case Some(methodbody) ⇒
         try {
           threadlocal.set(context ++ methodbody ++ request ++ Response(Success.`200`))
           methodbody.body(())
@@ -91,34 +78,36 @@ trait Resource
     }
   }
 
-  def test = ()
-
   final def Post[E: TypeTag, A: TypeTag](body: E ⇒ A): MethodBody = {
-    add(POST, Some(typeOf[E]), Some(typeOf[A]), body)
+    add[E, A](POST, Some(typeOf[E]), Some(typeOf[A]), body)
   }
 
   final def Post[A: TypeTag](body: ⇒ A): MethodBody = {
-    add(POST, None, Some(typeOf[A]), (_: Unit) ⇒ body)
+    add[Unit, A](POST, None, Some(typeOf[A]), (_: Unit) ⇒ body)
   }
 
   final def Put[E: TypeTag, A: TypeTag](body: E ⇒ A): MethodBody = {
-    add(PUT, Some(typeOf[E]), Some(typeOf[A]), body)
+    add[E, A](PUT, Some(typeOf[E]), Some(typeOf[A]), body)
   }
 
   final def Delete[A: TypeTag](body: ⇒ A): MethodBody = {
-    add(DELETE, None, Some(typeOf[A]), (_: Unit) ⇒ body)
+    add[Unit, A](DELETE, None, Some(typeOf[A]), (_: Unit) ⇒ body)
   }
 
   final def Get[A: TypeTag](body: ⇒ A): MethodBody = {
-    add(GET, None, Some(typeOf[A]), (_: Unit) ⇒ body)
+    add[Unit, A](GET, None, Some(typeOf[A]), (_: Unit) ⇒ body)
   }
 
   final def Get[A: TypeTag](body: Map[String, String] ⇒ A): MethodBody = {
-    add(GET, Some(typeOf[Map[String, String]]), Some(typeOf[A]), body)
+    add[Map[String, String], A](GET, Some(typeOf[Map[String, String]]), Some(typeOf[A]), body)
   }
 
   final def Head(body: ⇒ Unit): MethodBody = {
-    add(HEAD, None, None, (_: Unit) ⇒ body)
+    add[Unit, Unit](HEAD, None, None, (_: Unit) ⇒ body)
+  }
+
+  final def Head(body: Map[String, String] ⇒ Unit): MethodBody = {
+    add[Map[String, String], Unit](HEAD, Some(typeOf[Map[String, String]]), None, body)
   }
 
   protected[this] final def request = threadlocal.get.request
@@ -139,15 +128,18 @@ trait Resource
     methodbody
   }
 
-  private[this] final def input(request: Request): Option[Either[String, Entity]] = request.entity match {
-    case Some(entity) ⇒ Some(Right(entity))
-    case None ⇒ request.query match {
-      case Some(query) ⇒ Some(Left(query))
-      case None ⇒ None
+  private[this] final def matchBody(method: Method, in: Option[Entity], out: Option[Entity]): Option[MethodBody] = {
+    def score(inout: InOut): Option[MethodBody] = inout.get(None) match {
+      case Some(outbody) ⇒ None
+      case _ ⇒ None
+    }
+
+    methods.get(method) match {
+      case Some(inout) ⇒
+        println(inout); score(inout)
+      case _ ⇒ None
     }
   }
-
-  def m = methods // for TestResource
 
   private[this] final var methods: Methods = null
 

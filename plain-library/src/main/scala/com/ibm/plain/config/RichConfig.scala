@@ -4,7 +4,9 @@ package plain
 
 package config
 
-import scala.collection.JavaConversions.asScalaBuffer
+import scala.reflect._
+import scala.reflect.runtime.universe._
+import scala.collection.JavaConversions._
 import scala.concurrent.duration.Duration
 
 import com.typesafe.config.Config
@@ -33,6 +35,15 @@ class RichConfig(config: Config) {
   def getDuration(key: String, default: Duration) = if (config.hasPath(key)) Duration(config.getMilliseconds(key), java.util.concurrent.TimeUnit.MILLISECONDS) else default
 
   def getInstanceFromClassName[A](key: String): A = Class.forName(config.getString(key)).newInstance.asInstanceOf[A]
+
+  def getMap(key: String, default: Map[String, Config]): Map[String, Config] = if (config.hasPath(key)) {
+    val c = config.getConfig(key)
+    c.root.entrySet.toList.map(e ⇒ (e.getKey, c.getConfig(e.getKey))).toMap
+  } else {
+    default
+  }
+
+  def toMap: Map[String, Any] = config.root.entrySet.map(e ⇒ (e.getKey, e.getValue.unwrapped)).toMap
 
 }
 

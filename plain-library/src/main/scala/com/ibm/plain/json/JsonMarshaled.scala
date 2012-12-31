@@ -6,6 +6,8 @@ package json
 
 import java.io.{ InputStream, OutputStream, Reader, StringReader, StringWriter, Writer }
 
+import scala.reflect.ClassTag
+
 import com.sun.jersey.api.json.JSONJAXBContext
 
 /**
@@ -34,13 +36,13 @@ trait JsonMarshaled {
  */
 object JsonMarshaled {
 
-  def apply(s: String, expected: Class[_]) = unmarshaller(expected).unmarshalFromJSON(new StringReader(s), expected)
+  def apply[A](s: String)(implicit c: ClassTag[A]): A = unmarshaller(c.runtimeClass).unmarshalFromJSON(new StringReader(s), c.runtimeClass).asInstanceOf[A]
 
-  def apply(in: InputStream, expected: Class[_]) = unmarshaller(expected).unmarshalFromJSON(in, expected)
+  def apply[A](in: InputStream)(implicit c: ClassTag[A]): A = unmarshaller(c.runtimeClass).unmarshalFromJSON(in, c.runtimeClass).asInstanceOf[A]
 
-  def apply(reader: Reader, expected: Class[_]) = unmarshaller(expected).unmarshalFromJSON(reader, expected)
+  def apply[A](reader: Reader)(implicit c: ClassTag[A]): A = unmarshaller(c.runtimeClass).unmarshalFromJSON(reader, c.runtimeClass).asInstanceOf[A]
 
-  private[this] def unmarshaller(expected: Class[_]) = new JSONJAXBContext(jsonconfiguration, expected).createJSONUnmarshaller
+  @inline private[this] def unmarshaller(expected: Class[_]) = new JSONJAXBContext(jsonconfiguration, expected).createJSONUnmarshaller
 
 }
 

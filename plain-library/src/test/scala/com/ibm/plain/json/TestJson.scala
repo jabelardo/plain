@@ -31,8 +31,8 @@ case class Person(
     val joe = Person("joe", 33)
     assert("""<?xml version="1.0" encoding="UTF-8" standalone="yes"?><person name="joe" age="33"/>""" == joe.toXml)
     assert("""{"person":{"name":"joe","age":33}}""" == joe.toJson)
-    assert(unmarshalJson(joe.toJson, classOf[Person]) == joe)
-    assert(unmarshalXml(joe.toXml, classOf[Person]) == joe)
+    assert({ val j: Person = unmarshalJson(joe.toJson); j == joe })
+    assert({ val x: Person = unmarshalXml(joe.toXml); x == joe })
     assert(true)
   }
 

@@ -10,7 +10,7 @@ final class PingResource
 
   extends Resource {
 
-  Get { println(request); "pong!" }
+  Get { "pong!" }
 
   Get { form: Map[String, String] ⇒
     response ++ http.Status.Success.`206`

@@ -8,6 +8,9 @@ import java.io.{ InputStream, OutputStream, Reader, StringReader, StringWriter, 
 
 import javax.xml.bind.{ JAXBContext, Marshaller }
 
+import scala.reflect._
+import scala.reflect.runtime.universe._
+
 /**
  * Do not forget to implement a default no-parameters constructor for classes deriving from XmlMarshaled or you will get InvalidAnnotationExceptions.
  */
@@ -42,13 +45,13 @@ trait XmlMarshaled {
  */
 object XmlMarshaled {
 
-  def apply(s: String, expected: Class[_]) = unmarshaller(expected).unmarshal(new StringReader(s))
+  def apply[A: ClassTag](s: String)(implicit c: ClassTag[A]): A = unmarshaller(c.runtimeClass).unmarshal(new StringReader(s)).asInstanceOf[A]
 
-  def apply(in: InputStream, expected: Class[_]) = unmarshaller(expected).unmarshal(in)
+  def apply[A](in: InputStream)(implicit c: ClassTag[A]): A = unmarshaller(c.runtimeClass).unmarshal(in).asInstanceOf[A]
 
-  def apply(reader: Reader, expected: Class[_]) = unmarshaller(expected).unmarshal(reader)
+  def apply[A](reader: Reader)(implicit c: ClassTag[A]): A = unmarshaller(c.runtimeClass).unmarshal(reader).asInstanceOf[A]
 
-  private[this] def unmarshaller(expected: Class[_]) = JAXBContext.newInstance(expected).createUnmarshaller
+  @inline private[this] def unmarshaller(expected: Class[_]) = JAXBContext.newInstance(expected).createUnmarshaller
 
 }
 

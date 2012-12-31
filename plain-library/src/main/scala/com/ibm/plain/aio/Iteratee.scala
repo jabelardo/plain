@@ -29,7 +29,7 @@ sealed abstract class Iteratee[E, +A] {
   }
 
   /**
-   * Used later at api level, e.g. HttpProcessor.
+   * Used later at api level, e.g. HttpProcessor, and is very useful, therefore.
    */
   final def result: A = this(Eof)._1 match {
     case Done(a) ⇒ a
@@ -144,6 +144,21 @@ object Iteratees {
           (Cont(cont(in)), Empty)
         } else {
           (Done(in.take(n).decode), Elem(in.drop(n)))
+        }
+      case Eof ⇒ (Error(EOF), input)
+      case Failure(e) ⇒ (Error(e), input)
+    }
+    Cont(cont(Io.empty))
+  }
+
+  def takeBytes(n: Int) = {
+    def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, Array[Byte]], Input[Io]) = input match {
+      case Elem(more) ⇒
+        val in = taken ++ more
+        if (in.length < n) {
+          (Cont(cont(in)), Empty)
+        } else {
+          (Done({ in.take(n); in.readBytes }), Elem(in.drop(n)))
         }
       case Eof ⇒ (Error(EOF), input)
       case Failure(e) ⇒ (Error(e), input)
