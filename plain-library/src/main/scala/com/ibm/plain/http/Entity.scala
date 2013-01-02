@@ -18,9 +18,7 @@ sealed abstract class Entity
  */
 object Entity {
 
-  final case class ArrayEntity(array: Array[Byte], contenttype: ContentType) extends Entity { println(this); println(array.length) }
-
-  final case class StringEntity(s: String, contenttype: ContentType) extends Entity { println(this) }
+  final case class ArrayEntity(array: Array[Byte], contenttype: ContentType) extends Entity
 
   final case class ContentEntity(length: Long, contenttype: ContentType) extends Entity
 

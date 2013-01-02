@@ -4,7 +4,12 @@ package plain
 
 package rest
 
+import scala.reflect._
 import scala.reflect.runtime.universe._
+
+import json._
+import xml._
+import logging.HasLogger
 
 import http.{ Request, Response, Status }
 import http.Entity
@@ -12,6 +17,7 @@ import http.Entity._
 import http.Method
 import http.Method.{ DELETE, GET, HEAD, POST, PUT }
 import http.Status.{ ClientError, Success }
+import Matching._
 
 /**
  *
@@ -20,7 +26,9 @@ trait Resource
 
   extends BaseUniform
 
-  with DelayedInit {
+  with DelayedInit
+
+  with HasLogger {
 
   import Resource._
 
@@ -66,15 +74,15 @@ trait Resource
   final def handle(request: Request, context: Context): Nothing = {
     import request._
     matchBody(method, entity, None) match {
-      case Some(methodbody) ⇒
+      case Some((methodbody, input)) ⇒
         try {
           threadlocal.set(context ++ methodbody ++ request ++ Response(Success.`200`))
-          methodbody.body(())
+          methodbody.body(input)
           completed(response, context)
         } finally {
           threadlocal.remove
         }
-      case None ⇒ throw ClientError.`405`
+      case None ⇒ throw ClientError.`415`
     }
   }
 
@@ -116,6 +124,37 @@ trait Resource
 
   protected[this] final def context = threadlocal.get
 
+  private[this] final def matchBody(method: Method, in: Option[Entity], out: Option[Entity]): Option[(MethodBody, Any)] = methods.get(method) match {
+    case Some(inmethods) ⇒ in match {
+      case Some(array: ArrayEntity) ⇒
+        var input: Option[Any] = None
+        In.get(array.contenttype.mimetype) match {
+          case Some(intypes) ⇒
+            println(inmethods.zip(intypes))
+            inmethods.zip(intypes).find {
+              case ((Some(methodtype), out), (intype, decode)) ⇒
+                methodtype <:< intype && {
+                  try {
+                    input = Some(decode match {
+                      case decode: ArrayEntityMarshaledDecoder[_] ⇒ decode(array, ClassTag(Class.forName(methodtype.toString)))
+                      case decode: ArrayEntityDecoder[_] ⇒ decode(array)
+                    })
+                    true
+                  } catch { case e: Throwable ⇒ warning("Decoding failed : " + e); false }
+                }
+              case _ ⇒ false
+            } match {
+              case Some(e) ⇒ Some((e._1._2.toList.head._2, input.getOrElse(())))
+              case _ ⇒ None
+            }
+          case _ ⇒ None
+        }
+      case Some(entity) ⇒ None
+      case _ ⇒ println(inmethods.get(None)); None
+    }
+    case _ ⇒ throw ClientError.`405`
+  }
+
   private[this] final def add[E, A](method: Method, in: Option[Type], out: Option[Type], body: Body[E, A]): MethodBody = {
     val methodbody = MethodBody(body.asInstanceOf[Body[Any, Any]])
     methods = methods ++ (methods.get(method) match {
@@ -126,19 +165,6 @@ trait Resource
       }
     })
     methodbody
-  }
-
-  private[this] final def matchBody(method: Method, in: Option[Entity], out: Option[Entity]): Option[MethodBody] = {
-    def score(inout: InOut): Option[MethodBody] = inout.get(None) match {
-      case Some(outbody) ⇒ None
-      case _ ⇒ None
-    }
-
-    methods.get(method) match {
-      case Some(inout) ⇒
-        println(inout); score(inout)
-      case _ ⇒ None
-    }
   }
 
   private[this] final var methods: Methods = null
@@ -172,11 +198,11 @@ object Resource {
 
   private type Body[E, A] = E ⇒ A
 
-  private type Methods = Map[Method, InOut]
+  private type Methods = Map[Method, In]
 
-  private type InOut = Map[Option[Type], OutMethodBody]
+  private[rest]type In = Map[Option[Type], Out]
 
-  private type OutMethodBody = Map[Option[Type], MethodBody]
+  private[rest]type Out = Map[Option[Type], MethodBody]
 
   private final var resourcemethods: Map[Class[_ <: Resource], Methods] = Map.empty
 

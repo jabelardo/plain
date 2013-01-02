@@ -45,7 +45,7 @@ trait XmlMarshaled {
  */
 object XmlMarshaled {
 
-  def apply[A: ClassTag](s: String)(implicit c: ClassTag[A]): A = unmarshaller(c.runtimeClass).unmarshal(new StringReader(s)).asInstanceOf[A]
+  def apply[A](s: String)(implicit c: ClassTag[A]): A = unmarshaller(c.runtimeClass).unmarshal(new StringReader(s)).asInstanceOf[A]
 
   def apply[A](in: InputStream)(implicit c: ClassTag[A]): A = unmarshaller(c.runtimeClass).unmarshal(in).asInstanceOf[A]
 

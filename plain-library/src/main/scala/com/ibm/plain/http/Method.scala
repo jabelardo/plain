@@ -34,7 +34,7 @@ object Method {
     case _ ⇒ throw `405`
   }
 
-  case object GET extends Method(true, true, false)
+  case object GET extends Method(true, true, true) // we convert a query into an entity if feasible
   case object HEAD extends Method(true, true, false)
   case object POST extends Method(false, false, true)
   case object PUT extends Method(false, true, true)

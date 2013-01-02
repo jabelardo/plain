@@ -12,50 +12,82 @@ import scala.xml._
 
 import json._
 import json.Json._
-import text.`UTF-8`
+import text._
 import xml._
 
 import aio._
 import aio.Iteratees._
+import http.Status.ClientError
 import http.ContentType
+import http.MimeType
 import http.MimeType._
 import http.Entity
 import http.Entity._
 
 object Matching {
 
-  type FromArray[A] = (ArrayEntity ⇒ A)
+  type ArrayEntityDecoder[A] = ArrayEntity ⇒ A
 
-  val asArray: FromArray[Array[Byte]] = (entity: ArrayEntity) ⇒ entity.array
+  type ArrayEntityMarshaledDecoder[A] = (ArrayEntity, ClassTag[A]) ⇒ A
 
-  val asString: FromArray[String] = (entity: ArrayEntity) ⇒ new String(entity.array, entity.contenttype.charsetOrDefault)
+  trait MarshaledDecoder
 
-  val asForm: FromArray[Map[String, String]] = (entity: ArrayEntity) ⇒ Map.empty
+  private[this] val asArray: ArrayEntityDecoder[Array[Byte]] = (entity: ArrayEntity) ⇒ entity.array
 
-  val asMultipartForm: FromArray[Map[String, Object]] = (entity: ArrayEntity) ⇒ Map.empty
+  private[this] val asString: ArrayEntityDecoder[String] = (entity: ArrayEntity) ⇒ new String(entity.array, entity.contenttype.charsetOrDefault)
 
-  val asJson: FromArray[Json] = (entity: ArrayEntity) ⇒ Json.parse(asString(entity))
+  private[this] val asForm: ArrayEntityDecoder[Map[String, String]] = (entity: ArrayEntity) ⇒ Map("foo" -> "bar")
 
-  val asJObject: FromArray[JObject] = (entity: ArrayEntity) ⇒ asJson(entity).asObject
+  private[this] val asMultipartForm: ArrayEntityDecoder[Map[String, Object]] = (entity: ArrayEntity) ⇒ Map.empty
 
-  val asJArray: FromArray[JArray] = (entity: ArrayEntity) ⇒ asJson(entity).asArray
+  private[this] val asJson: ArrayEntityDecoder[Json] = (entity: ArrayEntity) ⇒ Json.parse(asString(entity))
 
-  val asXml: FromArray[Elem] = (entity: ArrayEntity) ⇒ XML.loadString(asString(entity))
+  private[this] val asJObject: ArrayEntityDecoder[JObject] = (entity: ArrayEntity) ⇒ asJson(entity).asObject
 
-  def asJsonMarshaled[A <: JsonMarshaled](implicit c: ClassTag[A]): FromArray[A] = (entity: ArrayEntity) ⇒ JsonMarshaled[A](asString(entity))
+  private[this] val asJArray: ArrayEntityDecoder[JArray] = (entity: ArrayEntity) ⇒ asJson(entity).asArray
 
-  def asXmlMarshaled[A <: XmlMarshaled](implicit c: ClassTag[A]): FromArray[A] = (entity: ArrayEntity) ⇒ XmlMarshaled[A](asString(entity))
+  private[this] val asXml: ArrayEntityDecoder[Elem] = (entity: ArrayEntity) ⇒ XML.loadString(asString(entity))
 
-  private val input = Map(
-    ContentType(`application/octet-stream`) -> List((typeOf[Array[Byte]], asArray)).toMap,
-    ContentType(`text/plain`) -> List((typeOf[String], asString), (typeOf[Map[String, String]], asForm), (typeOf[Array[Byte]], asArray)).toMap)
+  private[this] def asJsonMarshaled[A <: JsonMarshaled]: ArrayEntityMarshaledDecoder[A] = (entity: ArrayEntity, c: ClassTag[A]) ⇒ JsonMarshaled[A](asString(entity))(c)
 
-  private val output = Map(
-    ContentType(`application/octet-stream`) -> List((typeOf[Array[Byte]], asArray)).toMap,
-    ContentType(`application/json`) -> List((typeOf[com.ibm.plain.json.Json.JObject], asJObject)).toMap,
-    ContentType(`text/plain`) -> List((typeOf[String], asString), (typeOf[Map[String, String]], asForm), (typeOf[Array[Byte]], asArray)).toMap)
+  private[this] def asXmlMarshaled[A <: XmlMarshaled]: ArrayEntityMarshaledDecoder[A] = (entity: ArrayEntity, c: ClassTag[A]) ⇒ XmlMarshaled[A](asString(entity))(c)
 
-  println(input)
-  println(output)
+  private type ArrayEntityEncoder[A] = (A ⇒ ArrayEntity)
+
+  private[this] val fromArray: ArrayEntityEncoder[Array[Byte]] = (array: Array[Byte]) ⇒ ArrayEntity(array, `application/octet-stream`)
+
+  private[this] val fromString: ArrayEntityEncoder[String] = (s: String) ⇒ ArrayEntity(s.getBytes(`ISO-8859-15`), `text/plain`)
+
+  private[this] val fromForm: ArrayEntityEncoder[Map[String, String]] = (form: Map[String, String]) ⇒ ArrayEntity(null, `application/x-www-form-urlencoded`)
+
+  private[this] val fromMultipartForm: ArrayEntityEncoder[Map[String, Object]] = (form: Map[String, Object]) ⇒ ArrayEntity(null, `multipart/form-data`)
+
+  private[this] val fromJson: ArrayEntityEncoder[Json] = (json: Json) ⇒ ArrayEntity(Json.build(json).getBytes(`UTF-8`), `application/json`)
+
+  private[this] val fromXml: ArrayEntityEncoder[Elem] = (elem: Elem) ⇒ ArrayEntity(elem.buildString(true).getBytes(`UTF-8`), `application/xml`)
+
+  private[this] val fromJsonMarshaled: ArrayEntityEncoder[JsonMarshaled] = (marshaled: JsonMarshaled) ⇒ ArrayEntity(marshaled.toJson.getBytes(`UTF-8`), `application/json`)
+
+  private[this] val fromXmlMarshaled: ArrayEntityEncoder[XmlMarshaled] = (marshaled: XmlMarshaled) ⇒ ArrayEntity(marshaled.toXml.getBytes(`UTF-8`), `application/xml`)
+
+  private[rest] val In: Map[MimeType, List[(Type, AnyRef)]] = {
+    val array = (typeOf[Array[Byte]], asArray)
+    val string = (typeOf[String], asString)
+    val form = (typeOf[Map[String, String]], asForm)
+    val multipart = (typeOf[Map[String, Object]], asMultipartForm)
+    val json = (typeOf[Json], asJson)
+    val jobject = (typeOf[JObject], asJObject)
+    val jarray = (typeOf[JArray], asJArray)
+    val jsonmarshaled = (typeOf[JsonMarshaled], asJsonMarshaled)
+    val xml = (typeOf[Elem], asXml)
+    val xmlmarshaled = (typeOf[XmlMarshaled], asXmlMarshaled)
+    Map(
+      `application/octet-stream` -> List(array),
+      `application/json` -> List(jsonmarshaled, jobject, jarray, json, string, array),
+      `application/xml` -> List(xmlmarshaled, xml, string, array),
+      `application/x-www-form-urlencoded` -> List(form, string, array),
+      `multipart/form-data` -> List(multipart, string, array),
+      `text/plain` -> List(string, form, xmlmarshaled, jsonmarshaled, xml, jobject, jarray, json, array))
+  }
 
 }

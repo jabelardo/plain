@@ -6,10 +6,13 @@ package http
 
 import java.nio.charset.Charset
 
-import Status.ClientError
+import language.implicitConversions
+
 import aio.{ Io, Renderable }
 import aio.Renderable.r
-import text.{ fastSplit, `ISO-8859-15` }
+import text.{ fastSplit, `ISO-8859-15`, `UTF-8` }
+import Status.ClientError
+import MimeType.`application/json`
 
 /**
  *
@@ -28,13 +31,6 @@ final case class ContentType private (
 
   @inline final def render(implicit io: Io) = mimetype + r(charset match { case None ⇒ "" case Some(c) ⇒ "; charset=" + c.displayName })
 
-  @inline override def equals(other: Any) = other match {
-    case b: ContentType ⇒ mimetype == b.mimetype
-    case _ ⇒ false
-  }
-
-  @inline override def hashCode = mimetype.hashCode
-
 }
 
 /**
@@ -42,16 +38,22 @@ final case class ContentType private (
  */
 object ContentType {
 
-  def apply(mimetype: MimeType) = new ContentType(mimetype, None)
+  def apply(mimetype: MimeType) = mimetype match {
+    case `application/json` ⇒ new ContentType(mimetype, Some(`UTF-8`))
+    case mimetype ⇒ new ContentType(mimetype, None)
+  }
 
   /**
-   * Given a header value like "text/html; charset=ISO-8859-4" this will split it into a MimeType and a Charset.
+   * Given a header value like "text/html; charset=ISO-8859-15" this will split it into a MimeType and a Charset.
    */
   def apply(headervalue: String): ContentType = fastSplit(headervalue, ';') match {
     case mimetype :: Nil ⇒ apply(MimeType(mimetype))
-    case mimetype :: charset :: Nil ⇒ apply(MimeType(mimetype.trim), Some(try Charset.forName(charset.trim.replace("charset=", "")) catch { case _: Throwable ⇒ Charset.defaultCharset }))
+    case mimetype :: charset :: Nil ⇒
+      apply(MimeType(mimetype.trim), Some(try Charset.forName(charset.trim.replace("charset=", "")) catch { case _: Throwable ⇒ `ISO-8859-15` }))
     case _ ⇒ throw ClientError.`415`
   }
+
+  @inline implicit def fromMimeType(mimetype: MimeType) = ContentType(mimetype)
 
 }
 
