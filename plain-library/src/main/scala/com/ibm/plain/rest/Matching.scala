@@ -91,6 +91,7 @@ object Matching {
   }
 
   object Types {
+    val entity = typeOf[Entity]
     val unit = typeOf[Unit]
     val array = typeOf[Array[Byte]]
     val string = typeOf[String]
@@ -106,48 +107,63 @@ object Matching {
 
   import Types._
 
-  type Decoder[A] = (Entity ⇒ Either[Entity, A])
+  type Decoder[A] = (Entity ⇒ A)
 
-  type Encoder[A] = (A ⇒ Entity)
+  type Encoder = (Any ⇒ Entity)
 
   type TypeDecoders = Map[Type, Decoder[Any]]
 
-  type TypeEncoders = Map[Type, Encoder[Any]]
+  type TypeEncoders = Map[Type, Encoder]
 
-  val decodeUnit: Decoder[Unit] = (entity: Entity) ⇒ Right(())
+  val decodeEntity: Decoder[Entity] = (entity: Entity) ⇒ entity
 
-  val decodeArray: Decoder[Array[Byte]] = (entity: Entity) ⇒ entity match { case a: ArrayEntity ⇒ Right(a.array) case _ ⇒ Left(entity) }
+  val decodeUnit: Decoder[Unit] = (entity: Entity) ⇒ ()
 
-  val decodeString: Decoder[String] = (entity: Entity) ⇒ entity match { case a: ArrayEntity ⇒ Right(new String(a.array, a.contenttype.charsetOrDefault)) case _ ⇒ Left(entity) }
+  val decodeArray: Decoder[Array[Byte]] = (entity: Entity) ⇒ entity match { case a: ArrayEntity ⇒ a.array case _ ⇒ throw ClientError.`415` }
+
+  val decodeString: Decoder[String] = (entity: Entity) ⇒ entity match { case a: ArrayEntity ⇒ new String(a.array, a.contenttype.charsetOrDefault) case _ ⇒ throw ClientError.`415` }
 
   val inputDecoders: TypeDecoders = Map(
+    typeOf[Entity] -> decodeEntity,
     typeOf[Unit] -> decodeUnit,
     typeOf[Array[Byte]] -> decodeArray,
     typeOf[String] -> decodeString)
 
-  val outputEncoders: TypeEncoders = Map.empty
+  val encodeEntity: Encoder = ((entity: Entity) ⇒ entity).asInstanceOf[Encoder]
+
+  val encodeUnit: Encoder = null
+
+  val encodeArray: Encoder = ((array: Array[Byte]) ⇒ ArrayEntity(array, `application/octet-stream`)).asInstanceOf[Encoder]
+
+  val encodeString: Encoder = ((s: String) ⇒ ArrayEntity(s.getBytes(`ISO-8859-15`), `text/plain`)).asInstanceOf[Encoder]
+
+  val outputEncoders: TypeEncoders = Map(
+    typeOf[Entity] -> encodeEntity,
+    typeOf[Unit] -> encodeUnit,
+    typeOf[Array[Byte]] -> encodeArray,
+    typeOf[String] -> encodeString)
 
   type PriorityList = List[(MimeType, List[Type])]
 
   val inputPriority: PriorityList =
     List(
-      (`application/x-scala-unit`, List(unit)),
-      (`application/octet-stream`, List(array)),
-      (`application/json`, List(jsonmarshaled, jobject, jarray, json, string, array)),
-      (`application/xml`, List(xmlmarshaled, xml, string, array)),
-      (`application/x-www-form-urlencoded`, List(form, string, array)),
-      (`multipart/form-data`, List(multipart, string, array)),
-      (`text/plain`, List(string, form, xmlmarshaled, jsonmarshaled, xml, jobject, jarray, json, array)))
+      (`application/x-scala-unit`, List(unit, entity)),
+      (`application/octet-stream`, List(array, entity)),
+      (`application/json`, List(jsonmarshaled, jobject, jarray, json, string, array, entity)),
+      (`application/xml`, List(xmlmarshaled, xml, string, array, entity)),
+      (`application/x-www-form-urlencoded`, List(form, string, array, entity)),
+      (`multipart/form-data`, List(multipart, string, array, entity)),
+      (`text/plain`, List(string, form, xmlmarshaled, jsonmarshaled, xml, jobject, jarray, json, array, entity)))
 
   val outputPriority: PriorityList =
     List(
-      (`application/x-scala-unit`, List(unit)),
-      (`application/octet-stream`, List(array)),
-      (`application/json`, List(jsonmarshaled, jobject, jarray, json, string, array)),
-      (`application/xml`, List(xmlmarshaled, xml, string, array)),
-      (`application/x-www-form-urlencoded`, List(form, string, array)),
-      (`multipart/form-data`, List(multipart, string, array)),
-      (`text/plain`, List(string, form, xmlmarshaled, jsonmarshaled, xml, jobject, jarray, json, array)))
+      (`application/x-scala-unit`, List(unit, entity)),
+      (`application/octet-stream`, List(array, entity)),
+      (`application/json`, List(jsonmarshaled, jobject, jarray, json, string, array, entity)),
+      (`application/xml`, List(xmlmarshaled, xml, string, array, entity)),
+      (`application/x-www-form-urlencoded`, List(form, string, array, entity)),
+      (`multipart/form-data`, List(multipart, string, array, entity)),
+      (`text/plain`, List(string, form, xmlmarshaled, jsonmarshaled, xml, jobject, jarray, json, array, entity)))
 
   val priorities: List[((MimeType, MimeType), (Type, Type))] = for {
     (inmimetype, intypelist) ← inputPriority
@@ -158,28 +174,39 @@ object Matching {
 
   println("prios " + priorities.size)
 
+  val resourcepriorities = priorities.filter { case (_, inout) ⇒ methodbodies.unzip._1.contains(inout) }
+
+  println("resourceprios " + resourcepriorities.size + " " + resourcepriorities)
+
   val inmimetype: MimeType = `text/plain`
 
   val outmimetypes: List[MimeType] = List(`text/plain`, `application/octet-stream`, `application/x-scala-unit`)
 
   type MethodBodies = List[((Type, Type), Any ⇒ Any)]
 
-  val methodbodies: MethodBodies = Nil
+  lazy val methodbodies: MethodBodies = ((typeOf[Unit], typeOf[Unit]), (a: Any) ⇒ ()) :: ((typeOf[String], typeOf[String]), (s: Any) ⇒ s.toString.reverse) :: Nil
 
   val inentity = ArrayEntity("This is a string.".getBytes, `text/plain`)
 
-  outmimetypes.collectFirst {
-    case outmimetype ⇒ priorities.collectFirst {
-      case (inoutmimetype, inouttype) if inoutmimetype == (inmimetype, outmimetype) ⇒ methodbodies.collectFirst {
-        case ((in, out), methodbody) if (in, out) == inouttype ⇒ (methodbody, inputDecoders.get(in), outputEncoders.get(out))
-      }
+  println(methodbodies)
+  println(inentity)
+
+  val out = outmimetypes.collectFirst {
+    case outmimetype ⇒ resourcepriorities.collectFirst {
+      case (inoutmimetype, inouttype) if inoutmimetype == (inmimetype, outmimetype) ⇒
+        println("here 1 " + inoutmimetype + " " + inouttype); methodbodies.collectFirst {
+          case ((in, out), methodbody) if (in, out) == inouttype ⇒ println("here 2 " + (in, out) + " " + inouttype); (methodbody, inputDecoders.get(in), outputEncoders.get(out))
+        }
     } match {
-      case Some(Some((methodbody, Some(decode), Some(encode)))) ⇒ encode(methodbody(decode(inentity)))
-      case _ ⇒ throw ClientError.`415`
+      case r @ Some(Some((methodbody, Some(decode), Some(encode)))) ⇒
+        println("here3 " + r); methodbody(decode(inentity))
+      case _ ⇒ println("here 4"); None
     }
   } match {
-    case Some(outentity) ⇒ println(outentity)
-    case _ ⇒ println("no out entity")
+    case Some(outentity) ⇒ outentity
+    case _ ⇒ "no out entity"
   }
+
+  println(out)
 
 }

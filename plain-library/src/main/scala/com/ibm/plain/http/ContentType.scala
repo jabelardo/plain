@@ -53,7 +53,7 @@ object ContentType {
     case _ ⇒ throw ClientError.`415`
   }
 
-  @inline implicit def fromMimeType(mimetype: MimeType) = ContentType(mimetype)
+  implicit def fromMimeType(mimetype: MimeType) = ContentType(mimetype)
 
 }
 
