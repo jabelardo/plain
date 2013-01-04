@@ -73,17 +73,18 @@ trait Resource
 
   final def handle(request: Request, context: Context): Nothing = {
     import request._
-    matchBody(method, entity, None) match {
-      case Some((methodbody, input, outputencoder)) ⇒
-        try {
-          threadlocal.set(context ++ methodbody ++ request ++ Response(Success.`200`))
-          methodbody.body(input)
-          completed(response, context)
-        } finally {
-          threadlocal.remove
-        }
-      case None ⇒ throw ClientError.`415`
-    }
+    //    matchBody(method, entity, None) match {
+    //      case Some((methodbody, input, outputencoder)) ⇒
+    //        try {
+    //          threadlocal.set(context ++ methodbody ++ request ++ Response(Success.`200`))
+    //          methodbody.body(input)
+    //          completed(response, context)
+    //        } finally {
+    //          threadlocal.remove
+    //        }
+    //      case None ⇒ throw ClientError.`415`
+    //    }
+    throw ClientError.`415`
   }
 
   final def Post[E: TypeTag, A: TypeTag](body: E ⇒ A): MethodBody = {
@@ -124,37 +125,6 @@ trait Resource
 
   protected[this] final def context = threadlocal.get
 
-  private[this] final def matchBody(method: Method, inentity: Option[Entity], outentity: Option[Entity]): Option[(MethodBody, Any, (Any ⇒ Any))] = {
-    methods.get(method) match {
-      case Some(inmethods) ⇒ inentity match {
-        case None ⇒
-          println(inmethods.toMap.get(typeOf[Unit])); None
-        case Some(array: ArrayEntity) ⇒
-          var input: Option[Any] = None
-          In.toMap.get(array.contenttype.mimetype) match {
-            case Some(intypes) ⇒
-              println((for { m ← inmethods; i ← intypes } yield (m, i)).size)
-              (for { m ← inmethods; i ← intypes } yield (m, i)).find {
-                case ((methodtype, out), (intype, decode)) ⇒ methodtype <:< intype && {
-                  try {
-                    input = Some(decode match {
-                      case decode: ArrayEntityMarshaledDecoder[_] ⇒ decode(array, ClassTag(Class.forName(methodtype.toString)))
-                      case decode: ArrayEntityDecoder[_] ⇒ decode(array)
-                    })
-                    true
-                  } catch { case e: Throwable ⇒ warning("Decoding failed : " + e); false }
-                }
-              } match {
-                case Some(e) ⇒ Some((e._1._2.toList.head._2, input.getOrElse(()), null))
-                case _ ⇒ None
-              }
-            case _ ⇒ None
-          }
-        case Some(entity) ⇒ None
-      }
-      case _ ⇒ throw ClientError.`405`
-    }
-  }
   private[this] final def add[E, A](method: Method, in: Type, out: Type, body: Body[E, A]): MethodBody = {
     val methodbody = MethodBody(body.asInstanceOf[Body[Any, Any]])
     methods = methods ++ (methods.get(method) match {
