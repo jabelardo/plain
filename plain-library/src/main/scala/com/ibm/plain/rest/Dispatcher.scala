@@ -66,7 +66,4 @@ class DefaultDispatcher
 
   val m = Matching
 
-  println(resource.User("Joe", 1).toJson)
-  println(resource.User("Joe", 1).toXml)
-
 }

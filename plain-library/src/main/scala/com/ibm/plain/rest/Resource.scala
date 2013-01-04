@@ -74,7 +74,7 @@ trait Resource
   final def handle(request: Request, context: Context): Nothing = {
     import request._
     matchBody(method, entity, None) match {
-      case Some((methodbody, input)) ⇒
+      case Some((methodbody, input, outputencoder)) ⇒
         try {
           threadlocal.set(context ++ methodbody ++ request ++ Response(Success.`200`))
           methodbody.body(input)
@@ -87,35 +87,35 @@ trait Resource
   }
 
   final def Post[E: TypeTag, A: TypeTag](body: E ⇒ A): MethodBody = {
-    add[E, A](POST, Some(typeOf[E]), Some(typeOf[A]), body)
+    add[E, A](POST, typeOf[E], typeOf[A], body)
   }
 
   final def Post[A: TypeTag](body: ⇒ A): MethodBody = {
-    add[Unit, A](POST, None, Some(typeOf[A]), (_: Unit) ⇒ body)
+    add[Unit, A](POST, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
   }
 
   final def Put[E: TypeTag, A: TypeTag](body: E ⇒ A): MethodBody = {
-    add[E, A](PUT, Some(typeOf[E]), Some(typeOf[A]), body)
+    add[E, A](PUT, typeOf[E], typeOf[A], body)
   }
 
   final def Delete[A: TypeTag](body: ⇒ A): MethodBody = {
-    add[Unit, A](DELETE, None, Some(typeOf[A]), (_: Unit) ⇒ body)
+    add[Unit, A](DELETE, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
   }
 
   final def Get[A: TypeTag](body: ⇒ A): MethodBody = {
-    add[Unit, A](GET, None, Some(typeOf[A]), (_: Unit) ⇒ body)
+    add[Unit, A](GET, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
   }
 
   final def Get[A: TypeTag](body: Map[String, String] ⇒ A): MethodBody = {
-    add[Map[String, String], A](GET, Some(typeOf[Map[String, String]]), Some(typeOf[A]), body)
+    add[Map[String, String], A](GET, typeOf[Map[String, String]], typeOf[A], body)
   }
 
   final def Head(body: ⇒ Unit): MethodBody = {
-    add[Unit, Unit](HEAD, None, None, (_: Unit) ⇒ body)
+    add[Unit, Unit](HEAD, typeOf[Unit], typeOf[Unit], (_: Unit) ⇒ body)
   }
 
   final def Head(body: Map[String, String] ⇒ Unit): MethodBody = {
-    add[Map[String, String], Unit](HEAD, Some(typeOf[Map[String, String]]), None, body)
+    add[Map[String, String], Unit](HEAD, typeOf[Map[String, String]], typeOf[Unit], body)
   }
 
   protected[this] final def request = threadlocal.get.request
@@ -124,16 +124,18 @@ trait Resource
 
   protected[this] final def context = threadlocal.get
 
-  private[this] final def matchBody(method: Method, in: Option[Entity], out: Option[Entity]): Option[(MethodBody, Any)] = methods.get(method) match {
-    case Some(inmethods) ⇒ in match {
-      case Some(array: ArrayEntity) ⇒
-        var input: Option[Any] = None
-        In.get(array.contenttype.mimetype) match {
-          case Some(intypes) ⇒
-            println(inmethods.zip(intypes))
-            inmethods.zip(intypes).find {
-              case ((Some(methodtype), out), (intype, decode)) ⇒
-                methodtype <:< intype && {
+  private[this] final def matchBody(method: Method, inentity: Option[Entity], outentity: Option[Entity]): Option[(MethodBody, Any, (Any ⇒ Any))] = {
+    methods.get(method) match {
+      case Some(inmethods) ⇒ inentity match {
+        case None ⇒
+          println(inmethods.toMap.get(typeOf[Unit])); None
+        case Some(array: ArrayEntity) ⇒
+          var input: Option[Any] = None
+          In.toMap.get(array.contenttype.mimetype) match {
+            case Some(intypes) ⇒
+              println((for { m ← inmethods; i ← intypes } yield (m, i)).size)
+              (for { m ← inmethods; i ← intypes } yield (m, i)).find {
+                case ((methodtype, out), (intype, decode)) ⇒ methodtype <:< intype && {
                   try {
                     input = Some(decode match {
                       case decode: ArrayEntityMarshaledDecoder[_] ⇒ decode(array, ClassTag(Class.forName(methodtype.toString)))
@@ -142,26 +144,24 @@ trait Resource
                     true
                   } catch { case e: Throwable ⇒ warning("Decoding failed : " + e); false }
                 }
-              case _ ⇒ false
-            } match {
-              case Some(e) ⇒ Some((e._1._2.toList.head._2, input.getOrElse(())))
-              case _ ⇒ None
-            }
-          case _ ⇒ None
-        }
-      case Some(entity) ⇒ None
-      case _ ⇒ println(inmethods.get(None)); None
+              } match {
+                case Some(e) ⇒ Some((e._1._2.toList.head._2, input.getOrElse(()), null))
+                case _ ⇒ None
+              }
+            case _ ⇒ None
+          }
+        case Some(entity) ⇒ None
+      }
+      case _ ⇒ throw ClientError.`405`
     }
-    case _ ⇒ throw ClientError.`405`
   }
-
-  private[this] final def add[E, A](method: Method, in: Option[Type], out: Option[Type], body: Body[E, A]): MethodBody = {
+  private[this] final def add[E, A](method: Method, in: Type, out: Type, body: Body[E, A]): MethodBody = {
     val methodbody = MethodBody(body.asInstanceOf[Body[Any, Any]])
     methods = methods ++ (methods.get(method) match {
-      case None ⇒ Map(method -> Map(in -> Map(out -> methodbody)))
-      case Some(inout) ⇒ inout.get(in) match {
-        case None ⇒ Map(method -> (inout ++ Map(in -> Map(out -> methodbody))))
-        case Some(outbody) ⇒ Map(method -> (inout ++ Map(in -> (outbody ++ Map(out -> methodbody)))))
+      case None ⇒ Map(method -> List((in, List((out, methodbody)))))
+      case Some(inout) ⇒ inout.toMap.get(in) match {
+        case None ⇒ Map(method -> (inout ++ List((in, List((out, methodbody))))))
+        case Some(outbody) ⇒ Map(method -> (inout ++ List((in, (outbody ++ List((out, methodbody)))))))
       }
     })
     methodbody
@@ -200,9 +200,9 @@ object Resource {
 
   private type Methods = Map[Method, In]
 
-  private[rest]type In = Map[Option[Type], Out]
+  private[rest]type In = List[(Type, Out)]
 
-  private[rest]type Out = Map[Option[Type], MethodBody]
+  private[rest]type Out = List[(Type, MethodBody)]
 
   private final var resourcemethods: Map[Class[_ <: Resource], Methods] = Map.empty
 

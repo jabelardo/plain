@@ -68,6 +68,7 @@ object MimeType {
     case "application/x-javascript" ⇒ `application/x-javascript`
     case "application/x-shockwave-flash" ⇒ `application/x-shockwave-flash`
     case "application/x-www-form-urlencoded" ⇒ `application/x-www-form-urlencoded`
+    case "application/x-scala-unit" ⇒ `application/x-scala-unit`
     case "application/zip" | "application/x-zip" ⇒ `application/zip`
 
     case "audio/basic" ⇒ `audio/basic`
@@ -163,6 +164,7 @@ object MimeType {
   case object `application/x-javascript` extends `application/*`("js")
   case object `application/x-shockwave-flash` extends `application/*`("swf")
   case object `application/x-www-form-urlencoded` extends `application/*`
+  case object `application/x-scala-unit` extends `application/*`
   case object `application/zip` extends `application/*`("zip")
 
   case object `audio/basic` extends `audio/*`("au", "snd")
