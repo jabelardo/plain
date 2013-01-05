@@ -331,7 +331,7 @@ object Io
           result.doRender(io)
           if (io.keepalive) readloop(io ++ readiteratee)
         case Error(e) ⇒
-          info(e.toString) // ; e.printStackTrace
+          info(e.toString)
           io.error(e)
         case e ⇒
           unhandled(e)

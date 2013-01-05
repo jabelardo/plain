@@ -57,13 +57,11 @@ abstract class Dispatcher(templates: Option[Templates])
 class DefaultDispatcher
 
   extends Dispatcher(Templates(
-    Template("user/{user}", Class.forName("com.ibm.plain.rest.resource.PingResource")),
+    Template("user/{user}", Class.forName("com.ibm.plain.rest.resource.TestResource")),
     Template("ping", Class.forName("com.ibm.plain.rest.resource.PingResource")),
     Template("static", Class.forName("com.ibm.plain.rest.resource.DirectoryResource")),
     Template("echo", Class.forName("com.ibm.plain.rest.resource.EchoResource")))) {
 
-  //  resource.Test.test
-
-  val m = Matching
+  System.gc
 
 }

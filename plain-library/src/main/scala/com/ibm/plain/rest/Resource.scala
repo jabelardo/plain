@@ -10,11 +10,11 @@ import scala.reflect.runtime.universe._
 import json._
 import xml._
 import logging.HasLogger
+import reflect.tryBoolean
 
-import http.{ Request, Response, Status }
-import http.Entity
+import http.{ Request, Response, Status, Entity, Method, MimeType }
 import http.Entity._
-import http.Method
+import http.MimeType._
 import http.Method.{ DELETE, GET, HEAD, POST, PUT }
 import http.Status.{ ClientError, Success }
 import Matching._
@@ -32,10 +32,15 @@ trait Resource
 
   import Resource._
 
-  override final def delayedInit(init: ⇒ Unit): Unit = {
+  override final def delayedInit(initialize: ⇒ Unit): Unit = {
     resourcemethods.get(getClass) match {
       case Some(methods) ⇒ this.methods = methods
-      case None ⇒ methods = Map.empty; init; resourcemethods = resourcemethods ++ Map(getClass -> methods)
+      case None ⇒
+        methods = Map.empty
+        initialize
+        methods = methods.map { case (method, Left(bodies)) ⇒ (method, Right(resourcePriorities(bodies))) case _ ⇒ null }
+        if (log.isDebugEnabled) methods.foreach { case (method, Right(prios)) ⇒ debug(method + " " + prios.toList.size + " " + prios.toList) case _ ⇒ }
+        resourcemethods = resourcemethods ++ Map(getClass -> methods)
     }
   }
 
@@ -72,19 +77,10 @@ trait Resource
   final def failed(e: Throwable): Unit = failed(e, threadlocal.get)
 
   final def handle(request: Request, context: Context): Nothing = {
-    import request._
-    //    matchBody(method, entity, None) match {
-    //      case Some((methodbody, input, outputencoder)) ⇒
-    //        try {
-    //          threadlocal.set(context ++ methodbody ++ request ++ Response(Success.`200`))
-    //          methodbody.body(input)
-    //          completed(response, context)
-    //        } finally {
-    //          threadlocal.remove
-    //        }
-    //      case None ⇒ throw ClientError.`415`
-    //    }
-    throw ClientError.`415`
+    methods.get(request.method) match {
+      case Some(Right(resourcepriorities)) ⇒ matching(request, context, resourcepriorities)
+      case _ ⇒ throw ClientError.`405`
+    }
   }
 
   final def Post[E: TypeTag, A: TypeTag](body: E ⇒ A): MethodBody = {
@@ -111,12 +107,12 @@ trait Resource
     add[Map[String, String], A](GET, typeOf[Map[String, String]], typeOf[A], body)
   }
 
-  final def Head(body: ⇒ Unit): MethodBody = {
-    add[Unit, Unit](HEAD, typeOf[Unit], typeOf[Unit], (_: Unit) ⇒ body)
+  final def Head(body: ⇒ Any): MethodBody = {
+    add[Unit, Unit](HEAD, typeOf[Unit], typeOf[Unit], (_: Unit) ⇒ { body; () })
   }
 
-  final def Head(body: Map[String, String] ⇒ Unit): MethodBody = {
-    add[Map[String, String], Unit](HEAD, typeOf[Map[String, String]], typeOf[Unit], body)
+  final def Head(body: Map[String, String] ⇒ Any): MethodBody = {
+    add[Map[String, String], Unit](HEAD, typeOf[Map[String, String]], typeOf[Unit], (m: Map[String, String]) ⇒ { body(m); () })
   }
 
   protected[this] final def request = threadlocal.get.request
@@ -125,15 +121,55 @@ trait Resource
 
   protected[this] final def context = threadlocal.get
 
+  /**
+   * The most important method in this class.
+   */
+  private[this] final def matching(request: Request, context: Context, resourcepriorities: ResourcePriorities): Nothing = {
+
+    val inentity: Option[Entity] = request.entity
+    val inmimetype: MimeType = inentity match { case Some(entity: Entity) ⇒ entity.contenttype.mimetype case _ ⇒ `application/x-scala-unit` }
+    val outmimetypes: List[MimeType] = List(`text/plain`)
+
+    var innerresult: Option[(MethodBody, Type, Type, Type, Type)] = None
+
+    def tryDecode(in: Type, intype: Type) = decoders.get(intype) match {
+      case Some(decode: Decoder[_]) ⇒ tryBoolean(decode(inentity))
+      case Some(decode: MarshaledDecoder[_]) ⇒ tryBoolean(decode(inentity, ClassTag(Class.forName(in.toString))))
+      case _ ⇒ false
+    }
+
+    def inner(outmimetype: MimeType) = resourcepriorities.collectFirst {
+      case ((inoutmimetype, (intype, outtype)), ((in, out), methodbody)) if inoutmimetype == (inmimetype, outmimetype) && in <:< intype && out <:< outtype && tryDecode(in, intype) ⇒
+        innerresult = Some((methodbody, in, out, intype, outtype)); innerresult
+    }
+
+    outmimetypes.collectFirst {
+      case outmimetype if inner(outmimetype).isDefined ⇒ innerresult
+    } match {
+      case Some(Some((methodbody, in, out, intype, outtype))) ⇒ try {
+        threadlocal.set(context ++ methodbody ++ request ++ Response(Success.`200`))
+        completed(response ++ encoders.get(outtype).get(decoders.get(intype) match {
+          case Some(decode: Decoder[_]) ⇒ methodbody.body(decode(inentity))
+          case Some(decode: MarshaledDecoder[_]) ⇒ methodbody.body(decode(inentity, ClassTag(Class.forName(in.toString))))
+          case _ ⇒ throw ClientError.`415`
+        }), threadlocal.get)
+      } finally threadlocal.remove
+      case _ ⇒ throw ClientError.`415`
+    }
+  }
+
+  private[this] final def resourcePriorities(methodbodies: MethodBodies): ResourcePriorities = for {
+    p ← (priorities.filter { case (_, (intype, outtype)) ⇒ methodbodies.unzip._1.exists { case (in, out) ⇒ in <:< intype && out <:< outtype } }.toArray)
+    m ← methodbodies
+  } yield (p, m)
+
   private[this] final def add[E, A](method: Method, in: Type, out: Type, body: Body[E, A]): MethodBody = {
     val methodbody = MethodBody(body.asInstanceOf[Body[Any, Any]])
-    methods = methods ++ (methods.get(method) match {
-      case None ⇒ Map(method -> List((in, List((out, methodbody)))))
-      case Some(inout) ⇒ inout.toMap.get(in) match {
-        case None ⇒ Map(method -> (inout ++ List((in, List((out, methodbody))))))
-        case Some(outbody) ⇒ Map(method -> (inout ++ List((in, (outbody ++ List((out, methodbody)))))))
-      }
-    })
+    methods = methods ++ Map(method -> Left((methods.get(method) match {
+      case None ⇒ Array(((in, out), methodbody))
+      case Some(Left(bodies)) ⇒ bodies ++ Array(((in, out), methodbody))
+      case _ ⇒ null
+    })))
     methodbody
   }
 
@@ -168,11 +204,11 @@ object Resource {
 
   private type Body[E, A] = E ⇒ A
 
-  private type Methods = Map[Method, In]
+  private type Methods = Map[Method, Either[MethodBodies, ResourcePriorities]]
 
-  private[rest]type In = List[(Type, Out)]
+  private type MethodBodies = Array[((Type, Type), MethodBody)]
 
-  private[rest]type Out = List[(Type, MethodBody)]
+  private type ResourcePriorities = Array[(((MimeType, MimeType), (Type, Type)), ((Type, Type), MethodBody))]
 
   private final var resourcemethods: Map[Class[_ <: Resource], Methods] = Map.empty
 

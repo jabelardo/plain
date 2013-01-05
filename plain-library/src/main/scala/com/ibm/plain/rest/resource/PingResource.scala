@@ -9,12 +9,15 @@ package resource
 import xml._
 import json._
 import json.Json._
+import http.Entity
 
 final class PingResource
 
   extends Resource {
 
   Get { "pong!" }
+
+  Get { s: String ⇒ println(s); s }
 
   Get { form: Map[String, String] ⇒
     println("form " + form)
@@ -29,28 +32,11 @@ final class PingResource
 
   Post { user: User ⇒ println("we are in Post(User) : " + user); User(user.name + " Smith", user.id + 10) }
 
-  Post { json: Json ⇒ build(json) }
+  Post { json: Json ⇒ println("we are in Post(Json) : " + build(json)); build(json) }
 
   Post { s: String ⇒ s.reverse }
 
-}
-
-import javax.xml.bind.annotation.{ XmlAccessorType, XmlRootElement }
-import javax.xml.bind.annotation._
-
-@XmlRootElement(name = "user")
-@XmlAccessorType(XmlAccessType.PROPERTY)
-case class User(
-
-  @xmlAttribute name: String,
-
-  @xmlAttribute id: Int)
-
-  extends XmlMarshaled
-
-  with JsonMarshaled {
-
-  def this() = this(null, -1)
+  Post { entity: Entity ⇒ println("we are in Post(Entity) + entity"); "pong!" }
 
 }
 

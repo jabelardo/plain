@@ -20,7 +20,7 @@ import http.MimeType._
 import http.Entity
 import http.Entity._
 
-object Matching {
+private object Matching {
 
   object Types {
     val entity = typeOf[Entity]
@@ -97,15 +97,19 @@ object Matching {
 
   val encodeForm: Encoder = ((form: Map[String, String]) ⇒ Some(ArrayEntity(null, `application/x-www-form-urlencoded`))).asInstanceOf[Encoder]
 
-  val encodeMultipart: Encoder = ((form: Map[String, Object]) ⇒ ArrayEntity(null, `multipart/form-data`)).asInstanceOf[Encoder]
+  val encodeMultipart: Encoder = ((form: Map[String, Object]) ⇒ Some(ArrayEntity(null, `multipart/form-data`))).asInstanceOf[Encoder]
 
-  val encodeJson: Encoder = ((json: Json) ⇒ ArrayEntity(Json.build(json).getBytes(`UTF-8`), `application/json`)).asInstanceOf[Encoder]
+  val encodeJson: Encoder = ((json: Json) ⇒ Some(ArrayEntity(Json.build(json).getBytes(`UTF-8`), `application/json`))).asInstanceOf[Encoder]
 
-  val encodeXml: Encoder = ((xml: Xml) ⇒ ArrayEntity(xml.buildString(true).getBytes(`UTF-8`), `application/xml`)).asInstanceOf[Encoder]
+  val encodeJObject: Encoder = ((json: JObject) ⇒ Some(ArrayEntity(Json.build(json).getBytes(`UTF-8`), `application/json`))).asInstanceOf[Encoder]
 
-  val encodeJsonMarshaled: Encoder = ((marshaled: JsonMarshaled) ⇒ ArrayEntity(marshaled.toJson.getBytes(`UTF-8`), `application/json`)).asInstanceOf[Encoder]
+  val encodeJArray: Encoder = ((json: JArray) ⇒ Some(ArrayEntity(Json.build(json).getBytes(`UTF-8`), `application/json`))).asInstanceOf[Encoder]
 
-  val encodeXmlMarshaled: Encoder = ((marshaled: XmlMarshaled) ⇒ ArrayEntity(marshaled.toXml.getBytes(`UTF-8`), `application/xml`)).asInstanceOf[Encoder]
+  val encodeXml: Encoder = ((xml: Xml) ⇒ Some(ArrayEntity(xml.buildString(true).getBytes(`UTF-8`), `application/xml`))).asInstanceOf[Encoder]
+
+  val encodeJsonMarshaled: Encoder = ((marshaled: JsonMarshaled) ⇒ Some(ArrayEntity(marshaled.toJson.getBytes(`UTF-8`), `application/json`))).asInstanceOf[Encoder]
+
+  val encodeXmlMarshaled: Encoder = ((marshaled: XmlMarshaled) ⇒ Some(ArrayEntity(marshaled.toXml.getBytes(`UTF-8`), `application/xml`))).asInstanceOf[Encoder]
 
   val encoders: TypeEncoders = List(
     (typeOf[Entity], encodeEntity),
@@ -115,6 +119,8 @@ object Matching {
     (typeOf[Map[String, String]], encodeForm),
     (typeOf[Map[String, Object]], encodeMultipart),
     (typeOf[Json], encodeJson),
+    (typeOf[JObject], encodeJObject),
+    (typeOf[JArray], encodeJArray),
     (typeOf[Xml], encodeXml),
     (typeOf[JsonMarshaled], encodeJsonMarshaled),
     (typeOf[XmlMarshaled], encodeXmlMarshaled)).toMap
@@ -139,7 +145,8 @@ object Matching {
       (`application/xml`, List(xmlmarshaled, xml, string, array, entity)),
       (`application/x-www-form-urlencoded`, List(form, string, array, entity)),
       (`multipart/form-data`, List(multipart, string, array, entity)),
-      (`text/plain`, List(string, form, xmlmarshaled, jsonmarshaled, xml, jobject, jarray, json, array, entity)))
+      (`text/plain`, List(string, form, xmlmarshaled, jsonmarshaled, xml, jobject, jarray, json, array, entity)),
+      (`*/*`, List(string, form, xmlmarshaled, jsonmarshaled, xml, jobject, jarray, json, array, entity)))
 
   val priorities: List[((MimeType, MimeType), (Type, Type))] = for {
     (inmimetype, intypelist) ← inputPriority
@@ -147,42 +154,5 @@ object Matching {
     (outmimetype, outtypelist) ← outputPriority
     outtype ← outtypelist
   } yield ((inmimetype, outmimetype), (intype, outtype))
-
-  type MethodBodies = Array[((Type, Type), Any ⇒ Any)]
-
-  val methodbodies: MethodBodies = (((typeOf[Unit], typeOf[Unit]), (a: Any) ⇒ { println("Hello, stupid!"); () }) :: ((typeOf[Unit], typeOf[String]), (a: Any) ⇒ "Another string.") :: ((typeOf[String], typeOf[String]), (s: Any) ⇒ s.toString.reverse) :: Nil).toArray
-
-  val resourcepriorities: Array[((MimeType, MimeType), (Type, Type))] = priorities.filter { case (_, (intype, outtype)) ⇒ methodbodies.unzip._1.exists { case (in, out) ⇒ in <:< intype && out <:< outtype } }.toArray
-
-  // the next 3 are different for each Request, everything else is static or class static
-
-  val inmimetype: MimeType = `application/x-scala-unit`
-
-  val outmimetypes: List[MimeType] = List(`text/plain`, `application/octet-stream`, `application/x-scala-unit`)
-
-  val inentity = Some(ArrayEntity("This is a string.".getBytes, `text/plain`))
-
-  val out: Option[Entity] = {
-    @inline def inner(outmimetype: MimeType) = resourcepriorities.collectFirst {
-      case (inoutmimetype, (intype, outtype)) if inoutmimetype == (inmimetype, outmimetype) ⇒ methodbodies.collectFirst {
-        case ((in, out), methodbody) if in <:< intype && out <:< outtype ⇒ (methodbody, in, out)
-      }
-    }
-    outmimetypes.collectFirst {
-      case outmimetype if inner(outmimetype).isDefined ⇒ inner(outmimetype)
-    } match {
-      case Some(Some(Some((methodbody, in, out)))) ⇒ encoders.get(out).get(decoders.get(in) match {
-        case Some(decode: Decoder[_]) ⇒ methodbody(decode(inentity))
-        case Some(decode: MarshaledDecoder[_]) ⇒ methodbody(decode(inentity, ClassTag(Class.forName(in.toString))))
-        case _ ⇒ throw ClientError.`415`
-      })
-      case _ ⇒ None
-    }
-  }
-
-  out match {
-    case Some(a: ArrayEntity) ⇒ println(new String(a.array))
-    case _ ⇒ println(out)
-  }
 
 }

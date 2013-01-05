@@ -123,21 +123,23 @@ final class RequestIteratee private ()(implicit server: Server) {
     cont(Nil)
   }
 
-  private[this] final def readEntity(headers: Headers, query: Option[String]): Iteratee[Io, Option[Entity]] = `Transfer-Encoding`(headers) match {
-    case Some(value) ⇒ Done(Some(TransferEncodedEntity(value)))
-    case _ ⇒ `Content-Type`(headers) match {
-      case Some(contenttype) ⇒ `Content-Length`(headers) match {
-        case Some(length) if length <= maxEntityBufferSize ⇒
-          (for (array ← takeBytes(length.toInt)) yield Some(ArrayEntity(array, contenttype)))
-        case Some(length) ⇒ Done(Some(ContentEntity(length, contenttype)))
-        case _ ⇒ Done(None)
+  private[this] final def readEntity(headers: Headers, query: Option[String]): Iteratee[Io, Option[Entity]] =
+    `Content-Type`(headers) match {
+      case Some(contenttype) ⇒ `Transfer-Encoding`(headers) match {
+        case Some(value) ⇒ Done(Some(TransferEncodedEntity(value, contenttype)))
+        case notransfer ⇒ `Content-Length`(headers) match {
+          case Some(length) if length <= maxEntityBufferSize ⇒
+            (for (array ← takeBytes(length.toInt)) yield Some(ArrayEntity(array, contenttype)))
+          case Some(length) ⇒ Done(Some(ContentEntity(length, contenttype)))
+          case nolength ⇒ Done(None)
+        }
       }
-      case _ ⇒ query match {
+      case nocontent ⇒ query match {
         case Some(s) ⇒ Done(Some(ArrayEntity(s.getBytes(`ISO-8859-15`), `text/plain`)))
         case _ ⇒ Done(None)
       }
+
     }
-  }
 
   final val readRequest: Iteratee[Io, Request] = for {
     (method, path, query, version) ← readRequestLine

@@ -9,6 +9,8 @@ import java.lang.reflect.{ Method, Modifier }
  */
 package object reflect {
 
+  def tryBoolean(p: ⇒ Any, show: Boolean = false) = try { p; true } catch { case e: Throwable ⇒ if (show) println(e); false }
+
   /**
    * Returns the primitive corresponding to it, for example Int for java.lang.Integer
    */

@@ -13,6 +13,7 @@ import Status.ServerError
 import aio.{ Completed, Io }
 import aio.Iteratee.{ Done, Error }
 import logging.HasLogger
+import text.stackTraceToString
 
 /**
  * This is passed to aio.Io for processing the read input and produce output to be written.
@@ -35,7 +36,7 @@ abstract class Processor
       case _ ⇒ k(io ++ (e match {
         case e: IOException if !e.isInstanceOf[FileSystemException] ⇒ Error[Io](e)
         case status: Status ⇒ Done[Io, Response](Response(status))
-        case e ⇒ info("failed : " + e); e.printStackTrace; Done[Io, Response](Response(ServerError.`500`))
+        case e ⇒ info("Dispatching failed : " + e); if (log.isDebugEnabled) debug(stackTraceToString(e)); Done[Io, Response](Response(ServerError.`500`))
       }))
     }
   }

@@ -11,7 +11,11 @@ import aio.{ ReadChannel, WriteChannel }
 /**
  * Base class for the Entity of an Http request and/or response.
  */
-sealed abstract class Entity
+sealed abstract class Entity {
+
+  val contenttype: ContentType
+
+}
 
 /**
  * The Entity object is a container for all concrete Entity types.
@@ -22,29 +26,29 @@ object Entity {
 
   final case class ContentEntity(length: Long, contenttype: ContentType) extends Entity
 
-  final case class `User-defined`(encoding: String) extends TransferEncodedEntity
+  final case class `User-defined`(encoding: String, contenttype: ContentType) extends TransferEncodedEntity
 
   sealed abstract class TransferEncodedEntity extends Entity
 
-  case object `identity` extends TransferEncodedEntity
+  case class `identity`(contenttype: ContentType) extends TransferEncodedEntity
 
-  case object `chunked` extends TransferEncodedEntity
+  case class `chunked`(contenttype: ContentType) extends TransferEncodedEntity
 
-  case object `gzip` extends TransferEncodedEntity
+  case class `gzip`(contenttype: ContentType) extends TransferEncodedEntity
 
-  case object `compress` extends TransferEncodedEntity
+  case class `compress`(contenttype: ContentType) extends TransferEncodedEntity
 
-  case object `deflate` extends TransferEncodedEntity
+  case class `deflate`(contenttype: ContentType) extends TransferEncodedEntity
 
   object TransferEncodedEntity {
 
-    def apply(value: String) = value.toLowerCase match {
-      case "identity" ⇒ `identity`
-      case "chunked" ⇒ `chunked`
-      case "gzip" ⇒ `gzip`
-      case "compress" ⇒ `compress`
-      case "deflate" ⇒ `deflate`
-      case other ⇒ `User-defined`(other)
+    def apply(value: String, contenttype: ContentType): TransferEncodedEntity = value.toLowerCase match {
+      case "identity" ⇒ `identity`(contenttype)
+      case "chunked" ⇒ `chunked`(contenttype)
+      case "gzip" ⇒ `gzip`(contenttype)
+      case "compress" ⇒ `compress`(contenttype)
+      case "deflate" ⇒ `deflate`(contenttype)
+      case other ⇒ `User-defined`(other, contenttype)
     }
 
   }
