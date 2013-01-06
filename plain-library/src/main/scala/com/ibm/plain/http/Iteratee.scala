@@ -109,7 +109,7 @@ final class RequestIteratee private ()(implicit server: Server) {
       } yield (name.toLowerCase, value)
     }
 
-    def cont(headers: List[(String, String)]): Iteratee[Io, Headers] = peek(1) >>> {
+    @noinline def cont(headers: List[(String, String)]): Iteratee[Io, Headers] = peek(1) >>> {
       case "\r" ⇒ for {
         _ ← drop(2)
         done ← Done(headers.toMap)

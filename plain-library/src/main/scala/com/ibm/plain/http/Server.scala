@@ -118,9 +118,14 @@ final case class Server(
 /**
  * Contains common things shared among several HttpServers, the configuration class, for instance.
  */
-object Server {
+object Server
 
-  private final val channelGroup = Group.withThreadPool(concurrent.executor)
+  extends HasLogger {
+
+  private final val channelGroup = {
+    debug(concurrent.executor.toString)
+    Group.withThreadPool(concurrent.executor)
+  }
 
   /**
    * A per-server provided configuration, unspecified details will be inherited from defaultServerConfiguration.

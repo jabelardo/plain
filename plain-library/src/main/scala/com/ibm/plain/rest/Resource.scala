@@ -128,18 +128,19 @@ trait Resource
 
     val inentity: Option[Entity] = request.entity
     val inmimetype: MimeType = inentity match { case Some(entity: Entity) ⇒ entity.contenttype.mimetype case _ ⇒ `application/x-scala-unit` }
-    val outmimetypes: List[MimeType] = List(`text/plain`)
+    val outmimetypes: List[MimeType] = List(`text/plain`) // get from Accept-Header
 
     var innerresult: Option[(MethodBody, Type, Type, Type, Type)] = None
+    var innerinput: Option[Any] = None
 
     def tryDecode(in: Type, intype: Type) = decoders.get(intype) match {
-      case Some(decode: Decoder[_]) ⇒ tryBoolean(decode(inentity))
-      case Some(decode: MarshaledDecoder[_]) ⇒ tryBoolean(decode(inentity, ClassTag(Class.forName(in.toString))))
+      case Some(decode: Decoder[_]) ⇒ tryBoolean(innerinput = Some(decode(inentity)))
+      case Some(decode: MarshaledDecoder[_]) ⇒ tryBoolean(innerinput = Some(decode(inentity, ClassTag(Class.forName(in.toString)))))
       case _ ⇒ false
     }
 
     def inner(outmimetype: MimeType) = resourcepriorities.collectFirst {
-      case ((inoutmimetype, (intype, outtype)), ((in, out), methodbody)) if inoutmimetype == (inmimetype, outmimetype) && in <:< intype && out <:< outtype && tryDecode(in, intype) ⇒
+      case ((inoutmimetype, (intype, outtype)), ((in, out), methodbody)) if inoutmimetype == (inmimetype, outmimetype) && tryDecode(in, intype) ⇒
         innerresult = Some((methodbody, in, out, intype, outtype)); innerresult
     }
 
@@ -148,9 +149,8 @@ trait Resource
     } match {
       case Some(Some((methodbody, in, out, intype, outtype))) ⇒ try {
         threadlocal.set(context ++ methodbody ++ request ++ Response(Success.`200`))
-        completed(response ++ encoders.get(outtype).get(decoders.get(intype) match {
-          case Some(decode: Decoder[_]) ⇒ methodbody.body(decode(inentity))
-          case Some(decode: MarshaledDecoder[_]) ⇒ methodbody.body(decode(inentity, ClassTag(Class.forName(in.toString))))
+        completed(response ++ encoders.get(outtype).get(innerinput match {
+          case Some(input) ⇒ methodbody.body(input)
           case _ ⇒ throw ClientError.`415`
         }), threadlocal.get)
       } finally threadlocal.remove
@@ -159,8 +159,8 @@ trait Resource
   }
 
   private[this] final def resourcePriorities(methodbodies: MethodBodies): ResourcePriorities = for {
-    p ← (priorities.filter { case (_, (intype, outtype)) ⇒ methodbodies.unzip._1.exists { case (in, out) ⇒ in <:< intype && out <:< outtype } }.toArray)
-    m ← methodbodies
+    p ← (priorities.filter { case (_, (intype, outtype)) ⇒ methodbodies.exists { case ((in, out), _) ⇒ in <:< intype && out <:< outtype } }.toArray)
+    m ← methodbodies if m._1._1 <:< p._2._1 && m._1._2 <:< p._2._2
   } yield (p, m)
 
   private[this] final def add[E, A](method: Method, in: Type, out: Type, body: Body[E, A]): MethodBody = {

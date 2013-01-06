@@ -26,7 +26,7 @@ final case class Request(
   extends Message {
 
   type Type = Request
-  
+
 }
 
 /**
