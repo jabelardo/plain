@@ -10,7 +10,7 @@ import java.nio.file.FileSystemException
 import aio.{ Processor ⇒ AioProcessor }
 
 import Status.ServerError
-import aio.{ Completed, Io }
+import aio.{ ControlCompleted, Io }
 import aio.Iteratee.{ Done, Error }
 import logging.HasLogger
 import text.stackTraceToString
@@ -24,19 +24,22 @@ abstract class Processor
 
   with HasLogger {
 
-  final def completed(response: Response, io: Io) = {
+  final def completed(response: Response, io: Io): Unit = {
     import io._
     k(io ++ Done[Io, Response](response))
   }
 
-  final def failed(e: Throwable, io: Io) = {
+  final def failed(e: Throwable, io: Io): Unit = {
     import io._
     e match {
-      case Completed ⇒
+      case ControlCompleted ⇒
       case _ ⇒ k(io ++ (e match {
         case e: IOException if !e.isInstanceOf[FileSystemException] ⇒ Error[Io](e)
         case status: Status ⇒ Done[Io, Response](Response(status))
-        case e ⇒ info("Dispatching failed : " + e); if (log.isDebugEnabled) debug(stackTraceToString(e)); Done[Io, Response](Response(ServerError.`500`))
+        case e ⇒
+          info("Dispatching failed : " + e)
+          if (log.isDebugEnabled) debug(stackTraceToString(e))
+          Done[Io, Response](Response(ServerError.`500`))
       }))
     }
   }

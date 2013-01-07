@@ -26,7 +26,7 @@ class TestResource extends Resource {
 
   Post { user: User ⇒ User(user.name + " Smith", user.id + 10) }
 
-  Post { form: Map[String, String] ⇒ form.mkString("&") }
+  Post { form: Form ⇒ form.mkString("&") }
 
   Put { in: JObject ⇒ Json.parse("[1, 2, 3, " + Json.build(in) + "]") }
 
@@ -46,7 +46,7 @@ class TestResource extends Resource {
 
   Get[XmlMarshaled] { User("Bob", 3) }
 
-  Get { form: Map[String, String] ⇒ form ++ Map("more" -> "values") }
+  Get { form: Form ⇒ form ++ Map("more" -> "values") }
 
   Head { response ++ Success.`206` }
 

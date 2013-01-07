@@ -9,6 +9,7 @@ import java.nio.channels.{ CompletionHandler ⇒ Handler }
 import aio.Io
 import http.Response
 import http.Status.Success
+import logging.HasLogger
 
 final class Adaptor private (
 
@@ -16,9 +17,11 @@ final class Adaptor private (
 
   context: Context)
 
-  extends Handler[Long, Io] {
+  extends Handler[Long, Io]
 
-  @inline final def completed(readwritten: Long, io: Io) = uniform.completed(context.response, context ++ io)
+  with HasLogger {
+
+  @inline final def completed(readwritten: Long, io: Io) = { debug("transfered completed: " + readwritten + " bytes"); uniform.completed(context.response, context ++ io) }
 
   @inline final def failed(e: Throwable, io: Io) = uniform.failed(e, context ++ io)
 

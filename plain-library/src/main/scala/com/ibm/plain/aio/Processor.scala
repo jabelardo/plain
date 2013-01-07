@@ -17,17 +17,15 @@ trait Processor[E, A <: Renderable]
 
   def process(io: Io): Nothing
 
-  def completed(result: A, io: Io)
+  def completed(result: A, io: Io): Unit
 
-  def failed(e: Throwable, io: Io)
-
-  //  protected[this] final def processed = throw AioDone
+  def failed(e: Throwable, io: Io): Unit
 
   private[aio] final def doProcess(io: Io): Io @suspendable = {
     import io._
     shift { k: Io.IoCont ⇒
       try process(io ++ k) catch {
-        case Completed ⇒ // ignore
+        case ControlCompleted ⇒
         case e: Throwable ⇒ failed(e, io)
       }
     }

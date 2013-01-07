@@ -43,6 +43,8 @@ object ContentType {
     case mimetype ⇒ new ContentType(mimetype, None)
   }
 
+  def apply(mimetype: MimeType, charset: Charset) = new ContentType(mimetype, Some(charset))
+
   /**
    * Given a header value like "text/html; charset=ISO-8859-15" this will split it into a MimeType and a Charset.
    */

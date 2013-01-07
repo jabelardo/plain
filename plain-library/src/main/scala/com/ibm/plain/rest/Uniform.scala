@@ -26,8 +26,8 @@ trait BaseUniform
 
   extends Uniform {
 
-  def completed(response: Response, context: Context) = context.parent.completed(response, context)
+  def completed(response: Response, context: Context): Nothing = context.parent.completed(response, context)
 
-  def failed(e: Throwable, context: Context) = context.parent.failed(e, context)
+  def failed(e: Throwable, context: Context): Nothing = context.parent.failed(e, context)
 
 }

@@ -75,6 +75,11 @@ package object text {
   }
 
   /**
+   * Convert a String representation from one Charset to another.
+   */
+  def convertCharset(s: String, from: Charset, to: Charset) = new String(s.getBytes(from), to)
+
+  /**
    * Returns true if s represents a numeric value (ie. an Int, a Long or a Double)
    */
   def isNumber(s: String): Boolean = try { val d = s.toDouble; true } catch { case _: Throwable ⇒ false }

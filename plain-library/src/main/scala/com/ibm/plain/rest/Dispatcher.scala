@@ -4,8 +4,10 @@ package plain
 
 package rest
 
-import aio.{ Completed, Io }
+import aio.{ ControlCompleted, Io, transfer }
 import aio.Iteratees.drop
+import aio.FileByteChannel.forWriting
+import concurrent.spawn
 import http.{ Request, Response }
 import http.{ Dispatcher ⇒ HttpDispatcher }
 import http.Entity.ContentEntity
@@ -31,8 +33,10 @@ abstract class Dispatcher(templates: Option[Templates])
           clazz.newInstance match {
             case resource: Resource ⇒
               entity match {
-                case Some(ContentEntity(length, _)) if !method.entityallowed && length < Int.MaxValue ⇒
-                  drop(length.toInt); request ++ None
+                case Some(ContentEntity(length, _)) if !method.entityallowed ⇒
+                  spawn { transfer(context.io, forWriting(if (os.isWindows) "nul" else "/dev/null"), null); () }
+                  request ++ None
+                case Some(ContentEntity(length, _)) if method.entityallowed ⇒ io ++ length
                 case Some(_) if !method.entityallowed ⇒ throw ServerError.`501`
                 case _ ⇒
               }
@@ -45,9 +49,9 @@ abstract class Dispatcher(templates: Option[Templates])
     }
   }
 
-  override final def completed(response: Response, context: Context): Nothing = { completed(response, context.io); throw Completed }
+  override final def completed(response: Response, context: Context): Nothing = { completed(response, context.io); throw ControlCompleted }
 
-  override final def failed(e: Throwable, context: Context): Nothing = { failed(e, context.io); throw Completed }
+  override final def failed(e: Throwable, context: Context): Nothing = { failed(e, context.io); reflect.tryLocation; throw ControlCompleted }
 
 }
 
@@ -57,11 +61,11 @@ abstract class Dispatcher(templates: Option[Templates])
 class DefaultDispatcher
 
   extends Dispatcher(Templates(
-    Template("user/{user}", Class.forName("com.ibm.plain.rest.resource.TestResource")),
+    //    Template("user/{user}", Class.forName("com.ibm.plain.rest.resource.TestResource")),
     Template("ping", Class.forName("com.ibm.plain.rest.resource.PingResource")),
-    Template("static", Class.forName("com.ibm.plain.rest.resource.DirectoryResource")),
+    //    Template("static", Class.forName("com.ibm.plain.rest.resource.DirectoryResource")),
     Template("echo", Class.forName("com.ibm.plain.rest.resource.EchoResource")))) {
 
-  System.gc
+  sys.runtime.gc
 
 }

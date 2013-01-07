@@ -11,6 +11,8 @@ package object reflect {
 
   def tryBoolean(p: ⇒ Any, show: Boolean = false) = try { p; true } catch { case e: Throwable ⇒ if (show) println(e); false }
 
+  def tryLocation = try { throw new Exception("current location") } catch { case e: Throwable ⇒ e.printStackTrace }
+
   /**
    * Returns the primitive corresponding to it, for example Int for java.lang.Integer
    */

@@ -31,7 +31,7 @@ final class ChannelTransfer private (
       buffer.clear
       src.read(buffer, io, readhandler)
     }
-    throw Completed
+    throw ControlCompleted
   }
 
   type Integer = java.lang.Integer
@@ -76,7 +76,10 @@ final class ChannelTransfer private (
         } else {
           outerhandler.completed(transferred, io)
         }
-      } catch { case e: Throwable ⇒ failed(e, null) }
+      } catch {
+        case ControlCompleted ⇒
+        case e: Throwable ⇒ failed(e, null)
+      }
     }
 
     def failed(e: Throwable, io: Io) = {

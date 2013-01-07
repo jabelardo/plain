@@ -6,8 +6,7 @@ package plain
 import sbt._
 import Keys._
 
-import com.typesafe.sbtscalariform.ScalariformPlugin
-import com.typesafe.sbtscalariform.ScalariformPlugin.ScalariformKeys
+import com.typesafe.sbt._
 import com.typesafe.tools.mima.plugin.MimaPlugin.mimaDefaultSettings
 import com.typesafe.tools.mima.plugin.MimaKeys.previousArtifact
 import com.typesafe.sbteclipse.plugin.EclipsePlugin.EclipseKeys
@@ -27,7 +26,7 @@ object Settings {
     resolvers += "cc.spray releases" at "http://repo.spray.cc",
     organization := "com.ibm.plain",
     version      := "1.0.1-SNAPSHOT",
-    scalaVersion := "2.10.0-RC5",
+    scalaVersion := "2.10.0",
     logLevel     := Level.Info
   ) 
 
@@ -75,15 +74,14 @@ object Settings {
     EclipseKeys.createSrc := EclipseCreateSrc.Default + EclipseCreateSrc.Resource
   )
 
-  lazy val formatSettings = ScalariformPlugin.scalariformSettings ++ Seq(
-    ScalariformKeys.preferences in Compile := formattingPreferences,
-    ScalariformKeys.preferences in Test    := formattingPreferences
+  lazy val formatSettings = SbtScalariform.scalariformSettings ++ Seq(
+    SbtScalariform.ScalariformKeys.preferences in Compile := formattingPreferences,
+    SbtScalariform.ScalariformKeys.preferences in Test    := formattingPreferences
   )
 
   def formattingPreferences = {
     import scalariform.formatter.preferences._
-    FormattingPreferences()
-    .setPreference(RewriteArrowSymbols, true)
+    FormattingPreferences().setPreference(RewriteArrowSymbols, true)
   }
 
   lazy val mimaSettings = mimaDefaultSettings ++ Seq(

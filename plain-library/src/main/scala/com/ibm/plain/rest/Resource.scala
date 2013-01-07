@@ -11,12 +11,11 @@ import json._
 import xml._
 import logging.HasLogger
 import reflect.tryBoolean
-
 import http.{ Request, Response, Status, Entity, Method, MimeType }
 import http.Entity._
 import http.MimeType._
 import http.Method.{ DELETE, GET, HEAD, POST, PUT }
-import http.Status.{ ClientError, Success }
+import http.Status.{ ClientError, ServerError, Success }
 import Matching._
 
 /**
@@ -78,41 +77,41 @@ trait Resource
 
   final def handle(request: Request, context: Context): Nothing = {
     methods.get(request.method) match {
-      case Some(Right(resourcepriorities)) ⇒ matching(request, context, resourcepriorities)
+      case Some(Right(resourcepriorities)) ⇒ execute(request, context, resourcepriorities)
       case _ ⇒ throw ClientError.`405`
     }
   }
 
   final def Post[E: TypeTag, A: TypeTag](body: E ⇒ A): MethodBody = {
-    add[E, A](POST, typeOf[E], typeOf[A], body)
+    add(POST, typeOf[E], typeOf[A], body)
   }
 
   final def Post[A: TypeTag](body: ⇒ A): MethodBody = {
-    add[Unit, A](POST, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
+    add(POST, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
   }
 
   final def Put[E: TypeTag, A: TypeTag](body: E ⇒ A): MethodBody = {
-    add[E, A](PUT, typeOf[E], typeOf[A], body)
+    add(PUT, typeOf[E], typeOf[A], body)
   }
 
   final def Delete[A: TypeTag](body: ⇒ A): MethodBody = {
-    add[Unit, A](DELETE, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
+    add(DELETE, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
   }
 
   final def Get[A: TypeTag](body: ⇒ A): MethodBody = {
-    add[Unit, A](GET, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
+    add(GET, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
   }
 
-  final def Get[A: TypeTag](body: Map[String, String] ⇒ A): MethodBody = {
-    add[Map[String, String], A](GET, typeOf[Map[String, String]], typeOf[A], body)
+  final def Get[A: TypeTag](body: Form ⇒ A): MethodBody = {
+    add(GET, typeOf[Form], typeOf[A], body)
   }
 
   final def Head(body: ⇒ Any): MethodBody = {
-    add[Unit, Unit](HEAD, typeOf[Unit], typeOf[Unit], (_: Unit) ⇒ { body; () })
+    add(HEAD, typeOf[Unit], typeOf[Unit], (_: Unit) ⇒ { body; () })
   }
 
-  final def Head(body: Map[String, String] ⇒ Any): MethodBody = {
-    add[Map[String, String], Unit](HEAD, typeOf[Map[String, String]], typeOf[Unit], (m: Map[String, String]) ⇒ { body(m); () })
+  final def Head(body: Form ⇒ Any): MethodBody = {
+    add(HEAD, typeOf[Form], typeOf[Unit], (m: Form) ⇒ { body(m); () })
   }
 
   protected[this] final def request = threadlocal.get.request
@@ -124,44 +123,49 @@ trait Resource
   /**
    * The most important method in this class.
    */
-  private[this] final def matching(request: Request, context: Context, resourcepriorities: ResourcePriorities): Nothing = {
-
+  private[this] final def execute(request: Request, context: Context, resourcepriorities: ResourcePriorities): Nothing = {
     val inentity: Option[Entity] = request.entity
     val inmimetype: MimeType = inentity match { case Some(entity: Entity) ⇒ entity.contenttype.mimetype case _ ⇒ `application/x-scala-unit` }
-    val outmimetypes: List[MimeType] = List(`text/plain`) // get from Accept-Header
+    val outmimetypes: List[MimeType] = List(`application/json`, `text/plain`, `*/*`)
+    var innerinput: Option[(Any, AnyRef)] = None
 
-    var innerresult: Option[(MethodBody, Type, Type, Type, Type)] = None
-    var innerinput: Option[Any] = None
-
-    def tryDecode(in: Type, intype: Type) = decoders.get(intype) match {
-      case Some(decode: Decoder[_]) ⇒ tryBoolean(innerinput = Some(decode(inentity)))
-      case Some(decode: MarshaledDecoder[_]) ⇒ tryBoolean(innerinput = Some(decode(inentity, ClassTag(Class.forName(in.toString)))))
-      case _ ⇒ false
+    def tryDecode(in: Type, decode: AnyRef): Boolean = {
+      if (innerinput.isDefined && innerinput.get._2 == decode) return true // avoid unnecessary calls, decode can be expensive
+      decode match {
+        case decode: Decoder[_] ⇒ tryBoolean(innerinput = Some(decode(inentity), decode))
+        case decode: MarshaledDecoder[_] ⇒ tryBoolean(innerinput = Some(decode(inentity, ClassTag(Class.forName(in.toString))), decode))
+        case _ ⇒ false
+      }
     }
 
-    def inner(outmimetype: MimeType) = resourcepriorities.collectFirst {
-      case ((inoutmimetype, (intype, outtype)), ((in, out), methodbody)) if inoutmimetype == (inmimetype, outmimetype) && tryDecode(in, intype) ⇒
-        innerresult = Some((methodbody, in, out, intype, outtype)); innerresult
-    }
-
-    outmimetypes.collectFirst {
-      case outmimetype if inner(outmimetype).isDefined ⇒ innerresult
+    (for {
+      o ← outmimetypes
+      r ← resourcepriorities
+    } yield (o, r)).collectFirst {
+      case (outmimetype, (inoutmimetype, (in, methodbody), (decode, encode))) if (inoutmimetype == (inmimetype, outmimetype)) && (tryDecode(in, decode)) ⇒
+        (methodbody, encode)
     } match {
-      case Some(Some((methodbody, in, out, intype, outtype))) ⇒ try {
+      case Some((methodbody, encode)) ⇒ try {
         threadlocal.set(context ++ methodbody ++ request ++ Response(Success.`200`))
-        completed(response ++ encoders.get(outtype).get(innerinput match {
-          case Some(input) ⇒ methodbody.body(input)
-          case _ ⇒ throw ClientError.`415`
+        completed(response ++ encode(innerinput match {
+          case Some((input, _)) ⇒ methodbody.body(input)
+          case _ ⇒ throw ServerError.`500`
         }), threadlocal.get)
       } finally threadlocal.remove
       case _ ⇒ throw ClientError.`415`
     }
   }
 
-  private[this] final def resourcePriorities(methodbodies: MethodBodies): ResourcePriorities = for {
-    p ← (priorities.filter { case (_, (intype, outtype)) ⇒ methodbodies.exists { case ((in, out), _) ⇒ in <:< intype && out <:< outtype } }.toArray)
-    m ← methodbodies if m._1._1 <:< p._2._1 && m._1._2 <:< p._2._2
-  } yield (p, m)
+  /**
+   * This is ugly, but it's only called once per Resource and Method, the resulting data structure is very efficient.
+   */
+  private[this] final def resourcePriorities(methodbodies: MethodBodies): ResourcePriorities = {
+    val matching = new Matching
+    for {
+      p ← matching.priorities.filter { case (_, (intype, outtype)) ⇒ methodbodies.exists { case ((in, out), _) ⇒ in <:< intype && out <:< outtype } }
+      m ← methodbodies if m._1._1 <:< p._2._1 && m._1._2 <:< p._2._2
+    } yield (p._1, (m._1._1, m._2), (matching.decoders.get(p._2._1).get, matching.encoders.get(p._2._2).get))
+  }
 
   private[this] final def add[E, A](method: Method, in: Type, out: Type, body: Body[E, A]): MethodBody = {
     val methodbody = MethodBody(body.asInstanceOf[Body[Any, Any]])
@@ -186,13 +190,13 @@ object Resource {
 
     val body: Body[Any, Any],
 
-    var completed: Option[Response ⇒ Unit],
+    var completed: Option[Response ⇒ Any],
 
-    var failed: Option[Throwable ⇒ Unit]) {
+    var failed: Option[Throwable ⇒ Any]) {
 
-    @inline final def onComplete(body: Response ⇒ Unit) = { completed = Some(body); this }
+    @inline final def onComplete(body: Response ⇒ Any) = { completed = Some(body); this }
 
-    @inline final def onFailure(body: Throwable ⇒ Unit) = { failed = Some(body); this }
+    @inline final def onFailure(body: Throwable ⇒ Any) = { failed = Some(body); this }
 
   }
 
@@ -208,7 +212,9 @@ object Resource {
 
   private type MethodBodies = Array[((Type, Type), MethodBody)]
 
-  private type ResourcePriorities = Array[(((MimeType, MimeType), (Type, Type)), ((Type, Type), MethodBody))]
+  private type ResourcePriority = ((MimeType, MimeType), (Type, MethodBody), (AnyRef, Encoder))
+
+  private type ResourcePriorities = Array[ResourcePriority]
 
   private final var resourcemethods: Map[Class[_ <: Resource], Methods] = Map.empty
 
