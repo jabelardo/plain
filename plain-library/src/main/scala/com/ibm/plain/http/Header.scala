@@ -82,7 +82,7 @@ object Header {
    */
   object Request {
 
-    object `Accept` extends Request[String] with StringValue
+    object `Accept` extends Request[Accept] with AcceptValue
 
     object `Accept-Charset` extends Request[String] with StringValue
 

@@ -32,7 +32,7 @@ abstract class MimeType
 object MimeType {
 
   def apply(name: String): MimeType = name.toLowerCase match {
-    case "*/*" ⇒ `*/*`
+    case "*/*" | "*" ⇒ `*/*`
 
     case "application/atom+xml" ⇒ `application/atom+xml`
     case "cgr" | "application/cgr" | "application/x-cgr" | "application/catia-3d" ⇒ `application/vnd.catiav5-cgr`
@@ -51,7 +51,7 @@ object MimeType {
     case "application/gzip" | "application/x-gzip" ⇒ `application/gzip`
     case "application/javascript" ⇒ `application/javascript`
     case "application/x-jar" | "application/java-archive" ⇒ `application/java-archive`
-    case "application/json" | "text/x-json" | "text/json" ⇒ `application/json`
+    case "application/json" | "text/x-json" | "text/json" | "application/*" ⇒ `application/json`
     case "application/vnd.msexcel" | "application/msexcel" | "application.x-excel" ⇒ `application/vnd.msexcel`
     case "application/vnd.mspowerpoint" | "application/mspowerpoint" | "application/x-mspowerpoint" ⇒ `application/vnd.mspowerpoint`
     case "application/vnd.msword" | "application/msword" | "application/x-msword" ⇒ `application/vnd.msword`
@@ -72,12 +72,12 @@ object MimeType {
     case "application/zip" | "application/x-zip" ⇒ `application/zip`
 
     case "audio/basic" ⇒ `audio/basic`
-    case "audio/mpeg" ⇒ `audio/mpeg`
+    case "audio/mpeg" | "audio/*" ⇒ `audio/mpeg`
     case "audio/mp4" ⇒ `audio/mp4`
     case "audio/mp4a-latm" ⇒ `audio/mp4a-latm`
 
     case "image/gif" ⇒ `image/gif`
-    case "image/png" | "image/x-png" ⇒ `image/png`
+    case "image/png" | "image/x-png" | "image/*" ⇒ `image/png`
     case "image/jpeg" | "image/jpg" | "image/pjpeg" ⇒ `image/jpeg`
     case "image/svg+xml" ⇒ `image/svg+xml`
     case "image/tiff" | "application/raster" ⇒ `image/tiff`

@@ -10,7 +10,7 @@ import language.implicitConversions
 
 import aio.{ Io, Renderable }
 import aio.Renderable.r
-import text.{ fastSplit, `ISO-8859-15`, `UTF-8` }
+import text.{ fastSplit, `UTF-8` }
 import Status.ClientError
 import MimeType.`application/json`
 
@@ -27,7 +27,7 @@ final case class ContentType private (
 
   import ContentType._
 
-  @inline def charsetOrDefault = charset match { case Some(charset) ⇒ charset case None ⇒ `ISO-8859-15` }
+  @inline def charsetOrDefault = charset match { case Some(charset) ⇒ charset case None ⇒ defaultCharacterSet }
 
   @inline final def render(implicit io: Io) = mimetype + r(charset match { case None ⇒ "" case Some(c) ⇒ "; charset=" + c.displayName })
 
@@ -51,7 +51,7 @@ object ContentType {
   def apply(headervalue: String): ContentType = fastSplit(headervalue, ';') match {
     case mimetype :: Nil ⇒ apply(MimeType(mimetype))
     case mimetype :: charset :: Nil ⇒
-      apply(MimeType(mimetype.trim), Some(try Charset.forName(charset.trim.replace("charset=", "")) catch { case _: Throwable ⇒ `ISO-8859-15` }))
+      apply(MimeType(mimetype.trim), Some(try Charset.forName(charset.trim.replace("charset=", "")) catch { case _: Throwable ⇒ defaultCharacterSet }))
     case _ ⇒ throw ClientError.`415`
   }
 

@@ -13,9 +13,10 @@ import scala.xml.{ XML, Elem ⇒ Xml }
 
 import json.{ Json, JsonMarshaled }
 import json.Json.{ JArray, JObject }
-import text.{ `ISO-8859-15`, `UTF-8`, fastSplit, convertCharset }
+import text.{ `UTF-8`, fastSplit, convertCharset }
 import xml.XmlMarshaled
 
+import http.defaultCharacterSet
 import http.Status.ClientError
 import http.ContentType
 import http.MimeType
@@ -44,7 +45,7 @@ private final class Matching {
 
   import Types._
 
-  private[this] final val codec = new URLCodec(`ISO-8859-15`.toString)
+  private[this] final val codec = new URLCodec(defaultCharacterSet.toString)
 
   val decodeEntity: Decoder[Entity] = (entity: Option[Entity]) ⇒ entity match { case Some(entity) ⇒ entity case _ ⇒ throw ClientError.`415` }
 
@@ -55,7 +56,7 @@ private final class Matching {
   val decodeString: Decoder[String] = (entity: Option[Entity]) ⇒ entity match { case Some(a: ArrayEntity) ⇒ new String(a.array, a.contenttype.charsetOrDefault) case _ ⇒ throw ClientError.`415` }
 
   val decodeForm: Decoder[Form] = (entity: Option[Entity]) ⇒ {
-    @inline def c(s: String) = convertCharset(codec.decode(s), `ISO-8859-15`, `UTF-8`)
+    @inline def c(s: String) = convertCharset(codec.decode(s), defaultCharacterSet, `UTF-8`)
     fastSplit(decodeString(entity), '&')
       .map(fastSplit(_, '='))
       .collect { case List(k, v) ⇒ (c(k), c(v)) }
@@ -96,12 +97,12 @@ private final class Matching {
 
   val encodeArray: Encoder = ((array: Array[Byte]) ⇒ Some(ArrayEntity(array, `application/octet-stream`))).asInstanceOf[Encoder]
 
-  val encodeString: Encoder = ((s: String) ⇒ Some(ArrayEntity(s.getBytes(`ISO-8859-15`), `text/plain`))).asInstanceOf[Encoder]
+  val encodeString: Encoder = ((s: String) ⇒ Some(ArrayEntity(s.getBytes(defaultCharacterSet), `text/plain`))).asInstanceOf[Encoder]
 
   val encodeForm: Encoder = ((form: Form) ⇒ {
-    @inline def c(s: String) = codec.encode(convertCharset(s, `UTF-8`, `ISO-8859-15`))
+    @inline def c(s: String) = codec.encode(convertCharset(s, `UTF-8`, defaultCharacterSet))
     val f = form.foldLeft(new StringBuilder) { case (l, (k, values)) ⇒ values.foreach(value ⇒ l.append(c(k)).append('=').append(c(value)).append('&')); l }
-    Some(ArrayEntity(f.stripSuffix("&").getBytes(`ISO-8859-15`), `application/x-www-form-urlencoded`))
+    Some(ArrayEntity(f.stripSuffix("&").getBytes(defaultCharacterSet), `application/x-www-form-urlencoded`))
   }).asInstanceOf[Encoder]
 
   val encodeMultipartForm: Encoder = ((form: MultipartForm) ⇒ Some(ArrayEntity(null, `multipart/form-data`))).asInstanceOf[Encoder]
@@ -146,8 +147,10 @@ private final class Matching {
     (`application/octet-stream`, List(array, entity)),
     (`application/json`, List(jsonmarshaled, jobject, jarray, json, string, array, entity)),
     (`application/xml`, List(xmlmarshaled, xml, string, array, entity)),
+    (`application/xhtml+xml`, List(xml, string, array, entity)),
     (`application/x-www-form-urlencoded`, List(form, string, array, entity)),
     (`multipart/form-data`, List(multipart, string, array, entity)),
+    (`text/html`, List(string, xml, array, entity)),
     (`text/plain`, List(string, form, xmlmarshaled, jsonmarshaled, xml, jobject, jarray, json, array, entity)),
     (`*/*`, List(string, form, xmlmarshaled, jsonmarshaled, xml, jobject, jarray, json, array, entity)))
 

@@ -135,7 +135,7 @@ final class RequestIteratee private ()(implicit server: Server) {
         }
       }
       case nocontent ⇒ query match {
-        case Some(s) ⇒ Done(Some(ArrayEntity(s.getBytes(`ISO-8859-15`), `text/plain`)))
+        case Some(s) ⇒ Done(Some(ArrayEntity(s.getBytes(defaultCharacterSet), `text/plain`)))
         case _ ⇒ Done(None)
       }
 

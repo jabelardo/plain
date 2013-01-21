@@ -11,11 +11,12 @@ import json._
 import xml._
 import logging.HasLogger
 import reflect.tryBoolean
-import http.{ Request, Response, Status, Entity, Method, MimeType }
+import http.{ Request, Response, Status, Entity, Method, MimeType, Accept }
 import http.Entity._
 import http.MimeType._
 import http.Method.{ DELETE, GET, HEAD, POST, PUT }
 import http.Status.{ ClientError, ServerError, Success }
+import http.Header.Request.{ `Accept` ⇒ AcceptHeader }
 import Matching._
 
 /**
@@ -126,7 +127,11 @@ trait Resource
   private[this] final def execute(request: Request, context: Context, resourcepriorities: ResourcePriorities): Nothing = {
     val inentity: Option[Entity] = request.entity
     val inmimetype: MimeType = inentity match { case Some(entity: Entity) ⇒ entity.contenttype.mimetype case _ ⇒ `application/x-scala-unit` }
-    val outmimetypes: List[MimeType] = List(`application/json`, `text/plain`, `*/*`)
+    val outmimetypes: List[MimeType] = AcceptHeader(request.headers) match {
+      case Some(Accept(mimetypes)) ⇒ mimetypes
+      case _ ⇒ List(`*/*`)
+    }
+
     var innerinput: Option[(Any, AnyRef)] = None
 
     def tryDecode(in: Type, decode: AnyRef): Boolean = {
@@ -149,7 +154,7 @@ trait Resource
         threadlocal.set(context ++ methodbody ++ request ++ Response(Success.`200`))
         completed(response ++ encode(innerinput match {
           case Some((input, _)) ⇒ methodbody.body(input)
-          case _ ⇒ throw ServerError.`500`
+          case _ ⇒ throw ServerError.`501`
         }), threadlocal.get)
       } finally threadlocal.remove
       case _ ⇒ throw ClientError.`415`
