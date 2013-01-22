@@ -31,7 +31,7 @@ class DirectoryResource
     rootDirectory.resolve(context.remainder.mkString("/")) match {
       case file if exists(file) && isRegularFile(file) ⇒
         println("size " + size(file));
-        completed(Response(Success.`200`), context)
+        completed(Response(Some(request), Success.`200`), context)
       case file if exists(file) ⇒ throw ClientError.`406`
       case _ ⇒ throw ClientError.`404`
     }

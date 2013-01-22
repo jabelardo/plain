@@ -3,11 +3,17 @@ package com.ibm
 package plain
 
 import java.lang.reflect.{ Method, Modifier }
+import scala.collection.JavaConversions._
+import org.reflections.Reflections
 
 /**
  * Some tools to ease the use the Java reflection api in Scala.
  */
 package object reflect {
+
+  val reflections = new Reflections("com.ibm.plain")
+
+  def subClasses[A](clazz: Class[A]): Set[Class[_ <: A]] = reflections.getSubTypesOf(clazz).toSet
 
   def tryBoolean(p: ⇒ Any, show: Boolean = false) = try { p; true } catch { case e: Throwable ⇒ if (show) println(e); false }
 
@@ -71,6 +77,7 @@ package object reflect {
    */
   def scalifiedName(cls: Class[_]): String = simpleName(cls.getName
     .replace("$eq", "=")
+    .replace("$u002E", ".")
     .replace("$greater", ">")
     .replace("$less", "<")
     .replace("$plus", "+")

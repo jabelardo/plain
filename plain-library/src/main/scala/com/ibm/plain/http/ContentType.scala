@@ -9,7 +9,7 @@ import java.nio.charset.Charset
 import language.implicitConversions
 
 import aio.{ Io, Renderable }
-import aio.Renderable.r
+import aio.Renderable._
 import text.{ fastSplit, `UTF-8` }
 import Status.ClientError
 import MimeType.`application/json`
@@ -29,7 +29,7 @@ final case class ContentType private (
 
   @inline def charsetOrDefault = charset match { case Some(charset) ⇒ charset case None ⇒ defaultCharacterSet }
 
-  @inline final def render(implicit io: Io) = mimetype + r(charset match { case None ⇒ "" case Some(c) ⇒ "; charset=" + c.displayName })
+  @inline final def render(implicit io: Io) = mimetype + r(charset match { case None ⇒ "" case Some(c) ⇒ "; charset=" + c.displayName }) + ^
 
 }
 

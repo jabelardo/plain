@@ -34,7 +34,8 @@ object PlainBuild extends Build {
           commonsIo, 
           clHashMap, 
           fasterXml,
-          jerseyJson
+          jerseyJson,
+			reflections
       ) ++ 
       test(junit, junitItf)
   )

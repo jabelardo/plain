@@ -72,7 +72,7 @@ trait Resource
 
   final def completed(response: Response): Unit = completed(response, threadlocal.get)
 
-  final def completed(status: Status): Unit = completed(Response(status), threadlocal.get)
+  final def completed(status: Status): Unit = completed(Response(null, status), threadlocal.get)
 
   final def failed(e: Throwable): Unit = failed(e, threadlocal.get)
 
@@ -84,35 +84,35 @@ trait Resource
   }
 
   final def Post[E: TypeTag, A: TypeTag](body: E ⇒ A): MethodBody = {
-    add(POST, typeOf[E], typeOf[A], body)
+    add[E, A](POST, typeOf[E], typeOf[A], body)
   }
 
   final def Post[A: TypeTag](body: ⇒ A): MethodBody = {
-    add(POST, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
+    add[Unit, A](POST, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
   }
 
   final def Put[E: TypeTag, A: TypeTag](body: E ⇒ A): MethodBody = {
-    add(PUT, typeOf[E], typeOf[A], body)
+    add[E, A](PUT, typeOf[E], typeOf[A], body)
   }
 
   final def Delete[A: TypeTag](body: ⇒ A): MethodBody = {
-    add(DELETE, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
+    add[Unit, A](DELETE, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
   }
 
   final def Get[A: TypeTag](body: ⇒ A): MethodBody = {
-    add(GET, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
+    add[Unit, A](GET, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
   }
 
   final def Get[A: TypeTag](body: Form ⇒ A): MethodBody = {
-    add(GET, typeOf[Form], typeOf[A], body)
+    add[Form, A](GET, typeOf[Form], typeOf[A], body)
   }
 
   final def Head(body: ⇒ Any): MethodBody = {
-    add(HEAD, typeOf[Unit], typeOf[Unit], (_: Unit) ⇒ { body; () })
+    add[Unit, Unit](HEAD, typeOf[Unit], typeOf[Unit], (_: Unit) ⇒ { body; () })
   }
 
   final def Head(body: Form ⇒ Any): MethodBody = {
-    add(HEAD, typeOf[Form], typeOf[Unit], (m: Form) ⇒ { body(m); () })
+    add[Form, Unit](HEAD, typeOf[Form], typeOf[Unit], (m: Form) ⇒ { body(m); () })
   }
 
   protected[this] final def request = threadlocal.get.request
@@ -151,7 +151,7 @@ trait Resource
         (methodbody, encode)
     } match {
       case Some((methodbody, encode)) ⇒ try {
-        threadlocal.set(context ++ methodbody ++ request ++ Response(Success.`200`))
+        threadlocal.set(context ++ methodbody ++ request ++ Response(Some(request), Success.`200`))
         completed(response ++ encode(innerinput match {
           case Some((input, _)) ⇒ methodbody.body(input)
           case _ ⇒ throw ServerError.`501`

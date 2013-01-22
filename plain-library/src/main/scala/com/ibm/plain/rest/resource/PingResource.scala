@@ -17,7 +17,7 @@ final class PingResource
 
   extends Resource {
 
-  Get { "pong!" }
+  Get { "asekltjaeslkjasdklfjasölkfjasdlkfj alöksfj aslkfj alksjf lakösj pong!" }
 
   Get { s: String ⇒ println(s); s }
 

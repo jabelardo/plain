@@ -32,6 +32,7 @@ object Dependencies {
   val commonsIo     = "commons-io"                              %   "commons-io"                  % "2.4"
   val commonsNet    = "commons-net"                             %   "commons-net"                 % "3.1"
   val commonsCodec  = "commons-codec"                           %   "commons-codec"               % "1.7"
+  val reflections   = "org.reflections"                         %   "reflections"                 % "0.9.8"
   val clHashMap     = "com.googlecode.concurrentlinkedhashmap"  %   "concurrentlinkedhashmap-lru" % "1.3.2"
   val jacksonCore   = "org.codehaus.jackson"                    %   "jackson-core-asl"            % "1.9.11"
   val jacksonMapper = "org.codehaus.jackson"                    %   "jackson-mapper-asl"          % "1.9.11"

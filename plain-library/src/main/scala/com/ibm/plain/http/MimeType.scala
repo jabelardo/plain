@@ -6,9 +6,11 @@ package http
 
 import java.nio.ByteBuffer
 
+import reflect.{ scalifiedName, subClasses }
+
 import aio.Io
 import aio.Renderable
-import aio.Renderable.r
+import aio.Renderable._
 import Status.ClientError.`415`
 
 /**
@@ -18,11 +20,13 @@ abstract class MimeType
 
   extends Renderable {
 
+  import MimeType._
+
   def name: String
 
   def extensions: Set[String]
 
-  @inline final def render(implicit io: Io) = r(name)
+  @inline final def render(implicit io: Io) = r(name) + ^
 
 }
 
@@ -53,8 +57,11 @@ object MimeType {
     case "application/x-jar" | "application/java-archive" ⇒ `application/java-archive`
     case "application/json" | "text/x-json" | "text/json" | "application/*" ⇒ `application/json`
     case "application/vnd.msexcel" | "application/msexcel" | "application.x-excel" ⇒ `application/vnd.msexcel`
+    case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ⇒ `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
     case "application/vnd.mspowerpoint" | "application/mspowerpoint" | "application/x-mspowerpoint" ⇒ `application/vnd.mspowerpoint`
+    case "application/vnd.openxmlformats-officedocument.presentationml.presentation" ⇒ `application/vnd.openxmlformats-officedocument.presentationml.presentation`
     case "application/vnd.msword" | "application/msword" | "application/x-msword" ⇒ `application/vnd.msword`
+    case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ⇒ `application/vnd.openxmlformats-officedocument.wordprocessingml.document`
     case "application/octet-stream" ⇒ `application/octet-stream`
     case "application/pdf" ⇒ `application/pdf`
     case "application/postscript" ⇒ `application/postscript`
@@ -105,7 +112,7 @@ object MimeType {
     case "video/x-m4v" ⇒ `video/x-m4v`
     case "video/x-msvideo" ⇒ `video/x-msvideo`
 
-    case n ⇒ `User-defined`(n)
+    case other ⇒ `User-defined`(other)
   }
 
   /**
@@ -116,6 +123,8 @@ object MimeType {
     final val name = toString
 
     final val extensions = ext.toSet
+
+    extensions.foreach { e ⇒ extensionsmap = extensionsmap ++ Map(e -> this) }
 
   }
 
@@ -150,7 +159,9 @@ object MimeType {
   case object `application/vnd.msexcel` extends `application/*`("xls")
   case object `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` extends `application/*`("xlsx")
   case object `application/vnd.mspowerpoint` extends `application/*`("ppt")
+  case object `application/vnd.openxmlformats-officedocument.presentationml.presentation` extends `application/*`("pptx")
   case object `application/vnd.msword` extends `application/*`("doc")
+  case object `application/vnd.openxmlformats-officedocument.wordprocessingml.document` extends `application/*`("docx")
   case object `application/octet-stream` extends `application/*`("bin", "class", "exe", "com", "dll", "lib", "a", "o")
   case object `application/pdf` extends `application/*`("pdf")
   case object `application/postscript` extends `application/*`("ps", "ai")
@@ -221,6 +232,12 @@ object MimeType {
     def apply(name: String) = new `User-defined`(name.toLowerCase)
 
   }
+
+  def forExtension(extension: String): Option[MimeType] = extensionsmap.get(extension)
+
+  private[this] var extensionsmap: Map[String, MimeType] = Map.empty
+
+  private[this] val init = subClasses(classOf[MimeType]).map(scalifiedName).filter(!_.endsWith("MimeType")).foreach(apply)
 
 }
 

@@ -47,6 +47,7 @@
 			</appender>
 		</then>
 	</if>
+	<logger name="org.reflections.Reflections" level="INFO"/>
 	<root level="${rootLevel:-DEBUG}">
 		<if
 			condition='property("plain.logging.console.enable").equalsIgnoreCase("true")'>
