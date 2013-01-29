@@ -17,7 +17,7 @@ final class PingResource
 
   extends Resource {
 
-  Get { "asekltjaeslkjasdklfjasölkfjasdlkfj alöksfj aslkfj alksjf lakösj pong!" }
+  Get { "pong!" } // val s = new StringBuffer; (1 to 2000).foreach(s.append("asekltjaeslkjasdklfjasölkfjasdlkfj alöksfj aslkfj alksjf lakösj pong!").append(_).append("\n")); s.toString }
 
   Get { s: String ⇒ println(s); s }
 

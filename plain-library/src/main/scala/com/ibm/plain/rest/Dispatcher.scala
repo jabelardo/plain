@@ -36,7 +36,7 @@ abstract class Dispatcher(templates: Option[Templates])
                 case Some(ContentEntity(length, _)) if !method.entityallowed ⇒
                   spawn { transfer(context.io, forWriting(if (os.isWindows) "nul" else "/dev/null"), null); () }
                   request ++ None
-                case Some(ContentEntity(length, _)) if method.entityallowed ⇒ io ++ length
+                case Some(ContentEntity(_, length)) if method.entityallowed ⇒ io ++ length
                 case Some(_) if !method.entityallowed ⇒ throw ServerError.`501`
                 case _ ⇒
               }
@@ -63,7 +63,7 @@ class DefaultDispatcher
   extends Dispatcher(Templates(
     //    Template("user/{user}", Class.forName("com.ibm.plain.rest.resource.TestResource")),
     Template("ping", Class.forName("com.ibm.plain.rest.resource.PingResource")),
-    //    Template("static", Class.forName("com.ibm.plain.rest.resource.DirectoryResource")),
+    Template("static", Class.forName("com.ibm.plain.rest.resource.DirectoryResource")),
     Template("echo", Class.forName("com.ibm.plain.rest.resource.EchoResource")))) {
 
   sys.runtime.gc

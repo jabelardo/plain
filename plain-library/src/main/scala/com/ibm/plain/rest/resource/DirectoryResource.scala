@@ -12,8 +12,11 @@ import java.nio.file.Paths
 import com.typesafe.config.{ Config, ConfigFactory }
 
 import config.CheckedConfig
-import http.{ Request, Response }
+import aio.FileByteChannel._
+import http.{ Request, Response, ContentType }
 import http.Status._
+import http.Entity._
+import http.MimeType._
 import logging.HasLogger
 
 /**
@@ -25,19 +28,16 @@ class DirectoryResource
 
   import DirectoryResource._
 
-  // needs more thinking first, configuration must only be parsed once
-  def handle2(request: Request, context: Context): Nothing = {
-    import settings._
+  val rootDirectory = Paths.get("/Users/guido/Development/Projects/plain")
+
+  Get {
     rootDirectory.resolve(context.remainder.mkString("/")) match {
-      case file if exists(file) && isRegularFile(file) ⇒
-        println("size " + size(file));
-        completed(Response(Some(request), Success.`200`), context)
+      case file if exists(file) && isRegularFile(file) ⇒ ReadChannelEntity(forReading(file), ContentType(`text/plain`, text.`UTF-8`), size(file))
       case file if exists(file) ⇒ throw ClientError.`406`
       case _ ⇒ throw ClientError.`404`
     }
-  }
 
-  private[this] val settings = DirectoryResourceConfiguration("plain")
+  }
 
 }
 

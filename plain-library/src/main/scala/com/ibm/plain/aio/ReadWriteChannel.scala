@@ -7,20 +7,20 @@ package aio
 import java.nio.channels.{ CompletionHandler, AsynchronousChannel, AsynchronousByteChannel }
 import java.nio.ByteBuffer
 
-import scala.language.implicitConversions
-
 /**
  * Common wrapper around an AsynchronousByteChannel
  */
 abstract sealed class ReadWriteChannel protected (
 
-  channel: AsynchronousByteChannel)
+  channel: AsynchronousByteChannel,
+
+  canclose: Boolean)
 
   extends AsynchronousChannel {
 
   type Integer = java.lang.Integer
 
-  final def close = channel.close
+  final def close = if (canclose) channel.close
 
   final def isOpen = channel.isOpen
 
@@ -31,9 +31,11 @@ abstract sealed class ReadWriteChannel protected (
  */
 final class ReadChannel private (
 
-  channel: AsynchronousByteChannel)
+  channel: AsynchronousByteChannel,
 
-  extends ReadWriteChannel(channel) {
+  canclose: Boolean)
+
+  extends ReadWriteChannel(channel, canclose) {
 
   @inline final def read[A](buffer: ByteBuffer, attachment: A, handler: CompletionHandler[Integer, _ >: A]) = {
     channel.read(buffer, attachment, handler)
@@ -46,9 +48,11 @@ final class ReadChannel private (
  */
 final class WriteChannel private (
 
-  channel: AsynchronousByteChannel)
+  channel: AsynchronousByteChannel,
 
-  extends ReadWriteChannel(channel) {
+  canclose: Boolean)
+
+  extends ReadWriteChannel(channel, canclose) {
 
   @inline final def write[A](buffer: ByteBuffer, attachment: A, handler: CompletionHandler[Integer, _ >: A]) = {
     channel.write(buffer, attachment, handler)
@@ -61,11 +65,9 @@ final class WriteChannel private (
  */
 object ReadChannel {
 
-  def apply(channel: AsynchronousByteChannel) = wrap(channel)
+  def apply(channel: AsynchronousByteChannel, canclose: Boolean) = wrap(channel, canclose)
 
-  def wrap(channel: AsynchronousByteChannel) = new ReadChannel(channel)
-
-  implicit def asynchronousByteChannel2ReadChannel(channel: AsynchronousByteChannel) = wrap(channel)
+  def wrap(channel: AsynchronousByteChannel, canclose: Boolean) = new ReadChannel(channel, canclose)
 
 }
 
@@ -74,11 +76,9 @@ object ReadChannel {
  */
 object WriteChannel {
 
-  def apply(channel: AsynchronousByteChannel) = wrap(channel)
+  def apply(channel: AsynchronousByteChannel, canclose: Boolean) = wrap(channel, canclose)
 
-  def wrap(channel: AsynchronousByteChannel) = new WriteChannel(channel)
-
-  implicit def asynchronousByteChannel2WriteChannel(channel: AsynchronousByteChannel) = wrap(channel)
+  def wrap(channel: AsynchronousByteChannel, canclose: Boolean) = new WriteChannel(channel, canclose)
 
 }
 

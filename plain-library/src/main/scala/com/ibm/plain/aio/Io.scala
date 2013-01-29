@@ -12,7 +12,7 @@ import java.nio.charset.Charset
 import java.util.concurrent.TimeUnit
 
 import scala.math.min
-import scala.util.continuations.{ shift, suspendable }
+import scala.util.continuations.{ reset, shift, suspendable }
 import scala.concurrent.duration.Duration
 
 import Iteratee.{ Cont, Done, Error }
@@ -176,7 +176,7 @@ final class Io private (
   @inline private def error(e: Throwable) = {
     e match {
       case _: IOException ⇒
-      case e ⇒ logger.debug(e.toString)
+      case e ⇒ logger.debug("Io.error " + e.toString)
     }
     releaseBuffer
   }
@@ -243,8 +243,8 @@ object Io
       channel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
       channel.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.box(false))
       channel.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.box(true))
-      channel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(defaultBufferSize))
-      channel.setOption(StandardSocketOptions.SO_SNDBUF, Integer.valueOf(defaultBufferSize))
+      channel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(54 * 1024))
+      channel.setOption(StandardSocketOptions.SO_SNDBUF, Integer.valueOf(54 * 1024))
       channel
     }
 
@@ -293,6 +293,11 @@ object Io
     shift { k: IoCont ⇒ buffer.clear; channel.read(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, io ++ k, ReadHandler) }
   }
 
+  @inline private[this] final def write(io: Io): Io @suspendable = {
+    import io._
+    shift { k: IoCont ⇒ channel.write(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, io ++ k, WriteHandler) }
+  }
+
   @inline private[this] final def unhandled(e: Any) = error("unhandled " + e)
 
   @inline private[this] final val ignored = ()
@@ -324,15 +329,31 @@ object Io
 
     @inline def processloop(io: Io): Unit @suspendable = {
       (processor.doProcess(io) match {
-        case io ⇒
-          io.iteratee
+        case io ⇒ io.iteratee
       }) match {
-        case Done(result: Renderable) ⇒
-          result.doRender(io)
-          if (io.keepalive) readloop(io ++ readiteratee)
+        case Done(renderable: Renderable) ⇒
+          writeloop(io, renderable.doRender(io))
         case Error(e) ⇒
-          info(e.toString)
+          info("processloop " + e.toString)
           io.error(e)
+        case e ⇒
+          unhandled(e)
+      }
+    }
+
+    import annotation.tailrec
+
+    @inline def writeloop(io: Io, iteratee: Iteratee[Long, Boolean]): Unit @suspendable = {
+      (write(io) match {
+        case io if -1 < io.readwritten ⇒
+          iteratee(Elem(io.readwritten))
+        case io ⇒
+          iteratee(Eof)
+      }) match {
+        case (cont @ Cont(_), e) ⇒
+          writeloop(io, cont)
+        case (Done(keepalive: Boolean), _) ⇒
+          if (keepalive) readloop(io ++ readiteratee)
         case e ⇒
           unhandled(e)
       }

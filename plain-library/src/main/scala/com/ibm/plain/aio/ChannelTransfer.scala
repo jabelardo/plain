@@ -13,20 +13,15 @@ import java.nio.channels.{ CompletionHandler ⇒ Handler }
 final class ChannelTransfer private (
   src: ReadChannel,
   dst: WriteChannel,
-  arr: Array[Byte],
   io: Io,
+  iodestination: Boolean,
   outerhandler: Handler[Long, Io]) {
-
-  private def this(src: ReadChannel, arr: Array[Byte], io: Io, outerhandler: Handler[Long, Io]) =
-    this(src, null, arr, io, outerhandler)
 
   @inline private final def transfer: Nothing = {
     import io._
+    if (iodestination) buffer.flip
     if (0 < buffer.remaining) {
-      arr match {
-        case null ⇒ dst.write(buffer, Integer.valueOf(buffer.remaining), writehandler)
-        case arr ⇒ val l = Integer.valueOf(buffer.remaining); writehandler.completed(l, l)
-      }
+      dst.write(buffer, Integer.valueOf(buffer.remaining), writehandler)
     } else {
       buffer.clear
       src.read(buffer, io, readhandler)
@@ -45,9 +40,7 @@ final class ChannelTransfer private (
           transferred += byteswritten.longValue
           dst.write(buffer, Integer.valueOf(bytesread.intValue - byteswritten.intValue), this)
         } else {
-          if (null != arr) buffer.get(arr, transferred.toInt, byteswritten.intValue)
           transferred += byteswritten.longValue
-          buffer.clear
           if (-1 == io.expected || transferred < io.expected) {
             buffer.clear
             src.read(buffer, io, readhandler)
@@ -69,11 +62,10 @@ final class ChannelTransfer private (
       try {
         if (-1 < bytesread) {
           buffer.flip
-          arr match {
-            case null ⇒ dst.write(buffer, bytesread, writehandler)
-            case arr ⇒ val l = Integer.valueOf(bytesread); writehandler.completed(l, l)
-          }
+          dst.write(buffer, bytesread, writehandler)
         } else {
+          src.close
+          dst.close
           outerhandler.completed(transferred, io)
         }
       } catch {
@@ -84,6 +76,8 @@ final class ChannelTransfer private (
 
     def failed(e: Throwable, io: Io) = {
       import io._
+      src.close
+      dst.close
       outerhandler.failed(e, io)
     }
 
@@ -101,17 +95,12 @@ object ChannelTransfer {
   def apply(
     in: Io,
     out: WriteChannel,
-    handler: Handler[Long, Io]): Nothing = new ChannelTransfer(in.channel, out, null, in, handler).transfer
+    handler: Handler[Long, Io]): Nothing = new ChannelTransfer(ReadChannel(in.channel, false), out, in, false, handler).transfer
 
   def apply(
     in: ReadChannel,
     out: Io,
-    handler: Handler[Long, Io]): Nothing = new ChannelTransfer(in, out.channel, null, out, handler).transfer
-
-  def apply(
-    in: Io,
-    out: Array[Byte],
-    handler: Handler[Long, Io]): Nothing = new ChannelTransfer(in.channel, null, out, in, handler).transfer
+    handler: Handler[Long, Io]): Nothing = new ChannelTransfer(in, WriteChannel(out.channel, false), out, true, handler).transfer
 
 }
 

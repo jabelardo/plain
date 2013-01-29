@@ -9,6 +9,7 @@ import org.apache.commons.codec.net.URLCodec
 import aio._
 import aio.Iteratee._
 import aio.Iteratees._
+import aio.Input._
 import text._
 import Message.Headers
 import Request.Path
@@ -130,7 +131,7 @@ final class RequestIteratee private ()(implicit server: Server) {
         case notransfer ⇒ `Content-Length`(headers) match {
           case Some(length) if length <= maxEntityBufferSize ⇒
             (for (array ← takeBytes(length.toInt)) yield Some(ArrayEntity(array, contenttype)))
-          case Some(length) ⇒ Done(Some(ContentEntity(length, contenttype)))
+          case Some(length) ⇒ Done(Some(ContentEntity(contenttype, length)))
           case nolength ⇒ Done(None)
         }
       }

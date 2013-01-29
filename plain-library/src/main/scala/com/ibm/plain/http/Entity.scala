@@ -15,6 +15,8 @@ sealed abstract class Entity {
 
   val contenttype: ContentType
 
+  val length: Long
+
 }
 
 /**
@@ -22,13 +24,15 @@ sealed abstract class Entity {
  */
 object Entity {
 
-  final case class ArrayEntity(array: Array[Byte], contenttype: ContentType) extends Entity
+  final case class ArrayEntity(array: Array[Byte], contenttype: ContentType) extends Entity { val length = array.length.toLong }
 
-  final case class ContentEntity(length: Long, contenttype: ContentType) extends Entity
+  final case class ContentEntity(contenttype: ContentType, length: Long) extends Entity
+
+  final case class ReadChannelEntity(channel: ReadChannel, contenttype: ContentType, length: Long) extends Entity
 
   final case class `User-defined`(encoding: String, contenttype: ContentType) extends TransferEncodedEntity
 
-  sealed abstract class TransferEncodedEntity extends Entity
+  sealed abstract class TransferEncodedEntity extends Entity { val length = -1L }
 
   case class `identity`(contenttype: ContentType) extends TransferEncodedEntity
 

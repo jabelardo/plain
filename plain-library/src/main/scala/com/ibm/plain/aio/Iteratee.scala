@@ -231,7 +231,7 @@ object Iteratees {
     Cont(cont(n))
   }
 
-  private[this] final val EOF = new EOFException("Unexpected EOF")
+  final val EOF = new EOFException("Unexpected EOF")
 
 }
 

@@ -11,7 +11,7 @@ import scala.util.continuations.{ shift, suspendable }
 /**
  * An aio Processor processes an input of type E and produces a result of type A or an error.
  */
-trait Processor[E, A <: Renderable]
+trait Processor[E, A]
 
   extends Handler[A, Io] {
 

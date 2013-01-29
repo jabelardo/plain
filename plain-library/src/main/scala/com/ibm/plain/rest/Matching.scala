@@ -151,8 +151,8 @@ private final class Matching {
     (`application/x-www-form-urlencoded`, List(form, string, array, entity)),
     (`multipart/form-data`, List(multipart, string, array, entity)),
     (`text/html`, List(string, xml, array, entity)),
-    (`text/plain`, List(string, form, xmlmarshaled, jsonmarshaled, xml, jobject, jarray, json, array, entity)),
-    (`*/*`, List(string, form, xmlmarshaled, jsonmarshaled, xml, jobject, jarray, json, array, entity)))
+    (`text/plain`, List(string, form, jsonmarshaled, xmlmarshaled, xml, jobject, jarray, json, array, entity)),
+    (`*/*`, List(string, form, jsonmarshaled, xmlmarshaled, xml, jobject, jarray, json, array, entity)))
 
   val priorities: Array[((MimeType, MimeType), (Type, Type))] = for {
     (inmimetype, intypelist) ← inputPriority

@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit
 import scala.util.continuations.{ reset, shift, suspendable }
 
 import Io.{ IoCont, WriteHandler }
+import Iteratee.{ Done, Error }
 import Iteratee.Error
 import text.`US-ASCII`
 import concurrent.OnlyOnce
@@ -23,7 +24,9 @@ trait Renderable {
 
   def render(implicit io: Io): Unit
 
-  def +(that: Renderable)(implicit io: Io): Renderable = {
+  def doRender(implicit io: Io): Iteratee[Long, Boolean] = null
+
+  final def +(that: Renderable)(implicit io: Io): Renderable = {
     import io._
     try {
       this.render(io)
@@ -31,37 +34,9 @@ trait Renderable {
       case e: BufferOverflowException if buffer.remaining == buffer.capacity ⇒
         buffer.clear
         fatal
-      case e: BufferOverflowException ⇒
-        warning
-        buffer.flip
-        reset { write(io); () }
-        buffer.clear
-        this + that
       case e: Throwable ⇒ throw e
     }
     that
-  }
-
-  private[aio] final def doRender(io: Io): Io @suspendable = {
-    import io._
-    shift { k: IoCont ⇒
-      buffer.clear
-      io ++ k
-      try {
-        render(io)
-        buffer.flip
-        k(io)
-      } catch {
-        case e: Throwable ⇒ k(io ++ Error[Io](e))
-      }
-    }
-    write(io)
-  }
-
-  private[this] final def write(io: Io): Io @suspendable = {
-    import io._
-    shift { k: IoCont ⇒ channel.write(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, io ++ k, WriteHandler) }
-    if (0 < io.buffer.remaining) write(io) else shift { k: IoCont ⇒ io ++ k; k(io) }
   }
 
 }
@@ -72,6 +47,8 @@ trait Renderable {
 object Renderable
 
   extends OnlyOnce {
+
+  case object Empty extends Renderable { def render(implicit io: Io) = () }
 
   case object `\r\n` extends Renderable {
 

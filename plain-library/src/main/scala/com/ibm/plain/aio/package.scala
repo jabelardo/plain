@@ -49,6 +49,8 @@ package object aio
     case _ ⇒
   }
 
+  def format(buffer: ByteBuffer) = "ByteBuffer(pos " + buffer.position + ", remain " + buffer.remaining + ", lim " + buffer.limit + " cap " + buffer.capacity + ")"
+  
   /**
    * Shorthand to object AsynchronousChannelTransfer.
    */

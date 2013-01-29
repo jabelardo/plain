@@ -24,6 +24,8 @@ final class FileByteChannel private (
 
   type Integer = java.lang.Integer
 
+  override protected def finalize = if (filechannel.isOpen) filechannel.close
+
   def close = filechannel.close
 
   def isOpen = filechannel.isOpen
@@ -55,7 +57,7 @@ final class FileByteChannel private (
     extends CompletionHandler[Integer, A] {
 
     @inline def completed(count: Integer, attachment: A) = {
-      if (read) readposition += count.longValue else writeposition += count.longValue
+      if (read) readposition += count else writeposition += count
       outerhandler.completed(count, attachment)
     }
 
@@ -82,15 +84,15 @@ object FileByteChannel {
 
   def forWriting(path: String): WriteChannel = forWriting(Paths.get(path))
 
-  def forReading(path: Path) = ReadChannel.wrap(AsynchronousFileChannel.open(path, READ))
+  def forReading(path: Path) = ReadChannel.wrap(AsynchronousFileChannel.open(path, READ), true)
 
-  def forWriting(path: Path) = WriteChannel.wrap(AsynchronousFileChannel.open(path, CREATE, WRITE))
+  def forWriting(path: Path) = WriteChannel.wrap(AsynchronousFileChannel.open(path, CREATE, WRITE), true)
 
   implicit def asynchronousFileChannel2FileByteChannel(channel: AsynchronousFileChannel) = wrap(channel)
 
-  implicit def fileByteChannel2ReadChannel(channel: FileByteChannel) = ReadChannel.wrap(channel)
+  implicit def fileByteChannel2ReadChannel(channel: FileByteChannel) = ReadChannel.wrap(channel, true)
 
-  implicit def fileByteChannel2WriteChannel(channel: FileByteChannel) = WriteChannel.wrap(channel)
+  implicit def fileByteChannel2WriteChannel(channel: FileByteChannel) = WriteChannel.wrap(channel, true)
 
   private final val FutureNotSupported = new UnsupportedOperationException("Future not supported.")
 

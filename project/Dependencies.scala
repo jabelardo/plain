@@ -40,8 +40,8 @@ object Dependencies {
   val jerseyJson    = "com.sun.jersey"                          %   "jersey-json"                 % "1.16"
   val mimepull      = "org.jvnet.mimepull"                      %   "mimepull"                    % "1.8"
   val shapeless     = "com.chuusai"                             %%  "shapeless"                   % "1.2.2"
-  val scalatest     = "org.scalatest"                           %%  "scalatest"                   % "1.8"
-  val specs2        = "org.specs2"                              %%  "specs2"                      % "1.11"
+  val scalatest     = "org.scalatest"                           %%  "scalatest"                   % "1.9.1"
+  val specs2        = "org.specs2"                              %%  "specs2"                      % "1.12.3"
 
 }
 
