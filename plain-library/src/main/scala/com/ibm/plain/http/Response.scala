@@ -7,7 +7,7 @@ package http
 import java.nio.ByteBuffer
 import java.nio.channels.{ CompletionHandler ⇒ Handler }
 
-import aio.{ Io, Input, Iteratee, ControlCompleted, Renderable, transfer, Iteratees }
+import aio.{ Io, Input, Iteratee, ControlCompleted, Renderable, transfer, Iteratees, releaseByteBuffer }
 import aio.Renderable._
 import aio.Iteratee._
 import aio.Input._
@@ -21,7 +21,7 @@ import Header.General.`Connection`
  */
 final case class Response private (
 
-  request: Option[Request],
+  request: Request,
 
   version: Version,
 
@@ -33,74 +33,99 @@ final case class Response private (
 
   extends Message
 
-  with Renderable {
+  with Renderable
+
+  with Handler[Long, Io] {
 
   type Type = Response
 
-  @inline override final def doRender(implicit io: Io): Iteratee[Long, Boolean] = {
-    def cont(total: Long)(input: Input[Long]): (Iteratee[Long, Boolean], Input[Long]) = {
-      input match {
-        case Elem(written) if 0 == written ⇒
-          io.buffer.clear
+  private[this] implicit var ibuffer: ByteBuffer = null
+
+  @inline final def completed(readwritten: Long, io: Io) = { println(readwritten); () }
+
+  @inline final def failed(e: Throwable, io: Io) = throw e
+
+  @inline override final def doRender(io: Io): Iteratee[Long, Boolean] = {
+    import io._
+    @inline def cont(total: Long)(input: Input[Long]): (Iteratee[Long, Boolean], Input[Long]) = input match {
+      case Elem(written) ⇒
+        println(written + " " + total + " " + (total + written) + " " + expected + " " + len)
+        if (0 == written) {
+          buffer.clear
+          ibuffer = buffer
           version + ` ` + status + `\r\n` + ^
-          renderKeepAlive
-          renderHeaders
-          io.buffer.flip
-          length = io.buffer.remaining
-          io.expected += length
+          renderKeepAlive(io)
+          renderHeaders(io)
+          entity match {
+            case None ⇒
+              buffer.flip
+              (Done(keepalive), input)
+            case Some(entity: ByteBufferEntity) if entity.length <= buffer.remaining ⇒
+              r(entity.buffer) + ^
+              buffer.flip
+              (Done(keepalive), input)
+            case _ ⇒
+              buffer.flip
+              len = buffer.remaining
+              expected += len
+              (Cont(cont(total + written)), input)
+          }
+        } else if (len == total + written) {
+          renderEntity(io)
           (Cont(cont(total + written)), input)
-        case Elem(written) if length == total + written ⇒
-          renderEntity
+        } else if (expected == total + written) {
+          if (null != buf) {
+            releaseByteBuffer(buffer)
+            buffer = buf
+          }
+          (Done(keepalive), input)
+        } else {
           (Cont(cont(total + written)), input)
-        case Elem(written) if io.expected == total + written ⇒
-          if (null != buffer) io.buffer = buffer
-          (Done(io.keepalive), input)
-        case Elem(written) ⇒
-          (Cont(cont(total + written)), input)
-      }
+        }
     }
-    Cont(cont(0L))
+    Cont(cont(0L))(Elem(0L))._1
   }
 
-  final def render(implicit io: Io) = ()
+  final def render(implicit buffer: ByteBuffer) = ()
 
   @inline final def ++(status: Status): Type = { this.status = status; this }
 
   @inline final def ++(headers: Headers): Type = { this.headers = headers; this }
 
-  @inline final private def renderEntity(implicit io: Io): Unit = entity match {
-    case Some(arrayentity: ArrayEntity) ⇒
-      buffer = io.buffer
-      io.buffer = ByteBuffer.wrap(arrayentity.array)
-    case Some(entity: ReadChannelEntity) ⇒ transfer(entity.channel, io, null)
-    case _ ⇒ throw new UnsupportedOperationException
-  }
-
-  @inline final private def renderHeaders(implicit io: Io) = entity match {
-    case Some(entity) ⇒
-      r("Content-Type: ") + entity.contenttype + `\r\n` + r("Content-Length: ") + r(entity.length.toString) + `\r\n` + `\r\n` + ^
-      io ++ entity.length
-    case _ ⇒
-  }
-
-  @inline final private def renderKeepAlive(implicit io: Io) = {
-    val keepalive = request match {
-      case Some(req) ⇒ `Connection`(req.headers) match {
-        case Some(value) if value.exists(_.equalsIgnoreCase("keep-alive")) ⇒ status match {
-          case _: Status.ServerError ⇒ false
-          case _ ⇒ true
-        }
+  @inline final private def renderKeepAlive(io: Io): Unit = {
+    val keepalive = status match {
+      case _: Status.ServerError ⇒ false
+      case _ ⇒ `Connection`(request.headers) match {
+        case Some(value) if value.exists(_.equalsIgnoreCase("keep-alive")) ⇒ true
         case _ ⇒ false
       }
-      case _ ⇒ false
     }
     io ++ keepalive
     r("Connection: " + (if (keepalive) "keep-alive" else "close")) + `\r\n` + ^
   }
 
-  private[this] var buffer: ByteBuffer = null
+  @inline final private def renderHeaders(io: Io): Unit = {
+    entity match {
+      case Some(entity) ⇒
+        r("Content-Type: ") + entity.contenttype + `\r\n` + r("Content-Length: ") + r(entity.length.toString) + `\r\n` + ^
+        io ++ entity.length
+      case _ ⇒
+    }
+    `\r\n` + ^
+  }
 
-  private[this] var length = 0L
+  @inline final private def renderEntity(io: Io): Unit = entity match {
+    case Some(entity: ByteBufferEntity) ⇒
+      buf = io.buffer
+      io.buffer = entity.buffer
+    case Some(entity: ReadChannelEntity) ⇒
+      transfer(entity.channel, io, this)
+    case _ ⇒ throw new UnsupportedOperationException
+  }
+
+  private[this] var buf: ByteBuffer = null
+
+  private[this] var len = 0L
 
 }
 
@@ -109,9 +134,7 @@ final case class Response private (
  */
 object Response {
 
-  def apply(request: Option[Request], status: Status) = new Response(request, Version.`HTTP/1.1`, status, Map.empty, None)
-
-  def apply(status: Status): Response = apply(None, status)
+  def apply(request: Request, status: Status) = new Response(request, Version.`HTTP/1.1`, status, Map.empty, None)
 
 }
 

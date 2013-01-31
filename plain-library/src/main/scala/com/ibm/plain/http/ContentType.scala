@@ -4,6 +4,7 @@ package plain
 
 package http
 
+import java.nio.ByteBuffer
 import java.nio.charset.Charset
 
 import language.implicitConversions
@@ -29,7 +30,7 @@ final case class ContentType private (
 
   @inline def charsetOrDefault = charset match { case Some(charset) ⇒ charset case None ⇒ defaultCharacterSet }
 
-  @inline final def render(implicit io: Io) = mimetype + r(charset match { case None ⇒ "" case Some(c) ⇒ "; charset=" + c.displayName }) + ^
+  @inline final def render(implicit buffer: ByteBuffer) = mimetype + r(charset match { case None ⇒ "" case Some(c) ⇒ "; charset=" + c.displayName }) + ^
 
 }
 

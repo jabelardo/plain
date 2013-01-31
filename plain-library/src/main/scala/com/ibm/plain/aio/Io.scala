@@ -243,8 +243,8 @@ object Io
       channel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
       channel.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.box(false))
       channel.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.box(true))
-      channel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(54 * 1024))
-      channel.setOption(StandardSocketOptions.SO_SNDBUF, Integer.valueOf(54 * 1024))
+      channel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(sendReceiveBufferSize))
+      channel.setOption(StandardSocketOptions.SO_SNDBUF, Integer.valueOf(sendReceiveBufferSize))
       channel
     }
 
@@ -341,20 +341,17 @@ object Io
       }
     }
 
-    import annotation.tailrec
-
     @inline def writeloop(io: Io, iteratee: Iteratee[Long, Boolean]): Unit @suspendable = {
       (write(io) match {
-        case io if -1 < io.readwritten ⇒
-          iteratee(Elem(io.readwritten))
         case io ⇒
-          iteratee(Eof)
+          iteratee(Elem(io.readwritten))
       }) match {
-        case (cont @ Cont(_), e) ⇒
+        case (cont @ Cont(_), _) ⇒
           writeloop(io, cont)
         case (Done(keepalive: Boolean), _) ⇒
           if (keepalive) readloop(io ++ readiteratee)
-        case e ⇒
+        case (Error(e), _) ⇒
+          e.printStackTrace
           unhandled(e)
       }
     }

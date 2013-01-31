@@ -53,6 +53,8 @@ abstract class Monitor
 
   def getBufferPoolSizeLarge = largeBufferPool.size
 
+  def getBufferPoolSizeHuge = hugeBufferPool.size
+
   def getLogLevel = Logging.getLogLevel
 
   def setLogLevel(level: String) = Logging.setLogLevel(level)

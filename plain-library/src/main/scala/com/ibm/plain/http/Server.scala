@@ -50,7 +50,7 @@ final case class Server(
       def startOne = {
         serverChannel = ServerChannel.open(channelGroup)
         serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
-        serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(54 * 1024))
+        serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(aio.sendReceiveBufferSize))
         serverChannel.bind(bindaddress, backlog)
         reset {
           loop(

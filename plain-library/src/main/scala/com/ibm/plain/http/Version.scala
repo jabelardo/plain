@@ -21,7 +21,7 @@ sealed abstract class Version
 
   final val version = toString.getBytes(`US-ASCII`)
 
-  final def render(implicit io: Io) = r(version) + ^
+  final def render(implicit buffer: ByteBuffer) = r(version) + ^
 
 }
 

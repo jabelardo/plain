@@ -21,7 +21,7 @@ final class Adaptor private (
 
   with HasLogger {
 
-  @inline final def completed(readwritten: Long, io: Io) = { debug("transfered completed: " + readwritten + " bytes"); uniform.completed(context.response, context ++ io) }
+  @inline final def completed(readwritten: Long, io: Io) = { debug("transfered completed: " + readwritten + " bytes"); uniform.completed(context ++ io) }
 
   @inline final def failed(e: Throwable, io: Io) = uniform.failed(e, context ++ io)
 

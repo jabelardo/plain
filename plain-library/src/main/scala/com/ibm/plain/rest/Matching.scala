@@ -4,6 +4,8 @@ package plain
 
 package rest
 
+import java.nio.{ ByteBuffer, CharBuffer }
+
 import org.apache.commons.codec.net.URLCodec
 
 import scala.collection.mutable.{ HashMap, MultiMap, Set ⇒ MutableSet }
@@ -17,7 +19,7 @@ import text.{ `UTF-8`, fastSplit, convertCharset }
 import xml.XmlMarshaled
 
 import http.defaultCharacterSet
-import http.Status.ClientError
+import http.Status.{ ClientError, ServerError }
 import http.ContentType
 import http.MimeType
 import http.MimeType._
@@ -32,6 +34,7 @@ private final class Matching {
     val entity = typeOf[Entity]
     val unit = typeOf[Unit]
     val array = typeOf[Array[Byte]]
+    val bytebuffer = typeOf[ByteBuffer]
     val string = typeOf[String]
     val form = typeOf[Form]
     val multipart = typeOf[MultipartForm]
@@ -97,32 +100,35 @@ private final class Matching {
 
   val encodeArray: Encoder = ((array: Array[Byte]) ⇒ Some(ArrayEntity(array, `application/octet-stream`))).asInstanceOf[Encoder]
 
-  val encodeString: Encoder = ((s: String) ⇒ Some(ArrayEntity(s.getBytes(`UTF-8`), ContentType(`text/plain`, `UTF-8`)))).asInstanceOf[Encoder]
+  val encodeByteBuffer: Encoder = ((buffer: ByteBuffer) ⇒ Some(ByteBufferEntity(buffer, `application/octet-stream`))).asInstanceOf[Encoder]
+
+  val encodeString: Encoder = ((s: String) ⇒ Some(ByteBufferEntity(s, ContentType(`text/plain`, `UTF-8`)))).asInstanceOf[Encoder]
 
   val encodeForm: Encoder = ((form: Form) ⇒ {
     @inline def c(s: String) = codec.encode(convertCharset(s, `UTF-8`, defaultCharacterSet))
     val f = form.foldLeft(new StringBuilder) { case (l, (k, values)) ⇒ values.foreach(value ⇒ l.append(c(k)).append('=').append(c(value)).append('&')); l }
-    Some(ArrayEntity(f.stripSuffix("&").getBytes(defaultCharacterSet), `application/x-www-form-urlencoded`))
+    Some(ByteBufferEntity(f.stripSuffix("&"), `application/x-www-form-urlencoded`))
   }).asInstanceOf[Encoder]
 
-  val encodeMultipartForm: Encoder = ((form: MultipartForm) ⇒ Some(ArrayEntity(null, `multipart/form-data`))).asInstanceOf[Encoder]
+  val encodeMultipartForm: Encoder = ((form: MultipartForm) ⇒ Some(ArrayEntity(Array[Byte](), `multipart/form-data`))).asInstanceOf[Encoder]
 
-  val encodeJson: Encoder = ((json: Json) ⇒ Some(ArrayEntity(Json.build(json).getBytes(`UTF-8`), `application/json`))).asInstanceOf[Encoder]
+  val encodeJson: Encoder = ((json: Json) ⇒ Some(ByteBufferEntity(Json.build(json), `application/json`))).asInstanceOf[Encoder]
 
-  val encodeJObject: Encoder = ((json: JObject) ⇒ Some(ArrayEntity(Json.build(json).getBytes(`UTF-8`), `application/json`))).asInstanceOf[Encoder]
+  val encodeJObject: Encoder = ((json: JObject) ⇒ Some(ByteBufferEntity(Json.build(json), `application/json`))).asInstanceOf[Encoder]
 
-  val encodeJArray: Encoder = ((json: JArray) ⇒ Some(ArrayEntity(Json.build(json).getBytes(`UTF-8`), `application/json`))).asInstanceOf[Encoder]
+  val encodeJArray: Encoder = ((json: JArray) ⇒ Some(ByteBufferEntity(Json.build(json), `application/json`))).asInstanceOf[Encoder]
 
-  val encodeXml: Encoder = ((xml: Xml) ⇒ Some(ArrayEntity(xml.buildString(true).getBytes(`UTF-8`), `application/xml`))).asInstanceOf[Encoder]
+  val encodeXml: Encoder = ((xml: Xml) ⇒ Some(ByteBufferEntity(xml.buildString(true), `application/xml`))).asInstanceOf[Encoder]
 
-  val encodeJsonMarshaled: Encoder = ((marshaled: JsonMarshaled) ⇒ Some(ArrayEntity(marshaled.toJson.getBytes(`UTF-8`), `application/json`))).asInstanceOf[Encoder]
+  val encodeJsonMarshaled: Encoder = ((marshaled: JsonMarshaled) ⇒ Some(ByteBufferEntity(marshaled.toJson, `application/json`))).asInstanceOf[Encoder]
 
-  val encodeXmlMarshaled: Encoder = ((marshaled: XmlMarshaled) ⇒ Some(ArrayEntity(marshaled.toXml.getBytes(`UTF-8`), `application/xml`))).asInstanceOf[Encoder]
+  val encodeXmlMarshaled: Encoder = ((marshaled: XmlMarshaled) ⇒ Some(ByteBufferEntity(marshaled.toXml, `application/xml`))).asInstanceOf[Encoder]
 
   val encoders: TypeEncoders = Array(
     (typeOf[Entity], encodeEntity),
     (typeOf[Unit], encodeUnit),
     (typeOf[Array[Byte]], encodeArray),
+    (typeOf[ByteBuffer], encodeByteBuffer),
     (typeOf[String], encodeString),
     (typeOf[Form], encodeForm),
     (typeOf[MultipartForm], encodeMultipartForm),
@@ -144,15 +150,15 @@ private final class Matching {
 
   val outputPriority: PriorityList = Array(
     (`application/x-scala-unit`, List(unit, entity)),
-    (`application/octet-stream`, List(array, entity)),
-    (`application/json`, List(jsonmarshaled, jobject, jarray, json, string, array, entity)),
-    (`application/xml`, List(xmlmarshaled, xml, string, array, entity)),
-    (`application/xhtml+xml`, List(xml, string, array, entity)),
-    (`application/x-www-form-urlencoded`, List(form, string, array, entity)),
-    (`multipart/form-data`, List(multipart, string, array, entity)),
-    (`text/html`, List(string, xml, array, entity)),
-    (`text/plain`, List(string, form, jsonmarshaled, xmlmarshaled, xml, jobject, jarray, json, array, entity)),
-    (`*/*`, List(string, form, jsonmarshaled, xmlmarshaled, xml, jobject, jarray, json, array, entity)))
+    (`application/octet-stream`, List(bytebuffer, array, entity)),
+    (`application/json`, List(jsonmarshaled, jobject, jarray, json, string, bytebuffer, array, entity)),
+    (`application/xml`, List(xmlmarshaled, xml, string, bytebuffer, array, entity)),
+    (`application/xhtml+xml`, List(xml, string, bytebuffer, array, entity)),
+    (`application/x-www-form-urlencoded`, List(form, string, bytebuffer, array, entity)),
+    (`multipart/form-data`, List(multipart, string, bytebuffer, array, entity)),
+    (`text/html`, List(string, xml, bytebuffer, array, entity)),
+    (`text/plain`, List(string, form, jsonmarshaled, xmlmarshaled, xml, jobject, jarray, json, bytebuffer, array, entity)),
+    (`*/*`, List(string, form, jsonmarshaled, xmlmarshaled, xml, jobject, jarray, json, bytebuffer, array, entity)))
 
   val priorities: Array[((MimeType, MimeType), (Type, Type))] = for {
     (inmimetype, intypelist) ← inputPriority

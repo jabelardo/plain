@@ -14,8 +14,6 @@ import Resource.MethodBody
  */
 final case class Context private (
 
-  self: Uniform,
-
   var io: Io,
 
   var parent: Uniform,
@@ -55,8 +53,8 @@ final case class Context private (
  */
 object Context {
 
-  @inline def apply(io: Io) = new Context(null, io, null, null, null, null, null, null, null)
+  @inline def apply(io: Io) = new Context(io, null, null, null, null, null, null, null)
 
-  @inline def apply(self: Uniform) = new Context(self, null, null, null, null, null, null, null, null)
+  @inline def apply(self: Uniform) = new Context(null, null, null, null, null, null, null, null)
 
 }

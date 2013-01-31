@@ -26,7 +26,7 @@ abstract class MimeType
 
   def extensions: Set[String]
 
-  @inline final def render(implicit io: Io) = r(name) + ^
+  @inline final def render(implicit buffer: ByteBuffer) = r(name) + ^
 
 }
 
@@ -237,7 +237,7 @@ object MimeType {
 
   private[this] var extensionsmap: Map[String, MimeType] = Map.empty
 
-  private[this] val init = subClasses(classOf[MimeType]).map(scalifiedName).filter(!_.endsWith("MimeType")).foreach(apply)
+  subClasses(classOf[MimeType]).map(scalifiedName).filter(!_.endsWith("MimeType")).foreach(apply)
 
 }
 

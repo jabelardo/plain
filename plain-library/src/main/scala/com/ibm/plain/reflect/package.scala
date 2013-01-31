@@ -5,13 +5,15 @@ package plain
 import java.lang.reflect.{ Method, Modifier }
 import scala.collection.JavaConversions._
 import org.reflections.Reflections
+import org.reflections.util._
+import org.reflections.scanners._
 
 /**
  * Some tools to ease the use the Java reflection api in Scala.
  */
 package object reflect {
 
-  val reflections = new Reflections("com.ibm.plain")
+  val reflections = new Reflections("com.ibm.plain") // not working with OneJar, needs work-around
 
   def subClasses[A](clazz: Class[A]): Set[Class[_ <: A]] = reflections.getSubTypesOf(clazz).toSet
 

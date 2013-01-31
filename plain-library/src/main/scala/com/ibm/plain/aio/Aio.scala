@@ -19,6 +19,8 @@ abstract sealed class Aio
 
   final val largeBufferPool = ByteBufferPool(largeBufferSize, largeBufferPoolSize)
 
+  final val hugeBufferPool = ByteBufferPool(hugeBufferSize, hugeBufferPoolSize)
+
 }
 
 /**

@@ -44,17 +44,17 @@ trait Resource
     }
   }
 
-  override final def completed(response: Response, context: Context) = {
+  override final def completed(context: Context) = {
     try {
-      threadlocal.set(context ++ response)
+      threadlocal.set(context)
       context.methodbody.completed match {
-        case Some(completed) ⇒ completed(response)
+        case Some(completed) ⇒ completed(context.response)
         case _ ⇒
       }
     } finally {
       threadlocal.remove
     }
-    super.completed(response, context)
+    super.completed(context)
   }
 
   override final def failed(e: Throwable, context: Context) = {
@@ -70,15 +70,15 @@ trait Resource
     super.failed(e, context)
   }
 
-  final def completed(response: Response): Unit = completed(response, threadlocal.get)
+  // final def completed(response: Response): Unit = completed(response, threadlocal.get)
 
-  final def completed(status: Status): Unit = completed(Response(null, status), threadlocal.get)
+  // final def completed(status: Status): Unit = completed(Response(request, status), threadlocal.get)
 
-  final def failed(e: Throwable): Unit = failed(e, threadlocal.get)
+  // final def failed(e: Throwable): Unit = failed(e, threadlocal.get)
 
-  final def handle(request: Request, context: Context): Nothing = {
-    methods.get(request.method) match {
-      case Some(Right(resourcepriorities)) ⇒ execute(request, context, resourcepriorities)
+  final def handle(context: Context): Nothing = {
+    methods.get(context.request.method) match {
+      case Some(Right(resourcepriorities)) ⇒ execute(context, resourcepriorities)
       case _ ⇒ throw ClientError.`405`
     }
   }
@@ -124,7 +124,9 @@ trait Resource
   /**
    * The most important method in this class.
    */
-  private[this] final def execute(request: Request, context: Context, resourcepriorities: ResourcePriorities): Nothing = {
+  private[this] final def execute(context: Context, resourcepriorities: ResourcePriorities): Nothing = try {
+    threadlocal.set(context)
+
     val inentity: Option[Entity] = request.entity
     val inmimetype: MimeType = inentity match { case Some(entity: Entity) ⇒ entity.contenttype.mimetype case _ ⇒ `application/x-scala-unit` }
     val outmimetypes: List[MimeType] = AcceptHeader(request.headers) match {
@@ -150,16 +152,17 @@ trait Resource
       case (outmimetype, (inoutmimetype, (in, methodbody), (decode, encode))) if (inoutmimetype == (inmimetype, outmimetype)) && (tryDecode(in, decode)) ⇒
         (methodbody, encode)
     } match {
-      case Some((methodbody, encode)) ⇒ try {
-        threadlocal.set(context ++ methodbody ++ request ++ Response(Some(request), Success.`200`))
-        completed(response ++ encode(innerinput match {
+      case Some((methodbody, encode)) ⇒
+        val response = Response(request, Success.`200`)
+        context ++ methodbody ++ response
+        response ++ encode(innerinput match {
           case Some((input, _)) ⇒ methodbody.body(input)
           case _ ⇒ throw ServerError.`501`
-        }), threadlocal.get)
-      } finally threadlocal.remove
+        })
+        completed(context)
       case _ ⇒ throw ClientError.`415`
     }
-  }
+  } finally threadlocal.remove
 
   /**
    * This is ugly, but it's only called once per Resource and Method, the resulting data structure is very efficient.

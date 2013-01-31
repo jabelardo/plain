@@ -38,6 +38,8 @@ trait JmxMonitorMBean {
 
   def getBufferPoolSizeLarge: Int
 
+  def getBufferPoolSizeHuge: Int
+
   def shutdown(token: String): String
 
 }

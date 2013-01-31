@@ -20,22 +20,12 @@ import concurrent.OnlyOnce
  */
 trait Renderable {
 
-  import Renderable._
+  def render(implicit buffer: ByteBuffer): Unit
 
-  def render(implicit io: Io): Unit
+  def doRender(io: Io): Iteratee[Long, Boolean] = null
 
-  def doRender(implicit io: Io): Iteratee[Long, Boolean] = null
-
-  final def +(that: Renderable)(implicit io: Io): Renderable = {
-    import io._
-    try {
-      this.render(io)
-    } catch {
-      case e: BufferOverflowException if buffer.remaining == buffer.capacity ⇒
-        buffer.clear
-        fatal
-      case e: Throwable ⇒ throw e
-    }
+  final def +(that: Renderable)(implicit buffer: ByteBuffer): Renderable = {
+    this.render(buffer)
     that
   }
 
@@ -48,11 +38,11 @@ object Renderable
 
   extends OnlyOnce {
 
-  case object Empty extends Renderable { def render(implicit io: Io) = () }
-
   case object `\r\n` extends Renderable {
 
-    @inline final def render(implicit io: Io) = { io.buffer.put('\r'.toByte); io.buffer.put('\n'.toByte) }
+    @inline final def render(implicit buffer: ByteBuffer) = { buffer.put(crlf) }
+
+    private[this] final val crlf = "\r\n".getBytes
 
   }
 
@@ -62,14 +52,14 @@ object Renderable
 
     extends Renderable {
 
-    @inline final def render(implicit io: Io) = io.buffer.put(byte)
+    @inline final def render(implicit buffer: ByteBuffer) = buffer.put(byte)
 
   }
 
   /**
    * The 'flush' token for Renderables, sequences of + must end with a ^.
    */
-  case object ^ extends Renderable { @inline final def render(implicit io: Io) = () }
+  case object ^ extends Renderable { @inline final def render(implicit buffer: ByteBuffer) = () }
 
   case object ` ` extends SimpleRenderable(' '.toByte)
 
@@ -77,17 +67,21 @@ object Renderable
 
   case object `:` extends SimpleRenderable(':'.toByte)
 
-  final case class r(bytes: Array[Byte])
+  final class r private (buffer: ByteBuffer)
 
     extends Renderable {
 
-    @inline final def render(implicit io: Io) = io.buffer.put(bytes)
+    @inline final def render(implicit out: ByteBuffer) = out.put(buffer)
 
   }
 
   object r {
 
-    @inline final def apply(s: String) = new r(s.getBytes(`US-ASCII`))
+    @inline final def apply(buffer: ByteBuffer) = new r(buffer)
+
+    @inline final def apply(a: Array[Byte]): r = apply(ByteBuffer.wrap(a))
+
+    @inline final def apply(s: String): r = apply(s.getBytes(`US-ASCII`))
 
   }
 

@@ -11,9 +11,9 @@ import http.{ Request, Response }
  */
 trait Uniform {
 
-  def handle(request: Request, context: Context): Nothing
+  def handle(context: Context): Nothing
 
-  def completed(response: Response, context: Context): Nothing
+  def completed(context: Context): Nothing
 
   def failed(e: Throwable, context: Context): Nothing
 
@@ -26,7 +26,7 @@ trait BaseUniform
 
   extends Uniform {
 
-  def completed(response: Response, context: Context): Nothing = context.parent.completed(response, context)
+  def completed(context: Context): Nothing = context.parent.completed(context)
 
   def failed(e: Throwable, context: Context): Nothing = context.parent.failed(e, context)
 

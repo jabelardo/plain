@@ -29,15 +29,19 @@ package object aio
       defaultByteBuffer
     else if (length <= largeBufferSize)
       largeByteBuffer
+    else if (length <= hugeBufferSize)
+      hugeByteBuffer
     else
       ByteBuffer.allocate(length)
   }
 
-  def defaultByteBuffer = Aio.defaultBufferPool.getBuffer
+  @inline def defaultByteBuffer = Aio.defaultBufferPool.getBuffer
 
-  def tinyByteBuffer = Aio.tinyBufferPool.getBuffer
+  @inline def tinyByteBuffer = Aio.tinyBufferPool.getBuffer
 
-  def largeByteBuffer = Aio.largeBufferPool.getBuffer
+  @inline def largeByteBuffer = Aio.largeBufferPool.getBuffer
+
+  @inline def hugeByteBuffer = Aio.hugeBufferPool.getBuffer
 
   /**
    * Quite dangerous, never call this function on a buffer more than once or it could be later used by more than one at the same time.
@@ -46,11 +50,12 @@ package object aio
     case `tinyBufferSize` ⇒ Aio.tinyBufferPool.releaseBuffer(buffer)
     case `defaultBufferSize` ⇒ Aio.defaultBufferPool.releaseBuffer(buffer)
     case `largeBufferSize` ⇒ Aio.largeBufferPool.releaseBuffer(buffer)
+    case `hugeBufferSize` ⇒ Aio.hugeBufferPool.releaseBuffer(buffer)
     case _ ⇒
   }
 
   def format(buffer: ByteBuffer) = "ByteBuffer(pos " + buffer.position + ", remain " + buffer.remaining + ", lim " + buffer.limit + " cap " + buffer.capacity + ")"
-  
+
   /**
    * Shorthand to object AsynchronousChannelTransfer.
    */
@@ -82,7 +87,22 @@ package object aio
 
   final val largeBufferPoolSize = getBytes("plain.aio.large-buffer-pool-size", 64).toInt
 
+  /**
+   * Used for huge entities that are handled at once.
+   */
+  final val hugeBufferSize = getBytes("plain.aio.huge-buffer-size", 128 * 1024).toInt
+
+  final val hugeBufferPoolSize = getBytes("plain.aio.huge-buffer-pool-size", 1024).toInt
+
+  /**
+   *
+   */
   final val readWriteTimeout = getMilliseconds("plain.aio.read-write-timeout", 5000)
+
+  /**
+   * Set on accept and connection socket for send and receive buffer size. Larger sizes perform better in LAN and fast intranets, but may waste bandwidth. Play with it.
+   */
+  final val sendReceiveBufferSize = getBytes("plain.aio.send-receive-buffer-size", 54 * 1024).toInt
 
   /**
    * Check requirements.
@@ -93,6 +113,8 @@ package object aio
 
   require(2 * 1024 <= largeBufferSize, "plain.aio.large-buffer-size must be >= " + 2 * 1024)
 
-  require((tinyBufferSize <= defaultBufferSize) && (defaultBufferSize <= largeBufferSize), "plain.aio buffer sizes: tiny <= default <= large violated")
+  require(64 * 1024 <= hugeBufferSize, "plain.aio.huge-buffer-size must be >= " + 64 * 1024)
+
+  require((tinyBufferSize <= defaultBufferSize) && (defaultBufferSize <= largeBufferSize) && (largeBufferSize <= hugeBufferSize), "plain.aio buffer sizes: tiny <= default <= large <= huge violated")
 
 }

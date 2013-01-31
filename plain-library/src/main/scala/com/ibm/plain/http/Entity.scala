@@ -4,9 +4,13 @@ package plain
 
 package http
 
+import java.nio.{ ByteBuffer, CharBuffer }
+import java.nio.charset.CoderResult.OVERFLOW
 import java.nio.charset.Charset
 
-import aio.{ ReadChannel, WriteChannel }
+import aio.{ ReadChannel, WriteChannel, bestFitByteBuffer, releaseByteBuffer }
+import text.`UTF-8`
+import Status._
 
 /**
  * Base class for the Entity of an Http request and/or response.
@@ -25,6 +29,26 @@ sealed abstract class Entity {
 object Entity {
 
   final case class ArrayEntity(array: Array[Byte], contenttype: ContentType) extends Entity { val length = array.length.toLong }
+
+  final case class ByteBufferEntity(buffer: ByteBuffer, contenttype: ContentType) extends Entity { val length = buffer.remaining.toLong }
+
+  object ByteBufferEntity {
+
+    def apply(s: String, contenttype: ContentType): ByteBufferEntity = {
+      var factor = 1.2
+      var buffer: ByteBuffer = null
+      while (6.0 > factor) {
+        if (null != buffer) releaseByteBuffer(buffer)
+        buffer = bestFitByteBuffer((s.length * factor).toInt)
+        `UTF-8`.newEncoder.encode(CharBuffer.wrap(s), buffer, true) match {
+          case OVERFLOW ⇒ factor += 1.0
+          case _ ⇒ buffer.flip; return new ByteBufferEntity(buffer, contenttype)
+        }
+      }
+      throw ServerError.`500`
+    }
+
+  }
 
   final case class ContentEntity(contenttype: ContentType, length: Long) extends Entity
 
