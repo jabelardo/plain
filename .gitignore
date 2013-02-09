@@ -20,4 +20,6 @@ temp/
 */.history
 */.localized
 **/*~
+.DS_Store
 
+.DS_Store
