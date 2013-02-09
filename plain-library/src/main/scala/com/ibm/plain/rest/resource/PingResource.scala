@@ -58,7 +58,7 @@ object PingResource {
 
   val pong = {
     val s = new StringBuffer; (1 to 30).foreach(s.append("asekltjaeslkjasdklfjasölkfjasdlkfj alöksfj aslkfj alksjf lakösj pong!").append(_).append("\n")); s.toString
-    //    "pong!".getBytes
+    "pong!".getBytes
   }
 
 }

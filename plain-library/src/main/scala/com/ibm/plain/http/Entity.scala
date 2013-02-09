@@ -35,13 +35,13 @@ object Entity {
   object ByteBufferEntity {
 
     def apply(s: String, contenttype: ContentType): ByteBufferEntity = {
-      var factor = 1.2
+      var factor = 1.5
       var buffer: ByteBuffer = null
-      while (6.0 > factor) {
+      while (6.0 >= factor) {
         if (null != buffer) releaseByteBuffer(buffer)
         buffer = bestFitByteBuffer((s.length * factor).toInt)
         `UTF-8`.newEncoder.encode(CharBuffer.wrap(s), buffer, true) match {
-          case OVERFLOW ⇒ factor += 1.0
+          case OVERFLOW ⇒ factor *= 2.0
           case _ ⇒ buffer.flip; return new ByteBufferEntity(buffer, contenttype)
         }
       }

@@ -33,18 +33,18 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
         ByteBuffer.allocateDirect(buffersize)
     } finally unlock
   } else {
-    Thread.sleep(0, 50)
+    Thread.sleep(0, 50) // removing this will degrade performance dramatically
     getBuffer
   }
 
   @tailrec def releaseBuffer(buffer: ByteBuffer): Unit = if (trylock) {
     try {
-      if (log.isDebugEnabled) require(!pool.exists(_ eq buffer), "buffer released twice " + pool.size)
+      // if (log.isDebugEnabled) { debug(pool.size.toString); require(!pool.exists(_ eq buffer), "buffer released twice " + pool.size) }
       buffer.clear
       pool = buffer :: pool
     } finally unlock
   } else {
-    Thread.sleep(0, 50)
+    Thread.sleep(0, 50) 
     releaseBuffer(buffer)
   }
 

@@ -6,7 +6,7 @@ package rest
 
 package resource
 
-import java.nio.file.Files._
+import java.nio.file.Files.{ exists, isRegularFile, size }
 import java.nio.file.Paths
 
 import com.typesafe.config.{ Config, ConfigFactory }
@@ -16,7 +16,7 @@ import aio.FileByteChannel._
 import http.{ Request, Response, ContentType }
 import http.Status._
 import http.Entity._
-import http.MimeType._
+import http.MimeType.`text/plain`
 import logging.HasLogger
 
 /**
