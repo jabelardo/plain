@@ -17,6 +17,11 @@ final class ChannelTransfer private (
   iodestination: Boolean,
   outerhandler: Handler[Long, Io]) {
 
+//  @inline private[this] final def transfer(io: Io): Io @suspendable = {
+//    import io._
+//    shift { k: IoCont ⇒ channel.write(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, io ++ k, WriteHandler) }
+//  }
+
   @inline private final def transfer: Nothing = {
     import io._
     if (iodestination) buffer.flip

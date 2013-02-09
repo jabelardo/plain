@@ -49,7 +49,6 @@ final case class Response private (
     import io._
     @inline def cont(total: Long)(input: Input[Long]): (Iteratee[Long, Boolean], Input[Long]) = input match {
       case Elem(written) ⇒
-        println(written + " " + total + " " + (total + written) + " " + expected + " " + len)
         if (0 == written) {
           buffer.clear
           ibuffer = buffer
@@ -62,6 +61,10 @@ final case class Response private (
               (Done(keepalive), input)
             case Some(entity: ByteBufferEntity) if entity.length <= buffer.remaining ⇒
               r(entity.buffer) + ^
+              buffer.flip
+              (Done(keepalive), input)
+            case Some(entity: ArrayEntity) if entity.length <= buffer.remaining ⇒
+              r(entity.array) + ^
               buffer.flip
               (Done(keepalive), input)
             case _ ⇒
@@ -119,6 +122,7 @@ final case class Response private (
       buf = io.buffer
       io.buffer = entity.buffer
     case Some(entity: ReadChannelEntity) ⇒
+      println("before transfer")
       transfer(entity.channel, io, this)
     case _ ⇒ throw new UnsupportedOperationException
   }
