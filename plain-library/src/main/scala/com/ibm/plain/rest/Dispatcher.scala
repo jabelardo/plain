@@ -4,7 +4,7 @@ package plain
 
 package rest
 
-import aio.{ ControlCompleted, Io, transfer }
+import aio.{ ControlCompleted, Io }
 import aio.Iteratees.drop
 import aio.FileByteChannel.forWriting
 import concurrent.spawn
@@ -34,7 +34,7 @@ abstract class Dispatcher(templates: Option[Templates])
             case resource: Resource ⇒
               request.entity match {
                 case Some(ContentEntity(length, _)) if !request.method.entityallowed ⇒
-                  spawn { transfer(context.io, forWriting(if (os.isWindows) "nul" else "/dev/null"), null); () }
+                  // spawn { transfer(context.io, forWriting(if (os.isWindows) "nul" else "/dev/null"), null); () }
                   request ++ None
                 case Some(ContentEntity(_, length)) if request.method.entityallowed ⇒ io ++ length
                 case Some(_) if !request.method.entityallowed ⇒ throw ServerError.`501`

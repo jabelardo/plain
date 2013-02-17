@@ -139,8 +139,8 @@ trait Resource
     def tryDecode(in: Type, decode: AnyRef): Boolean = {
       if (innerinput.isDefined && innerinput.get._2 == decode) return true // avoid unnecessary calls, decode can be expensive
       decode match {
-        case decode: Decoder[_] ⇒ tryBoolean(innerinput = Some(decode(inentity), decode))
-        case decode: MarshaledDecoder[_] ⇒ tryBoolean(innerinput = Some(decode(inentity, ClassTag(Class.forName(in.toString))), decode))
+        case decode: Decoder[_] ⇒ tryBoolean(innerinput = Some((decode(inentity), decode)))
+        case decode: MarshaledDecoder[_] ⇒ tryBoolean(innerinput = Some((decode(inentity, ClassTag(Class.forName(in.toString))), decode)))
         case _ ⇒ false
       }
     }
@@ -149,7 +149,7 @@ trait Resource
       o ← outmimetypes
       r ← resourcepriorities
     } yield (o, r)).collectFirst {
-      case (outmimetype, (inoutmimetype, (in, methodbody), (decode, encode))) if (inoutmimetype == (inmimetype, outmimetype)) && (tryDecode(in, decode)) ⇒
+      case (outmimetype, (inoutmimetype, (in, methodbody), (decode, encode))) if (inoutmimetype == ((inmimetype, outmimetype))) && (tryDecode(in, decode)) ⇒
         (methodbody, encode)
     } match {
       case Some((methodbody, encode)) ⇒

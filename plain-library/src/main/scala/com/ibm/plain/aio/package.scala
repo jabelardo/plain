@@ -31,8 +31,10 @@ package object aio
       largeByteBuffer
     else if (length <= hugeBufferSize)
       hugeByteBuffer
-    else
+    else {
+      logging.defaultLogger.warning("allocating a very large ByteBuffer : " + length + " bytes")
       ByteBuffer.allocate(length)
+    }
   }
 
   @inline def defaultByteBuffer = Aio.defaultBufferPool.getBuffer
@@ -54,17 +56,14 @@ package object aio
     case _ ⇒
   }
 
-  def format(buffer: ByteBuffer) = "ByteBuffer(pos " + buffer.position + ", remain " + buffer.remaining + ", lim " + buffer.limit + " cap " + buffer.capacity + ")"
-
-  /**
-   * Shorthand to object AsynchronousChannelTransfer.
-   */
-  final val transfer = ChannelTransfer
+  def format(buffer: ByteBuffer) = "ByteBuffer(" + System.identityHashCode(buffer) + ", pos " + buffer.position + ", remain " + buffer.remaining + ", lim " + buffer.limit + " cap " + buffer.capacity + ")"
 
   /**
    * Helper to use AsynchronousFileChannel directly for transfer.
    */
   implicit def filechannel2filebytechannel(filechannel: AsynchronousFileChannel) = FileByteChannel.wrap(filechannel)
+
+  final val FutureNotSupported = new UnsupportedOperationException("Future not supported.")
 
   /**
    * If not set differently this will result to 2k which proved to provide best performance under high load.

@@ -53,9 +53,7 @@ final case class Server(
         serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(aio.sendReceiveBufferSize))
         serverChannel.bind(bindaddress, backlog)
         reset {
-          loop(
-            accept(serverChannel, pauseBetweenAccepts) ++ RequestIteratee(this).readRequest,
-            dispatcher)
+          loop(accept(serverChannel, pauseBetweenAccepts) ++ RequestIteratee(this).readRequest, dispatcher)
         }
         debug(name + " has started.")
       }

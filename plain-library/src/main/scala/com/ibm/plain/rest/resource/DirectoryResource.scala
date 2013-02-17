@@ -32,7 +32,7 @@ class DirectoryResource
 
   Get {
     rootDirectory.resolve(context.remainder.mkString("/")) match {
-      case file if exists(file) && isRegularFile(file) ⇒ ReadChannelEntity(forReading(file), ContentType(`text/plain`, text.`UTF-8`), size(file))
+      case file if exists(file) && isRegularFile(file) ⇒ AsynchronousByteChannelEntity(forReading(file), ContentType(`text/plain`, text.`UTF-8`), size(file))
       case file if exists(file) ⇒ throw ClientError.`406`
       case _ ⇒ throw ClientError.`404`
     }

@@ -31,11 +31,11 @@ final class FileByteChannel private (
   def isOpen = filechannel.isOpen
 
   def read[A](buffer: ByteBuffer, attachment: A, handler: CompletionHandler[Integer, _ >: A]) = {
-    filechannel.read(buffer, readposition, attachment, new InnerCompletionHandler(true, handler))
+    filechannel.read(buffer, position, attachment, new InnerCompletionHandler(true, handler))
   }
 
   def write[A](buffer: ByteBuffer, attachment: A, handler: CompletionHandler[Integer, _ >: A]) = {
-    filechannel.write(buffer, writeposition, attachment, new InnerCompletionHandler(false, handler))
+    filechannel.write(buffer, position, attachment, new InnerCompletionHandler(false, handler))
   }
 
   /**
@@ -57,7 +57,7 @@ final class FileByteChannel private (
     extends CompletionHandler[Integer, A] {
 
     @inline def completed(count: Integer, attachment: A) = {
-      if (read) readposition += count else writeposition += count
+      position += count
       outerhandler.completed(count, attachment)
     }
 
@@ -65,9 +65,7 @@ final class FileByteChannel private (
 
   }
 
-  @volatile private[this] var readposition = 0L
-
-  @volatile private[this] var writeposition = 0L
+  private[this] var position = 0L
 
 }
 
@@ -80,21 +78,11 @@ object FileByteChannel {
 
   def wrap(filechannel: AsynchronousFileChannel) = new FileByteChannel(filechannel)
 
-  def forReading(path: String): ReadChannel = forReading(Paths.get(path))
+  def forReading(path: Path) = AsynchronousFileChannel.open(path, READ)
 
-  def forWriting(path: String): WriteChannel = forWriting(Paths.get(path))
-
-  def forReading(path: Path) = ReadChannel.wrap(AsynchronousFileChannel.open(path, READ), true)
-
-  def forWriting(path: Path) = WriteChannel.wrap(AsynchronousFileChannel.open(path, CREATE, WRITE), true)
+  def forWriting(path: Path) = AsynchronousFileChannel.open(path, CREATE, WRITE)
 
   implicit def asynchronousFileChannel2FileByteChannel(channel: AsynchronousFileChannel) = wrap(channel)
-
-  implicit def fileByteChannel2ReadChannel(channel: FileByteChannel) = ReadChannel.wrap(channel, true)
-
-  implicit def fileByteChannel2WriteChannel(channel: FileByteChannel) = WriteChannel.wrap(channel, true)
-
-  private final val FutureNotSupported = new UnsupportedOperationException("Future not supported.")
 
 }
 
