@@ -44,7 +44,7 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
       pool = buffer :: pool
     } finally unlock
   } else {
-    Thread.sleep(0, 50) 
+    Thread.sleep(0, 50)
     releaseBuffer(buffer)
   }
 

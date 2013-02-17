@@ -7,7 +7,6 @@ package rest
 package resource
 
 import aio.FileByteChannel.forWriting
-import aio.transfer
 import xml._
 import json._
 import json.Json._

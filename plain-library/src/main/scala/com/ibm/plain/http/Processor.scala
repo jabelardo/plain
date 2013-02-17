@@ -6,7 +6,6 @@ package http
 
 import java.io.IOException
 import java.nio.file.FileSystemException
-import java.nio.channels.InterruptedByTimeoutException
 
 import aio.{ Processor ⇒ AioProcessor }
 
@@ -33,8 +32,6 @@ abstract class Processor
     e match {
       case ControlCompleted ⇒
       case _ ⇒ k(io ++ (e match {
-        case e: InterruptedByTimeoutException ⇒
-          println(e); Error[Io](e)
         case e: IOException if !e.isInstanceOf[FileSystemException] ⇒ Error[Io](e)
         case status: Status ⇒ Done[Io, Response](Response(null, status))
         case e ⇒

@@ -7,7 +7,7 @@ package aio
 import java.io.IOException
 import java.net.StandardSocketOptions
 import java.nio.ByteBuffer
-import java.nio.channels.{ AsynchronousServerSocketChannel ⇒ ServerChannel, AsynchronousSocketChannel ⇒ Channel, CompletionHandler ⇒ Handler }
+import java.nio.channels.{ AsynchronousServerSocketChannel ⇒ ServerChannel, AsynchronousSocketChannel ⇒ SocketChannel, AsynchronousByteChannel ⇒ Channel, CompletionHandler ⇒ Handler, InterruptedByTimeoutException }
 import java.nio.charset.Charset
 import java.util.concurrent.TimeUnit
 
@@ -88,6 +88,43 @@ abstract sealed class IoHelper[E <: Io] {
   private[this] final var limitmark = -1
 
   private[this] final var positionmark = -1
+
+}
+
+/**
+ *
+ */
+final private class SocketChannelWithTimeout private (
+
+  channel: SocketChannel) extends Channel {
+
+  @inline final def close = channel.close
+
+  @inline final def isOpen = channel.isOpen
+
+  @inline final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[Integer, _ >: A]) = {
+    channel.read(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, attachment, handler)
+  }
+
+  @inline final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[Integer, _ >: A]) = {
+    channel.write(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, attachment, handler)
+  }
+
+  def read(buffer: ByteBuffer) = throw FutureNotSupported
+
+  def write(buffer: ByteBuffer) = throw FutureNotSupported
+
+  channel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
+  channel.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.box(false))
+  channel.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.box(true))
+  channel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(sendReceiveBufferSize))
+  channel.setOption(StandardSocketOptions.SO_SNDBUF, Integer.valueOf(sendReceiveBufferSize))
+
+}
+
+private object SocketChannelWithTimeout {
+
+  def apply(channel: SocketChannel) = new SocketChannelWithTimeout(channel)
 
 }
 
@@ -213,15 +250,15 @@ object Io
    */
   private[this] final case class AcceptHandler(pauseinmilliseconds: Long)
 
-    extends Handler[Channel, Io] {
+    extends Handler[SocketChannel, Io] {
 
-    @inline final def completed(c: Channel, io: Io) = {
+    @inline final def completed(c: SocketChannel, io: Io) = {
       import io._
       if (0 == pauseinmilliseconds)
         server.accept(io, this)
       else
         scheduleOnce(pauseinmilliseconds)(server.accept(io, this))
-      k(io ++ tweak(c) ++ defaultByteBuffer)
+      k(io ++ SocketChannelWithTimeout(c) ++ defaultByteBuffer)
     }
 
     @inline final def failed(e: Throwable, io: Io) = {
@@ -238,40 +275,12 @@ object Io
       }
     }
 
-    @inline private[this] def tweak(channel: Channel): Channel = {
-      import scala.collection.JavaConversions._
-      channel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
-      channel.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.box(false))
-      channel.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.box(true))
-      channel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(sendReceiveBufferSize))
-      channel.setOption(StandardSocketOptions.SO_SNDBUF, Integer.valueOf(sendReceiveBufferSize))
-      channel
-    }
-
   }
 
   /**
    * Read.
    */
-  private[this] object ReadHandler extends Handler[Integer, Io] {
-
-    @inline final def completed(processed: Integer, io: Io) = {
-      import io._
-      buffer.flip
-      k(io ++ processed)
-    }
-
-    @inline final def failed(e: Throwable, io: Io) = {
-      import io._
-      k(io ++ Error[Io](e))
-    }
-
-  }
-
-  /**
-   * Write.
-   */
-  private[aio] object WriteHandler extends Handler[Integer, Io] {
+  private[this] object IoHandler extends Handler[Integer, Io] {
 
     @inline final def completed(processed: Integer, io: Io) = {
       import io._
@@ -288,27 +297,28 @@ object Io
   final def accept(server: ServerChannel, pausebetweenaccepts: Duration): Io @suspendable =
     shift { k: IoCont ⇒ server.accept(Io.empty ++ server ++ k, AcceptHandler(pausebetweenaccepts.toMillis)) }
 
-  @inline private[this] final def read(io: Io): Io @suspendable = {
+  @inline private[aio] final def read(io: Io): Io @suspendable = {
     import io._
-    shift { k: IoCont ⇒ buffer.clear; channel.read(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, io ++ k, ReadHandler) }
+    shift { k: IoCont ⇒ buffer.clear; channel.read(buffer, io ++ k, IoHandler) }
   }
 
-  @inline private[this] final def write(io: Io): Io @suspendable = {
+  @inline private[aio] final def write(io: Io): Io @suspendable = {
     import io._
-    shift { k: IoCont ⇒ channel.write(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, io ++ k, WriteHandler) }
+    shift { k: IoCont ⇒ channel.write(buffer, io ++ k, IoHandler) }
   }
 
   @inline private[this] final def unhandled(e: Any) = error("unhandled " + e)
 
   @inline private[this] final val ignored = ()
 
-  final def loop[E, A <: Renderable](io: Io, processor: Processor[E, A]): Unit @suspendable = {
+  final def loop[E, A <: RenderableRoot](io: Io, processor: Processor[E, A]): Unit @suspendable = {
 
     val readiteratee = io.iteratee
 
     @inline def readloop(io: Io): Unit @suspendable = {
       (read(io) match {
         case io if -1 < io.readwritten ⇒
+          io.buffer.flip
           io.iteratee(Elem(io))
         case io ⇒
           io.iteratee(Eof)
@@ -331,8 +341,9 @@ object Io
       (processor.doProcess(io) match {
         case io ⇒ io.iteratee
       }) match {
-        case Done(renderable: Renderable) ⇒
-          writeloop(io, renderable.doRender(io))
+        case Done(renderable: RenderableRoot) ⇒
+          writeloop(renderable.renderHeader(io))
+        case Error(e: InterruptedByTimeoutException) ⇒
         case Error(e) ⇒
           info("processloop " + e.toString)
           io.error(e)
@@ -341,17 +352,17 @@ object Io
       }
     }
 
-    @inline def writeloop(io: Io, iteratee: Iteratee[Long, Boolean]): Unit @suspendable = {
+    @inline def writeloop(io: Io): Unit @suspendable = {
       (write(io) match {
-        case io ⇒
-          iteratee(Elem(io.readwritten))
+        case io ⇒ io.iteratee
       }) match {
-        case (cont @ Cont(_), _) ⇒
-          writeloop(io, cont)
-        case (Done(keepalive: Boolean), _) ⇒
+        case Done(keepalive: Boolean) ⇒
           if (keepalive) readloop(io ++ readiteratee)
-        case (Error(e), _) ⇒
-          e.printStackTrace
+        case cont @ Cont(_) ⇒
+          writeloop(io) // wrong
+        case Error(e) ⇒
+          info("writeloop" + e.toString)
+        case e ⇒
           unhandled(e)
       }
     }

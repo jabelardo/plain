@@ -7,8 +7,9 @@ package http
 import java.nio.{ ByteBuffer, CharBuffer }
 import java.nio.charset.CoderResult.OVERFLOW
 import java.nio.charset.Charset
+import java.nio.channels.AsynchronousByteChannel
 
-import aio.{ ReadChannel, WriteChannel, bestFitByteBuffer, releaseByteBuffer }
+import aio.{ bestFitByteBuffer, releaseByteBuffer }
 import text.`UTF-8`
 import Status._
 
@@ -52,7 +53,7 @@ object Entity {
 
   final case class ContentEntity(contenttype: ContentType, length: Long) extends Entity
 
-  final case class ReadChannelEntity(channel: ReadChannel, contenttype: ContentType, length: Long) extends Entity
+  final case class AsynchronousByteChannelEntity(channel: AsynchronousByteChannel, contenttype: ContentType, length: Long) extends Entity
 
   final case class `User-defined`(encoding: String, contenttype: ContentType) extends TransferEncodedEntity
 

@@ -77,11 +77,11 @@ final class RequestIteratee private ()(implicit server: Server) {
 
     for {
       method ← takeUntil(` `)
-      (uri, query) ← readRequestUri
+      pathquery ← readRequestUri
       _ ← takeWhile(whitespace)
       version ← takeUntil(`\r`)
       _ ← drop(1)
-    } yield (Method(method), uri, query, Version(version))
+    } yield (Method(method), pathquery._1, pathquery._2, Version(version))
   }
 
   private[this] final val readHeaders: Iteratee[Io, Headers] = {
@@ -143,10 +143,10 @@ final class RequestIteratee private ()(implicit server: Server) {
     }
 
   final val readRequest: Iteratee[Io, Request] = for {
-    (method, path, query, version) ← readRequestLine
+    mpqv ← readRequestLine
     headers ← readHeaders
-    entity ← readEntity(headers, query)
-  } yield Request(method, path, query, version, headers, entity)
+    entity ← readEntity(headers, mpqv._3)
+  } yield Request(mpqv._1, mpqv._2, mpqv._3, mpqv._4, headers, entity)
 
 }
 

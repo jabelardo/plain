@@ -4,108 +4,64 @@ package plain
 
 package aio
 
-import java.nio.ByteBuffer
-import java.nio.channels.{ CompletionHandler ⇒ Handler }
+import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel }
+
+import scala.util.continuations.suspendable
+
+import aio.Io.{ read, write }
+import logging.HasLogger
 
 /**
  *
  */
 final class ChannelTransfer private (
-  src: ReadChannel,
-  dst: WriteChannel,
-  io: Io,
-  iodestination: Boolean,
-  outerhandler: Handler[Long, Io]) {
 
-//  @inline private[this] final def transfer(io: Io): Io @suspendable = {
-//    import io._
-//    shift { k: IoCont ⇒ channel.write(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, io ++ k, WriteHandler) }
-//  }
+  src: Channel,
 
-  @inline private final def transfer: Nothing = {
-    import io._
-    if (iodestination) buffer.flip
-    if (0 < buffer.remaining) {
-      dst.write(buffer, Integer.valueOf(buffer.remaining), writehandler)
-    } else {
-      buffer.clear
-      src.read(buffer, io, readhandler)
-    }
-    throw ControlCompleted
-  }
+  dst: Channel,
 
-  type Integer = java.lang.Integer
+  io: Io) {
 
-  private[this] final val writehandler: Handler[Integer, Integer] = new Handler[Integer, Integer] {
+  final def transfer: Unit @suspendable = {
 
-    def completed(byteswritten: Integer, bytesread: Integer) = {
-      import io._
-      try {
-        if (byteswritten < bytesread) {
-          transferred += byteswritten.longValue
-          dst.write(buffer, Integer.valueOf(bytesread.intValue - byteswritten.intValue), this)
-        } else {
-          transferred += byteswritten.longValue
-          if (-1 == io.expected || transferred < io.expected) {
-            buffer.clear
-            src.read(buffer, io, readhandler)
-          } else {
-            readhandler.completed(Integer.valueOf(-1), io)
-          }
-        }
-      } catch { case e: Throwable ⇒ failed(e, null) }
-    }
-
-    def failed(e: Throwable, bytesread: Integer) = readhandler.failed(e, io)
-
-  }
-
-  private[this] final val readhandler = new Handler[Integer, Io] {
-
-    def completed(bytesread: Integer, io: Io) = {
-      import io._
-      try {
-        if (-1 < bytesread) {
-          buffer.flip
-          dst.write(buffer, bytesread, writehandler)
+    @inline def writeloop: Unit @suspendable = write(out) match {
+      case out if out.readwritten == in.readwritten ⇒
+        total += out.readwritten
+        if (-1L == io.expected || total < io.expected) {
+          readloop
         } else {
           src.close
           dst.close
-          outerhandler.completed(transferred, io)
         }
-      } catch {
-        case ControlCompleted ⇒
-        case e: Throwable ⇒ failed(e, null)
-      }
+      case out ⇒
+        total += out.readwritten
+        writeloop
     }
 
-    def failed(e: Throwable, io: Io) = {
-      import io._
-      src.close
-      dst.close
-      outerhandler.failed(e, io)
+    @inline def readloop: Unit @suspendable = read(in) match {
+      case in if 0 < in.readwritten ⇒
+        out.buffer.flip
+        writeloop
+        io.k(io)
+      case in ⇒
+        src.close
+        dst.close
     }
 
+    if (0 < out.buffer.remaining) writeloop else readloop
   }
 
-  @volatile private[this] var transferred = 0L
+  private[this] final var total = 0L
+
+  private[this] final val in = { val i = Io.empty ++ src; i ++ io.buffer }
+
+  private[this] final val out = { val o = Io.empty ++ dst; o ++ io.buffer }
 
 }
 
 object ChannelTransfer {
 
-  /**
-   * Careful, apply returns Nothing, thus, a Handler for completed or failed is mandatory. Please note that any line following apply will be dead code.
-   */
-  def apply(
-    in: Io,
-    out: WriteChannel,
-    handler: Handler[Long, Io]): Nothing = new ChannelTransfer(ReadChannel(in.channel, false), out, in, false, handler).transfer
-
-  def apply(
-    in: ReadChannel,
-    out: Io,
-    handler: Handler[Long, Io]): Nothing = new ChannelTransfer(in, WriteChannel(out.channel, false), out, true, handler).transfer
+  def apply(src: Channel, dst: Channel, io: Io) = new ChannelTransfer(src, dst, io)
 
 }
 

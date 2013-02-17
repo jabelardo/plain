@@ -9,11 +9,23 @@ import java.util.concurrent.TimeUnit
 
 import scala.util.continuations.{ reset, shift, suspendable }
 
-import Io.{ IoCont, WriteHandler }
 import Iteratee.{ Done, Error }
 import Iteratee.Error
 import text.`US-ASCII`
 import concurrent.OnlyOnce
+
+/**
+ *
+ */
+trait RenderableRoot {
+
+  def renderHeader(io: Io): Io
+
+  def renderBody(io: Io): Io @suspendable
+
+  def renderFooter(io: Io): Io
+
+}
 
 /**
  * A Renderable can put its content or fields into a ByteBuffer of an Io.
@@ -21,8 +33,6 @@ import concurrent.OnlyOnce
 trait Renderable {
 
   def render(implicit buffer: ByteBuffer): Unit
-
-  def doRender(io: Io): Iteratee[Long, Boolean] = null
 
   final def +(that: Renderable)(implicit buffer: ByteBuffer): Renderable = {
     this.render(buffer)
