@@ -39,12 +39,13 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
 
   @tailrec def releaseBuffer(buffer: ByteBuffer): Unit = if (trylock) {
     try {
-      // if (log.isDebugEnabled) { debug(pool.size.toString); require(!pool.exists(_ eq buffer), "buffer released twice " + pool.size) }
+      if (log.isDebugEnabled) require(!pool.exists(_ eq buffer), "buffer released twice " + pool.size)
       buffer.clear
       pool = buffer :: pool
+      // if (log.isDebugEnabled) debug(pool.size.toString)
     } finally unlock
   } else {
-    Thread.sleep(0, 50)
+    Thread.sleep(0, 50) // see above
     releaseBuffer(buffer)
   }
 

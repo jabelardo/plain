@@ -39,10 +39,6 @@ final case class Response private (
 
   type Type = Response
 
-  final def renderBody(io: Io): Io @suspendable = null
-
-  final def renderFooter(io: Io): Io = null
-
   final def renderHeader(io: Io): Io = {
     import io._
     buffer.clear
@@ -67,20 +63,48 @@ final case class Response private (
     entity match {
       case Some(entity: ByteBufferEntity) if entity.length <= buffer.remaining ⇒
         r(entity.buffer) + ^
-        buffer.flip
         io ++ Done[Io, Boolean](keepalive)
       case Some(entity: ArrayEntity) if entity.length <= buffer.remaining ⇒
         r(entity.array) + ^
-        buffer.flip
         io ++ Done[Io, Boolean](keepalive)
       case None ⇒
-        buffer.flip
         io ++ Done[Io, Boolean](keepalive)
-      case _ ⇒
-        buffer.flip
-        len = buffer.remaining
-        expected += len
+      case Some(_) ⇒
         io ++ Cont[Io, Boolean](null)
+    }
+  }
+
+  final def renderBody(io: Io): Io @suspendable = {
+    import io._
+    entity match {
+      //      case Some(entity: ByteBufferEntity) if null == buf ⇒
+      //        buf = buffer
+      //        buffer = entity.buffer
+      //        io ++ Done[Io, Boolean](keepalive)
+      //        outerk(io)
+      //      case Some(entity: ArrayEntity) if null == buf ⇒
+      //        buf = buffer
+      //        buffer = ByteBuffer.wrap(entity.array)
+      //        io ++ Done[Io, Boolean](keepalive)
+      //        outerk(io)
+      //      case Some(entity: ByteBufferEntity) if null != buf ⇒
+      //        buffer = buf
+      //        io ++ Done[Io, Boolean](keepalive)
+      //        outerk(io)
+      //      case Some(entity: ArrayEntity) if null != buf ⇒
+      //        buffer = buf
+      //        io ++ Done[Io, Boolean](keepalive)
+      //        outerk(io)
+      case Some(entity: AsynchronousByteChannelEntity) ⇒
+        ChannelTransfer(entity.channel, io.channel, io ++ entity.length ++ Done[Io, Boolean](keepalive)).transfer
+      case _ ⇒ throw new UnsupportedOperationException
+    }
+  }
+
+  final def renderFooter(io: Io): Io = {
+    import io._
+    entity match {
+      case e ⇒ println(e); throw new UnsupportedOperationException
     }
   }
 
@@ -88,16 +112,7 @@ final case class Response private (
 
   @inline final def ++(headers: Headers): Type = { this.headers = headers; this }
 
-  //  final private[this] def renderEntity(io: Io): Unit @suspendable = entity match {
-  //    case Some(entity: ByteBufferEntity) ⇒
-  //      buf = io.buffer
-  //      io.buffer = entity.buffer
-  //    case Some(entity: AsynchronousByteChannelEntity) ⇒
-  //      ChannelTransfer(entity.channel, io.channel, io ++ entity.length).transfer
-  //    case _ ⇒ throw new UnsupportedOperationException
-  //  }
-  //
-  //  private[this] final var buf: ByteBuffer = null
+  private[this] final var buf: ByteBuffer = null
 
   private[this] final var len = 0L
 
