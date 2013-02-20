@@ -28,7 +28,7 @@ trait RenderableRoot {
 }
 
 /**
- * A Renderable can put its content or fields into a ByteBuffer of an Io.
+ * A Renderable can put its content or fields into an implicitly provided ByteBuffer.
  */
 trait Renderable {
 

@@ -114,9 +114,9 @@ final private class SocketChannelWithTimeout private (
 
   def write(buffer: ByteBuffer) = throw FutureNotSupported
 
+  // do not play with TCP_NODELAY: channel.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.box(true))
   channel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
   channel.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.box(false))
-  channel.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.box(true))
   channel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(sendReceiveBufferSize))
   channel.setOption(StandardSocketOptions.SO_SNDBUF, Integer.valueOf(sendReceiveBufferSize))
 
@@ -140,6 +140,8 @@ final class Io private (
   var buffer: ByteBuffer,
 
   var iteratee: Iteratee[Io, _],
+
+  var renderable: RenderableRoot,
 
   var k: Io.IoCont,
 
@@ -174,9 +176,11 @@ final class Io private (
 
   @inline def ++(server: ServerChannel) = { this.server = server; this }
 
-  @inline def ++(channel: Channel) = new Io(server, channel, buffer, iteratee, k, readwritten, expected, keepalive)
+  @inline def ++(channel: Channel) = new Io(server, channel, buffer, iteratee, renderable, k, readwritten, expected, keepalive)
 
   @inline def ++(iteratee: Iteratee[Io, _]) = { this.iteratee = iteratee; this }
+
+  @inline def ++(renderable: RenderableRoot) = { this.renderable = renderable; this }
 
   @inline def ++(k: IoCont) = { this.k = k; this }
 
@@ -187,7 +191,7 @@ final class Io private (
   @inline def ++(keepalive: Boolean) = { if (this.keepalive) this.keepalive = keepalive; this }
 
   @inline def ++(buffer: ByteBuffer) = if (0 < this.buffer.remaining) {
-    new Io(server, channel, buffer, iteratee, k, readwritten, expected, keepalive)
+    new Io(server, channel, buffer, iteratee, renderable, k, readwritten, expected, keepalive)
   } else {
     this + buffer
   }
@@ -233,7 +237,7 @@ object Io
 
   final type IoCont = Io ⇒ Unit
 
-  @inline private[aio] final def empty = new Io(null, null, emptyBuffer, null, null, -1, -1L, true)
+  @inline private[aio] final def empty = new Io(null, null, emptyBuffer, null, null, null, -1, -1L, true)
 
   final private[aio] val emptyArray = new Array[Byte](0)
 
@@ -280,11 +284,31 @@ object Io
   /**
    * Read.
    */
-  private[this] object IoHandler extends Handler[Integer, Io] {
+  private[this] object ReadHandler extends Handler[Integer, Io] {
 
     @inline final def completed(processed: Integer, io: Io) = {
       import io._
       k(io ++ processed)
+    }
+
+    @inline final def failed(e: Throwable, io: Io) = {
+      import io._
+      k(io ++ Error[Io](e))
+    }
+
+  }
+
+  /**
+   * Write.
+   */
+  private[this] object WriteHandler extends Handler[Integer, Io] {
+
+    @inline final def completed(processed: Integer, io: Io) = {
+      import io._
+      if (0 == buffer.remaining)
+        k(io ++ processed)
+      else
+        reset { val previous = k; writeNoFlip(io); previous(io) }
     }
 
     @inline final def failed(e: Throwable, io: Io) = {
@@ -299,12 +323,17 @@ object Io
 
   @inline private[aio] final def read(io: Io): Io @suspendable = {
     import io._
-    shift { k: IoCont ⇒ buffer.clear; channel.read(buffer, io ++ k, IoHandler) }
+    shift { k: IoCont ⇒ buffer.clear; channel.read(buffer, io ++ k, ReadHandler) }
   }
 
   @inline private[aio] final def write(io: Io): Io @suspendable = {
     import io._
-    shift { k: IoCont ⇒ channel.write(buffer, io ++ k, IoHandler) }
+    shift { k: IoCont ⇒ buffer.flip; channel.write(buffer, io ++ k, WriteHandler) }
+  }
+
+  @inline private[aio] final def writeNoFlip(io: Io): Io @suspendable = {
+    import io._
+    shift { k: IoCont ⇒ channel.write(buffer, io ++ k, WriteHandler) }
   }
 
   @inline private[this] final def unhandled(e: Any) = error("unhandled " + e)
@@ -320,8 +349,7 @@ object Io
         case io if -1 < io.readwritten ⇒
           io.buffer.flip
           io.iteratee(Elem(io))
-        case io ⇒
-          io.iteratee(Eof)
+        case io ⇒ io.iteratee(Eof)
       }) match {
         case (cont @ Cont(_), Empty) ⇒
           readloop(io ++ cont ++ defaultByteBuffer)
@@ -342,7 +370,7 @@ object Io
         case io ⇒ io.iteratee
       }) match {
         case Done(renderable: RenderableRoot) ⇒
-          writeloop(renderable.renderHeader(io))
+          writeloop(renderable.renderHeader(io ++ renderable))
         case Error(e: InterruptedByTimeoutException) ⇒
         case Error(e) ⇒
           info("processloop " + e.toString)
@@ -358,10 +386,10 @@ object Io
       }) match {
         case Done(keepalive: Boolean) ⇒
           if (keepalive) readloop(io ++ readiteratee)
-        case cont @ Cont(_) ⇒
-          writeloop(io) // wrong
+        case Cont(_) ⇒
+          writeloop(io.renderable.renderBody(io))
         case Error(e) ⇒
-          info("writeloop" + e.toString)
+          info("writeloop " + e.toString)
         case e ⇒
           unhandled(e)
       }
@@ -372,4 +400,3 @@ object Io
   }
 
 }
-
