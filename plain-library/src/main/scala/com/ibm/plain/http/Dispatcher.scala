@@ -22,7 +22,7 @@ abstract class Dispatcher
    */
   def dispatch(request: Request, io: Io): Nothing
 
-  @inline final def process(io: Io): Nothing = dispatch(io.iteratee.result.asInstanceOf[Request], io)
+  @inline final def process(io: Io): Nothing = dispatch(io.iteratee.result.asInstanceOf[Request], io) 
 
   final var name: String = null
 

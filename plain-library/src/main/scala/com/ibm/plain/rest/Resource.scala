@@ -6,11 +6,11 @@ package rest
 
 import scala.reflect._
 import scala.reflect.runtime.universe._
-
 import json._
 import xml._
 import logging.HasLogger
 import reflect.tryBoolean
+import aio.Io
 import http.{ Request, Response, Status, Entity, Method, MimeType, Accept }
 import http.Entity._
 import http.MimeType._
@@ -18,6 +18,7 @@ import http.Method.{ DELETE, GET, HEAD, POST, PUT }
 import http.Status.{ ClientError, ServerError, Success }
 import http.Header.Request.{ `Accept` ⇒ AcceptHeader }
 import Matching._
+import com.ibm.plain.aio.ControlCompleted
 
 /**
  *
@@ -44,43 +45,43 @@ trait Resource
     }
   }
 
-  override final def completed(context: Context) = {
+  final def completed(context: Context): Nothing = {
     try {
       threadlocal.set(context)
       context.methodbody.completed match {
         case Some(completed) ⇒ completed(context.response)
         case _ ⇒
       }
+      super.completed(context.response, context.io)
+      throw ControlCompleted
     } finally {
       threadlocal.remove
     }
-    super.completed(context)
   }
 
-  override final def failed(e: Throwable, context: Context) = {
+  final def failed(e: Throwable, context: Context): Nothing = {
     try {
       threadlocal.set(context ++ e)
       context.methodbody.failed match {
         case Some(failed) ⇒ failed(e)
         case _ ⇒
       }
+      super.failed(e, context.io +++ context.response)
+      throw ControlCompleted
     } finally {
       threadlocal.remove
     }
-    super.failed(e, context)
   }
 
-  // final def completed(response: Response): Unit = completed(response, threadlocal.get)
+  @inline final def process(io: Io): Nothing = throw new UnsupportedOperationException
 
-  // final def completed(status: Status): Unit = completed(Response(request, status), threadlocal.get)
-
-  // final def failed(e: Throwable): Unit = failed(e, threadlocal.get)
-
-  final def handle(context: Context): Nothing = {
+  final def handle(context: Context): Nothing = try {
     methods.get(context.request.method) match {
       case Some(Right(resourcepriorities)) ⇒ execute(context, resourcepriorities)
       case _ ⇒ throw ClientError.`405`
     }
+  } catch {
+    case e: Throwable ⇒ failed(e, context)
   }
 
   final def Post[E: TypeTag, A: TypeTag](body: E ⇒ A): MethodBody = {

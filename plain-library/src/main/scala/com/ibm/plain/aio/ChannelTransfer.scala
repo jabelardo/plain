@@ -29,12 +29,11 @@ final class ChannelTransfer private (
     @inline def writeloop: Unit @suspendable = write(out) match {
       case out ⇒
         total += out.readwritten
-        if (-1L == io.expected || total < expected) readloop
+        if (total < expected || -1L == expected) readloop
     }
 
     @inline def readloop: Unit @suspendable = read(in) match {
-      case in if 0 < in.readwritten ⇒
-        writeloop
+      case in if 0 < in.readwritten ⇒ writeloop
       case _ ⇒
     }
 
