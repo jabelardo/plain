@@ -27,13 +27,13 @@ abstract class Processor
     k(io ++ Done[Io, Response](response))
   }
 
-  final def failed(e: Throwable, io: Io): Unit = {
+  def failed(e: Throwable, io: Io): Unit = {
     import io._
     e match {
       case ControlCompleted ⇒
       case _ ⇒ k(io ++ (e match {
         case e: IOException if !e.isInstanceOf[FileSystemException] ⇒ Error[Io](e)
-        case status: Status ⇒ Done[Io, Response](Response(null, status))
+        case status: Status ⇒ Done[Io, Response](if (null != io.payload) io.payload.asInstanceOf[Response] ++ status else Response(null, status))
         case e ⇒
           val log = logging.createLogger(this)
           log.info("Dispatching failed : " + e)

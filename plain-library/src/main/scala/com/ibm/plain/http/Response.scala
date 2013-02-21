@@ -46,9 +46,13 @@ final case class Response private (
     version + ` ` + status + `\r\n` + ^
     val keepalive = status match {
       case _: Status.ServerError ⇒ false
-      case _ ⇒ `Connection`(request.headers) match {
-        case Some(value) if value.exists(_.equalsIgnoreCase("keep-alive")) ⇒ true
-        case _ ⇒ false
+      case _ ⇒ request match {
+        case null ⇒ false
+        case _ ⇒ `Connection`(request.headers) match {
+          case Some(value) if value.exists(_.equalsIgnoreCase("keep-alive")) ⇒ true
+          case _ ⇒ false
+        }
+
       }
     }
     io ++ keepalive
@@ -77,27 +81,28 @@ final case class Response private (
   final def renderBody(io: Io): Io @suspendable = {
     import io._
     entity match {
-      //      case Some(entity: ByteBufferEntity) if null == buf ⇒
-      //        buf = buffer
-      //        buffer = entity.buffer
-      //        io ++ Done[Io, Boolean](keepalive)
-      //        outerk(io)
-      //      case Some(entity: ArrayEntity) if null == buf ⇒
-      //        buf = buffer
-      //        buffer = ByteBuffer.wrap(entity.array)
-      //        io ++ Done[Io, Boolean](keepalive)
-      //        outerk(io)
-      //      case Some(entity: ByteBufferEntity) if null != buf ⇒
-      //        buffer = buf
-      //        io ++ Done[Io, Boolean](keepalive)
-      //        outerk(io)
-      //      case Some(entity: ArrayEntity) if null != buf ⇒
-      //        buffer = buf
-      //        io ++ Done[Io, Boolean](keepalive)
-      //        outerk(io)
       case Some(entity: AsynchronousByteChannelEntity) ⇒
-        ChannelTransfer(entity.channel, io.channel, io ++ entity.length ++ Done[Io, Boolean](keepalive)).transfer
-      case _ ⇒ throw new UnsupportedOperationException
+        ChannelTransfer(entity.channel, channel, io ++ entity.length ++ Done[Io, Boolean](keepalive)).transfer
+      case _ ⇒ shift { k: (Io ⇒ Unit) ⇒
+        entity match {
+          case Some(entity: ByteBufferEntity) if null == buf ⇒
+            buf = buffer
+            buffer = entity.buffer
+            io ++ Done[Io, Boolean](keepalive)
+          case Some(entity: ArrayEntity) if null == buf ⇒
+            buf = buffer
+            buffer = ByteBuffer.wrap(entity.array)
+            io ++ Done[Io, Boolean](keepalive)
+          case Some(entity: ByteBufferEntity) if null != buf ⇒
+            buffer = buf
+            io ++ Done[Io, Boolean](keepalive)
+          case Some(entity: ArrayEntity) if null != buf ⇒
+            buffer = buf
+            io ++ Done[Io, Boolean](keepalive)
+          case _ ⇒ throw new UnsupportedOperationException
+        }
+        k(io)
+      }
     }
   }
 

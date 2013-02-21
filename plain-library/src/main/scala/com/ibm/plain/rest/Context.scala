@@ -16,8 +16,6 @@ final case class Context private (
 
   var io: Io,
 
-  var parent: Uniform,
-
   var variables: Variables,
 
   var remainder: Path,
@@ -31,8 +29,6 @@ final case class Context private (
   var methodbody: MethodBody) {
 
   @inline final def ++(io: Io) = { this.io = io; this }
-
-  @inline final def ++(parent: Uniform) = { this.parent = parent; this }
 
   @inline final def ++(variables: Variables) = { this.variables = variables; this }
 
@@ -53,8 +49,6 @@ final case class Context private (
  */
 object Context {
 
-  @inline def apply(io: Io) = new Context(io, null, null, null, null, null, null, null)
-
-  @inline def apply(self: Uniform) = new Context(null, null, null, null, null, null, null, null)
+  @inline def apply(io: Io) = new Context(io, null, null, null, null, null, null)
 
 }

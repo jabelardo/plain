@@ -4,7 +4,8 @@ package plain
 
 package rest
 
-import http.{ Request, Response }
+import aio.Io
+import http.{ Request, Response, Processor ⇒ HttpProcessor }
 
 /**
  * As postulated by Roy Fielding, but it works asynchronously.
@@ -20,14 +21,6 @@ trait Uniform {
 }
 
 /**
- * A basic implementation for Uniform with a parent Uniform hidden in the context.
+ * A basic implementation for Uniform for correct exception handling.
  */
-trait BaseUniform
-
-  extends Uniform {
-
-  def completed(context: Context): Nothing = context.parent.completed(context)
-
-  def failed(e: Throwable, context: Context): Nothing = context.parent.failed(e, context)
-
-}
+trait BaseUniform extends HttpProcessor with Uniform 

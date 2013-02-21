@@ -114,7 +114,8 @@ final private class SocketChannelWithTimeout private (
 
   def write(buffer: ByteBuffer) = throw FutureNotSupported
 
-  // do not play with TCP_NODELAY: channel.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.box(true))
+  // do not play with TCP_NODELAY, it will degrade performance dramatically: 
+  // channel.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.box(true))
   channel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
   channel.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.box(false))
   channel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(sendReceiveBufferSize))
@@ -131,7 +132,7 @@ private object SocketChannelWithTimeout {
 /**
  * Io represents the context of an asynchronous i/o operation.
  */
-final class Io private (
+final case class Io private (
 
   var server: ServerChannel,
 
@@ -149,7 +150,9 @@ final class Io private (
 
   var expected: Long,
 
-  var keepalive: Boolean)
+  var keepalive: Boolean,
+
+  var payload: Any)
 
   extends IoHelper[Io] {
 
@@ -176,7 +179,7 @@ final class Io private (
 
   @inline def ++(server: ServerChannel) = { this.server = server; this }
 
-  @inline def ++(channel: Channel) = new Io(server, channel, buffer, iteratee, renderable, k, readwritten, expected, keepalive)
+  @inline def ++(channel: Channel) = new Io(server, channel, buffer, iteratee, renderable, k, readwritten, expected, keepalive, payload)
 
   @inline def ++(iteratee: Iteratee[Io, _]) = { this.iteratee = iteratee; this }
 
@@ -190,8 +193,10 @@ final class Io private (
 
   @inline def ++(keepalive: Boolean) = { if (this.keepalive) this.keepalive = keepalive; this }
 
+  @inline def +++(payload: Any) = { this.payload = payload; this }
+
   @inline def ++(buffer: ByteBuffer) = if (0 < this.buffer.remaining) {
-    new Io(server, channel, buffer, iteratee, renderable, k, readwritten, expected, keepalive)
+    new Io(server, channel, buffer, iteratee, renderable, k, readwritten, expected, keepalive, payload)
   } else {
     this + buffer
   }
@@ -212,6 +217,7 @@ final class Io private (
   @inline private def release = {
     releaseBuffer
     if (channel.isOpen) channel.close
+    payload = null
   }
 
   @inline private def error(e: Throwable) = {
@@ -237,7 +243,7 @@ object Io
 
   final type IoCont = Io ⇒ Unit
 
-  @inline private[aio] final def empty = new Io(null, null, emptyBuffer, null, null, null, -1, -1L, true)
+  @inline private[aio] final def empty = new Io(null, null, emptyBuffer, null, null, null, -1, -1L, true, null)
 
   final private[aio] val emptyArray = new Array[Byte](0)
 
@@ -372,6 +378,7 @@ object Io
         case Done(renderable: RenderableRoot) ⇒
           writeloop(renderable.renderHeader(io ++ renderable))
         case Error(e: InterruptedByTimeoutException) ⇒
+          debug("Connection timeout")
         case Error(e) ⇒
           info("processloop " + e.toString)
           io.error(e)

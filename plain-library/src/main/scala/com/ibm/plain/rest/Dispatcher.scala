@@ -22,7 +22,7 @@ abstract class Dispatcher(templates: Option[Templates])
 
   with BaseUniform {
 
-  final def dispatch(request: Request, io: Io): Nothing = handle(Context(io) ++ request)
+  @inline final def dispatch(request: Request, io: Io): Nothing = handle(Context(io) ++ request)
 
   final def handle(context: Context): Nothing = {
     import context.io
@@ -33,14 +33,11 @@ abstract class Dispatcher(templates: Option[Templates])
           clazz.newInstance match {
             case resource: Resource ⇒
               request.entity match {
-                case Some(ContentEntity(length, _)) if !request.method.entityallowed ⇒
-                  // spawn { transfer(context.io, forWriting(if (os.isWindows) "nul" else "/dev/null"), null); () }
-                  request ++ None
                 case Some(ContentEntity(_, length)) if request.method.entityallowed ⇒ io ++ length
                 case Some(_) if !request.method.entityallowed ⇒ throw ServerError.`501`
                 case _ ⇒
               }
-              resource.handle(context ++ variables ++ remainder ++ this)
+              resource.handle(context ++ variables ++ remainder)
             case _ ⇒ throw ServerError.`500`
           }
         case _ ⇒ throw ClientError.`404`
@@ -49,9 +46,9 @@ abstract class Dispatcher(templates: Option[Templates])
     }
   }
 
-  override final def completed(context: Context): Nothing = { completed(context.response, context.io); throw ControlCompleted }
+  final def completed(context: Context): Nothing = throw new UnsupportedOperationException
 
-  override final def failed(e: Throwable, context: Context): Nothing = { failed(e, context.io); throw ControlCompleted }
+  final def failed(e: Throwable, context: Context): Nothing = throw new UnsupportedOperationException
 
 }
 
