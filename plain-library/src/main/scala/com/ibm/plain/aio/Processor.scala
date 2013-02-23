@@ -15,11 +15,11 @@ trait Processor[E, A]
 
   extends Handler[A, Io] {
 
-  def process(io: Io): Nothing
+  def process(io: Io)
 
-  def completed(result: A, io: Io): Unit
+  def completed(result: A, io: Io)
 
-  def failed(e: Throwable, io: Io): Unit
+  def failed(e: Throwable, io: Io)
 
   private[aio] final def doProcess(io: Io): Io @suspendable = {
     import io._

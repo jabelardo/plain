@@ -22,12 +22,12 @@ abstract class Processor
 
   extends AioProcessor[Request, Response] {
 
-  final def completed(response: Response, io: Io): Unit = {
+  final def completed(response: Response, io: Io) = {
     import io._
     k(io ++ Done[Io, Response](response))
   }
 
-  def failed(e: Throwable, io: Io): Unit = {
+  def failed(e: Throwable, io: Io) = {
     import io._
     e match {
       case ControlCompleted ⇒

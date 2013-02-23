@@ -12,15 +12,15 @@ import http.{ Request, Response, Processor ⇒ HttpProcessor }
  */
 trait Uniform {
 
-  def handle(context: Context): Nothing
+  def handle(context: Context)
 
-  def completed(context: Context): Nothing
+  def completed(context: Context)
 
-  def failed(e: Throwable, context: Context): Nothing
+  def failed(e: Throwable, context: Context)
 
 }
 
 /**
  * A basic implementation for Uniform for correct exception handling.
  */
-trait BaseUniform extends HttpProcessor with Uniform 
+trait BaseUniform extends HttpProcessor with Uniform
