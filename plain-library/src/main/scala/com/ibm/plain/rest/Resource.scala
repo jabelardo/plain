@@ -18,7 +18,6 @@ import http.Method.{ DELETE, GET, HEAD, POST, PUT }
 import http.Status.{ ClientError, ServerError, Success }
 import http.Header.Request.{ `Accept` ⇒ AcceptHeader }
 import Matching._
-import com.ibm.plain.aio.ControlCompleted
 
 /**
  *
@@ -45,7 +44,7 @@ trait Resource
     }
   }
 
-  final def completed(context: Context): Nothing = {
+  final def completed(context: Context) = {
     try {
       threadlocal.set(context)
       context.methodbody.completed match {
@@ -53,13 +52,12 @@ trait Resource
         case _ ⇒
       }
       super.completed(context.response, context.io)
-      throw ControlCompleted
     } finally {
       threadlocal.remove
     }
   }
 
-  final def failed(e: Throwable, context: Context): Nothing = {
+  final def failed(e: Throwable, context: Context) = {
     try {
       threadlocal.set(context ++ e)
       context.methodbody.failed match {
@@ -67,15 +65,14 @@ trait Resource
         case _ ⇒
       }
       super.failed(e, context.io +++ context.response)
-      throw ControlCompleted
     } finally {
       threadlocal.remove
     }
   }
 
-  @inline final def process(io: Io): Nothing = throw new UnsupportedOperationException
+  final def process(io: Io): Unit = throw new UnsupportedOperationException
 
-  final def handle(context: Context): Nothing = try {
+  final def handle(context: Context) = try {
     methods.get(context.request.method) match {
       case Some(Right(resourcepriorities)) ⇒ execute(context, resourcepriorities)
       case _ ⇒ throw ClientError.`405`
@@ -125,7 +122,7 @@ trait Resource
   /**
    * The most important method in this class.
    */
-  private[this] final def execute(context: Context, resourcepriorities: ResourcePriorities): Nothing = try {
+  private[this] final def execute(context: Context, resourcepriorities: ResourcePriorities) = try {
     threadlocal.set(context)
 
     val inentity: Option[Entity] = request.entity

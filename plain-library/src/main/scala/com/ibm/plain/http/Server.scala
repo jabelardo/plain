@@ -8,13 +8,10 @@ import java.net.{ InetSocketAddress, StandardSocketOptions }
 import java.nio.channels.{ AsynchronousChannelGroup ⇒ Group, AsynchronousServerSocketChannel ⇒ ServerChannel }
 import java.nio.charset.Charset
 import java.util.concurrent.TimeUnit
-
 import scala.concurrent.duration._
 import scala.util.continuations.reset
 import scala.collection.JavaConversions._
-
 import com.typesafe.config.{ Config, ConfigFactory }
-
 import aio.Io.{ accept, loop }
 import bootstrap.{ Application, BaseComponent }
 import logging.HasLogger
@@ -121,8 +118,8 @@ object Server
   extends HasLogger {
 
   private final val channelGroup = {
-    debug(concurrent.executor.toString)
     Group.withThreadPool(concurrent.executor)
+    Group.withThreadPool(concurrent.ioexecutor)
   }
 
   /**

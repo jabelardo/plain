@@ -4,7 +4,7 @@ package plain
 
 package rest
 
-import aio.{ ControlCompleted, Io }
+import aio.Io
 import aio.Iteratees.drop
 import aio.FileByteChannel.forWriting
 import concurrent.spawn
@@ -18,13 +18,11 @@ import http.Status.{ ClientError, ServerError }
  */
 abstract class Dispatcher(templates: Option[Templates])
 
-  extends HttpDispatcher
+  extends HttpDispatcher {
 
-  with BaseUniform {
+  @inline final def dispatch(request: Request, io: Io) = handle(Context(io) ++ request)
 
-  @inline final def dispatch(request: Request, io: Io): Nothing = handle(Context(io) ++ request)
-
-  final def handle(context: Context): Nothing = {
+  final def handle(context: Context) = {
     import context.io
     import context.request
     templates match {
@@ -46,10 +44,6 @@ abstract class Dispatcher(templates: Option[Templates])
     }
   }
 
-  final def completed(context: Context): Nothing = throw new UnsupportedOperationException
-
-  final def failed(e: Throwable, context: Context): Nothing = throw new UnsupportedOperationException
-
 }
 
 /**
@@ -62,7 +56,5 @@ class DefaultDispatcher
     Template("ping", Class.forName("com.ibm.plain.rest.resource.PingResource")),
     Template("static", Class.forName("com.ibm.plain.rest.resource.DirectoryResource")),
     Template("echo", Class.forName("com.ibm.plain.rest.resource.EchoResource")))) {
-
-  sys.runtime.gc
 
 }

@@ -52,7 +52,6 @@ final case class Response private (
           case Some(value) if value.exists(_.equalsIgnoreCase("keep-alive")) ⇒ true
           case _ ⇒ false
         }
-
       }
     }
     io ++ keepalive
@@ -93,10 +92,10 @@ final case class Response private (
             buf = buffer
             buffer = ByteBuffer.wrap(entity.array)
             io ++ Done[Io, Boolean](keepalive)
-          case Some(entity: ByteBufferEntity) if null != buf ⇒
+          case Some(entity: ByteBufferEntity) ⇒
             buffer = buf
             io ++ Done[Io, Boolean](keepalive)
-          case Some(entity: ArrayEntity) if null != buf ⇒
+          case Some(entity: ArrayEntity) ⇒
             buffer = buf
             io ++ Done[Io, Boolean](keepalive)
           case _ ⇒ throw new UnsupportedOperationException
@@ -106,12 +105,7 @@ final case class Response private (
     }
   }
 
-  final def renderFooter(io: Io): Io = {
-    import io._
-    entity match {
-      case e ⇒ println(e); throw new UnsupportedOperationException
-    }
-  }
+  final def renderFooter(io: Io): Io = throw new UnsupportedOperationException
 
   @inline final def ++(status: Status): Type = { this.status = status; this }
 

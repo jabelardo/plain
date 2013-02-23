@@ -10,6 +10,7 @@ import java.nio.file.{ Path, Paths }
 import java.nio.file.StandardOpenOption.{ CREATE, READ, WRITE }
 
 import scala.language.implicitConversions
+import scala.collection.JavaConversions._
 
 /**
  * Turns an AsynchronousFileChannel into an AsynchronousByteChannel to be used as source or destination for an AsynchronousChannelTransfer.
@@ -78,9 +79,9 @@ object FileByteChannel {
 
   def wrap(filechannel: AsynchronousFileChannel) = new FileByteChannel(filechannel)
 
-  def forReading(path: Path) = AsynchronousFileChannel.open(path, READ)
+  def forReading(path: Path) = AsynchronousFileChannel.open(path, Set(READ), concurrent.ioexecutor)
 
-  def forWriting(path: Path) = AsynchronousFileChannel.open(path, CREATE, WRITE)
+  def forWriting(path: Path) = AsynchronousFileChannel.open(path, Set(CREATE, WRITE), concurrent.ioexecutor)
 
   implicit def asynchronousFileChannel2FileByteChannel(channel: AsynchronousFileChannel) = wrap(channel)
 

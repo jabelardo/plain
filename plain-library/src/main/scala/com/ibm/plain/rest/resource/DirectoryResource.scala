@@ -28,7 +28,7 @@ class DirectoryResource
 
   import DirectoryResource._
 
-  val rootDirectory = Paths.get("/Users/guido/Development/Projects/plain")
+  val rootDirectory = Paths.get(if (os.isWindows) "c:/temp" else "/Users/guido/Development/Projects/plain")
 
   Get {
     rootDirectory.resolve(context.remainder.mkString("/")) match {
