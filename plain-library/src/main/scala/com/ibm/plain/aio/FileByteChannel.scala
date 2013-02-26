@@ -27,39 +27,34 @@ final class FileByteChannel private (
 
   override protected def finalize = if (filechannel.isOpen) filechannel.close
 
-  def close = filechannel.close
+  final def close = filechannel.close
 
-  def isOpen = filechannel.isOpen
+  final def isOpen = filechannel.isOpen
 
-  def read[A](buffer: ByteBuffer, attachment: A, handler: CompletionHandler[Integer, _ >: A]) = {
-    filechannel.read(buffer, position, attachment, new InnerCompletionHandler(true, handler))
+  final def read[A](buffer: ByteBuffer, attachment: A, handler: CompletionHandler[Integer, _ >: A]) = {
+    filechannel.read(buffer, position, attachment, new InnerCompletionHandler[A](handler))
   }
 
-  def write[A](buffer: ByteBuffer, attachment: A, handler: CompletionHandler[Integer, _ >: A]) = {
-    filechannel.write(buffer, position, attachment, new InnerCompletionHandler(false, handler))
+  final def write[A](buffer: ByteBuffer, attachment: A, handler: CompletionHandler[Integer, _ >: A]) = {
+    filechannel.write(buffer, position, attachment, new InnerCompletionHandler[A](handler))
   }
 
   /**
    * java.util.concurrent.Future is poorly implemented as it cannot be called asynchronously, therefore, these methods are not implemented.
    */
-  def read(buffer: ByteBuffer) = throw FutureNotSupported
+  final def read(buffer: ByteBuffer): java.util.concurrent.Future[Integer] = throw FutureNotSupported
 
-  /**
-   * Same as read.
-   */
-  def write(buffer: ByteBuffer) = throw FutureNotSupported
+  final def write(buffer: ByteBuffer): java.util.concurrent.Future[Integer] = throw FutureNotSupported
 
   private[this] final class InnerCompletionHandler[A](
-
-    read: Boolean,
 
     outerhandler: CompletionHandler[Integer, _ >: A])
 
     extends CompletionHandler[Integer, A] {
 
-    @inline def completed(count: Integer, attachment: A) = {
-      position += count
-      outerhandler.completed(count, attachment)
+    @inline def completed(processed: Integer, attachment: A) = {
+      position += processed
+      outerhandler.completed(processed, attachment)
     }
 
     @inline def failed(e: Throwable, attachment: A) = outerhandler.failed(e, attachment)

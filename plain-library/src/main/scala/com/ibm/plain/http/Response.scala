@@ -75,6 +75,8 @@ final case class Response private (
       case Some(_) ⇒
         io ++ Cont[Io, Boolean](null)
     }
+    buffer.flip
+    io
   }
 
   final def renderBody(io: Io): Io @suspendable = {
@@ -82,30 +84,23 @@ final case class Response private (
     entity match {
       case Some(entity: AsynchronousByteChannelEntity) ⇒
         ChannelTransfer(entity.channel, channel, io ++ entity.length ++ Done[Io, Boolean](keepalive)).transfer
-      case _ ⇒ shift { k: (Io ⇒ Unit) ⇒
-        entity match {
-          case Some(entity: ByteBufferEntity) if null == buf ⇒
-            buf = buffer
-            buffer = entity.buffer
-            io ++ Done[Io, Boolean](keepalive)
-          case Some(entity: ArrayEntity) if null == buf ⇒
-            buf = buffer
-            buffer = ByteBuffer.wrap(entity.array)
-            io ++ Done[Io, Boolean](keepalive)
-          case Some(entity: ByteBufferEntity) ⇒
-            buffer = buf
-            io ++ Done[Io, Boolean](keepalive)
-          case Some(entity: ArrayEntity) ⇒
-            buffer = buf
-            io ++ Done[Io, Boolean](keepalive)
-          case _ ⇒ throw new UnsupportedOperationException
-        }
-        k(io)
-      }
+      case Some(entity: ByteBufferEntity) ⇒
+        buf = buffer
+        buffer = entity.buffer
+        io ++ entity.length ++ Done[Io, Boolean](keepalive)
+      case Some(entity: ArrayEntity) ⇒
+        buf = buffer
+        buffer = ByteBuffer.wrap(entity.array)
+        io ++ entity.length ++ Done[Io, Boolean](keepalive)
+      case _ ⇒ throw new UnsupportedOperationException
     }
   }
 
-  final def renderFooter(io: Io): Io = throw new UnsupportedOperationException
+  final def renderFooter(io: Io): Io = {
+    import io._
+    if (null != buf) buffer = buf
+    io
+  }
 
   @inline final def ++(status: Status): Type = { this.status = status; this }
 

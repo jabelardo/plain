@@ -13,7 +13,7 @@ import org.reflections.scanners._
  */
 package object reflect {
 
-  val reflections = new Reflections("com.ibm.plain") // not working with OneJar, needs work-around
+  final lazy val reflections = new Reflections("com.ibm.plain") // not working with OneJar, needs work-around
 
   def subClasses[A](clazz: Class[A]): Set[Class[_ <: A]] = reflections.getSubTypesOf(clazz).toSet
 

@@ -47,7 +47,7 @@ trait Resource
   final def completed(context: Context) = {
     try {
       threadlocal.set(context)
-      context.methodbody.completed match {
+      if (null != context.methodbody) context.methodbody.completed match {
         case Some(completed) ⇒ completed(context.response)
         case _ ⇒
       }
@@ -60,7 +60,8 @@ trait Resource
   final def failed(e: Throwable, context: Context) = {
     try {
       threadlocal.set(context ++ e)
-      context.methodbody.failed match {
+      println(context)
+      if (null != context.methodbody) context.methodbody.failed match {
         case Some(failed) ⇒ failed(e)
         case _ ⇒
       }

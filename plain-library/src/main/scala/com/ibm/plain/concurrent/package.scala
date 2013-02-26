@@ -26,7 +26,7 @@ package object concurrent
 
   def executor = Concurrent.executor
 
-  val ioexecutor = {
+  final val ioexecutor = {
     import java.util.concurrent._
     val cores = sys.runtime.availableProcessors
     val parallelism = 32

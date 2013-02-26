@@ -18,15 +18,15 @@ object Dependencies {
   def runtime     (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "runtime")
   def container   (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "container")
 
-  val scalareflect  = "org.scala-lang"                          %   "scala-reflect"               % "2.10.1-RC1"
+  val scalareflect  = "org.scala-lang"                          %   "scala-reflect"               % "2.10.0"
   val junit         = "junit"                                   %   "junit"                       % "4.10"
   val junitItf      = "com.novocode"                            %   "junit-interface"             % "0.8"
   val config        = "com.typesafe"                            %   "config"                      % "1.0.0"
   val logback       = "ch.qos.logback"                          %   "logback-classic"             % "1.0.9"
   val janino        = "org.codehaus.janino"                     %   "janino"                      % "2.6.1"
-  val akkaActor     = "com.typesafe.akka"                       %%  "akka-actor"                  % "2.1.0"
-  val akkaTestKit   = "com.typesafe.akka"                       %%  "akka-testkit"                % "2.1.0"
-  val akkaSlf4j     = "com.typesafe.akka"                       %%  "akka-slf4j"                  % "2.1.0"
+  val akkaActor     = "com.typesafe.akka"                       %%  "akka-actor"                  % "2.1.1"
+  val akkaTestKit   = "com.typesafe.akka"                       %%  "akka-testkit"                % "2.1.1"
+  val akkaSlf4j     = "com.typesafe.akka"                       %%  "akka-slf4j"                  % "2.1.1"
   val commonsLang   = "org.apache.commons"                      %   "commons-lang3"               % "3.1"
   val commonsComp   = "org.apache.commons "                     %   "commons-compress"            % "1.4.1"
   val commonsIo     = "commons-io"                              %   "commons-io"                  % "2.4"

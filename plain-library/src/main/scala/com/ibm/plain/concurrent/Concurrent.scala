@@ -16,18 +16,18 @@ import bootstrap.BaseComponent
  */
 abstract sealed class Concurrent
 
-  extends BaseComponent[Concurrent]("plain-concurrent") {
+  extends BaseComponent[Concurrent]("plain-concurrent")
+
+  with OnlyOnce {
+
+  override def isStarted = null != actorSystem && !actorSystem.isTerminated
 
   override def isStopped = null != actorSystem && actorSystem.isTerminated
 
   override def start = {
     if (isEnabled) {
       if (isStopped) throw new IllegalStateException("Underlying system already terminated and cannot be started more than once.")
-      if (null == actorSystem) actorSystem = {
-        import config._
-        import config.settings._
-        ActorSystem(getString("plain.concurrent.actorsystem", "default"), config.settings)
-      }
+      createActorSystem
     }
     this
   }
@@ -48,18 +48,20 @@ abstract sealed class Concurrent
    */
   final lazy val executor = {
     import language.existentials
-    if (null == actorSystem) actorSystem = {
-      import config._
-      import config.settings._
-      ActorSystem(getString("plain.concurrent.actorsystem", "default"), config.settings)
-    }
+    createActorSystem
     val clazz = actorSystem.dispatcher.getClass
     val executorService = clazz.getDeclaredMethod("executorService")
     executorService.setAccessible(true)
     executorService.invoke(actorSystem.dispatcher).asInstanceOf[ExecutorServiceDelegate].executor
   }
 
-  @volatile private[this] var actorSystem: ActorSystem = null
+  @inline private[this] final def createActorSystem = onlyonce {
+    import config._
+    import config.settings._
+    actorSystem = ActorSystem(getString("plain.concurrent.actorsystem"), config.settings)
+  }
+
+  private[this] final var actorSystem: ActorSystem = null
 
 }
 

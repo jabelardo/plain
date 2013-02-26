@@ -8,6 +8,7 @@ package resource
 
 import java.nio.file.Files.{ exists, isRegularFile, size }
 import java.nio.file.Paths
+import java.nio.ByteBuffer
 
 import com.typesafe.config.{ Config, ConfigFactory }
 
@@ -36,7 +37,7 @@ class DirectoryResource
       case file if exists(file) ⇒ throw ClientError.`406`
       case _ ⇒ throw ClientError.`404`
     }
-
+    //    value
   }
 
 }
@@ -47,6 +48,23 @@ class DirectoryResource
 object DirectoryResource
 
   extends HasLogger {
+
+  val value: Array[Byte] = {
+    import java.io._
+    val f = new File("/Users/guido/Development/Projects/plain/list.txt")
+    val len = f.length.toInt
+    val in = new FileInputStream(f)
+    val array = new Array[Byte](len.toInt)
+    var read = 0
+    var pos = 0
+    var total = 0
+    while ({ read = in.read(array, pos, len - total); 0 < read }) {
+      total += read
+      pos += read
+    }
+    in.close
+    array
+  }
 
   /**
    * A per-resource provided configuration.
