@@ -16,7 +16,7 @@ import concurrent.sleep
  */
 trait Component[C] {
 
-  val name: String
+  def name: String
 
   def isStarted: Boolean
 
@@ -39,9 +39,13 @@ trait Component[C] {
 /**
  * Base implementation for a Component.
  */
-abstract class BaseComponent[C](val name: String)
+abstract class BaseComponent[C](n: String)
 
   extends Component[C] {
+
+  def this() = this(null)
+
+  def name = n
 
   override def toString = "Component(name:" + name + ", enabled:" + isEnabled + ", started:" + isStarted + ", stopped:" + isStopped + ")"
 
@@ -66,7 +70,7 @@ abstract class BaseComponent[C](val name: String)
   }
 
   def doStart = try {
-    if (isEnabled && isStopped) {
+    if (isEnabled && !isStarted) {
       start
       started = true
     }

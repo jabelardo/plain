@@ -30,7 +30,7 @@ final case class Server(
 
   private val serverconfig: Option[Server.ServerConfiguration])
 
-  extends BaseComponent[Server](null)
+  extends BaseComponent[Server]
 
   with HasLogger {
 
@@ -62,6 +62,9 @@ final case class Server(
         case _ ⇒ startOne
       }
     }
+    if (1 < settings.portRange.size && !settings.loadBalancingEnable) warning(name + " : port-range > 1 with load-balancing.enable=off")
+    if (settings.portRange.size >= Runtime.getRuntime.availableProcessors) warning("Your port-range size should be smaller than the number of cores available on this system.")
+    if (1 == settings.portRange.size && settings.loadBalancingEnable) warning("You cannot enable load-balancing for a port-range of size 1.")
     this
   } catch {
     case e: Throwable ⇒ error(name + " failed to start : " + e); throw e
@@ -95,18 +98,12 @@ final case class Server(
   else
     new InetSocketAddress(settings.address, port.getOrElse(settings.portRange.head))
 
-  override final val name = "HttpServer(name=" + settings.displayName +
+  override final lazy val name = "HttpServer(name=" + settings.displayName +
     ", address=" + bindaddress +
     ", backlog=" + settings.backlog +
     ", dispatcher=" + settings.dispatcher.name +
     (if (settings.loadBalancingEnable && application.isDefined) ", load-balancing-path=" + settings.loadBalancingBalancingPath else "") +
     ")"
-
-  if (1 < settings.portRange.size && !settings.loadBalancingEnable) warning(name + " : port-range > 1 with load-balancing.enable=off")
-
-  if (settings.portRange.size >= Runtime.getRuntime.availableProcessors) warning("Your port-range size should be smaller than the number of cores available on this system.")
-
-  if (1 == settings.portRange.size && settings.loadBalancingEnable) warning("You cannot enable load-balancing for a port-range of size 1.")
 
 }
 
@@ -117,10 +114,7 @@ object Server
 
   extends HasLogger {
 
-  private final val channelGroup = {
-    Group.withThreadPool(concurrent.executor)
-    Group.withThreadPool(concurrent.ioexecutor)
-  }
+  private final val channelGroup = Group.withThreadPool(concurrent.ioexecutor)
 
   /**
    * A per-server provided configuration, unspecified details will be inherited from defaultServerConfiguration.
@@ -143,7 +137,7 @@ object Server
 
     final val displayName = getString("display-name")
 
-    final val dispatcher = {
+    final def dispatcher = {
       val dconfig = config.settings.getConfig(getString("dispatcher")).withFallback(config.settings.getConfig("plain.rest.default-dispatcher"))
       val d = dconfig.getInstanceFromClassName[Dispatcher]("class-name")
       d.name = dconfig.getString("display-name", getString("dispatcher"))

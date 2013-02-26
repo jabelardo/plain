@@ -311,10 +311,7 @@ object Io
 
     @inline final def completed(processed: Integer, io: Io) = {
       import io._
-      if (0 == buffer.remaining)
-        k(io ++ processed)
-      else
-        reset { val previous = k; writeNoFlip(io); previous(io) }
+      k(io ++ processed)
     }
 
     @inline final def failed(e: Throwable, io: Io) = {
@@ -334,12 +331,8 @@ object Io
 
   @inline private[aio] final def write(io: Io): Io @suspendable = {
     import io._
-    shift { k: IoCont ⇒ buffer.flip; channel.write(buffer, io ++ k, WriteHandler) }
-  }
-
-  @inline private[aio] final def writeNoFlip(io: Io): Io @suspendable = {
-    import io._
     shift { k: IoCont ⇒ channel.write(buffer, io ++ k, WriteHandler) }
+    if (0 == buffer.remaining) io else write(io)
   }
 
   @inline private[this] final def unhandled(e: Any) = error("unhandled " + e)
@@ -379,6 +372,9 @@ object Io
           writeloop(renderable.renderHeader(io ++ renderable))
         case Error(e: InterruptedByTimeoutException) ⇒
           debug("Connection timeout")
+        case Error(e: IOException) ⇒
+          debug("processloop " + e.toString)
+          io.error(e)
         case Error(e) ⇒
           info("processloop " + e.toString)
           io.error(e)
@@ -392,7 +388,7 @@ object Io
         case io ⇒ io.iteratee
       }) match {
         case Done(keepalive: Boolean) ⇒
-          if (keepalive) readloop(io ++ readiteratee)
+          if (keepalive) readloop(io.renderable.renderFooter(io) ++ readiteratee)
         case Cont(_) ⇒
           writeloop(io.renderable.renderBody(io))
         case Error(e) ⇒

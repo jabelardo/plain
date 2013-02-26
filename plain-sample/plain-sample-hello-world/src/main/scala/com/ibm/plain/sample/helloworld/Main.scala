@@ -6,9 +6,5 @@ import com.ibm.plain.run
 /**
  * The most simple Main application, but there is really nothing more to do (it's all in the application.conf).
  */
-object Main extends App {
-
-  run(settings.getDuration("how-long-to-run")) {}
-
-}
+object Main extends App { run }
 

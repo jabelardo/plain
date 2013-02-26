@@ -33,13 +33,16 @@ final class ChannelTransfer private (
     }
 
     @inline def readloop: Unit @suspendable = read(in) match {
-      case in if 0 < in.readwritten ⇒ writeloop
+      case in if 0 < in.readwritten ⇒
+        buffer.flip
+        writeloop
       case _ ⇒
     }
 
     if (0 < buffer.remaining) writeloop else readloop
 
-    buffer.clear
+    buffer.limit(0)
+    buffer.position(0)
     src match { case f: FileByteChannel ⇒ f.close case _ ⇒ }
     dst match { case f: FileByteChannel ⇒ f.close case _ ⇒ }
     io
