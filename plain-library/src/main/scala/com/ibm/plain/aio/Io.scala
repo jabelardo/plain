@@ -132,7 +132,7 @@ private object SocketChannelWithTimeout {
 /**
  * Io represents the context of an asynchronous i/o operation.
  */
-final case class Io private (
+final class Io private (
 
   var server: ServerChannel,
 
