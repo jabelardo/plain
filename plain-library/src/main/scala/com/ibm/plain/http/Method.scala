@@ -35,7 +35,7 @@ object Method {
   }
 
   case object GET extends Method(true, true, true) // we convert a query into an entity if feasible
-  case object HEAD extends Method(true, true, false)
+  case object HEAD extends Method(true, true, true) // same
   case object POST extends Method(false, false, true)
   case object PUT extends Method(false, true, true)
   case object DELETE extends Method(false, true, false)

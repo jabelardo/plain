@@ -60,10 +60,12 @@ private final class Matching {
 
   val decodeForm: Decoder[Form] = (entity: Option[Entity]) ⇒ {
     @inline def c(s: String) = convertCharset(codec.decode(s), defaultCharacterSet, `UTF-8`)
-    fastSplit(decodeString(entity), '&')
+    val form = fastSplit(decodeString(entity), '&')
       .map(fastSplit(_, '='))
       .collect { case List(k, v) ⇒ (c(k), c(v)) }
       .foldLeft(new HashMap[String, MutableSet[String]] with MultiMap[String, String]) { case (l, (k, v)) ⇒ l.addBinding(k, v) }
+    require(!form.isEmpty)
+    form
   }
 
   val decodeMultipartForm: Decoder[MultipartForm] = (entity: Option[Entity]) ⇒ Map("foo" -> "bar")
@@ -146,19 +148,19 @@ private final class Matching {
     (`application/xml`, List(xmlmarshaled, xml, string, array, entity)),
     (`application/x-www-form-urlencoded`, List(form, string, array, entity)),
     (`multipart/form-data`, List(multipart, string, array, entity)),
-    (`text/plain`, List(string, form, xmlmarshaled, jsonmarshaled, xml, jobject, jarray, json, array, entity)))
+    (`text/plain`, List(xmlmarshaled, jsonmarshaled, xml, jobject, jarray, json, form, string, array, entity)))
 
   val outputPriority: PriorityList = Array(
     (`application/x-scala-unit`, List(unit, entity)),
-    (`application/octet-stream`, List(bytebuffer, array, entity)),
-    (`application/json`, List(jsonmarshaled, jobject, jarray, json, string, bytebuffer, array, entity)),
-    (`application/xml`, List(xmlmarshaled, xml, string, bytebuffer, array, entity)),
-    (`application/xhtml+xml`, List(xml, string, bytebuffer, array, entity)),
-    (`application/x-www-form-urlencoded`, List(form, string, bytebuffer, array, entity)),
-    (`multipart/form-data`, List(multipart, string, bytebuffer, array, entity)),
-    (`text/html`, List(string, xml, bytebuffer, array, entity)),
-    (`text/plain`, List(string, form, jsonmarshaled, xmlmarshaled, xml, jobject, jarray, json, bytebuffer, array, entity)),
-    (`*/*`, List(string, form, jsonmarshaled, xmlmarshaled, xml, jobject, jarray, json, bytebuffer, array, entity)))
+    (`application/octet-stream`, List(bytebuffer, array, entity, unit)),
+    (`application/json`, List(jsonmarshaled, jobject, jarray, json, string, bytebuffer, array, entity, unit)),
+    (`application/xml`, List(xmlmarshaled, xml, string, bytebuffer, array, entity, unit)),
+    (`application/xhtml+xml`, List(xml, string, bytebuffer, array, entity, unit)),
+    (`application/x-www-form-urlencoded`, List(form, string, bytebuffer, array, entity, unit)),
+    (`multipart/form-data`, List(multipart, string, bytebuffer, array, entity, unit)),
+    (`text/html`, List(string, xml, bytebuffer, array, entity, unit)),
+    (`text/plain`, List(string, form, jsonmarshaled, xmlmarshaled, xml, jobject, jarray, json, bytebuffer, array, entity, unit)),
+    (`*/*`, List(string, form, jsonmarshaled, xmlmarshaled, xml, jobject, jarray, json, bytebuffer, array, entity, unit)))
 
   val priorities: Array[((MimeType, MimeType), (Type, Type))] = for {
     (inmimetype, intypelist) ← inputPriority

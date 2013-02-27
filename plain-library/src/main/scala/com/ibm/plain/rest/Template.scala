@@ -34,7 +34,7 @@ final case class Segment(name: String, next: Element) extends Element
 
 final case class Variable(name: String, next: Element) extends Element
 
-final case class ResourceClass(resource: Class[_ <: Resource]) extends Element
+final case class ResourceClass(resource: Class[_ <: Resource], remainderallowed: Boolean) extends Element
 
 /**
  *
@@ -43,12 +43,14 @@ final class Template private (
 
   val resource: Class[_ <: Resource],
 
-  val path: String) {
+  val path: String,
+
+  val remainderallowed: Boolean) {
 
   final val root = if (0 == path.length) {
-    ResourceClass(resource)
+    ResourceClass(resource, remainderallowed)
   } else {
-    path.split("/").reverse.foldLeft[Element](ResourceClass(resource)) {
+    path.split("/").reverse.foldLeft[Element](ResourceClass(resource, remainderallowed)) {
       case (elems, e) ⇒
         if (e.startsWith("{") && e.endsWith("}"))
           Variable(e.drop(1).dropRight(1), elems)
@@ -71,13 +73,15 @@ final class Template private (
 
 object Template {
 
-  def apply(path: String, clazz: Class[_]) = new Template(clazz.asInstanceOf[Class[_ <: Resource]], path)
+  def apply(path: String, clazz: Class[_]) = new Template(clazz.asInstanceOf[Class[_ <: Resource]], path, false)
+
+  def apply(path: String, clazz: Class[_], remainderallowed: Boolean) = new Template(clazz.asInstanceOf[Class[_ <: Resource]], path, remainderallowed)
 
 }
 
 final case class Templates(
 
-  resource: Option[Class[_ <: Resource]],
+  resource: Option[(Class[_ <: Resource], Boolean)],
 
   branch: Option[Either[(String, Templates), Map[String, Templates]]]) {
 
@@ -90,7 +94,7 @@ final case class Templates(
       templates: Templates): Option[(Class[_ <: Resource], Variables, Path)] = {
 
       @inline def resource(tail: Path) = templates.resource match {
-        case Some(resource) ⇒ Some((resource, variables.toMap, tail))
+        case Some(resource) if Nil == tail || resource._2 ⇒ Some((resource._1, variables.toMap, tail))
         case _ ⇒ None
       }
 
@@ -114,7 +118,7 @@ final case class Templates(
 
     def inner(node: Templates, indent: String): String = {
       (node.resource match {
-        case Some(resource) ⇒ indent + (if (node eq this) "/" else "") + " ⇒ " + resource.getName
+        case Some(resource) ⇒ indent + (if (node eq this) "/" else "") + " ⇒ " + resource._1.getName + (if (resource._2) " remainder: true" else "")
         case _ ⇒ ""
       }) + (node.branch match {
         case Some(Left((name, node))) ⇒ inner(node, indent + "/{" + name + "}")
@@ -162,9 +166,9 @@ object Templates {
           case Some(Templates(resource, Some(Left((oldname, branch))))) ⇒ wrongVariable
           case _ ⇒ alreadySegment
         }
-        case ResourceClass(resource) ⇒ node match {
-          case None ⇒ Templates(Some(resource), None)
-          case Some(Templates(_, node)) ⇒ Templates(Some(resource), node)
+        case ResourceClass(resource, remainderallowed) ⇒ node match {
+          case None ⇒ Templates(Some((resource, remainderallowed)), None)
+          case Some(Templates(_, node)) ⇒ Templates(Some((resource, remainderallowed)), node)
         }
       }
     }

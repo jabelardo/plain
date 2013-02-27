@@ -101,16 +101,16 @@ trait Resource
     add[Unit, A](GET, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
   }
 
-  final def Get[A: TypeTag](body: Form ⇒ A): MethodBody = {
-    add[Form, A](GET, typeOf[Form], typeOf[A], body)
+  final def Get[E: TypeTag, A: TypeTag](body: E ⇒ A): MethodBody = {
+    add[E, A](GET, typeOf[E], typeOf[A], body)
   }
 
   final def Head(body: ⇒ Any): MethodBody = {
     add[Unit, Unit](HEAD, typeOf[Unit], typeOf[Unit], (_: Unit) ⇒ { body; () })
   }
 
-  final def Head(body: Form ⇒ Any): MethodBody = {
-    add[Form, Unit](HEAD, typeOf[Form], typeOf[Unit], (m: Form) ⇒ { body(m); () })
+  final def Head[E: TypeTag](body: E ⇒ Any): MethodBody = {
+    add[E, Unit](HEAD, typeOf[E], typeOf[Unit], (e: E) ⇒ { body(e); () })
   }
 
   protected[this] final def request = threadlocal.get.request

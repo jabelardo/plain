@@ -20,6 +20,14 @@ final class PingResource
 
   Get { pong }
 
+  Get { f: Form ⇒ json.Json(f) }
+
+  Get { s: String ⇒ s.reverse }
+
+  Head {}
+
+  Head { f: Form ⇒ }
+
   //  Get { s: String ⇒ println(s); s }
   //
   //  Get { form: Form ⇒
