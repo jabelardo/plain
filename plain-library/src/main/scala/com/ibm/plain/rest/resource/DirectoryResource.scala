@@ -33,11 +33,12 @@ class DirectoryResource
 
   Get {
     rootDirectory.resolve(context.remainder.mkString("/")) match {
-      case file if exists(file) && isRegularFile(file) ⇒ AsynchronousByteChannelEntity(forReading(file), ContentType(`text/plain`, text.`UTF-8`), size(file))
+      case file if file.toString.contains("..") ⇒ throw ClientError.`401`
+      case file if exists(file) && isRegularFile(file) ⇒
+        AsynchronousByteChannelEntity(forReading(file), ContentType(`text/plain`, text.`UTF-8`), size(file))
       case file if exists(file) ⇒ throw ClientError.`406`
-      case _ ⇒ throw ClientError.`404`
+      case f ⇒ throw ClientError.`404`
     }
-    //    value
   }
 
 }
@@ -49,22 +50,22 @@ object DirectoryResource
 
   extends HasLogger {
 
-  val value: Array[Byte] = {
-    import java.io._
-    val f = new File("/Users/guido/Development/Projects/plain/list.txt")
-    val len = f.length.toInt
-    val in = new FileInputStream(f)
-    val array = new Array[Byte](len.toInt)
-    var read = 0
-    var pos = 0
-    var total = 0
-    while ({ read = in.read(array, pos, len - total); 0 < read }) {
-      total += read
-      pos += read
-    }
-    in.close
-    array
-  }
+  //  val value: Array[Byte] = {
+  //    import java.io._
+  //    val f = new File("/Users/guido/Development/Projects/plain/list.txt")
+  //    val len = f.length.toInt
+  //    val in = new FileInputStream(f)
+  //    val array = new Array[Byte](len.toInt)
+  //    var read = 0
+  //    var pos = 0
+  //    var total = 0
+  //    while ({ read = in.read(array, pos, len - total); 0 < read }) {
+  //      total += read
+  //      pos += read
+  //    }
+  //    in.close
+  //    array
+  //  }
 
   /**
    * A per-resource provided configuration.
