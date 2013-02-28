@@ -30,7 +30,7 @@ final class RequestIteratee private ()(implicit server: Server) {
 
   private[this] implicit final val ascii = `US-ASCII`
 
-  private[this] final val codec = new URLCodec(defaultCharacterSet.toString)
+  private[this] final val codec = new URLCodec(`UTF-8`.toString)
 
   private[this] final val readRequestLine = {
 

@@ -1,5 +1,7 @@
 package com.ibm
 
+package plain
+
 package collection
 
 package mutable
@@ -8,28 +10,30 @@ import scala.collection.JavaConversions.collectionAsScalaIterable
 
 import com.googlecode.concurrentlinkedhashmap.{ EvictionListener, ConcurrentLinkedHashMap }
 
-case class LruCache[T](
+case class LruCache[A](
 
   maxcapacity: Int = 500,
 
   initialcapacity: Int = 16) {
 
-  def onRemove(elem: T): Unit = ()
+  def onRemove(elem: A): Unit = ()
 
-  def get(key: Any) = Option(store.get(key))
+  final def get(key: Any) = Option(store.get(key))
 
-  def remove(key: Any) = Option(store.remove(key))
+  final def remove(key: Any) = Option(store.remove(key))
 
-  def clear = { store.values.foreach(onremove(_)); store.clear }
+  final def clear = { store.values.foreach(onremove); store.clear }
 
-  def add(key: Any, value: T) = store.putIfAbsent(key, value)
+  final def size = store.size
 
-  private[this] def onremove(entry: T) = onRemove(entry)
+  final def add(key: Any, value: A) = store.putIfAbsent(key, value)
 
-  private[this] final val store = new ConcurrentLinkedHashMap.Builder[Any, T]
+  private[this] final def onremove(entry: A) = onRemove(entry)
+
+  private[this] final val store = new ConcurrentLinkedHashMap.Builder[Any, A]
     .initialCapacity(initialcapacity)
     .maximumWeightedCapacity(maxcapacity)
-    .listener(new EvictionListener[Any, T] { def onEviction(k: Any, v: T) = onremove(v) })
-    .build()
+    .listener(new EvictionListener[Any, A] { def onEviction(k: Any, v: A) = onremove(v) })
+    .build
 
 }

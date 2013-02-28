@@ -7,7 +7,7 @@ package crypt
 import language.implicitConversions
 
 /**
- * A simplifying wrapper around [[java.util.UUID]].
+ * A simplifying wrapper around java.util.UUID.
  *
  * @constructor Is private, use Uuid.newType4Uuid instead.
  */
@@ -32,7 +32,7 @@ object Uuid {
   /**
    * Generates a "type 4" uuid.
    *
-   * @return A "type 4" uuid (see [[java.util.UUID]] for more details).
+   * @return A "type 4" uuid (see java.util.UUID for more details).
    */
   def newUuid = new Uuid(java.util.UUID.randomUUID)
 

@@ -21,15 +21,15 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
   /**
    * This is an expensive O(n) operation.
    */
-  def size = pool.size
+  final def size = pool.size
 
-  @tailrec def getBuffer: ByteBuffer = if (trylock) {
+  @tailrec final def getBuffer: ByteBuffer = if (trylock) {
     try pool match {
       case head :: tail ⇒
         pool = tail
         head
       case Nil ⇒
-        onlyonce { warning("ByteBufferPool exhausted : buffer size " + buffersize + ", initial pool size" + initialpoolsize) }
+        onlyonce { warning("ByteBufferPool exhausted : buffer size " + buffersize + ", initial pool size " + initialpoolsize) }
         ByteBuffer.allocateDirect(buffersize)
     } finally unlock
   } else {
@@ -37,12 +37,12 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
     getBuffer
   }
 
-  @tailrec def releaseBuffer(buffer: ByteBuffer): Unit = if (trylock) {
+  @tailrec final def releaseBuffer(buffer: ByteBuffer): Unit = if (trylock) {
     try {
-      if (log.isDebugEnabled) require(!pool.exists(_ eq buffer), "buffer released twice " + pool.size)
+      // require(!pool.exists(_ eq buffer), "buffer released twice " + pool.size)
       buffer.clear
       pool = buffer :: pool
-      // if (log.isDebugEnabled) debug(pool.size.toString)
+      // debug("current " + pool.size + ", buffer size " + buffersize + ", initial pool size " + initialpoolsize)
     } finally unlock
   } else {
     Thread.sleep(0, 50) // see above
@@ -53,8 +53,7 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
 
   @inline private[this] final def unlock = locked.set(false)
 
-  @volatile private[this] var pool: List[ByteBuffer] =
-    (0 until initialpoolsize).toList.map(_ ⇒ ByteBuffer.allocateDirect(buffersize))
+  @volatile private[this] final var pool: List[ByteBuffer] = (0 until initialpoolsize).map(_ ⇒ ByteBuffer.allocateDirect(buffersize)).toList
 
   private[this] final val locked = new AtomicBoolean(false)
 

@@ -17,7 +17,7 @@ import json.{ Json, JsonMarshaled }
 import json.Json.{ JArray, JObject }
 import text.{ `UTF-8`, fastSplit, convertCharset }
 import xml.XmlMarshaled
-
+import aio.tooTinyToCareSize
 import http.defaultCharacterSet
 import http.Status.{ ClientError, ServerError }
 import http.ContentType
@@ -104,7 +104,7 @@ private final class Matching {
 
   val encodeByteBuffer: Encoder = ((buffer: ByteBuffer) ⇒ Some(ByteBufferEntity(buffer, `application/octet-stream`))).asInstanceOf[Encoder]
 
-  val encodeString: Encoder = ((s: String) ⇒ Some(ByteBufferEntity(s, ContentType(`text/plain`, `UTF-8`)))).asInstanceOf[Encoder]
+  val encodeString: Encoder = ((s: String) ⇒ Some(if (tooTinyToCareSize < s.length) ByteBufferEntity(s, ContentType(`text/plain`, `UTF-8`)) else ArrayEntity(s.getBytes(`UTF-8`), ContentType(`text/plain`, `UTF-8`)))).asInstanceOf[Encoder]
 
   val encodeForm: Encoder = ((form: Form) ⇒ {
     @inline def c(s: String) = codec.encode(convertCharset(s, `UTF-8`, defaultCharacterSet))

@@ -20,7 +20,9 @@ import text.stackTraceToString
  */
 abstract class Processor
 
-  extends AioProcessor[Request, Response] {
+  extends AioProcessor[Request, Response]
+
+  with HasLogger {
 
   final def completed(response: Response, io: Io) = {
     import io._
@@ -33,11 +35,15 @@ abstract class Processor
       case ControlCompleted ⇒
       case _ ⇒ k(io ++ (e match {
         case e: IOException if !e.isInstanceOf[FileSystemException] ⇒ Error[Io](e)
-        case status: Status ⇒ Done[Io, Response](if (null != io.payload) io.payload.asInstanceOf[Response] ++ status else Response(null, status))
+        case status: Status ⇒
+          status match {
+            case servererror: ServerError ⇒ if (log.isDebugEnabled) debug(stackTraceToString(status))
+            case _ ⇒
+          }
+          Done[Io, Response](if (null != io.payload) io.payload.asInstanceOf[Response] ++ status else Response(null, status))
         case e ⇒
-          val log = logging.createLogger(this)
-          log.info("Dispatching failed : " + e)
-          if (log.isDebugEnabled) log.debug(stackTraceToString(e))
+          info("Dispatching failed : " + e)
+          if (log.isDebugEnabled) debug(stackTraceToString(e))
           Done[Io, Response](Response(null, ServerError.`500`))
       }))
     }

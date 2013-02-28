@@ -9,7 +9,7 @@ import java.nio.ByteBuffer
 import aio.Io
 import aio.Renderable
 import aio.Renderable._
-import Status.ServerError.`505`
+import Status.ClientError.`400`
 import text.`US-ASCII`
 
 /**
@@ -33,7 +33,7 @@ object Version {
     case _ ⇒ if (server.settings.treatAnyVersionAs11)
       `HTTP/1.1`
     else {
-      throw `505`
+      throw `400`
     }
   }
 

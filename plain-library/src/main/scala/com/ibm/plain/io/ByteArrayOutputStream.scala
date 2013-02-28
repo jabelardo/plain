@@ -7,7 +7,7 @@ package io
 import java.io.OutputStream
 
 /**
- * Like [[java.io.ByteArrayOutputStream]], but with an external bytearray. For performance reasons it does no testing of array bounds. Check capacity to protect against overflow.
+ * Like java.io.ByteArrayOutputStream, but with an external bytearray. For performance reasons it does no testing of array bounds. Check capacity to protect against overflow.
  */
 
 class ByteArrayOutputStream(

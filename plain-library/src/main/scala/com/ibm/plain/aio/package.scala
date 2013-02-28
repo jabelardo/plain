@@ -65,33 +65,32 @@ package object aio
 
   final val FutureNotSupported = new UnsupportedOperationException("Future not supported.")
 
-  /**
-   * If not set differently this will result to 2k which proved to provide best performance under high load.
-   */
-  final val defaultBufferSize = getBytes("plain.aio.default-buffer-size", 2 * 1024).toInt
-
-  final val defaultBufferPoolSize = getBytes("plain.aio.default-buffer-pool-size", 512).toInt
+  final val tooTinyToCareSize = getBytes("plain.aio.too-tiny-to-care-size", 1024).toInt
 
   /**
-   * Something between 16 and 512.
+   * If not set differently this will result to 54k which proved to provide best performance under high load.
    */
-  final val tinyBufferSize = getBytes("plain.aio.tiny-buffer-size", 128).toInt
+  final val defaultBufferSize = getBytes("plain.aio.default-buffer-size", 54 * 1024).toInt
 
-  final val tinyBufferPoolSize = getBytes("plain.aio.tiny-buffer-pool-size", 1024).toInt
+  final val defaultBufferPoolSize = getBytes("plain.aio.default-buffer-pool-size", 10000).toInt
+
+  final val tinyBufferSize = getBytes("plain.aio.tiny-buffer-size", 4 * 1024).toInt
+
+  final val tinyBufferPoolSize = getBytes("plain.aio.tiny-buffer-pool-size", 10000).toInt
 
   /**
    * Should be large enough to make an SSL packet fit into it.
    */
-  final val largeBufferSize = getBytes("plain.aio.large-buffer-size", 20 * 1024).toInt
+  final val largeBufferSize = getBytes("plain.aio.large-buffer-size", 64 * 1024).toInt
 
-  final val largeBufferPoolSize = getBytes("plain.aio.large-buffer-pool-size", 64).toInt
+  final val largeBufferPoolSize = getBytes("plain.aio.large-buffer-pool-size", 1000).toInt
 
   /**
    * Used for huge entities that are handled at once.
    */
   final val hugeBufferSize = getBytes("plain.aio.huge-buffer-size", 128 * 1024).toInt
 
-  final val hugeBufferPoolSize = getBytes("plain.aio.huge-buffer-pool-size", 1024).toInt
+  final val hugeBufferPoolSize = getBytes("plain.aio.huge-buffer-pool-size", 1000).toInt
 
   /**
    *

@@ -71,7 +71,7 @@ package object concurrent
   }
 
   /**
-   * Simply create a [[scala.dispatch.Future]] by providing a body: => T without worrying about an execution context.
+   * Simply create a scala.dispatch.Future by providing a body: => T without worrying about an execution context.
    * Usually this is too simplistic, you will probably need Future/Promise to handle full asynchronicity.
    */
   def future[T](body: ⇒ T): Future[T] = {

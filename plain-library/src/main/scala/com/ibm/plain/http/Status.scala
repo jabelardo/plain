@@ -18,7 +18,7 @@ import text.`US-ASCII`
  */
 sealed abstract class Status
 
-  extends ControlThrowable
+  extends Throwable
 
   with Renderable {
 
@@ -51,15 +51,15 @@ object Status {
 
   }
 
-  sealed abstract class Information(r: String) extends BaseStatus(r)
+  sealed abstract class Information(r: String) extends BaseStatus(r) with ControlThrowable
 
-  sealed abstract class Success(r: String) extends BaseStatus(r)
+  sealed abstract class Success(r: String) extends BaseStatus(r) with ControlThrowable
 
-  sealed abstract class ClientError(r: String) extends BaseStatus(r)
+  sealed abstract class ClientError(r: String) extends BaseStatus(r) with ControlThrowable
 
-  sealed abstract class Redirection(r: String) extends BaseStatus(r)
+  sealed abstract class Redirection(r: String) extends BaseStatus(r) with ControlThrowable
 
-  sealed abstract class ServerError(r: String) extends BaseStatus(r)
+  sealed abstract class ServerError(r: String) extends BaseStatus(r) // here we would like to see the stack trace
 
   object Information {
 

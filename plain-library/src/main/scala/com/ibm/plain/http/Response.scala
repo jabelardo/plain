@@ -66,6 +66,7 @@ final case class Response private (
     entity match {
       case Some(entity: ByteBufferEntity) if entity.length <= buffer.remaining ⇒
         r(entity.buffer) + ^
+        releaseByteBuffer(entity.buffer)
         io ++ Done[Io, Boolean](keepalive)
       case Some(entity: ArrayEntity) if entity.length <= buffer.remaining ⇒
         r(entity.array) + ^
@@ -98,7 +99,10 @@ final case class Response private (
 
   final def renderFooter(io: Io): Io = {
     import io._
-    if (null != buf) buffer = buf
+    if (null != buf) {
+      releaseByteBuffer(buffer)
+      buffer = buf
+    }
     io
   }
 

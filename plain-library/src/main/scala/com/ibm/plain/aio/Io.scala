@@ -371,7 +371,6 @@ object Io
         case Done(renderable: RenderableRoot) ⇒
           writeloop(renderable.renderHeader(io ++ renderable))
         case Error(e: InterruptedByTimeoutException) ⇒
-          debug("Connection timeout")
         case Error(e: IOException) ⇒
           debug("processloop " + e.toString)
           io.error(e)

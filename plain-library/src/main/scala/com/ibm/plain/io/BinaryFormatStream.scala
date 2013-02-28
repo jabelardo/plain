@@ -27,7 +27,7 @@ object InvalidBinaryFormat extends Exception {
 }
 
 /**
- * Similar to [[java.io.DataOutput]], but not synchronized and simpler, supports Map and List.
+ * Similar to java.io.DataOutput, but not synchronized and simpler, supports Map and List.
  */
 trait BinaryOutput {
 
@@ -55,7 +55,7 @@ trait BinaryOutput {
 }
 
 /**
- * Similar to [[java.io.DataInput]], but not synchronized and simpler, supports Map and List.
+ * Similar to java.io.DataInput, but not synchronized and simpler, supports Map and List.
  */
 trait BinaryInput {
 
@@ -83,7 +83,7 @@ trait BinaryInput {
 }
 
 /**
- * A binary formatted [[java.nio.ByteBuffer]], very fast (except write/read/String/ShortString), versatile (write/read/Map/List).
+ * A binary formatted java.nio.ByteBuffer, very fast (except write/read/String/ShortString), versatile (write/read/Map/List).
  */
 final class BinaryFormatByteBuffer(
   private[this] final val buffer: ByteBuffer,
