@@ -24,6 +24,8 @@ final class PingResource
 
   Get { s: String ⇒ s.reverse }
 
+  Get { user: User ⇒ User(user.name.reverse, user.id + 1) }
+
   Head {}
 
   Head { f: Form ⇒ }
@@ -64,7 +66,7 @@ final class PingResource
 object PingResource {
 
   val pong = {
-    // val s = new StringBuffer; (1 to 30).foreach(s.append("asekltjaeslkjasdklfjasölkfjasdlkfj alöksfj aslkfj alksjf lakösj pong!").append(_).append("\n")); s.toString
+    // val s = new StringBuffer; (1 to 3000).foreach(s.append("asekltjaeslkjasdklfjasölkfjasdlkfj alöksfj aslkfj alksjf lakösj pong!").append(_).append("\n")); s.toString
     "pong!".getBytes
   }
 

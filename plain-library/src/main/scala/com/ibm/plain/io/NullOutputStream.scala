@@ -34,20 +34,20 @@ object NullOutputStream extends NullOutputStream
  */
 final class CountingNullOutputStream extends OutputStream {
 
-  override def toString = count.toString
+  override final def toString = count.toString
 
-  override def write(i: Int) = count += 4
+  override final def write(i: Int) = count += 4
 
-  override def write(a: Array[Byte]) = write(a, 0, a.length)
+  override final def write(a: Array[Byte]) = write(a, 0, a.length)
 
-  override def write(a: Array[Byte], offset: Int, length: Int) = count += length
+  override final def write(a: Array[Byte], offset: Int, length: Int) = count += length
 
   /**
    * Returns the number of bytes written so far to this stream.
    */
-  def size = count
+  @inline final def size = count
 
-  private[this] var count = 0L
+  private[this] final var count = 0L
 
 }
 

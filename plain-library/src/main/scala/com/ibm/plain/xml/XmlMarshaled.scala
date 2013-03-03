@@ -5,6 +5,7 @@ package plain
 package xml
 
 import java.io.{ InputStream, OutputStream, Reader, StringReader, StringWriter, Writer }
+import java.util.logging.{ Level, Logger }
 
 import javax.xml.bind.{ JAXBContext, Marshaller }
 
@@ -52,6 +53,11 @@ object XmlMarshaled {
   def apply[A](reader: Reader)(implicit c: ClassTag[A]): A = unmarshaller(c.runtimeClass).unmarshal(reader).asInstanceOf[A]
 
   @inline private[this] def unmarshaller(expected: Class[_]) = JAXBContext.newInstance(expected).createUnmarshaller
+
+  /**
+   * Disable verbose stack traces on xml or json parse errors.
+   */
+  Logger.getLogger(classOf[com.sun.jersey.json.impl.reader.XmlEventProvider].getName).setLevel(Level.OFF)
 
 }
 

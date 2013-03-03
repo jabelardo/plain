@@ -73,9 +73,7 @@ final class Template private (
 
 object Template {
 
-  def apply(path: String, clazz: Class[_]) = new Template(clazz.asInstanceOf[Class[_ <: Resource]], path, false)
-
-  def apply(path: String, clazz: Class[_], remainderallowed: Boolean) = new Template(clazz.asInstanceOf[Class[_ <: Resource]], path, remainderallowed)
+  def apply(path: String, clazz: Class[_]) = new Template(clazz.asInstanceOf[Class[_ <: Resource]], path.replace("*", ""), path.endsWith("*"))
 
 }
 

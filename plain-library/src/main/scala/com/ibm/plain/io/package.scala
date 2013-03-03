@@ -2,14 +2,13 @@ package com.ibm
 
 package plain
 
-import java.io.{ File, IOException, InputStream, OutputStream, Reader, Writer }
+import java.io.{ File, IOException, InputStream, OutputStream, Reader, Writer, BufferedOutputStream }
 import java.nio.ByteBuffer
 import java.nio.channels.{ FileChannel, ReadableByteChannel, WritableByteChannel }
 import java.nio.channels.Channels.newChannel
 import java.nio.file.{ Files, Paths }
-
+import java.util.zip.{ GZIPInputStream, GZIPOutputStream }
 import org.apache.commons.io.FileUtils
-
 import concurrent.{ sleep, spawn }
 import config.config2RichConfig
 import config.settings.{ getInt, getMilliseconds }
@@ -97,6 +96,28 @@ package object io
     val out = new java.io.ByteArrayOutputStream
     copyBytes(in, out)
     out
+  }
+
+  /**
+   * Compress a ByteBuffer in place using GZIP.
+   */
+  def gzip(buffer: ByteBuffer): ByteBuffer = {
+    val in = new ByteBufferInputStream(buffer)
+    val out = new GZIPOutputStream(new BufferedOutputStream(new ByteBufferOutputStream(buffer)), defaultBufferSize)
+    copyBytesIo(in, out)
+    out.close
+    buffer
+  }
+
+  /**
+   * Decompress a ByteBuffer in place using GZIP. It assumes that the gzipped content will fit into its capacity.
+   */
+  def gunzip(buffer: ByteBuffer): ByteBuffer = {
+    val in = new GZIPInputStream(new ByteBufferInputStream(buffer))
+    val out = new BufferedOutputStream(new ByteBufferOutputStream(buffer))
+    copyBytesIo(in, out)
+    out.close
+    buffer
   }
 
   /**
