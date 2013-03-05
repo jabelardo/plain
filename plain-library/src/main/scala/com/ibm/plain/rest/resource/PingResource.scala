@@ -66,8 +66,8 @@ final class PingResource
 object PingResource {
 
   val pong = {
-    // val s = new StringBuffer; (1 to 3000).foreach(s.append("asekltjaeslkjasdklfjasölkfjasdlkfj alöksfj aslkfj alksjf lakösj pong!").append(_).append("\n")); s.toString
-    "pong!".getBytes
+    val s = new StringBuffer; (1 to 1000).foreach(s.append("ABCkltjaeslkjasdklfjasölkfjasdlkfj alöksfj aslkfj alksjf lakösj pong!").append(_).append("\n")); s.toString
+    // "pong!".getBytes
   }
 
 }

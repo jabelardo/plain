@@ -22,14 +22,18 @@ final class ChannelTransfer private (
 
   io: Io) {
 
-  final def transfer: Io @suspendable = {
+  final def transfer(compressor: Option[Compressor] = None): Io @suspendable = {
 
     import io._
 
-    @inline def writeloop: Unit @suspendable = write(out) match {
-      case out ⇒
-        total += out.readwritten
-        if (total < expected || -1L == expected) readloop
+    @inline def writeloop: Unit @suspendable = {
+      compressor match {
+        case Some(c) ⇒
+          c.compress(buffer);
+          buffer.flip
+        case _ ⇒
+      }
+      write(out) match { case _ ⇒ readloop }
     }
 
     @inline def readloop: Unit @suspendable = read(in) match {
@@ -41,14 +45,17 @@ final class ChannelTransfer private (
 
     if (0 < buffer.remaining) writeloop else readloop
 
-    buffer.limit(0)
-    buffer.position(0)
+    compressor match {
+      case Some(c) ⇒
+        c.finish(buffer)
+      case _ ⇒
+        buffer.limit(0)
+        buffer.position(0)
+    }
     src match { case f: FileByteChannel ⇒ f.close case _ ⇒ }
     dst match { case f: FileByteChannel ⇒ f.close case _ ⇒ }
     io
   }
-
-  private[this] final var total = 0L
 
   private[this] final val in = io ++ src
 

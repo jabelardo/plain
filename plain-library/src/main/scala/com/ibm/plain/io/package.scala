@@ -110,7 +110,7 @@ package object io
   }
 
   /**
-   * Decompress a ByteBuffer in place using GZIP. It assumes that the gzipped content will fit into its capacity.
+   * Decompress a ByteBuffer in place using GZIP. It assumes that the gunzipped content will fit into its capacity.
    */
   def gunzip(buffer: ByteBuffer): ByteBuffer = {
     val in = new GZIPInputStream(new ByteBufferInputStream(buffer))

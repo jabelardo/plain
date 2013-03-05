@@ -9,10 +9,13 @@ import scala.language.implicitConversions
 import scala.util.control.ControlThrowable
 
 import config.CheckedConfig
+import logging.HasLogger
 
 package object aio
 
-  extends CheckedConfig {
+  extends CheckedConfig
+
+  with HasLogger {
 
   import config._
   import config.settings._
@@ -32,7 +35,7 @@ package object aio
     else if (length <= hugeBufferSize)
       hugeByteBuffer
     else {
-      logging.defaultLogger.warning("allocating a very large ByteBuffer : " + length + " bytes")
+      warning("Allocating a ByteBuffer on the heap with a size larger then 'hugeBufferSize': " + length + " bytes")
       ByteBuffer.allocate(length)
     }
   }
@@ -56,7 +59,7 @@ package object aio
     case _ ⇒
   }
 
-  def format(buffer: ByteBuffer) = "ByteBuffer(" + System.identityHashCode(buffer) + ", pos " + buffer.position + ", remain " + buffer.remaining + ", lim " + buffer.limit + " cap " + buffer.capacity + ")"
+  def format(buffer: ByteBuffer) = "ByteBuffer(" + System.identityHashCode(buffer) + ", pos " + buffer.position + ", remain " + buffer.remaining + ", lim " + buffer.limit + ", cap " + buffer.capacity + ", " + (if (buffer.hasArray) "heap" else "direct") + ")"
 
   /**
    * Helper to use AsynchronousFileChannel directly for transfer.

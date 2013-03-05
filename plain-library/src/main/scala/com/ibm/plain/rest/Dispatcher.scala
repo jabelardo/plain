@@ -31,7 +31,7 @@ abstract class Dispatcher(templates: Option[Templates])
           clazz.newInstance match {
             case resource: Resource ⇒
               request.entity match {
-                case Some(ContentEntity(_, length)) if request.method.entityallowed ⇒ io ++ length
+                case Some(ContentEntity(_, length)) if request.method.entityallowed ⇒ throw new UnsupportedOperationException("input entity length")
                 case Some(_) if !request.method.entityallowed ⇒ throw ServerError.`501`
                 case _ ⇒
               }

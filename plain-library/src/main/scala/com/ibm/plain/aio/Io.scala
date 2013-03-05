@@ -15,6 +15,7 @@ import scala.math.min
 import scala.util.continuations.{ reset, shift, suspendable }
 import scala.concurrent.duration.Duration
 
+import io.gzip
 import Iteratee.{ Cont, Done, Error }
 import Input.{ Elem, Empty, Eof }
 import concurrent.{ OnlyOnce, scheduleOnce }
@@ -148,8 +149,6 @@ final class Io private (
 
   var readwritten: Int,
 
-  var expected: Long,
-
   var keepalive: Boolean,
 
   var payload: Any)
@@ -179,7 +178,7 @@ final class Io private (
 
   @inline def ++(server: ServerChannel) = { this.server = server; this }
 
-  @inline def ++(channel: Channel) = new Io(server, channel, buffer, iteratee, renderable, k, readwritten, expected, keepalive, payload)
+  @inline def ++(channel: Channel) = new Io(server, channel, buffer, iteratee, renderable, k, readwritten, keepalive, payload)
 
   @inline def ++(iteratee: Iteratee[Io, _]) = { this.iteratee = iteratee; this }
 
@@ -189,14 +188,12 @@ final class Io private (
 
   @inline def ++(readwritten: Int) = { this.readwritten = readwritten; this }
 
-  @inline def ++(expected: Long) = { this.expected = expected; this }
-
   @inline def ++(keepalive: Boolean) = { if (this.keepalive) this.keepalive = keepalive; this }
 
   @inline def +++(payload: Any) = { this.payload = payload; this }
 
   @inline def ++(buffer: ByteBuffer) = if (0 < this.buffer.remaining) {
-    new Io(server, channel, buffer, iteratee, renderable, k, readwritten, expected, keepalive, payload)
+    new Io(server, channel, buffer, iteratee, renderable, k, readwritten, keepalive, payload)
   } else {
     this + buffer
   }
@@ -243,7 +240,7 @@ object Io
 
   final type IoCont = Io ⇒ Unit
 
-  @inline private[aio] final def empty = new Io(null, null, emptyBuffer, null, null, null, -1, -1L, true, null)
+  @inline private[aio] final def empty = new Io(null, null, emptyBuffer, null, null, null, -1, true, null)
 
   final private[aio] val emptyArray = new Array[Byte](0)
 

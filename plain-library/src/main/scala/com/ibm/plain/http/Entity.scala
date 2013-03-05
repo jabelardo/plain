@@ -36,7 +36,7 @@ object Entity {
   object ByteBufferEntity {
 
     def apply(s: String, contenttype: ContentType): ByteBufferEntity = {
-      var factor = 1.5
+      var factor = 1.1
       var buffer: ByteBuffer = null
       while (6.0 >= factor) {
         if (null != buffer) releaseByteBuffer(buffer)

@@ -6,6 +6,7 @@ package http
 
 import java.nio.ByteBuffer
 import java.nio.channels.{ CompletionHandler ⇒ Handler }
+import java.util.zip.Deflater
 
 import scala.util.continuations.{ reset, shift, suspendable }
 
@@ -13,6 +14,7 @@ import aio.{ Io, Input, Iteratee, RenderableRoot, ChannelTransfer, Iteratees, re
 import aio.Renderable._
 import aio.Iteratee._
 import aio.Input._
+import aio.{ DeflateCompressor, GZIPCompressor }
 import Message._
 import Entity._
 import Status._
@@ -41,8 +43,8 @@ final case class Response private (
 
   final def renderHeader(io: Io): Io = {
     import io._
-    buffer.clear
     implicit val _ = buffer
+    buffer.clear
     version + ` ` + status + `\r\n` + ^
     val keepalive = status match {
       case _: Status.ServerError ⇒ false
@@ -58,8 +60,10 @@ final case class Response private (
     r("Connection: " + (if (keepalive) "keep-alive" else "close")) + `\r\n` + ^
     entity match {
       case Some(entity) ⇒
-        r("Content-Type: ") + entity.contenttype + `\r\n` + r("Content-Length: ") + r(entity.length.toString) + `\r\n` + ^
-        io ++ entity.length
+        r("Content-Type: ") + entity.contenttype + `\r\n` + ^
+        //        r("Content-Length: ") + r(entity.length.toString) + `\r\n` + ^
+        r("Content-Length: ") + r(201341.toString) + `\r\n` + ^
+        r("Content-Encoding: deflate") + `\r\n` + ^
       case _ ⇒
     }
     `\r\n` + ^
@@ -84,15 +88,18 @@ final case class Response private (
     import io._
     entity match {
       case Some(entity: AsynchronousByteChannelEntity) ⇒
-        ChannelTransfer(entity.channel, channel, io ++ entity.length ++ Done[Io, Boolean](keepalive)).transfer
+        ChannelTransfer(entity.channel, channel, io ++ Done[Io, Boolean](keepalive)).transfer(Some(DeflateCompressor(Deflater.BEST_SPEED)))
       case Some(entity: ByteBufferEntity) ⇒
         buf = buffer
         buffer = entity.buffer
-        io ++ entity.length ++ Done[Io, Boolean](keepalive)
+        val compressor = DeflateCompressor(Deflater.BEST_SPEED)
+        compressor.compress(entity.buffer)
+        compressor.finish(entity.buffer)
+        io ++ Done[Io, Boolean](keepalive)
       case Some(entity: ArrayEntity) ⇒
         buf = buffer
         buffer = ByteBuffer.wrap(entity.array)
-        io ++ entity.length ++ Done[Io, Boolean](keepalive)
+        io ++ Done[Io, Boolean](keepalive)
       case _ ⇒ throw new UnsupportedOperationException
     }
   }
