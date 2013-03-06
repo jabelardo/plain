@@ -10,8 +10,7 @@ import scala.util.continuations.suspendable
 
 import Entity.{ ArrayEntity, AsynchronousByteChannelEntity, ByteBufferEntity }
 import Message.Headers
-import aio.{ ChannelTransfer, Encoder, Io }
-import aio.{ RenderableRoot, releaseByteBuffer }
+import aio.{ ChannelTransfer, Encoder, Io, RenderableRoot, releaseByteBuffer }
 import aio.Iteratee.{ Cont, Done }
 import aio.Renderable._
 
@@ -52,10 +51,8 @@ final case class Response private (
     import io._
     entity match {
       case Some(entity: AsynchronousByteChannelEntity) ⇒ encoder match {
-        case Some(enc) ⇒
-          ChannelTransfer(entity.channel, channel, io ++ Done[Io, Boolean](keepalive)).transfer(enc)
-        case _ ⇒
-          ChannelTransfer(entity.channel, channel, io ++ Done[Io, Boolean](keepalive)).transfer
+        case Some(enc) ⇒ ChannelTransfer(entity.channel, channel, io ++ Done[Io, Boolean](keepalive)).transfer(enc)
+        case _ ⇒ ChannelTransfer(entity.channel, channel, io ++ Done[Io, Boolean](keepalive)).transfer
       }
       case Some(entity: ByteBufferEntity) ⇒
         buf = buffer

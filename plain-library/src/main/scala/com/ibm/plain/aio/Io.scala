@@ -198,6 +198,8 @@ final class Io private (
     this + buffer
   }
 
+  @inline def isError = iteratee.isInstanceOf[Error[_]]
+
   @inline private def +(buffer: ByteBuffer) = {
     if (this.buffer ne emptyBuffer) releaseByteBuffer(this.buffer)
     this.buffer = buffer
@@ -285,26 +287,9 @@ object Io
   }
 
   /**
-   * Read.
+   * Read/Write
    */
-  private[this] object ReadHandler extends Handler[Integer, Io] {
-
-    @inline final def completed(processed: Integer, io: Io) = {
-      import io._
-      k(io ++ processed)
-    }
-
-    @inline final def failed(e: Throwable, io: Io) = {
-      import io._
-      k(io ++ Error[Io](e))
-    }
-
-  }
-
-  /**
-   * Write.
-   */
-  private[this] object WriteHandler extends Handler[Integer, Io] {
+  private[this] object IoHandler extends Handler[Integer, Io] {
 
     @inline final def completed(processed: Integer, io: Io) = {
       import io._
@@ -323,13 +308,13 @@ object Io
 
   @inline private[aio] final def read(io: Io): Io @suspendable = {
     import io._
-    shift { k: IoCont ⇒ buffer.clear; channel.read(buffer, io ++ k, ReadHandler) }
+    shift { k: IoCont ⇒ buffer.clear; channel.read(buffer, io ++ k, IoHandler) }
   }
 
   @inline private[aio] final def write(io: Io): Io @suspendable = {
     import io._
-    shift { k: IoCont ⇒ channel.write(buffer, io ++ k, WriteHandler) }
-    if (0 == buffer.remaining) io else write(io)
+    shift { k: IoCont ⇒ channel.write(buffer, io ++ k, IoHandler) }
+    if (0 == buffer.remaining || io.isError) io else write(io)
   }
 
   @inline private[this] final def unhandled(e: Any) = error("unhandled " + e)
@@ -387,6 +372,8 @@ object Io
           if (keepalive) readloop(io.renderable.renderFooter(io) ++ readiteratee)
         case Cont(_) ⇒
           writeloop(io.renderable.renderBody(io))
+        case Error(e: IOException) ⇒
+          debug("writeloop " + e.toString)
         case Error(e) ⇒
           info("writeloop " + e.toString)
         case e ⇒
