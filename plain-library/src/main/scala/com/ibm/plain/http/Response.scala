@@ -10,15 +10,12 @@ import java.util.zip.Deflater
 
 import scala.util.continuations.{ reset, shift, suspendable }
 
-import aio.{ Io, Input, Iteratee, RenderableRoot, ChannelTransfer, Iteratees, releaseByteBuffer }
+import aio.{ Io, Input, Iteratee, RenderableRoot, ChannelTransfer, Iteratees, releaseByteBuffer, tooTinyToCareSize, Compressor }
 import aio.Renderable._
-import aio.Iteratee._
-import aio.Input._
-import aio.{ DeflateCompressor, GZIPCompressor }
-import Message._
+import aio.Iteratee.{ Cont, Done }
+import Message.Headers
 import Entity._
-import Status._
-import Header.General.`Connection`
+import Status.ServerError
 
 /**
  * The classic http response.
@@ -43,43 +40,12 @@ final case class Response private (
 
   final def renderHeader(io: Io): Io = {
     import io._
-    implicit val _ = buffer
+    implicit val _ = io
     buffer.clear
-    version + ` ` + status + `\r\n` + ^
-    val keepalive = status match {
-      case _: Status.ServerError ⇒ false
-      case _ ⇒ request match {
-        case null ⇒ false
-        case _ ⇒ `Connection`(request.headers) match {
-          case Some(value) if value.exists(_.equalsIgnoreCase("keep-alive")) ⇒ true
-          case _ ⇒ false
-        }
-      }
-    }
-    io ++ keepalive
-    r("Connection: " + (if (keepalive) "keep-alive" else "close")) + `\r\n` + ^
-    entity match {
-      case Some(entity) ⇒
-        r("Content-Type: ") + entity.contenttype + `\r\n` + ^
-        //        r("Content-Length: ") + r(entity.length.toString) + `\r\n` + ^
-        r("Content-Length: ") + r(201341.toString) + `\r\n` + ^
-        r("Content-Encoding: deflate") + `\r\n` + ^
-      case _ ⇒
-    }
-    `\r\n` + ^
-    entity match {
-      case Some(entity: ByteBufferEntity) if entity.length <= buffer.remaining ⇒
-        r(entity.buffer) + ^
-        releaseByteBuffer(entity.buffer)
-        io ++ Done[Io, Boolean](keepalive)
-      case Some(entity: ArrayEntity) if entity.length <= buffer.remaining ⇒
-        r(entity.array) + ^
-        io ++ Done[Io, Boolean](keepalive)
-      case None ⇒
-        io ++ Done[Io, Boolean](keepalive)
-      case Some(_) ⇒
-        io ++ Cont[Io, Boolean](null)
-    }
+    renderVersion
+    renderKeepAlive
+    renderContent
+    renderEntity
     buffer.flip
     io
   }
@@ -87,18 +53,31 @@ final case class Response private (
   final def renderBody(io: Io): Io @suspendable = {
     import io._
     entity match {
-      case Some(entity: AsynchronousByteChannelEntity) ⇒
-        ChannelTransfer(entity.channel, channel, io ++ Done[Io, Boolean](keepalive)).transfer(Some(DeflateCompressor(Deflater.BEST_SPEED)))
+      case Some(entity: AsynchronousByteChannelEntity) ⇒ compressor match {
+        case Some(c) ⇒
+          ChannelTransfer(entity.channel, channel, io ++ Done[Io, Boolean](keepalive)).transfer(c)
+        case _ ⇒
+          ChannelTransfer(entity.channel, channel, io ++ Done[Io, Boolean](keepalive)).transfer
+      }
       case Some(entity: ByteBufferEntity) ⇒
         buf = buffer
         buffer = entity.buffer
-        val compressor = DeflateCompressor(Deflater.BEST_SPEED)
-        compressor.compress(entity.buffer)
-        compressor.finish(entity.buffer)
+        compressor match {
+          case Some(c) ⇒
+            c.compress(buffer)
+            c.finish(buffer)
+          case _ ⇒
+        }
         io ++ Done[Io, Boolean](keepalive)
       case Some(entity: ArrayEntity) ⇒
         buf = buffer
         buffer = ByteBuffer.wrap(entity.array)
+        compressor match {
+          case Some(c) ⇒
+            c.compress(buffer)
+            c.finish(buffer)
+          case _ ⇒
+        }
         io ++ Done[Io, Boolean](keepalive)
       case _ ⇒ throw new UnsupportedOperationException
     }
@@ -117,9 +96,61 @@ final case class Response private (
 
   @inline final def ++(headers: Headers): Type = { this.headers = headers; this }
 
-  private[this] final var buf: ByteBuffer = null
+  @inline private[this] final def renderVersion(implicit io: Io) = {
+    implicit val _ = io.buffer
+    version + ` ` + status + `\r\n` + ^
+  }
 
-  private[this] final var len = 0L
+  @inline private[this] final def renderKeepAlive(implicit io: Io) = {
+    implicit val _ = io.buffer
+    val keepalive = !status.isInstanceOf[Status.ServerError] && null != request && request.keepalive
+    io ++ keepalive
+    r("Connection: " + (if (keepalive) "keep-alive" else "close")) + `\r\n` + ^
+  }
+
+  @inline private[this] final def renderContent(implicit io: Io): Unit = {
+    import io._
+    implicit val _ = buffer
+    compressor = entity match {
+      case Some(entity) if buffer.remaining < entity.length || -1 == entity.length ⇒ request.transferEncoding
+      case _ ⇒ None
+    }
+    entity match {
+      case Some(entity) ⇒
+        r("Content-Type: ") + entity.contenttype + `\r\n` + ^
+        compressor match {
+          case Some(c) ⇒
+            r("Content-Encoding: ") + r(c.name) + `\r\n` + ^
+            r("Transfer-Encoding: chunked") + `\r\n` + ^
+          case _ ⇒
+            r("Content-Length: ") + r(entity.length.toString) + `\r\n` + ^
+            `\r\n` + ^
+        }
+      case _ ⇒
+    }
+  }
+
+  @inline private[this] final def renderEntity(implicit io: Io): Unit = {
+    import io._
+    implicit val _ = buffer
+    entity match {
+      case Some(entity: ByteBufferEntity) if entity.length <= buffer.remaining ⇒
+        r(entity.buffer) + ^
+        releaseByteBuffer(entity.buffer)
+        io ++ Done[Io, Boolean](keepalive)
+      case Some(entity: ArrayEntity) if entity.length <= buffer.remaining ⇒
+        r(entity.array) + ^
+        io ++ Done[Io, Boolean](keepalive)
+      case None ⇒
+        io ++ Done[Io, Boolean](keepalive)
+      case Some(_) ⇒
+        io ++ Cont[Io, Boolean](null)
+    }
+  }
+
+  private[this] final var compressor: Option[Compressor] = None
+
+  private[this] final var buf: ByteBuffer = null
 
 }
 
