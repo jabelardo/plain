@@ -6,7 +6,7 @@ package http
 
 import java.util.zip.Deflater
 
-import aio.{ Compressor, DeflateCompressor, GZIPCompressor }
+import aio.Encoder
 import Message.Headers
 import Header.General.`Connection`
 import Header.Request.`Accept-Encoding`
@@ -37,9 +37,9 @@ final case class Request(
     case _ ⇒ false
   }
 
-  final def transferEncoding: Option[Compressor] = `Accept-Encoding`(headers) match {
-    case Some(value) if value.contains("deflate") ⇒ Some(DeflateCompressor(Deflater.BEST_SPEED))
-    case Some(value) if value.contains("gzip") ⇒ Some(GZIPCompressor(Deflater.BEST_SPEED))
+  final def transferEncoding: Option[Encoder] = `Accept-Encoding`(headers) match {
+    case Some(value) if value.contains("deflate") ⇒ Some(DeflateEncoder(Deflater.BEST_SPEED))
+    case Some(value) if value.contains("gzip") ⇒ Some(GZIPEncoder(Deflater.BEST_SPEED))
     case _ ⇒ None
   }
 

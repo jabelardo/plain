@@ -44,12 +44,12 @@ final class ChannelTransfer private (
     io
   }
 
-  final def transfer(compressor: Compressor): Io @suspendable = {
+  final def transfer(encoder: Encoder): Io @suspendable = {
 
     import io._
 
     @inline def writeloop: Unit @suspendable = {
-      compressor.compress(buffer);
+      encoder.encode(buffer);
       buffer.flip
       write(out) match { case _ ⇒ readloop }
     }
@@ -63,7 +63,7 @@ final class ChannelTransfer private (
 
     if (0 < buffer.remaining) writeloop else readloop
 
-    compressor.finish(buffer)
+    encoder.finish(buffer)
     src match { case f: FileByteChannel ⇒ f.close case _ ⇒ }
     dst match { case f: FileByteChannel ⇒ f.close case _ ⇒ }
     io

@@ -5,17 +5,15 @@ package plain
 package http
 
 import java.nio.ByteBuffer
-import java.nio.channels.{ CompletionHandler ⇒ Handler }
-import java.util.zip.Deflater
 
-import scala.util.continuations.{ reset, shift, suspendable }
+import scala.util.continuations.suspendable
 
-import aio.{ Io, Input, Iteratee, RenderableRoot, ChannelTransfer, Iteratees, releaseByteBuffer, tooTinyToCareSize, Compressor }
-import aio.Renderable._
-import aio.Iteratee.{ Cont, Done }
+import Entity.{ ArrayEntity, AsynchronousByteChannelEntity, ByteBufferEntity }
 import Message.Headers
-import Entity._
-import Status.ServerError
+import aio.{ ChannelTransfer, Encoder, Io }
+import aio.{ RenderableRoot, releaseByteBuffer }
+import aio.Iteratee.{ Cont, Done }
+import aio.Renderable._
 
 /**
  * The classic http response.
@@ -53,29 +51,29 @@ final case class Response private (
   final def renderBody(io: Io): Io @suspendable = {
     import io._
     entity match {
-      case Some(entity: AsynchronousByteChannelEntity) ⇒ compressor match {
-        case Some(c) ⇒
-          ChannelTransfer(entity.channel, channel, io ++ Done[Io, Boolean](keepalive)).transfer(c)
+      case Some(entity: AsynchronousByteChannelEntity) ⇒ encoder match {
+        case Some(enc) ⇒
+          ChannelTransfer(entity.channel, channel, io ++ Done[Io, Boolean](keepalive)).transfer(enc)
         case _ ⇒
           ChannelTransfer(entity.channel, channel, io ++ Done[Io, Boolean](keepalive)).transfer
       }
       case Some(entity: ByteBufferEntity) ⇒
         buf = buffer
         buffer = entity.buffer
-        compressor match {
-          case Some(c) ⇒
-            c.compress(buffer)
-            c.finish(buffer)
+        encoder match {
+          case Some(enc) ⇒
+            enc.encode(buffer)
+            enc.finish(buffer)
           case _ ⇒
         }
         io ++ Done[Io, Boolean](keepalive)
       case Some(entity: ArrayEntity) ⇒
         buf = buffer
         buffer = ByteBuffer.wrap(entity.array)
-        compressor match {
-          case Some(c) ⇒
-            c.compress(buffer)
-            c.finish(buffer)
+        encoder match {
+          case Some(enc) ⇒
+            enc.encode(buffer)
+            enc.finish(buffer)
           case _ ⇒
         }
         io ++ Done[Io, Boolean](keepalive)
@@ -111,16 +109,16 @@ final case class Response private (
   @inline private[this] final def renderContent(implicit io: Io): Unit = {
     import io._
     implicit val _ = buffer
-    compressor = entity match {
+    encoder = entity match {
       case Some(entity) if buffer.remaining < entity.length || -1 == entity.length ⇒ request.transferEncoding
       case _ ⇒ None
     }
     entity match {
       case Some(entity) ⇒
         r("Content-Type: ") + entity.contenttype + `\r\n` + ^
-        compressor match {
-          case Some(c) ⇒
-            r("Content-Encoding: ") + r(c.name) + `\r\n` + ^
+        encoder match {
+          case Some(enc) ⇒
+            r("Content-Encoding: ") + r(enc.name) + `\r\n` + ^
             r("Transfer-Encoding: chunked") + `\r\n` + ^
           case _ ⇒
             r("Content-Length: ") + r(entity.length.toString) + `\r\n` + ^
@@ -148,7 +146,7 @@ final case class Response private (
     }
   }
 
-  private[this] final var compressor: Option[Compressor] = None
+  private[this] final var encoder: Option[Encoder] = None
 
   private[this] final var buf: ByteBuffer = null
 
