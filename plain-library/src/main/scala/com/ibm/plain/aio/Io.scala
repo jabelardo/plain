@@ -354,7 +354,6 @@ object Io
           writeloop(renderable.renderHeader(io ++ renderable))
         case Error(e: InterruptedByTimeoutException) ⇒
         case Error(e: IOException) ⇒
-          debug("processloop " + e.toString)
           io.error(e)
         case Error(e) ⇒
           info("processloop " + e.toString)
@@ -373,7 +372,6 @@ object Io
         case Cont(_) ⇒
           writeloop(io.renderable.renderBody(io))
         case Error(e: IOException) ⇒
-          debug("writeloop " + e.toString)
         case Error(e) ⇒
           info("writeloop " + e.toString)
         case e ⇒

@@ -6,7 +6,8 @@ package aio
 
 import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel }
 
-import scala.util.continuations.suspendable
+import scala.annotation.tailrec
+import scala.util.continuations.{ reset, suspendable }
 
 import aio.Io.{ read, write }
 import logging.HasLogger
@@ -26,17 +27,19 @@ final class ChannelTransfer private (
 
     import io._
 
-    @inline def writeloop: Unit @suspendable = write(out) match { case _ ⇒ readloop }
+    var finished = false
 
-    @inline def readloop: Unit @suspendable = read(in) match {
-      case in if 0 < in.readwritten ⇒
-        buffer.flip
-        writeloop
-      case _ ⇒
+    @inline def writeloop: Any @suspendable = if (!finished) write(out)
+
+    @inline def readloop: Any @suspendable = read(in) match {
+      case in if 0 < in.readwritten ⇒ buffer.flip
+      case _ ⇒ finished = true
     }
 
-    if (0 < buffer.remaining) writeloop else readloop
-
+    while (!finished) {
+      readloop
+      writeloop
+    }
     buffer.limit(0)
     buffer.position(0)
     src match { case f: FileByteChannel ⇒ f.close case _ ⇒ }
@@ -48,21 +51,23 @@ final class ChannelTransfer private (
 
     import io._
 
-    @inline def writeloop: Unit @suspendable = {
+    var finished = false
+
+    @inline def writeloop: Any @suspendable = if (!finished) {
       encoder.encode(buffer);
       buffer.flip
-      write(out) match { case _ ⇒ readloop }
+      write(out)
     }
 
-    @inline def readloop: Unit @suspendable = read(in) match {
-      case in if 0 < in.readwritten ⇒
-        buffer.flip
-        writeloop
-      case _ ⇒
+    @inline def readloop: Any @suspendable = read(in) match {
+      case in if 0 < in.readwritten ⇒ buffer.flip
+      case _ ⇒ finished = true
     }
 
-    if (0 < buffer.remaining) writeloop else readloop
-
+    while (!finished) {
+      readloop
+      writeloop
+    }
     encoder.finish(buffer)
     src match { case f: FileByteChannel ⇒ f.close case _ ⇒ }
     dst match { case f: FileByteChannel ⇒ f.close case _ ⇒ }

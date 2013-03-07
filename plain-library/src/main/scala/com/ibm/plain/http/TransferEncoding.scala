@@ -127,7 +127,7 @@ final class GZIPEncoder private (
 
   protected[this] final def footer(buffer: ByteBuffer) = {
     @inline def write(buffer: ByteBuffer, l: Long) = {
-      val v = (l % 4294967296L).toInt
+      val v = (l % 4294967296L)
       buffer.put((v & 0xff).toByte)
       buffer.put(((v >> 8) & 0xff).toByte)
       buffer.put(((v >> 16) & 0xff).toByte)
