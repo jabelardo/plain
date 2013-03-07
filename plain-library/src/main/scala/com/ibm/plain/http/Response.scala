@@ -8,11 +8,11 @@ import java.nio.ByteBuffer
 
 import scala.util.continuations.suspendable
 
-import Entity.{ ArrayEntity, AsynchronousByteChannelEntity, ByteBufferEntity }
-import Message.Headers
-import aio.{ ChannelTransfer, Encoder, Io, RenderableRoot, releaseByteBuffer }
+import aio.{ ChannelTransfer, Encoder, Io, RenderableRoot, releaseByteBuffer, tooTinyToCareSize }
 import aio.Iteratee.{ Cont, Done }
 import aio.Renderable._
+import Entity.{ ArrayEntity, AsynchronousByteChannelEntity, ByteBufferEntity }
+import Message.Headers
 
 /**
  * The classic http response.
@@ -35,20 +35,29 @@ final case class Response private (
 
   type Type = Response
 
+  @inline final def ++(status: Status): Type = { this.status = status; this }
+
+  @inline final def ++(headers: Headers): Type = { this.headers = headers; this }
+
   final def renderHeader(io: Io): Io = {
-    import io._
     implicit val _ = io
-    buffer.clear
     renderVersion
     renderKeepAlive
     renderContent
     renderEntity
-    buffer.flip
-    io
   }
 
   final def renderBody(io: Io): Io @suspendable = {
     import io._
+    @inline def encode = {
+      encoder match {
+        case Some(enc) ⇒
+          enc.encode(buffer)
+          enc.finish(buffer)
+        case _ ⇒
+      }
+      io ++ Done[Io, Boolean](keepalive)
+    }
     entity match {
       case Some(entity: AsynchronousByteChannelEntity) ⇒ encoder match {
         case Some(enc) ⇒ ChannelTransfer(entity.channel, channel, io ++ Done[Io, Boolean](keepalive)).transfer(enc)
@@ -57,23 +66,11 @@ final case class Response private (
       case Some(entity: ByteBufferEntity) ⇒
         buf = buffer
         buffer = entity.buffer
-        encoder match {
-          case Some(enc) ⇒
-            enc.encode(buffer)
-            enc.finish(buffer)
-          case _ ⇒
-        }
-        io ++ Done[Io, Boolean](keepalive)
+        encode
       case Some(entity: ArrayEntity) ⇒
         buf = buffer
         buffer = ByteBuffer.wrap(entity.array)
-        encoder match {
-          case Some(enc) ⇒
-            enc.encode(buffer)
-            enc.finish(buffer)
-          case _ ⇒
-        }
-        io ++ Done[Io, Boolean](keepalive)
+        encode
       case _ ⇒ throw new UnsupportedOperationException
     }
   }
@@ -87,12 +84,9 @@ final case class Response private (
     io
   }
 
-  @inline final def ++(status: Status): Type = { this.status = status; this }
-
-  @inline final def ++(headers: Headers): Type = { this.headers = headers; this }
-
   @inline private[this] final def renderVersion(implicit io: Io) = {
-    implicit val _ = io.buffer
+    implicit val buffer = io.buffer
+    buffer.clear
     version + ` ` + status + `\r\n` + ^
   }
 
@@ -107,7 +101,7 @@ final case class Response private (
     import io._
     implicit val _ = buffer
     encoder = entity match {
-      case Some(entity) if buffer.remaining < entity.length || -1 == entity.length ⇒ request.transferEncoding
+      case Some(entity) if tooTinyToCareSize < entity.length || -1 == entity.length ⇒ request.transferEncoding
       case _ ⇒ None
     }
     entity match {
@@ -118,28 +112,42 @@ final case class Response private (
             r("Content-Encoding: ") + r(enc.name) + `\r\n` + ^
             r("Transfer-Encoding: chunked") + `\r\n` + ^
           case _ ⇒
-            r("Content-Length: ") + r(entity.length.toString) + `\r\n` + ^
-            `\r\n` + ^
+            r("Content-Length: ") + r(entity.length.toString) + `\r\n` + `\r\n` + ^
         }
       case _ ⇒
     }
   }
 
-  @inline private[this] final def renderEntity(implicit io: Io): Unit = {
+  @inline private[this] final def renderEntity(implicit io: Io): Io = {
     import io._
     implicit val _ = buffer
+    @inline def encode(entity: Entity) = {
+      encoder match {
+        case Some(enc) ⇒
+          buffer.limit(buffer.position)
+          buffer.position(buffer.position - entity.length.toInt)
+          enc.encode(buffer)
+          enc.finish(buffer)
+          buffer.position(0)
+        case _ ⇒
+          buffer.flip
+      }
+      io ++ Done[Io, Boolean](keepalive)
+    }
     entity match {
       case Some(entity: ByteBufferEntity) if entity.length <= buffer.remaining ⇒
         r(entity.buffer) + ^
         releaseByteBuffer(entity.buffer)
-        io ++ Done[Io, Boolean](keepalive)
+        encode(entity)
       case Some(entity: ArrayEntity) if entity.length <= buffer.remaining ⇒
         r(entity.array) + ^
-        io ++ Done[Io, Boolean](keepalive)
-      case None ⇒
-        io ++ Done[Io, Boolean](keepalive)
+        encode(entity)
       case Some(_) ⇒
+        buffer.flip
         io ++ Cont[Io, Boolean](null)
+      case None ⇒
+        buffer.flip
+        io ++ Done[Io, Boolean](keepalive)
     }
   }
 

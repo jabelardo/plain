@@ -25,7 +25,7 @@ package object aio
    */
   final case object ControlCompleted extends ControlThrowable
 
-  def bestFitByteBuffer(length: Int) = {
+  final def bestFitByteBuffer(length: Int) = {
     if (length <= tinyBufferSize)
       tinyByteBuffer
     else if (length <= defaultBufferSize)
@@ -51,7 +51,7 @@ package object aio
   /**
    * Quite dangerous, never call this function on a buffer more than once or it could be later used by more than one at the same time.
    */
-  def releaseByteBuffer(buffer: ByteBuffer) = buffer.capacity match {
+ final  def releaseByteBuffer(buffer: ByteBuffer) = buffer.capacity match {
     case `tinyBufferSize` ⇒ Aio.tinyBufferPool.releaseBuffer(buffer)
     case `defaultBufferSize` ⇒ Aio.defaultBufferPool.releaseBuffer(buffer)
     case `largeBufferSize` ⇒ Aio.largeBufferPool.releaseBuffer(buffer)
@@ -59,12 +59,7 @@ package object aio
     case _ ⇒
   }
 
-  def format(buffer: ByteBuffer) = "ByteBuffer(" + System.identityHashCode(buffer) + ", pos " + buffer.position + ", remain " + buffer.remaining + ", lim " + buffer.limit + ", cap " + buffer.capacity + ", " + (if (buffer.hasArray) "heap" else "direct") + ")"
-
-  /**
-   * Helper to use AsynchronousFileChannel directly for transfer.
-   */
-  implicit def filechannel2filebytechannel(filechannel: AsynchronousFileChannel) = FileByteChannel.wrap(filechannel)
+  final def format(buffer: ByteBuffer) = "ByteBuffer(" + System.identityHashCode(buffer) + ", pos " + buffer.position + ", remain " + buffer.remaining + ", lim " + buffer.limit + ", cap " + buffer.capacity + ", " + (if (buffer.hasArray) "heap" else "direct") + ")"
 
   final val FutureNotSupported = new UnsupportedOperationException("Future not supported.")
 

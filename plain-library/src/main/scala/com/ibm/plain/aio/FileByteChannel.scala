@@ -21,8 +21,6 @@ final class FileByteChannel private (
 
   extends AsynchronousByteChannel {
 
-  import FileByteChannel._
-
   type Integer = java.lang.Integer
 
   override protected def finalize = if (filechannel.isOpen) filechannel.close
@@ -70,13 +68,17 @@ final class FileByteChannel private (
  */
 object FileByteChannel {
 
-  def apply(filechannel: AsynchronousFileChannel) = wrap(filechannel)
-
   def wrap(filechannel: AsynchronousFileChannel) = new FileByteChannel(filechannel)
+
+  def apply(filechannel: AsynchronousFileChannel) = wrap(filechannel)
 
   def forReading(path: Path) = AsynchronousFileChannel.open(path, Set(READ), concurrent.ioexecutor)
 
+  def forReading(path: String) = AsynchronousFileChannel.open(Paths.get(path), Set(READ), concurrent.ioexecutor)
+
   def forWriting(path: Path) = AsynchronousFileChannel.open(path, Set(CREATE, WRITE), concurrent.ioexecutor)
+
+  def forWriting(path: String) = AsynchronousFileChannel.open(Paths.get(path), Set(CREATE, WRITE), concurrent.ioexecutor)
 
   implicit def asynchronousFileChannel2FileByteChannel(channel: AsynchronousFileChannel) = wrap(channel)
 
