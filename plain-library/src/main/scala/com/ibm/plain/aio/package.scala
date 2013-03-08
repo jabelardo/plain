@@ -51,7 +51,7 @@ package object aio
   /**
    * Quite dangerous, never call this function on a buffer more than once or it could be later used by more than one at the same time.
    */
- final  def releaseByteBuffer(buffer: ByteBuffer) = buffer.capacity match {
+  final def releaseByteBuffer(buffer: ByteBuffer) = buffer.capacity match {
     case `tinyBufferSize` ⇒ Aio.tinyBufferPool.releaseBuffer(buffer)
     case `defaultBufferSize` ⇒ Aio.defaultBufferPool.releaseBuffer(buffer)
     case `largeBufferSize` ⇒ Aio.largeBufferPool.releaseBuffer(buffer)
@@ -59,7 +59,7 @@ package object aio
     case _ ⇒
   }
 
-  final def format(buffer: ByteBuffer) = "ByteBuffer(" + System.identityHashCode(buffer) + ", pos " + buffer.position + ", remain " + buffer.remaining + ", lim " + buffer.limit + ", cap " + buffer.capacity + ", " + (if (buffer.hasArray) "heap" else "direct") + ")"
+  final def format(buffer: ByteBuffer) = "ByteBuffer(" + System.identityHashCode(buffer) + ", pos " + buffer.position + ", remain " + buffer.remaining + ", lim " + buffer.limit + ", cap " + buffer.capacity + ", " + (if (buffer.hasArray) "heap" else "direct") + ")" + "\n" + text.hexDump(buffer)
 
   final val FutureNotSupported = new UnsupportedOperationException("Future not supported.")
 
