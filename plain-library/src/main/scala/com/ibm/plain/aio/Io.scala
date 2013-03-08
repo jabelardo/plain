@@ -151,6 +151,8 @@ final class Io private (
 
   var keepalive: Boolean,
 
+  var roundtrips: Long,
+
   var payload: Any)
 
   extends IoHelper[Io] {
@@ -178,7 +180,7 @@ final class Io private (
 
   @inline def ++(server: ServerChannel) = { this.server = server; this }
 
-  @inline def ++(channel: Channel) = new Io(server, channel, buffer, iteratee, renderable, k, readwritten, keepalive, payload)
+  @inline def ++(channel: Channel) = new Io(server, channel, buffer, iteratee, renderable, k, readwritten, keepalive, roundtrips, payload)
 
   @inline def ++(iteratee: Iteratee[Io, _]) = { this.iteratee = iteratee; this }
 
@@ -188,12 +190,14 @@ final class Io private (
 
   @inline def ++(readwritten: Int) = { this.readwritten = readwritten; this }
 
+  @inline def ++(roundtrips: Long) = { this.roundtrips = roundtrips; this }
+
   @inline def ++(keepalive: Boolean) = { if (this.keepalive) this.keepalive = keepalive; this }
 
   @inline def +++(payload: Any) = { this.payload = payload; this }
 
   @inline def ++(buffer: ByteBuffer) = if (0 < this.buffer.remaining) {
-    new Io(server, channel, buffer, iteratee, renderable, k, readwritten, keepalive, payload)
+    new Io(server, channel, buffer, iteratee, renderable, k, readwritten, keepalive, roundtrips, payload)
   } else {
     this + buffer
   }
@@ -242,7 +246,7 @@ object Io
 
   final type IoCont = Io ⇒ Unit
 
-  @inline private[aio] final def empty = new Io(null, null, emptyBuffer, null, null, null, -1, true, null)
+  @inline private[aio] final def empty = new Io(null, null, emptyBuffer, null, null, null, -1, true, 0L, null)
 
   final private[aio] val emptyArray = new Array[Byte](0)
 
@@ -368,7 +372,7 @@ object Io
         case io ⇒ io.iteratee
       }) match {
         case Done(keepalive: Boolean) ⇒
-          if (keepalive) readloop(io.renderable.renderFooter(io) ++ readiteratee)
+          if (keepalive) readloop(io.renderable.renderFooter(io) ++ readiteratee ++ (io.roundtrips + 1L))
         case Cont(_) ⇒
           writeloop(io.renderable.renderBody(io))
         case Error(e: IOException) ⇒

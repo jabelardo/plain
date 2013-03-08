@@ -100,6 +100,8 @@ package object aio
    */
   final val sendReceiveBufferSize = getBytes("plain.aio.send-receive-buffer-size", 54 * 1024).toInt
 
+  final val maxRoundTrips = getInt("plain.aio.max-roundtrips", 1000)
+
   /**
    * Check requirements.
    */

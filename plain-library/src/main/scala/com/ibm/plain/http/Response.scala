@@ -8,7 +8,7 @@ import java.nio.ByteBuffer
 
 import scala.util.continuations.suspendable
 
-import aio.{ ChannelTransfer, Encoder, Io, RenderableRoot, releaseByteBuffer, tooTinyToCareSize }
+import aio.{ ChannelTransfer, Encoder, Io, RenderableRoot, releaseByteBuffer, tooTinyToCareSize, maxRoundTrips }
 import aio.Iteratee.{ Cont, Done }
 import aio.Renderable._
 import Entity.{ ArrayEntity, AsynchronousByteChannelEntity, ByteBufferEntity }
@@ -92,7 +92,7 @@ final case class Response private (
 
   @inline private[this] final def renderKeepAlive(implicit io: Io) = {
     implicit val _ = io.buffer
-    val keepalive = !status.isInstanceOf[Status.ServerError] && null != request && request.keepalive
+    val keepalive = !status.isInstanceOf[Status.ServerError] && null != request && request.keepalive && io.roundtrips < maxRoundTrips
     io ++ keepalive
     r("Connection: " + (if (keepalive) "keep-alive" else "close")) + `\r\n` + ^
   }
