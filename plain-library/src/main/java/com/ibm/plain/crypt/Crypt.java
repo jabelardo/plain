@@ -21,7 +21,7 @@ public final class Crypt {
 			salt += "A";
 		}
 
-		final StringBuffer buffer = new StringBuffer();
+		final StringBuilder buffer = new StringBuilder();
 		buffer.setLength(13);
 
 		final char charZero = salt.charAt(0);

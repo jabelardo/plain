@@ -4,13 +4,11 @@ package plain
 
 package aio
 
-import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel }
+import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel, CompletionHandler ⇒ Handler }
 
-import scala.annotation.tailrec
-import scala.util.continuations.{ reset, suspendable }
+import scala.util.continuations.suspendable
 
 import aio.Io.{ read, write }
-import logging.HasLogger
 
 /**
  *
@@ -35,11 +33,15 @@ final class ChannelTransfer private (
       case in if 0 < in.readwritten ⇒ buffer.flip
       case _ ⇒ finished = true
     }
-
-    while (!finished) {
+    if (0 == buffer.remaining) while (!finished) {
       readloop
       writeloop
     }
+    else while (!finished) {
+      writeloop
+      readloop
+    }
+
     buffer.limit(0)
     buffer.position(0)
     src match { case f: FileByteChannel ⇒ f.close case _ ⇒ }

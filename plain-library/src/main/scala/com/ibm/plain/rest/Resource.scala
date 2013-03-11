@@ -6,6 +6,7 @@ package rest
 
 import scala.reflect._
 import scala.reflect.runtime.universe._
+import scala.util.continuations.{ reify, suspendable }
 import json._
 import xml._
 import logging.HasLogger
@@ -38,7 +39,7 @@ trait Resource
       case None ⇒
         methods = Map.empty
         initialize
-        methods = methods.map { case (method, Left(bodies)) ⇒ (method, Right(resourcePriorities(bodies))) case _ ⇒ null }
+        methods = methods.map { case (method, Left(bodies)) ⇒ (method, Right(resourcePriorities(method, bodies))) case _ ⇒ null }
         if (log.isDebugEnabled) methods.foreach { case (method, Right(prios)) ⇒ debug(method + " " + prios.toList.size + " " + prios.toList) case _ ⇒ }
         resourcemethods = resourcemethods ++ Map(getClass -> methods)
     }
@@ -70,7 +71,7 @@ trait Resource
     }
   }
 
-  final def process(io: Io): Unit = throw new UnsupportedOperationException
+  final def process(io: Io): Io @suspendable = throw new UnsupportedOperationException
 
   final def handle(context: Context) = try {
     methods.get(context.request.method) match {
@@ -155,25 +156,28 @@ trait Resource
         context ++ methodbody ++ response
         response ++ encode(innerinput match {
           case Some((input, _)) ⇒ methodbody.body(input)
-          case _ ⇒ throw ServerError.`501`
+          case _ ⇒ println(501); throw ServerError.`501`
         })
         completed(context)
-      case _ ⇒ throw ClientError.`415`
+      case _ ⇒ println(415); throw ClientError.`415`
     }
   } finally threadlocal.remove
 
   /**
    * This is ugly, but it's only called once per Resource and Method, the resulting data structure is very efficient.
    */
-  private[this] final def resourcePriorities(methodbodies: MethodBodies): ResourcePriorities = {
+  private[this] final def resourcePriorities(method: Method, methodbodies: MethodBodies): ResourcePriorities = {
     val matching = new Matching
-    for {
-      p ← matching.priorities.filter { case (_, (intype, outtype)) ⇒ methodbodies.exists { case ((in, out), _) ⇒ in <:< intype && out <:< outtype } }
+    val priorities = for {
+      p ← matching.priorities.filter { case (_, (intype, outtype)) ⇒ methodbodies.exists { case ((in, out), _) ⇒ in <:< intype && (!(typeOf[Nothing] =:= out) && out <:< outtype) } }
       m ← methodbodies if m._1._1 <:< p._2._1 && m._1._2 <:< p._2._2
     } yield (p._1, (m._1._1, m._2), (matching.decoders.get(p._2._1).get, matching.encoders.get(p._2._2).get))
+    require(methodbodies.map(_._2).toSet == priorities.map(_._2._2).toSet, method + " : At least one method has an invalid input or output type and could not be registered.")
+    priorities
   }
 
   private[this] final def add[E, A](method: Method, in: Type, out: Type, body: Body[E, A]): MethodBody = {
+    require(!(out =:= typeOf[Nothing]), getClass.getSimpleName + " " + method + " Nothing is not allowed as output type.")
     val methodbody = MethodBody(body.asInstanceOf[Body[Any, Any]])
     methods = methods ++ Map(method -> Left((methods.get(method) match {
       case None ⇒ Array(((in, out), methodbody))

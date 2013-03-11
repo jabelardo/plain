@@ -8,6 +8,8 @@ import java.nio.{ ByteBuffer, CharBuffer }
 
 import org.apache.commons.codec.net.URLCodec
 
+import scala.language.existentials
+import scala.util.continuations._
 import scala.collection.mutable.{ HashMap, MultiMap, Set ⇒ MutableSet }
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.{ Type, typeOf }
@@ -37,7 +39,7 @@ private final class Matching {
     val bytebuffer = typeOf[ByteBuffer]
     val string = typeOf[String]
     val form = typeOf[Form]
-    val multipart = typeOf[MultipartForm]
+    val multipartform = typeOf[MultipartForm]
     val json = typeOf[Json]
     val jobject = typeOf[JObject]
     val jarray = typeOf[JArray]
@@ -83,18 +85,18 @@ private final class Matching {
   def decodeXmlMarshaled[A <: XmlMarshaled]: MarshaledDecoder[A] = (entity: Option[Entity], c: ClassTag[A]) ⇒ XmlMarshaled[A](decodeString(entity))(c)
 
   val decoders: TypeDecoders = Array(
-    (typeOf[Entity], decodeEntity),
-    (typeOf[Unit], decodeUnit),
-    (typeOf[Array[Byte]], decodeArray),
-    (typeOf[String], decodeString),
-    (typeOf[Form], decodeForm),
-    (typeOf[MultipartForm], decodeMultipartForm),
-    (typeOf[Json], decodeJson),
-    (typeOf[JArray], decodeJArray),
-    (typeOf[JObject], decodeJObject),
-    (typeOf[JsonMarshaled], decodeJsonMarshaled),
-    (typeOf[Xml], decodeXml),
-    (typeOf[XmlMarshaled], decodeXmlMarshaled)).toMap
+    (entity, decodeEntity),
+    (unit, decodeUnit),
+    (array, decodeArray),
+    (string, decodeString),
+    (form, decodeForm),
+    (multipartform, decodeMultipartForm),
+    (json, decodeJson),
+    (jobject, decodeJObject),
+    (jarray, decodeJArray),
+    (xml, decodeXml),
+    (jsonmarshaled, decodeJsonMarshaled),
+    (xmlmarshaled, decodeXmlMarshaled)).toMap
 
   val encodeEntity: Encoder = ((entity: Entity) ⇒ Some(entity)).asInstanceOf[Encoder]
 
@@ -127,19 +129,19 @@ private final class Matching {
   val encodeXmlMarshaled: Encoder = ((marshaled: XmlMarshaled) ⇒ Some(ByteBufferEntity(marshaled.toXml, `application/xml`))).asInstanceOf[Encoder]
 
   val encoders: TypeEncoders = Array(
-    (typeOf[Entity], encodeEntity),
-    (typeOf[Unit], encodeUnit),
-    (typeOf[Array[Byte]], encodeArray),
-    (typeOf[ByteBuffer], encodeByteBuffer),
-    (typeOf[String], encodeString),
-    (typeOf[Form], encodeForm),
-    (typeOf[MultipartForm], encodeMultipartForm),
-    (typeOf[Json], encodeJson),
-    (typeOf[JObject], encodeJObject),
-    (typeOf[JArray], encodeJArray),
-    (typeOf[Xml], encodeXml),
-    (typeOf[JsonMarshaled], encodeJsonMarshaled),
-    (typeOf[XmlMarshaled], encodeXmlMarshaled)).toMap
+    (entity, encodeEntity),
+    (unit, encodeUnit),
+    (array, encodeArray),
+    (bytebuffer, encodeByteBuffer),
+    (string, encodeString),
+    (form, encodeForm),
+    (multipartform, encodeMultipartForm),
+    (json, encodeJson),
+    (jobject, encodeJObject),
+    (jarray, encodeJArray),
+    (xml, encodeXml),
+    (jsonmarshaled, encodeJsonMarshaled),
+    (xmlmarshaled, encodeXmlMarshaled)).toMap
 
   val inputPriority: PriorityList = Array(
     (`application/x-scala-unit`, List(unit, entity)),
@@ -147,7 +149,7 @@ private final class Matching {
     (`application/json`, List(jsonmarshaled, jobject, jarray, json, string, array, entity)),
     (`application/xml`, List(xmlmarshaled, xml, string, array, entity)),
     (`application/x-www-form-urlencoded`, List(form, string, array, entity)),
-    (`multipart/form-data`, List(multipart, string, array, entity)),
+    (`multipart/form-data`, List(multipartform, string, array, entity)),
     (`text/plain`, List(xmlmarshaled, jsonmarshaled, xml, jobject, jarray, json, form, string, array, entity)))
 
   val outputPriority: PriorityList = Array(
@@ -157,7 +159,7 @@ private final class Matching {
     (`application/xml`, List(xmlmarshaled, xml, string, bytebuffer, array, entity, unit)),
     (`application/xhtml+xml`, List(xml, string, bytebuffer, array, entity, unit)),
     (`application/x-www-form-urlencoded`, List(form, string, bytebuffer, array, entity, unit)),
-    (`multipart/form-data`, List(multipart, string, bytebuffer, array, entity, unit)),
+    (`multipart/form-data`, List(multipartform, string, bytebuffer, array, entity, unit)),
     (`text/html`, List(string, xml, bytebuffer, array, entity, unit)),
     (`text/plain`, List(string, form, jsonmarshaled, xmlmarshaled, xml, jobject, jarray, json, bytebuffer, array, entity, unit)),
     (`*/*`, List(string, form, jsonmarshaled, xmlmarshaled, xml, jobject, jarray, json, bytebuffer, array, entity, unit)))

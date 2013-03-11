@@ -1,10 +1,10 @@
-package com.ibm.plain.sample.helloworld
+package com.ibm
 
-import com.ibm.plain.config.{ config2RichConfig, settings }
-import com.ibm.plain.run
+package plain
+
+package bootstrap
 
 /**
  * The most simple Main application, but there is really nothing more to do (it's all in the application.conf).
  */
 object Main extends App { run }
-
