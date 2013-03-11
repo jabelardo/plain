@@ -71,7 +71,7 @@ trait Resource
     }
   }
 
-  final def process(io: Io): Io @suspendable = throw new UnsupportedOperationException
+  final def process(io: Io) = throw new UnsupportedOperationException
 
   final def handle(context: Context) = try {
     methods.get(context.request.method) match {
