@@ -37,12 +37,12 @@ package object plain
     body
     application.awaitTermination(timeout)
   } catch {
-    case e: Throwable ⇒ println("Uncaught exception: " + e); e.printStackTrace
+    case e: Throwable ⇒ println("Exception during bootstrap : " + e)
   } finally {
     try {
       application.teardown
     } catch {
-      case e: Throwable ⇒ println("Exception during teardown: " + e)
+      case e: Throwable ⇒ println("Exception during teardown : " + e)
     }
   }
 

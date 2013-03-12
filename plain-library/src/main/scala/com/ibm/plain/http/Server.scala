@@ -55,6 +55,7 @@ final case class Server(
         debug(name + " has started.")
       }
 
+      dispatcher.name
       application match {
         case Some(appl) if loadBalancingEnable ⇒
           startOne
@@ -101,7 +102,7 @@ final case class Server(
   override final lazy val name = "HttpServer(name=" + settings.displayName +
     ", address=" + bindaddress +
     ", backlog=" + settings.backlog +
-    ", dispatcher=" + settings.dispatcher.name +
+    ", dispatcher=" + { try settings.dispatcher.name catch { case _: Throwable ⇒ "invalid" } } +
     (if (settings.loadBalancingEnable && application.isDefined) ", load-balancing-path=" + settings.loadBalancingBalancingPath else "") +
     ")"
 

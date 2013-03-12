@@ -19,6 +19,8 @@ trait Message {
 
   final def ++(entity: Option[Entity]): Type = { this.entity = entity; this.asInstanceOf[Type] }
 
+  final def ++(entity: Entity): Type = this ++ Some(entity)
+
 }
 
 /**
