@@ -4,6 +4,7 @@ package plain
 
 package rest
 
+import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel }
 import scala.reflect._
 import scala.reflect.runtime.universe._
 import scala.util.continuations.{ reify, suspendable }
@@ -120,6 +121,10 @@ trait Resource
 
   protected[this] final def context = threadlocal.get
 
+  protected[this] final def transfer(entity: Entity, destination: Channel) = {
+    context.io +++ ((entity.asInstanceOf[ContentEntity].length, destination))
+  }
+
   /**
    * The most important method in this class.
    */
@@ -136,6 +141,7 @@ trait Resource
     var innerinput: Option[(Any, AnyRef)] = None
 
     def tryDecode(in: Type, decode: AnyRef): Boolean = {
+      println("decode " + in)
       if (innerinput.isDefined && innerinput.get._2 == decode) return true // avoid unnecessary calls, decode can be expensive
       decode match {
         case decode: Decoder[_] ⇒ tryBoolean(innerinput = Some((decode(inentity), decode)))
@@ -156,10 +162,10 @@ trait Resource
         context ++ methodbody ++ response
         response ++ encode(innerinput match {
           case Some((input, _)) ⇒ methodbody.body(input)
-          case _ ⇒ println(501); throw ServerError.`501`
+          case _ ⇒ throw ServerError.`501`
         })
         completed(context)
-      case _ ⇒ println(415); throw ClientError.`415`
+      case _ ⇒ throw ClientError.`415`
     }
   } finally threadlocal.remove
 

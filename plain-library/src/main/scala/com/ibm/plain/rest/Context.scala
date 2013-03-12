@@ -12,7 +12,7 @@ import Resource.MethodBody
 /**
  * A wrapper to hold shared context among Uniforms.
  */
-final case class Context private (
+final class Context private (
 
   var io: Io,
 

@@ -14,11 +14,11 @@ final class FixedLengthChannel private (
 
   channel: Channel,
 
+  offset: Long,
+
   length: Long)
 
   extends Channel {
-
-  println("fixedlength " + length)
 
   type Integer = java.lang.Integer
 
@@ -46,14 +46,14 @@ final class FixedLengthChannel private (
 
     @inline def completed(processed: Integer, attachment: A) = {
       position += processed
-      outerhandler.completed(if (0 < processed && position <= length) processed else -1, attachment)
+      outerhandler.completed(if (0 < processed && position < length) processed else 0, attachment)
     }
 
     @inline def failed(e: Throwable, attachment: A) = outerhandler.failed(e, attachment)
 
   }
 
-  private[this] var position = 0L
+  private[this] var position = offset
 
 }
 
@@ -62,7 +62,7 @@ final class FixedLengthChannel private (
  */
 object FixedLengthChannel {
 
-  def apply(channel: Channel, length: Long) = new FixedLengthChannel(channel, length)
+  def apply(channel: Channel, offset: Long, length: Long) = new FixedLengthChannel(channel, offset, length)
 
 }
 

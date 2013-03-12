@@ -14,6 +14,7 @@ import aio.FixedLengthChannel
 import xml._
 import json._
 import json.Json._
+import http.Entity._
 import http.{ Entity, Response }
 
 final class PingResource
@@ -38,12 +39,12 @@ final class PingResource
 
   // Post { json: Json ⇒ println("we are in Post(Json) : " + build(json)); build(json) }
 
-  Post { s: String ⇒ s.reverse }
+  // Post { s: String ⇒ s.reverse }
 
   Post { entity: Entity ⇒
-    println("we are in Post(Entity) + entity");
-    // ChannelTransfer(FixedLengthChannel(context.io.channel, entity.length), forWriting(if (os.isWindows) "nul" else "/dev/null"), context.io).transfer(false)
-    "thank you"
+    println("we are in Post(Entity) + entity " + entity)
+    transfer(entity, forWriting("/tmp/test.txt"))
+    "Thank you for this file.".getBytes
   }
 
 }

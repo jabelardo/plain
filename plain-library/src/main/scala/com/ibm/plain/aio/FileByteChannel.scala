@@ -76,11 +76,20 @@ object FileByteChannel {
 
   def forReading(path: Path): AsynchronousByteChannel = AsynchronousFileChannel.open(path, Set(READ), concurrent.ioexecutor)
 
-  def forReading(path: String): AsynchronousByteChannel = AsynchronousFileChannel.open(Paths.get(path), Set(READ), concurrent.ioexecutor)
-
   def forWriting(path: Path): AsynchronousByteChannel = AsynchronousFileChannel.open(path, Set(CREATE, WRITE), concurrent.ioexecutor)
 
-  def forWriting(path: String): AsynchronousByteChannel = AsynchronousFileChannel.open(Paths.get(path), Set(CREATE, WRITE), concurrent.ioexecutor)
+  def forWriting(path: Path, length: Long): AsynchronousByteChannel = {
+    val f = new java.io.RandomAccessFile(path.toString, "rw")
+    f.setLength(length)
+    f.close
+    forWriting(path)
+  }
+
+  def forReading(path: String): AsynchronousByteChannel = forReading(Paths.get(path))
+
+  def forWriting(path: String): AsynchronousByteChannel = forWriting(Paths.get(path))
+
+  def forWriting(path: String, length: Long): AsynchronousByteChannel = forWriting(Paths.get(path), length)
 
 }
 

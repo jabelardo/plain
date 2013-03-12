@@ -355,7 +355,13 @@ object Io
         case io ⇒ io.iteratee
       }) match {
         case Done(renderable: RenderableRoot) ⇒
-          writeloop(renderable.renderHeader(io ++ renderable))
+          io.payload match {
+            case (length: Long, destination: Channel) ⇒
+              ChannelTransfer(FixedLengthChannel(io.channel, io.buffer.remaining, length), destination, io).transfer
+              writeloop(renderable.renderHeader(io ++ renderable))
+            case pl ⇒
+              writeloop(renderable.renderHeader(io ++ renderable))
+          }
         case Error(e: InterruptedByTimeoutException) ⇒
         case Error(e: IOException) ⇒
           io.error(e)
