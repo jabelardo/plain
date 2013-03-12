@@ -356,8 +356,8 @@ object Io
       }) match {
         case Done(renderable: RenderableRoot) ⇒
           io.payload match {
-            case (length: Long, destination: Channel) ⇒
-              ChannelTransfer(FixedLengthChannel(io.channel, io.buffer.remaining, length), destination, io).transfer
+            case (length: Long, source: Channel, destination: Channel) ⇒
+              ChannelTransfer(source, destination, io).transfer
               writeloop(renderable.renderHeader(io ++ renderable))
             case pl ⇒
               writeloop(renderable.renderHeader(io ++ renderable))

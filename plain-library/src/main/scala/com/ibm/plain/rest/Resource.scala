@@ -12,7 +12,7 @@ import json._
 import xml._
 import logging.HasLogger
 import reflect.tryBoolean
-import aio.Io
+import aio.{ ByteArrayChannel, FixedLengthChannel, Io }
 import http.{ Request, Response, Status, Entity, Method, MimeType, Accept }
 import http.Entity._
 import http.MimeType._
@@ -122,7 +122,11 @@ trait Resource
   protected[this] final def context = threadlocal.get
 
   protected[this] final def transfer(entity: Entity, destination: Channel) = {
-    context.io +++ ((entity.asInstanceOf[ContentEntity].length, destination))
+    entity match {
+      case entity: ContentEntity ⇒ context.io +++ ((entity.length, FixedLengthChannel(context.io.channel, context.io.buffer.remaining, entity.length), destination))
+      case entity: ArrayEntity ⇒ context.io +++ ((entity.length, ByteArrayChannel(entity.array), destination))
+      case _ ⇒ throw new UnsupportedOperationException
+    }
   }
 
   /**
@@ -141,7 +145,6 @@ trait Resource
     var innerinput: Option[(Any, AnyRef)] = None
 
     def tryDecode(in: Type, decode: AnyRef): Boolean = {
-      println("decode " + in)
       if (innerinput.isDefined && innerinput.get._2 == decode) return true // avoid unnecessary calls, decode can be expensive
       decode match {
         case decode: Decoder[_] ⇒ tryBoolean(innerinput = Some((decode(inentity), decode)))

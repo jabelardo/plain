@@ -27,7 +27,7 @@ final class FixedLengthChannel private (
   final def isOpen = channel.isOpen
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[Integer, _ >: A]) = {
-    channel.read(buffer, attachment, new InnerCompletionHandler[A](handler))
+    if (position < length) channel.read(buffer, attachment, new InnerCompletionHandler[A](handler)) else handler.completed(0, attachment)
   }
 
   final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[Integer, _ >: A]) = {
@@ -46,7 +46,7 @@ final class FixedLengthChannel private (
 
     @inline def completed(processed: Integer, attachment: A) = {
       position += processed
-      outerhandler.completed(if (0 < processed && position < length) processed else 0, attachment)
+      outerhandler.completed(processed, attachment)
     }
 
     @inline def failed(e: Throwable, attachment: A) = outerhandler.failed(e, attachment)

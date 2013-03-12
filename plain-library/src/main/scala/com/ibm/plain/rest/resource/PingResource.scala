@@ -42,9 +42,10 @@ final class PingResource
   // Post { s: String ⇒ s.reverse }
 
   Post { entity: Entity ⇒
-    println("we are in Post(Entity) + entity " + entity)
-    transfer(entity, forWriting("/tmp/test.txt"))
-    "Thank you for this file.".getBytes
+    val filename = request.query.get
+    println("we are in Post(Entity) + entity " + entity + " " + entity.length + " " + filename)
+    transfer(entity, forWriting(filename))
+    "Thank you for this file, we stored it under " + filename
   }
 
 }

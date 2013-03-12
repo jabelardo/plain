@@ -7,7 +7,7 @@ package aio
 import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousByteChannel, AsynchronousFileChannel, CompletionHandler }
 import java.nio.file.{ Path, Paths }
-import java.nio.file.StandardOpenOption.{ CREATE, READ, WRITE }
+import java.nio.file.StandardOpenOption.{ CREATE, READ, TRUNCATE_EXISTING, WRITE }
 
 import scala.language.implicitConversions
 import scala.collection.JavaConversions._
@@ -76,7 +76,7 @@ object FileByteChannel {
 
   def forReading(path: Path): AsynchronousByteChannel = AsynchronousFileChannel.open(path, Set(READ), concurrent.ioexecutor)
 
-  def forWriting(path: Path): AsynchronousByteChannel = AsynchronousFileChannel.open(path, Set(CREATE, WRITE), concurrent.ioexecutor)
+  def forWriting(path: Path): AsynchronousByteChannel = AsynchronousFileChannel.open(path, Set(CREATE, TRUNCATE_EXISTING, WRITE), concurrent.ioexecutor)
 
   def forWriting(path: Path, length: Long): AsynchronousByteChannel = {
     val f = new java.io.RandomAccessFile(path.toString, "rw")

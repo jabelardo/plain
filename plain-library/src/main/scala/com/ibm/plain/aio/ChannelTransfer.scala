@@ -33,13 +33,17 @@ final class ChannelTransfer private (
       case in if 0 < in.readwritten ⇒ buffer.flip
       case _ ⇒ finished = true
     }
-    if (0 == buffer.remaining) while (!finished) {
-      readloop
-      writeloop
-    }
-    else while (!finished) {
-      writeloop
-      readloop
+
+    if (0 == buffer.remaining) {
+      while (!finished) {
+        readloop
+        writeloop
+      }
+    } else {
+      while (!finished) {
+        writeloop
+        readloop
+      }
     }
 
     buffer.limit(0)
