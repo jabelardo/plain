@@ -27,7 +27,9 @@ object Settings {
     organization := "com.ibm.plain",
     version      := "1.0.1-SNAPSHOT",
     scalaVersion := "2.10.1-RC3",
-    logLevel     := Level.Info
+    logLevel     := Level.Info,
+    exportJars   := true,
+    mainClass in Compile := Some("com.ibm.plain.bootstrap.Main")
   ) 
 
   lazy val baseSettings = Defaults.defaultSettings ++ buildSettings
