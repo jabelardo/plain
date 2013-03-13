@@ -4,9 +4,7 @@ package plain
 
 package config
 
-import scala.reflect._
-import scala.reflect.runtime.universe._
-import scala.collection.JavaConversions._
+import scala.collection.JavaConversions.{ asScalaBuffer, asScalaSet }
 import scala.concurrent.duration.Duration
 
 import com.typesafe.config.Config
@@ -43,7 +41,18 @@ class RichConfig(config: Config) {
     default
   }
 
+  def getList(key: String, default: List[Config]): List[Config] = if (config.hasPath(key)) {
+    config.getConfigList(key).toList
+  } else {
+    default
+  }
+
+  def getConfig(key: String, default: Config): Config = if (config.hasPath(key)) {
+    config.getConfig(key)
+  } else {
+    default
+  }
+
   def toMap: Map[String, Any] = config.root.entrySet.map(e ⇒ (e.getKey, e.getValue.unwrapped)).toMap
 
 }
-

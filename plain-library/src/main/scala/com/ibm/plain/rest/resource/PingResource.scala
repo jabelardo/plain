@@ -44,7 +44,7 @@ final class PingResource
   Post { entity: Entity ⇒
     val filename = request.query.get
     println("we are in Post(Entity) + entity " + entity + " " + entity.length + " " + filename)
-    transfer(entity, forWriting(filename))
+    transfer(entity, forWriting(filename, entity.length))
     "Thank you for this file, we stored it under " + filename
   }
 

@@ -4,6 +4,8 @@ package plain
 
 package rest
 
+import com.typesafe.config.Config
+
 import aio.Io
 import http.{ Request, Response }
 import http.Request.{ Path, Variables }
@@ -15,6 +17,8 @@ import Resource.MethodBody
 final class Context private (
 
   var io: Io,
+
+  var config: Config,
 
   var variables: Variables,
 
@@ -29,6 +33,8 @@ final class Context private (
   var methodbody: MethodBody) {
 
   @inline final def ++(io: Io) = { this.io = io; this }
+
+  @inline final def ++(config: Config) = { this.config = config; this }
 
   @inline final def ++(variables: Variables) = { this.variables = variables; this }
 
@@ -49,6 +55,6 @@ final class Context private (
  */
 object Context {
 
-  @inline def apply(io: Io) = new Context(io, null, null, null, null, null, null)
+  @inline def apply(io: Io) = new Context(io, null, null, null, null, null, null, null)
 
 }

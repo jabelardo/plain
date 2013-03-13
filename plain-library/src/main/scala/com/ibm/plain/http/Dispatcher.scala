@@ -7,6 +7,8 @@ package http
 import scala.reflect._
 import scala.reflect.runtime.universe._
 
+import com.typesafe.config.Config
+
 import aio.Io
 
 /**
@@ -24,6 +26,14 @@ abstract class Dispatcher
 
   @inline final def process(io: Io) = dispatch(io.iteratee.result.asInstanceOf[Request], io)
 
-  final var name: String = null
+  def name = name_
+
+  def config = config_
+
+  def init
+
+  private[http] final var name_ : String = null
+
+  private[http] final var config_ : Config = null
 
 }

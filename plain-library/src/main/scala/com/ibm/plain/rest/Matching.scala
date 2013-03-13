@@ -5,16 +5,11 @@ package plain
 package rest
 
 import java.nio.{ ByteBuffer, CharBuffer }
-
 import org.apache.commons.codec.net.URLCodec
-
-import scala.language.existentials
-import scala.util.continuations._
 import scala.collection.mutable.{ HashMap, MultiMap, Set ⇒ MutableSet }
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.{ Type, typeOf }
 import scala.xml.{ XML, Elem ⇒ Xml }
-
 import json.{ Json, JsonMarshaled }
 import json.Json.{ JArray, JObject }
 import text.{ `UTF-8`, fastSplit, convertCharset }

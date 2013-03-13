@@ -138,10 +138,12 @@ object Server
 
     final val displayName = getString("display-name")
 
-    final def dispatcher = {
+    final val dispatcher = {
       val dconfig = config.settings.getConfig(getString("dispatcher")).withFallback(config.settings.getConfig("plain.rest.default-dispatcher"))
       val d = dconfig.getInstanceFromClassName[Dispatcher]("class-name")
-      d.name = dconfig.getString("display-name", getString("dispatcher"))
+      d.name_ = dconfig.getString("display-name", getString("dispatcher"))
+      d.config_ = dconfig
+      d.init
       d
     }
 

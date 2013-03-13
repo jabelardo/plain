@@ -5,11 +5,10 @@ package plain
 package rest
 
 import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel }
-import scala.reflect._
-import scala.reflect.runtime.universe._
+import scala.reflect.ClassTag
+import scala.reflect.runtime.universe.{ Type, TypeTag, typeOf }
 import scala.util.continuations.{ reify, suspendable }
-import json._
-import xml._
+import com.typesafe.config.Config
 import logging.HasLogger
 import reflect.tryBoolean
 import aio.{ ByteArrayChannel, FixedLengthChannel, Io }

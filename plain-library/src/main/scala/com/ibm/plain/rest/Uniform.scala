@@ -4,6 +4,8 @@ package plain
 
 package rest
 
+import com.typesafe.config.Config
+
 import aio.Io
 import http.{ Request, Response, Processor ⇒ HttpProcessor }
 
@@ -23,4 +25,8 @@ trait Uniform {
 /**
  * A basic implementation for Uniform for correct exception handling.
  */
-trait BaseUniform extends HttpProcessor with Uniform
+trait BaseUniform
+
+  extends HttpProcessor
+
+  with Uniform

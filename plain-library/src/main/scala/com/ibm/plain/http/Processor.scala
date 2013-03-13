@@ -43,7 +43,7 @@ abstract class Processor
           Done[Io, Response](if (null != io.payload) io.payload.asInstanceOf[Response] ++ status else Response(null, status))
         case e ⇒
           info("Dispatching failed : " + e)
-          // if (log.isDebugEnabled) debug(stackTraceToString(e))
+          if (log.isDebugEnabled) debug(stackTraceToString(e))
           Done[Io, Response](Response(null, ServerError.`500`))
       }))
     }

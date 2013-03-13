@@ -26,7 +26,7 @@ object Settings {
     resolvers += "cc.spray releases" at "http://repo.spray.cc",
     organization := "com.ibm.plain",
     version      := "1.0.1-SNAPSHOT",
-    scalaVersion := "2.10.1-RC2",
+    scalaVersion := "2.10.1-RC3",
     logLevel     := Level.Info
   ) 
 

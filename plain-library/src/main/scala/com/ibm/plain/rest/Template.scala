@@ -8,6 +8,9 @@ import scala.annotation.tailrec
 import scala.language.existentials
 import scala.util.control.ControlThrowable
 
+import com.typesafe.config.Config
+
+import config._
 import http.Request.{ Path, Variables }
 
 /**
@@ -34,7 +37,7 @@ final case class Segment(name: String, next: Element) extends Element
 
 final case class Variable(name: String, next: Element) extends Element
 
-final case class ResourceClass(resource: Class[_ <: Resource], remainderallowed: Boolean) extends Element
+final case class ResourceClass(resource: Class[_ <: Resource], config: Config, remainderallowed: Boolean) extends Element
 
 /**
  *
@@ -43,14 +46,16 @@ final class Template private (
 
   val resource: Class[_ <: Resource],
 
+  val config: Config,
+
   val path: String,
 
   val remainderallowed: Boolean) {
 
   final val root = if (0 == path.length) {
-    ResourceClass(resource, remainderallowed)
+    ResourceClass(resource, config, remainderallowed)
   } else {
-    path.split("/").reverse.foldLeft[Element](ResourceClass(resource, remainderallowed)) {
+    path.split("/").reverse.foldLeft[Element](ResourceClass(resource, config, remainderallowed)) {
       case (elems, e) ⇒
         if (e.startsWith("{") && e.endsWith("}"))
           Variable(e.drop(1).dropRight(1), elems)
@@ -67,32 +72,32 @@ final class Template private (
 
   require(!root.isInstanceOf[Variable], "A path-template must not start with a variable : " + path)
 
-  require(null != resource.newInstance.asInstanceOf[Resource], "Could not instantiate the given class, did you misspell the absolute class name? " + resource)
+  require({ null != resource.newInstance.asInstanceOf[Resource] }, "Could not instantiate the given class. Did you misspell the absolute class name? (" + resource + ")")
 
 }
 
 object Template {
 
-  def apply(path: String, clazz: Class[_]) = new Template(clazz.asInstanceOf[Class[_ <: Resource]], path.replace("*", ""), path.endsWith("*"))
+  def apply(path: String, clazz: Class[_], config: Config) = new Template(clazz.asInstanceOf[Class[_ <: Resource]], config, path.replace("*", ""), path.endsWith("*"))
 
 }
 
 final case class Templates(
 
-  resource: Option[(Class[_ <: Resource], Boolean)],
+  resource: Option[(Class[_ <: Resource], Config, Boolean)],
 
   branch: Option[Either[(String, Templates), Map[String, Templates]]]) {
 
-  final def get(path: Path): Option[(Class[_ <: Resource], Variables, Path)] = {
+  final def get(path: Path): Option[(Class[_ <: Resource], Config, Variables, Path)] = {
 
     @inline @tailrec
     def get0(
       path: Path,
       variables: List[(String, String)],
-      templates: Templates): Option[(Class[_ <: Resource], Variables, Path)] = {
+      templates: Templates): Option[(Class[_ <: Resource], Config, Variables, Path)] = {
 
       @inline def resource(tail: Path) = templates.resource match {
-        case Some(resource) if Nil == tail || resource._2 ⇒ Some((resource._1, variables.toMap, tail))
+        case Some((resourceclass, config, remainderallowed)) if Nil == tail || remainderallowed ⇒ Some((resourceclass, config, variables.toMap, tail))
         case _ ⇒ None
       }
 
@@ -116,7 +121,7 @@ final case class Templates(
 
     def inner(node: Templates, indent: String): String = {
       (node.resource match {
-        case Some(resource) ⇒ indent + (if (node eq this) "/" else "") + " ⇒ " + resource._1.getName + (if (resource._2) " remainder: true" else "")
+        case Some((resourceclass, config, remainderallowed)) ⇒ indent + (if (node eq this) "/" else "") + " ⇒ " + resourceclass.getName + (if (remainderallowed) " remainder: true" else "")
         case _ ⇒ ""
       }) + (node.branch match {
         case Some(Left((name, node))) ⇒ inner(node, indent + "/{" + name + "}")
@@ -132,7 +137,7 @@ final case class Templates(
 
 object Templates {
 
-  def apply(templates: Template*) = templates.foldLeft[Option[Templates]](None) {
+  def apply(templates: Seq[Template]) = templates.foldLeft[Option[Templates]](None) {
     case (elems, e) ⇒ add(e, elems)
   }
 
@@ -164,9 +169,9 @@ object Templates {
           case Some(Templates(resource, Some(Left((oldname, branch))))) ⇒ wrongVariable
           case _ ⇒ alreadySegment
         }
-        case ResourceClass(resource, remainderallowed) ⇒ node match {
-          case None ⇒ Templates(Some((resource, remainderallowed)), None)
-          case Some(Templates(_, node)) ⇒ Templates(Some((resource, remainderallowed)), node)
+        case ResourceClass(resource, config, remainderallowed) ⇒ node match {
+          case None ⇒ Templates(Some((resource, config, remainderallowed)), None)
+          case Some(Templates(_, node)) ⇒ Templates(Some((resource, config, remainderallowed)), node)
         }
       }
     }

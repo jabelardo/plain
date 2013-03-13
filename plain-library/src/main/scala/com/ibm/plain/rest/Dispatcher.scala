@@ -4,10 +4,12 @@ package plain
 
 package rest
 
+import com.typesafe.config.{ Config, ConfigFactory }
+
 import aio.Io
 import aio.Iteratees.drop
 import aio.FileByteChannel.forWriting
-import concurrent.spawn
+import config._
 import http.{ Request, Response }
 import http.{ Dispatcher ⇒ HttpDispatcher }
 import http.Entity.ContentEntity
@@ -16,7 +18,7 @@ import http.Status.{ ClientError, ServerError }
 /**
  * The base class for all client rest dispatchers. The client rest dispatchers will be instantiated using their class name from the configuration via reflection.
  */
-abstract class Dispatcher(templates: Option[Templates])
+abstract class Dispatcher
 
   extends HttpDispatcher {
 
@@ -27,7 +29,7 @@ abstract class Dispatcher(templates: Option[Templates])
     import context.request
     templates match {
       case Some(root) ⇒ root.get(request.path) match {
-        case Some((clazz, variables, remainder)) ⇒
+        case Some((clazz, config, variables, remainder)) ⇒
           clazz.newInstance match {
             case resource: Resource ⇒
               request.entity match {
@@ -35,7 +37,7 @@ abstract class Dispatcher(templates: Option[Templates])
                 case Some(_) if !request.method.entityallowed ⇒ throw ServerError.`501`
                 case _ ⇒
               }
-              resource.handle(context ++ variables ++ remainder)
+              resource.handle(context ++ config ++ variables ++ remainder)
             case _ ⇒ throw ServerError.`500`
           }
         case _ ⇒ throw ClientError.`404`
@@ -44,17 +46,17 @@ abstract class Dispatcher(templates: Option[Templates])
     }
   }
 
+  final def init = {
+    templates = Templates(config.getList("routes", List.empty).map { c: Config ⇒
+      Template(c.getString("uri"), Class.forName(c.getString("resource-class-name")), c.getConfig("resource-config", ConfigFactory.empty))
+    })
+  }
+
+  protected[this] final var templates: Option[Templates] = None
+
 }
 
 /**
  * The default rest-dispatcher, it will always respond with 501.
  */
-class DefaultDispatcher
-
-  extends Dispatcher(Templates(
-    //    Template("user/{user}", Class.forName("com.ibm.plain.rest.resource.TestResource")),
-    Template("ping", Class.forName("com.ibm.plain.rest.resource.PingResource")),
-    Template("*", Class.forName("com.ibm.plain.rest.resource.DirectoryResource")),
-    Template("echo", Class.forName("com.ibm.plain.rest.resource.EchoResource")))) {
-
-}
+class DefaultDispatcher extends Dispatcher
