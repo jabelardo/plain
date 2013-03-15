@@ -115,8 +115,11 @@ final private class SocketChannelWithTimeout private (
 
   def write(buffer: ByteBuffer) = throw FutureNotSupported
 
-  // do not play with TCP_NODELAY, it will degrade performance dramatically: 
-  // channel.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.box(true))
+  tcpNoDelay match {
+    case 1 ⇒ channel.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.box(true))
+    case -1 ⇒ channel.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.box(false))
+    case _ ⇒
+  }
   channel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
   channel.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.box(false))
   channel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(sendReceiveBufferSize))

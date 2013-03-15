@@ -47,9 +47,10 @@ abstract class Dispatcher
   }
 
   final def init = {
-    templates = Templates(config.getList("routes", List.empty).map { c: Config ⇒
+    templates = Templates(config.getConfigList("routes", List.empty).map { c: Config ⇒
       Template(c.getString("uri"), Class.forName(c.getString("resource-class-name")), c.getConfig("resource-config", ConfigFactory.empty))
     })
+    if (log.isDebugEnabled) debug(getClass.getSimpleName + "(name=" + name + ", routes=" + templates.get + ")")
   }
 
   protected[this] final var templates: Option[Templates] = None

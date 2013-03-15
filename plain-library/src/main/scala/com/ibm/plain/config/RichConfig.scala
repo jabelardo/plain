@@ -7,7 +7,7 @@ package config
 import scala.collection.JavaConversions.{ asScalaBuffer, asScalaSet }
 import scala.concurrent.duration.Duration
 
-import com.typesafe.config.Config
+import com.typesafe.config._
 
 /**
  * Add a couple of helpers to Config eg. get with default.
@@ -41,8 +41,14 @@ class RichConfig(config: Config) {
     default
   }
 
-  def getList(key: String, default: List[Config]): List[Config] = if (config.hasPath(key)) {
+  def getConfigList(key: String, default: List[Config]): List[Config] = if (config.hasPath(key)) {
     config.getConfigList(key).toList
+  } else {
+    default
+  }
+
+  def getList(key: String, default: ConfigList): ConfigList = if (config.hasPath(key)) {
+    config.getList(key)
   } else {
     default
   }

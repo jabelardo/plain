@@ -42,6 +42,9 @@ object Dependencies {
   val shapeless     = "com.chuusai"                             %%  "shapeless"                   % "1.2.3"
   val scalatest     = "org.scalatest"                           %%  "scalatest"                   % "1.9.1"
   val specs2        = "org.specs2"                              %%  "specs2"                      % "1.12.3"
+  val derbyjdbc     = "org.apache.derby"                        %   "derbyclient"                 % "10.9.1.0"
+  val oraclejdbc    = "com.oracle"                              %   "ojdbc"                       % "11.2.0"
+  val mysqljdbc     = "mysql"                                   %   "mysql-connector-java"        % "5.1.23"
 
 }
 

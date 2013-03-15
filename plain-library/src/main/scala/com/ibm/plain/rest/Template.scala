@@ -121,7 +121,8 @@ final case class Templates(
 
     def inner(node: Templates, indent: String): String = {
       (node.resource match {
-        case Some((resourceclass, config, remainderallowed)) ⇒ indent + (if (node eq this) "/" else "") + " ⇒ " + resourceclass.getName + (if (remainderallowed) " remainder: true" else "")
+        case Some((resourceclass, config, remainderallowed)) ⇒
+          val c = config.toMap; indent + (if (node eq this) "/" else "") + (if (remainderallowed) "/*" else "") + " => " + resourceclass.getName + (if (!c.isEmpty) " => " + c else "")
         case _ ⇒ ""
       }) + (node.branch match {
         case Some(Left((name, node))) ⇒ inner(node, indent + "/{" + name + "}")

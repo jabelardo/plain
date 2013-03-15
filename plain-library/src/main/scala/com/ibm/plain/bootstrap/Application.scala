@@ -28,7 +28,7 @@ abstract sealed class Application
 
   def teardown = onlyonce { try { components.filter(_.isStarted).reverse.foreach { c ⇒ try c.doStop catch { case e: Throwable ⇒ println(c + " : " + e) } } } catch { case e: Throwable ⇒ terminateJvm(e, -1, false) } }
 
-  def awaitTermination(timeout: Duration) = components.filter(_.isStarted).reverse.foreach { c ⇒
+  def awaitTermination(timeout: Duration) = components.filter(_.isStarted).foreach { c ⇒
     c.doAwaitTermination(timeout)
     teardown
   }

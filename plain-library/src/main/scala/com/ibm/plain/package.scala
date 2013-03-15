@@ -9,6 +9,7 @@ package object plain
 
   import config._
   import config.settings._
+  import concurrent.scheduleGcTimeout
 
   /**
    * This is the central point for registering Components to the application in the correct order.
@@ -23,6 +24,7 @@ package object plain
       .register(monitor.extension.jmx.JmxMonitor)
 
     http.startupServers.foreach(path ⇒ appl.register(http.Server(path, Some(appl), None, None)))
+    jdbc.startupConnectionFactories.foreach(path ⇒ appl.register(jdbc.ConnectionFactory(path)))
 
     appl
   }
@@ -33,11 +35,11 @@ package object plain
 
   def run(timeout: Duration)(body: ⇒ Unit): Unit = try {
     application.bootstrap
-    concurrent.schedule(60000, 60000) { sys.runtime.gc } // :TODO: think about this! At least make it configurable.
+    if (0 < scheduleGcTimeout) concurrent.schedule(scheduleGcTimeout, scheduleGcTimeout) { sys.runtime.gc }
     body
     application.awaitTermination(timeout)
   } catch {
-    case e: Throwable ⇒ println("Exception during bootstrap : " + e)
+    case e: Throwable ⇒ e.printStackTrace; println("Exception during bootstrap : " + e)
   } finally {
     try {
       application.teardown

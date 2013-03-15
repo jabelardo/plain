@@ -8,14 +8,17 @@ import java.net.{ InetSocketAddress, StandardSocketOptions }
 import java.nio.channels.{ AsynchronousChannelGroup ⇒ Group, AsynchronousServerSocketChannel ⇒ ServerChannel }
 import java.nio.charset.Charset
 import java.util.concurrent.TimeUnit
-import scala.concurrent.duration._
+
+import scala.concurrent.duration.Duration
 import scala.util.continuations.reset
-import scala.collection.JavaConversions._
+
+import com.ibm.plain.bootstrap.BaseComponent
 import com.typesafe.config.{ Config, ConfigFactory }
+
 import aio.Io.{ accept, loop }
 import bootstrap.{ Application, BaseComponent }
-import logging.HasLogger
 import config.{ CheckedConfig, config2RichConfig }
+import logging.HasLogger
 
 /**
  *
@@ -55,12 +58,12 @@ final case class Server(
         debug(name + " has started.")
       }
 
-      dispatcher.name
       application match {
         case Some(appl) if loadBalancingEnable ⇒
           startOne
           portRange.tail.foreach { p ⇒ appl.register(Server(configpath, None, Some(p), Some(settings)).start) }
-        case _ ⇒ startOne
+        case _ ⇒
+          startOne
       }
     }
     if (1 < settings.portRange.size && !settings.loadBalancingEnable) warning(name + " : port-range > 1 with load-balancing.enable=off")
@@ -138,7 +141,7 @@ object Server
 
     final val displayName = getString("display-name")
 
-    final val dispatcher = {
+    final lazy val dispatcher = {
       val dconfig = config.settings.getConfig(getString("dispatcher")).withFallback(config.settings.getConfig("plain.rest.default-dispatcher"))
       val d = dconfig.getInstanceFromClassName[Dispatcher]("class-name")
       d.name_ = dconfig.getString("display-name", getString("dispatcher"))
@@ -175,9 +178,7 @@ object Server
 
   }
 
-  object ServerConfiguration {
-
-    final val fallback = ConfigFactory.parseString("""
+  final lazy val fallback = ConfigFactory.parseString("""
         
     display-name = default
         
@@ -214,8 +215,6 @@ object Server
 		max-entity-buffer-size = 16K
 
     }""")
-
-  }
 
 }
 

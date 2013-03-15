@@ -35,6 +35,9 @@ object PlainBuild extends Build {
           clHashMap, 
           fasterXml,
           jerseyJson,
+			derbyjdbc,
+			oraclejdbc,
+			mysqljdbc,
 			reflections
       ) ++ 
       test(junit, junitItf)
@@ -69,8 +72,13 @@ object PlainBuild extends Build {
 
   lazy val samples = Project("plain-sample", file("plain-sample"))
     .aggregate(helloSample)
+    .aggregate(jdbcSample)
 
   lazy val helloSample = Project("plain-sample-hello-world", file("plain-sample/plain-sample-hello-world"))
+    .settings(sampleSettings: _*)
+    .dependsOn(library)
+
+  lazy val jdbcSample = Project("plain-sample-jdbc", file("plain-sample/plain-sample-jdbc"))
     .settings(sampleSettings: _*)
     .dependsOn(library)
 
