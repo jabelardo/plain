@@ -39,4 +39,17 @@ package object config
 
   implicit def config2RichConfig(config: Config) = new RichConfig(config)
 
+  /**
+   * Must match the version string provided by the *.conf files.
+   */
+  final val requiredVersion = "1.0.0"
+
+  final val home = getString("plain.config.home", System.getenv("PLAIN_HOME"))
+
+  /**
+   * check requirements
+   */
+  require(null != home, "Neither plain.config.home config setting nor PLAIN_HOME environment variable are set.")
+  require(requiredVersion == config.version, String.format("plain.config.version in *.conf files (%s) does not match internal version (%s).", config.version, requiredVersion))
+
 }

@@ -235,7 +235,7 @@ object MimeType {
 
   def forExtension(extension: String): Option[MimeType] = extensionsmap.get(extension)
 
-  private[this] var extensionsmap: Map[String, MimeType] = Map.empty
+  private[this] var extensionsmap: scala.collection.immutable.SortedMap[String, MimeType] = scala.collection.immutable.SortedMap.empty
 
   subClasses(classOf[MimeType]).map(scalifiedName).filter(!_.endsWith("MimeType")).foreach(apply)
 

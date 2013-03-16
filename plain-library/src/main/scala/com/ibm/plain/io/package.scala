@@ -133,7 +133,7 @@ package object io
   val deleteDirectoryPauseBetweenRetries = getMilliseconds("plain.io.delete-directory-pause-between-retries", 10000)
 
   final val temp = try {
-    val tmp = getString("plain.temp", System.getenv("TMP"))
+    val tmp = getString("plain.config.temp", System.getenv("TMP"))
     Files.createDirectories(Paths.get(tmp))
     System.setProperty("java.io.tmpdir", tmp)
     Paths.get(tmp)

@@ -40,6 +40,8 @@ final case class ConnectionFactory(
 
   override def name = getClass.getSimpleName + "(name=" + displayname + ", config=" + configpath + ", pool=" + poolmin + "/" + poolmax + ")"
 
+  final def dataSource = datasource
+
   override final def start = {
     setParameters(datasource, datasourcesettings)
     setProperties(datasourceproperties)
@@ -190,7 +192,7 @@ final case class ConnectionFactory(
 
   private[this] final val driver = settings.getString("driver")
 
-  private[this] final val displayname = settings.getString("display-name", "default")
+  private[jdbc] final val displayname = settings.getString("display-name", "default")
 
   private[this] final val growtimeout = new AtomicLong(settings.getMilliseconds("pool-grow-timeout", 200))
 

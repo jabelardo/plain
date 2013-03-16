@@ -10,6 +10,10 @@ import scala.language.implicitConversions
 
 object ConnectionHelper {
 
+  /**
+   * see also: https://wiki.scala-lang.org/display/SYGN/Simplifying-jdbc
+   */
+
   implicit final def conn2Statement(conn: Connection): Statement = conn.createStatement
 
   implicit final def rrs2Boolean(rs: RichResultSet) = rs.nextBoolean
@@ -19,7 +23,6 @@ object ConnectionHelper {
   implicit final def rrs2Float(rs: RichResultSet) = rs.nextFloat
   implicit final def rrs2Double(rs: RichResultSet) = rs.nextDouble
   implicit final def rrs2String(rs: RichResultSet) = rs.nextString
-  implicit final def rrs2NString(rs: RichResultSet) = rs.nextNString
   implicit final def rrs2Date(rs: RichResultSet) = rs.nextDate
   implicit final def rrs2Time(rs: RichResultSet) = rs.nextTime
   implicit final def rrs2Timestamp(rs: RichResultSet) = rs.nextTimestamp
@@ -31,7 +34,6 @@ object ConnectionHelper {
   implicit final def rs2Float(rs: RichResultSet) = rs.nextFloat match { case Some(f) ⇒ f case _ ⇒ 0.0F }
   implicit final def rs2Double(rs: RichResultSet) = rs.nextDouble match { case Some(d) ⇒ d case _ ⇒ 0.0 }
   implicit final def rs2String(rs: RichResultSet) = rs.nextString match { case Some(s) ⇒ s case _ ⇒ "" }
-  implicit final def rs2NString(rs: RichResultSet): NString = rs.nextNString match { case Some(s) ⇒ s case _ ⇒ new NString("") }
   implicit final def rs2Date(rs: RichResultSet) = rs.nextDate match { case Some(d) ⇒ d case _ ⇒ Date.valueOf("1970-01-01") }
   implicit final def rs2Time(rs: RichResultSet) = rs.nextTime match { case Some(t) ⇒ t case _ ⇒ Time.valueOf("00:00:00") }
   implicit final def rs2Timestamp(rs: RichResultSet) = rs.nextTimestamp match { case Some(t) ⇒ t case _ ⇒ Timestamp.valueOf("1970-01-01 00:00:00.000000000") }
@@ -48,16 +50,6 @@ object ConnectionHelper {
   implicit final def st2Rich(s: Statement) = new RichStatement(s)
   implicit final def rich2St(rs: RichStatement) = rs.s
 
-  class NString(val s: String) extends Serializable {
-    override final def toString = s
-    override final def equals(other: Any) = s.equals(other.asInstanceOf[NString].s)
-    override final def hashCode = s.hashCode
-  }
-
-  implicit final def nstring2s(ns: NString) = ns.s
-
-  implicit final def s2nstring(s: String) = new NString(s)
-
   class RichResultSet(val rs: ResultSet) {
     var pos = 1
 
@@ -70,17 +62,6 @@ object ConnectionHelper {
     final def nextFloat: Option[Float] = { val ret = rs.getFloat(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
     final def nextDouble: Option[Double] = { val ret = rs.getDouble(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
     final def nextString: Option[String] = { val ret = rs.getString(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
-    final def nextNString: Option[NString] = {
-      val b = rs.getBytes(pos)
-      val ret = if (null == b) {
-        null
-      } else {
-        (0 until b.length).foreach { i ⇒ if (0 < b(i) && b(i) < 32) b.update(i, '.') }
-        new String(b, "ISO-8859-1")
-      }
-      pos += 1
-      if (rs.wasNull) None else Some(new NString(ret))
-    }
     final def nextDate: Option[Date] = { val ret = rs.getDate(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
     final def nextTime: Option[Time] = { val ret = rs.getTime(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
     final def nextTimestamp: Option[Timestamp] = { val ret = rs.getTimestamp(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
@@ -175,6 +156,9 @@ object ConnectionHelper {
     makestream(f, stat.executeQuery(s))
   }
 
+  /**
+   * where is this used
+   */
   final def iso8601(timestamp: java.sql.Timestamp) = {
     val format = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
     format.format(timestamp)

@@ -13,7 +13,7 @@ import aio.{ Io, Renderable }
 import aio.Renderable._
 import text.{ fastSplit, `UTF-8` }
 import Status.ClientError
-import MimeType.`application/json`
+import MimeType._
 
 /**
  *
@@ -40,7 +40,7 @@ final case class ContentType private (
 object ContentType {
 
   def apply(mimetype: MimeType) = mimetype match {
-    case `application/json` ⇒ new ContentType(mimetype, Some(`UTF-8`))
+    case `application/json` | `application/xml` | `text/xml` ⇒ new ContentType(mimetype, Some(`UTF-8`))
     case mimetype ⇒ new ContentType(mimetype, None)
   }
 

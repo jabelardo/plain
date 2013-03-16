@@ -23,8 +23,9 @@ package object plain
       .register(aio.Aio)
       .register(monitor.extension.jmx.JmxMonitor)
 
-    http.startupServers.foreach(path ⇒ appl.register(http.Server(path, Some(appl), None, None)))
     jdbc.startupConnectionFactories.foreach(path ⇒ appl.register(jdbc.ConnectionFactory(path)))
+
+    http.startupServers.foreach(path ⇒ appl.register(http.Server(path, Some(appl), None, None)))
 
     appl
   }
@@ -47,19 +48,6 @@ package object plain
       case e: Throwable ⇒ println("Exception during teardown : " + e)
     }
   }
-
-  /**
-   * Must match the version string provided by the *.conf files.
-   */
-  final val requiredVersion = "1.0.1"
-
-  final val home = getString("plain.home", System.getenv("PLAIN_HOME"))
-
-  /**
-   * check requirements
-   */
-  require(null != home, "Neither plain.home config setting nor PLAIN_HOME environment variable are set.")
-  require(requiredVersion == config.version, String.format("plain.version in *.conf files (%s) does not match internal version (%s).", config.version, requiredVersion))
 
 }
 

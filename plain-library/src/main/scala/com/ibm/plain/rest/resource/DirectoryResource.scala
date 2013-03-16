@@ -25,7 +25,7 @@ class DirectoryResource
   extends Resource {
 
   Get {
-    rootdirectory(context).resolve(context.remainder.mkString("/")) match {
+    root(context).resolve(context.remainder.mkString("/")) match {
       case file if file.toString.contains("..") ⇒ throw ClientError.`401`
       case file if exists(file) && isRegularFile(file) ⇒
         AsynchronousByteChannelEntity(forReading(file), ContentType(`text/plain`, text.`UTF-8`), size(file))
@@ -34,7 +34,7 @@ class DirectoryResource
     }
   }
 
-  private[this] final def rootdirectory(context: Context) = Paths.get(context.config.getString("rootdirectory")).toAbsolutePath
+  private[this] final def root(context: Context) = Paths.get(context.config.getString("root")).toAbsolutePath
 
 }
 
