@@ -24,6 +24,7 @@ object Settings {
   lazy val buildSettings = Seq(
     resolvers += "Typesafe releases" at "http://repo.typesafe.com/typesafe/releases/",
     resolvers += "cc.spray releases" at "http://repo.spray.cc",
+    resolvers += "local files" at "file:///Users/michael/.m2/repository/",
     organization := "com.ibm.plain",
     version      := "1.0.1-SNAPSHOT",
     scalaVersion := "2.10.1-RC3",

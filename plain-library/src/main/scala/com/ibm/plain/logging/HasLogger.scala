@@ -21,3 +21,19 @@ trait HasLogger {
 
 }
 
+/**
+ * To deactivate debugging temporarily stuff use this trait instead of HasLogger
+ */
+trait HasDummyLogger {
+  
+  final def debug(s: String) { }
+
+  final def info(s: String) { }
+
+  final def warning(s: String) { }
+
+  final def error(s: String) { }
+
+  implicit protected final val log: HasDummyLogger = this
+  
+}

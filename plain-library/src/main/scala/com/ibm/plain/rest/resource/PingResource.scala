@@ -23,7 +23,9 @@ final class PingResource
 
   import PingResource._
 
-  Get { pong }
+//    Get { pong }
+
+  Get { "Hello World!" }
 
   //  Get { f: Form ⇒ json.Json(f) }
   //
@@ -53,8 +55,8 @@ final class PingResource
 object PingResource {
 
   val pong = {
-    val s = new StringBuilder; (1 to 60).foreach(s.append("ABCkltjaeslkjasdklfjasölkfjasdlkfj alöksfj aslkfj alksjf lakösj pong!").append(_).append("\n")); s.toString.getBytes
-    "pong!".getBytes
+    // val s = new StringBuilder; (1 to 60).foreach(s.append("ABCkltjaeslkjasdklfjasölkfjasdlkfj alöksfj aslkfj alksjf lakösj pong!").append(_).append("\n")); s.toString.getBytes
+//    "pong!".getBytes
   }
 
 }

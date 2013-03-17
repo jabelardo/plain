@@ -95,6 +95,39 @@ abstract sealed class IoHelper[E <: Io] {
 /**
  *
  */
+final private class SSLChannel private (
+
+  val channel: Channel) extends Channel with SSL {
+
+  @inline final def close = channel.close
+
+  @inline final def isOpen = channel.isOpen
+
+  @inline final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[Integer, _ >: A]) {
+    unwrap(buffer, attachment, handler)
+  }
+
+  @inline final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[Integer, _ >: A]) {
+    wrap(buffer, attachment, handler)
+  }
+
+  def read(buffer: ByteBuffer) = channel.read(buffer)
+
+  def write(buffer: ByteBuffer) = channel.write(buffer)
+
+}
+
+private object SSLChannel {
+
+  def apply(channel: Channel) = {
+    new SSLChannel(channel)
+  }
+
+}
+
+/**
+ *
+ */
 final private class SocketChannelWithTimeout private (
 
   channel: SocketChannel) extends Channel {
@@ -102,7 +135,7 @@ final private class SocketChannelWithTimeout private (
   @inline final def close = channel.close
 
   @inline final def isOpen = channel.isOpen
-
+  
   @inline final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[Integer, _ >: A]) = {
     channel.read(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, attachment, handler)
   }
@@ -274,7 +307,7 @@ object Io
         server.accept(io, this)
       else
         scheduleOnce(pauseinmilliseconds)(server.accept(io, this))
-      k(io ++ SocketChannelWithTimeout(c) ++ defaultByteBuffer)
+      k(io ++ SSLChannel(SocketChannelWithTimeout(c)) ++ defaultByteBuffer)
     }
 
     @inline final def failed(e: Throwable, io: Io) = {
