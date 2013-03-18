@@ -40,7 +40,7 @@ final case class ContentType private (
 object ContentType {
 
   def apply(mimetype: MimeType) = mimetype match {
-    case `application/json` | `application/xml` | `text/xml` ⇒ new ContentType(mimetype, Some(`UTF-8`))
+    case `application/json` | `application/xml` | `text/xml` | `text/html` | `text/plain` ⇒ new ContentType(mimetype, Some(`UTF-8`))
     case mimetype ⇒ new ContentType(mimetype, None)
   }
 

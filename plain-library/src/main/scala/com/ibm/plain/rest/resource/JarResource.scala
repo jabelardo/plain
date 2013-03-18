@@ -16,7 +16,6 @@ import http.MimeType.{ `application/octet-stream`, forExtension }
 import http.Status.ClientError
 import io.{ copyBytesIo ⇒ copy }
 import logging.HasLogger
-import rest.{ Context, Resource }
 
 /**
  *
@@ -26,8 +25,8 @@ class JarResource
   extends Resource {
 
   Get {
-    val path = context.remainder.mkString("/")
-    getClass.getClassLoader.getResourceAsStream(root(context) + path) match {
+    val path = resourcePath(context)
+    getClass.getClassLoader.getResourceAsStream(path) match {
       case in if null != in && -1 < { try in.available catch { case _: Throwable ⇒ -1 } } ⇒
         val out = new ByteArrayOutputStream(in.available)
         try {
@@ -37,16 +36,16 @@ class JarResource
           in.close
           out.close
         }
-      case _ ⇒ JarResource.debug(root(context) + context.remainder.mkString("/") + " not found."); throw ClientError.`404`
+      case _ ⇒ JarResource.debug(path + " not found."); throw ClientError.`404`
     }
 
   }
 
-  private[this] final def root(context: Context) = {
-    var r = context.config.getString("root")
-    if (!r.endsWith("/")) r = r + "/"
-    if (r.startsWith("/")) r = r.drop(1)
-    r
+  @inline private[this] final def resourcePath(context: Context) = {
+    var root = context.config.getString("root")
+    if (!root.endsWith("/")) root = root + "/"
+    if (root.startsWith("/")) root = root.drop(1)
+    root + (if (context.remainder.isEmpty) "index.html" else context.remainder.mkString("/"))
   }
 
 }
@@ -54,5 +53,5 @@ class JarResource
 /**
  *
  */
-object JarResource extends HasLogger 
+object JarResource extends HasLogger
 

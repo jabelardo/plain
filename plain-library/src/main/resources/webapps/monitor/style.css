@@ -1,0 +1,75 @@
+.gep-ApplicationMenu .menuButton,.menuButtonOver,.menuButtonDown,.menuButtonDisabled,.menuButtonFocused,.menuButtonFocusedDown,.menuButtonFocusedOver,.menuButtonSelected,.menuButtonSelectedDown,.menuButtonSelectedOver,.menuButtonSelectedDisabled
+	{
+	font-family: Tahoma;
+	font-size: 11px;
+	background: #d4d0c8;
+	padding-left: 4px;
+	padding-right: 4px;
+	color: #000000;
+	border: 0px;
+	cursor: default;
+}
+
+.gep-ApplicationMenu .menuButtonOver {
+	font-family: Tahoma;
+	font-size: 11px;
+	background: #919191;
+	color: #f0f0f0;
+	border: 0px;
+}
+
+.gep-ApplicationMenu .menuButtonDown,.menuButtonFocusedDown,.menuButtonFocusedOver,.menuButtonSelected,.menuButtonSelectedDown,.menuButtonSelectedOver
+	{
+	font-family: Tahoma;
+	font-size: 11px;
+	background: #818181;
+	color: #f0f0f0;
+	border: 0px;
+}
+
+.gep-ApplicationMenu .menuButtonDisabled,.menuButtonSelectedDisabled {
+	font-family: Tahoma;
+	font-size: 11px;
+	border: 0px;
+	color: #AAAAAA;
+}
+
+#loading {
+	border: 2px solid #ccc;
+	position: absolute;
+	left: 30;
+	top: 30;
+	height: auto;
+	width: auto;
+}
+
+#loading a {
+	color: #225588;
+}
+
+#loading .loadingIndicator {
+	background: #f0f0f0;
+	font-size: 15px;
+	font-family: Arial, Verdana, Bitstream Vera Sans, sans-serif;
+	font-weight: bold;
+	padding: 10;
+	margin: 0;
+	height: 38;
+	width: 640;
+	color: #000;
+	opacity: .75;
+}
+
+#loadingMsg {
+	font-weight: normal;
+	font-size: 13px;
+	font-family: Arial, Verdana, Bitstream Vera Sans, sans-serif;
+}
+
+.errordialog {
+	display: block;
+	text-align: left;
+	padding: 10 10 20 20;
+	font-size: 12px;
+	font-family: Arial, Verdana, Bitstream Vera Sans, sans-serif;
+}

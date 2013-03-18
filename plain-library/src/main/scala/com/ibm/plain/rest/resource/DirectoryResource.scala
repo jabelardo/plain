@@ -6,15 +6,15 @@ package rest
 
 package resource
 
-import java.nio.file.Files.{ exists, isRegularFile, size }
-import java.nio.file.Paths
+import java.nio.file.Files.{ exists, isRegularFile, isDirectory, size }
+import java.nio.file.{ Path, Paths }
 
-import com.ibm.plain.rest.{ Context, Resource }
+import org.apache.commons.io.FilenameUtils.getExtension
 
 import aio.FileByteChannel.forReading
 import http.ContentType
 import http.Entity.AsynchronousByteChannelEntity
-import http.MimeType.`text/plain`
+import http.MimeType.{ `application/octet-stream`, forExtension }
 import http.Status.ClientError
 
 /**
@@ -25,12 +25,17 @@ class DirectoryResource
   extends Resource {
 
   Get {
+    def get(file: Path) = AsynchronousByteChannelEntity(forReading(file), ContentType(forExtension(getExtension(file.toString)).getOrElse(`application/octet-stream`)), size(file))
+
     root(context).resolve(context.remainder.mkString("/")) match {
       case file if file.toString.contains("..") ⇒ throw ClientError.`401`
-      case file if exists(file) && isRegularFile(file) ⇒
-        AsynchronousByteChannelEntity(forReading(file), ContentType(`text/plain`, text.`UTF-8`), size(file))
-      case file if exists(file) ⇒ throw ClientError.`406`
-      case f ⇒ throw ClientError.`404`
+      case file if exists(file) && isRegularFile(file) ⇒ get(file)
+      case file if exists(file) && isDirectory(file) ⇒
+        file.resolve("index.html") match {
+          case index if exists(index) && isRegularFile(index) ⇒ get(index)
+          case index ⇒ throw ClientError.`406`
+        }
+      case _ ⇒ throw ClientError.`404`
     }
   }
 

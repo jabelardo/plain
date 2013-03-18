@@ -201,7 +201,7 @@ object MimeType {
   case object `text/csv` extends `text/*`("csv")
   case object `text/html` extends `text/*`("html", "html")
   case object `text/javascript` extends `text/*`("js")
-  case object `text/plain` extends `text/*`("txt", "text", "ini", "log", "conf", "properties", "plain", "bat", "cmd")
+  case object `text/plain` extends `text/*`("txt", "text", "ini", "log", "conf", "md", "properties", "plain", "bat", "cmd")
   case object `text/rtf` extends `text/*`("rtf")
   case object `text/tab-separated-values` extends `text/*`("tsv")
   case object `text/xml` extends `text/*`("xml")
