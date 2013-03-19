@@ -4,10 +4,16 @@ package plain
 
 package logging
 
+import akka.event.{ BusLogging, EventStream }
+
 /**
  * Mixin this trait to get a protected implicit member log: akka.logging.LoggingAdapter.
  */
 trait HasLogger {
+
+  final def disableLogging = log_ = new BusLogging(new EventStream(false), "", this.getClass)
+
+  final def enableLogging = log_ = createLogger(this)
 
   protected final def debug(s: String) = log.debug(s)
 
@@ -17,7 +23,9 @@ trait HasLogger {
 
   protected final def error(s: String) = log.error(s)
 
-  implicit protected final val log = createLogger(this)
+  implicit protected final def log = log_
+
+  @volatile private[this] final var log_ = createLogger(this)
 
 }
 

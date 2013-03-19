@@ -2,7 +2,7 @@ package com.ibm
 
 package plain
 
-import java.io.{ ByteArrayOutputStream, OutputStreamWriter, PrintWriter, StringWriter }
+import java.io.{ ByteArrayOutputStream, ByteArrayInputStream, OutputStreamWriter, PrintWriter, StringWriter, ObjectOutputStream, ObjectInputStream }
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets.{ ISO_8859_1, US_ASCII, UTF_8 }
@@ -11,34 +11,34 @@ import scala.annotation.tailrec
 
 import org.apache.commons.codec.binary.Base64
 
-import io.Base64OutputStream
+import io.{ Base64InputStream, Base64OutputStream }
 
 package object text {
 
   /**
    * The most important standard character sets.
    */
-  val `US-ASCII` = US_ASCII
+  final val `US-ASCII` = US_ASCII
 
   /**
    * The most important standard character sets.
    */
-  val `UTF-8` = UTF_8
+  final val `UTF-8` = UTF_8
 
   /**
    * This is the default for HTTP/1.1.
    */
-  val `ISO-8859-1` = ISO_8859_1
+  final val `ISO-8859-1` = ISO_8859_1
 
   /**
    * This overrides the default for HTTP/1.1 (ISO-8859-1) in our framework just because of the Euro sign (€).
    */
-  val `ISO-8859-15` = Charset.forName("ISO-8859-15")
+  final val `ISO-8859-15` = Charset.forName("ISO-8859-15")
 
   /**
    * Convert input to readable output if input is base64-encoded else return input.
    */
-  def fromBase64String(in: String, charset: Charset): String = {
+  final def fromBase64String(in: String, charset: Charset): String = {
     val inbytes = in.getBytes
     if (Base64.isBase64(inbytes)) new String(Base64.decodeBase64(inbytes), charset) else in
   }
@@ -46,7 +46,7 @@ package object text {
   /**
    * Convert the stack trace of a Throwable into a string.
    */
-  def stackTraceToString(throwable: Throwable) = {
+  final def stackTraceToString(throwable: Throwable) = {
     val writer = new StringWriter(io.defaultBufferSize)
     throwable.printStackTrace(new PrintWriter(writer))
     writer.toString
@@ -55,19 +55,37 @@ package object text {
   /**
    * Convert the stack trace of a Throwable into a base64-encoded string.
    */
-  def stackTraceToBase64(throwable: Throwable) = {
+  final def stackTraceToBase64(throwable: Throwable) = {
     val bos = new ByteArrayOutputStream(io.defaultBufferSize)
     val b64 = new Base64OutputStream(bos)
     val writer = new PrintWriter(new OutputStreamWriter(b64))
     throwable.printStackTrace(writer)
     writer.close
-    new String(bos.toByteArray, "UTF-8")
+    new String(bos.toByteArray, `UTF-8`)
+  }
+
+  final def anyToBase64(any: Any): String = {
+    val bos = new ByteArrayOutputStream(io.defaultBufferSize)
+    val b64 = new Base64OutputStream(bos)
+    val out = new ObjectOutputStream(b64)
+    out.writeObject(any)
+    out.close
+    new String(bos.toByteArray, `UTF-8`)
+  }
+
+  final def anyFromBase64[A](s: String): A = {
+    val bin = new ByteArrayInputStream(s.getBytes(`UTF-8`))
+    val b64 = new Base64InputStream(bin)
+    val in = new ObjectInputStream(b64)
+    val any = in.readObject.asInstanceOf[A]
+    in.close
+    any
   }
 
   /**
    * 'borrowed' from spray.io
    */
-  def fastSplit(s: String, delimiter: Char): List[String] = {
+  final def fastSplit(s: String, delimiter: Char): List[String] = {
     @tailrec def split(end: Int, elements: List[String]): List[String] = {
       val i = s.lastIndexOf(delimiter, end - 1)
       if (i < 0) s.substring(0, end) :: elements else split(i, s.substring(i + 1, end) :: elements)
@@ -78,17 +96,17 @@ package object text {
   /**
    * Convert a String representation from one Charset to another.
    */
-  def convertCharset(s: String, from: Charset, to: Charset) = new String(s.getBytes(from), to)
+  final def convertCharset(s: String, from: Charset, to: Charset) = new String(s.getBytes(from), to)
 
   /**
    * Returns true if s represents a numeric value (ie. an Int, a Long or a Double)
    */
-  def isNumber(s: String): Boolean = try { val d = s.toDouble; true } catch { case _: Throwable ⇒ false }
+  final def isNumber(s: String): Boolean = try { val d = s.toDouble; true } catch { case _: Throwable ⇒ false }
 
   /**
    * Converts an UTF8 encoded string to a hex string, the hex characters are all uppercase; it is case sensitive.
    */
-  def hexify(s: String): String = {
+  final def hexify(s: String): String = {
     val bytes = s.getBytes(`UTF-8`)
     val buf = new StringBuilder(2 * bytes.length)
     var i = 0; while (i < bytes.length) { buf.append(hexarray(0xff & bytes(i))); i += 1 }
@@ -98,7 +116,7 @@ package object text {
   /**
    * Converts hex to an UTF8 encoded string; it is case insensitive; hex length must be even.
    */
-  def unhexify(hex: String): String = {
+  final def unhexify(hex: String): String = {
     val len = hex.length / 2
     val buf = new Array[Byte](len)
     var i = 0
@@ -113,7 +131,7 @@ package object text {
   /**
    * Converts an UTF8 encoded string to a crypted hex string, the hex characters are all uppercase; it is case sensitive.
    */
-  def hexifyCrypted(s: String): String = {
+  final def hexifyCrypted(s: String): String = {
     val bytes = s.getBytes(`UTF-8`)
     val buf = new StringBuilder(2 * bytes.length)
     var i = 0; while (i < bytes.length) {
@@ -126,7 +144,7 @@ package object text {
   /**
    * Converts a crypted hex to an UTF8 encoded string; it is case insensitive; hex length must be even.
    */
-  def unhexifyCrypted(hex: String): String = {
+  final def unhexifyCrypted(hex: String): String = {
     val h = hex.toUpperCase
     val buf = new StringBuilder(hex.length)
     val len = hex.length / 2
@@ -139,7 +157,7 @@ package object text {
     unhexify(buf.toString)
   }
 
-  def hexDump(array: Array[Byte], offset: Int, length: Int): String = {
+  final def hexDump(array: Array[Byte], offset: Int, length: Int): String = {
     val HEXCHAR = Array[Char]('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f')
     if (null != array) {
       val buf = new StringBuilder(length * 5)
@@ -168,7 +186,7 @@ package object text {
     } else ""
   }
 
-  def hexDump(buffer: ByteBuffer): String =
+  final def hexDump(buffer: ByteBuffer): String =
     if (buffer.hasArray)
       hexDump(buffer.array, buffer.position, buffer.remaining)
     else {

@@ -5,7 +5,7 @@ package plain
 package jdbc
 
 import java.sql.{ Connection ⇒ JdbcConnection }
-import java.util.concurrent.BlockingQueue
+import java.util.concurrent.BlockingDeque
 import java.util.concurrent.atomic.{ AtomicBoolean, AtomicLong }
 
 /**
@@ -15,11 +15,21 @@ final class Connection private[jdbc] (
 
   connection: JdbcConnection,
 
-  var idle: BlockingQueue[Connection])
+  var idle: BlockingDeque[Connection])
 
   extends ConnectionWrapper(connection) {
 
-  override def toString = super.toString + " " + isActive
+  override final def toString = super.toString + " active=" + isActive
+
+  override final def close: Unit = {
+    if (!connection.isClosed) {
+      connection.clearWarnings
+      if (!idle.contains(this)) {
+        deactivate
+        idle.putFirst(this)
+      } else throw new IllegalStateException("Connection already in idle list : " + this)
+    } else doClose
+  }
 
   @inline final def isActive = active.get
 

@@ -5,6 +5,7 @@ package plain
 package jdbc
 
 import java.sql.{ Connection ⇒ JdbcConnection }
+import javax.sql.{ DataSource ⇒ JdbcDataSource }
 import java.util.Properties
 import java.util.concurrent.{ ConcurrentHashMap, LinkedBlockingDeque, TimeUnit }
 import java.util.concurrent.atomic.{ AtomicInteger, AtomicLong }
@@ -13,6 +14,7 @@ import scala.Array.canBuildFrom
 import scala.collection.JavaConversions.{ asScalaBuffer, asScalaSet }
 import scala.collection.mutable.ListBuffer
 import scala.language.reflectiveCalls
+import scala.language.postfixOps
 
 import com.ibm.plain.bootstrap.BaseComponent
 import com.typesafe.config.{ Config, ConfigList, ConfigValue, ConfigFactory, ConfigValueFactory }
@@ -46,14 +48,9 @@ final case class ConnectionFactory(
     setParameters(datasource, datasourcesettings)
     setProperties(datasourceproperties)
     try {
-      val poolmins = new ListBuffer[Connection]
-      (0 until poolmin).foreach { i ⇒
-        getConnection() match {
-          case Some(connection) ⇒ poolmins += connection
-          case None ⇒
-        }
-      }
-      poolmins.foreach { _.close }
+      val conns = new ListBuffer[Connection]
+      (0 until poolmin).foreach(_ ⇒ conns += newConnection)
+      conns.foreach(_.close)
     } catch {
       case e: Throwable ⇒ error(name + " : Cannot establish connection :  " + e)
     }
@@ -73,7 +70,31 @@ final case class ConnectionFactory(
       }
     }
     debug(name + " has started.")
+
+    testMe
+
     this
+  }
+
+  private def testMe = {
+
+    import ConnectionHelper._
+
+    val longs = { val b = new StringBuilder; for (i ← 1 to 10) b.append("this is the line number " + i + "\\n"); b.toString.getBytes(text.`UTF-8`) }
+    def in(array: Array[Byte]) = new java.io.ByteArrayInputStream(array)
+
+    withConnection("DERBYTEST") { implicit connection ⇒
+      def dump = for (row ← "select * from secondtable where id < ? order by id desc" << 99999 <<! (result ⇒ Second(result))) {
+        println(row.toJson)
+        val r: Second = text.anyFromBase64(text.anyToBase64(row))
+        println(r.toXml)
+      }
+      println("delete from secondtable where id > ?" << 999 <<!!); dump
+      for (i ← 1000 until 1010) "insert into secondtable values(?, ?, ? )" << i << ("value " + i) << in(longs) <<!; dump
+      println("update secondtable set id = ?, name = 'what?', data = null where id = ?" << 9998 << 1008 <<!!); dump
+      connection.commit
+    }
+
   }
 
   override final def stop = {
@@ -85,12 +106,16 @@ final case class ConnectionFactory(
     this
   }
 
-  final def newConnection(timeout: Long = pooltimeout) = getConnection(timeout) match {
+  final def newConnection: Connection = newConnection(pooltimeout)
+
+  final def getConnection: Option[Connection] = getConnection(pooltimeout)
+
+  final def newConnection(timeout: Long) = getConnection(timeout) match {
     case Some(connection) ⇒ connection
     case _ ⇒ throw new java.sql.SQLTimeoutException("No connection available from " + name)
   }
 
-  final def getConnection(timeout: Long = pooltimeout): Option[Connection] = {
+  final def getConnection(timeout: Long): Option[Connection] = {
     var connection: Option[Connection] = None
     var elapsed = 0L
     val interval = growtimeout.get
@@ -98,7 +123,7 @@ final case class ConnectionFactory(
       while (None == connection && elapsed < timeout) {
         connection = idle.poll(interval, TimeUnit.MILLISECONDS) match {
           case null if connections.size < poolmax ⇒
-            val conn = datasource.getConnection.unwrap(connectionclass).asInstanceOf[JdbcConnection]
+            val conn = datasource.unwrap(classOf[JdbcDataSource]).getConnection.unwrap(connectionclass).asInstanceOf[JdbcConnection]
             setParameters(conn, connectionsettings)
             val connection = new Connection(conn, idle)
             connections.add(connection)
@@ -118,7 +143,6 @@ final case class ConnectionFactory(
         if (log.isDebugEnabled) debug(name + " : peak elapsed : " + elapsed)
       }
       if (None == connection) error(name + ": " + "No more connections available in pool.")
-
       connection
     } catch {
       case e: Throwable ⇒
@@ -172,13 +196,9 @@ final case class ConnectionFactory(
     override final def put(connection: Connection, o: Unit): Unit = {
       super.put(connection, o)
       if (size > peak.get) peak.set(size)
-      // if (log.isDebugEnabled) debug(name + ": " + "Connections.add " + size + ", peak " + peak.get)
     }
 
-    final def remove(connection: Connection): Unit = {
-      super.remove(connection)
-      // if (log.isDebugEnabled) debug(name + ": " + "Connections.remove: connections " + size + ", peak " + peak.get + ", timeout " + (now - connection.asInstanceOf[Connection].lastaccessed.get) + " ms, idle " + idle.size)
-    }
+    final def remove(connection: Connection): Unit = super.remove(connection)
 
     private[this] final val peak = new AtomicInteger(0)
 
@@ -200,7 +220,7 @@ final case class ConnectionFactory(
 
   private[this] final val pooltimeout = settings.getMilliseconds("pool-get-timeout", 15000)
 
-  private[this] final val poolmin = settings.getInt("min-pool-size", 1)
+  private[this] final val poolmin = settings.getInt("min-pool-size", 0)
 
   private[this] final val poolmax = settings.getInt("max-pool-size", 8)
 
@@ -219,3 +239,33 @@ final case class ConnectionFactory(
   private[this] final val connectionsettings = settings.getConfig("connection-settings", ConfigFactory.empty).withFallback(config.settings.getConfig("plain.jdbc.drivers." + driver + ".connection-settings", ConfigFactory.empty))
 
 }
+
+import javax.xml.bind.annotation._
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter
+import xml._
+import xml.Adapter._
+import json._
+import ConnectionHelper._
+
+/**
+ *
+ */
+@SerialVersionUID(1L)
+@XmlRootElement(name = "second")
+@XmlAccessorType(XmlAccessType.PROPERTY)
+case class Second(@transient result: RichResultSet)
+
+  extends XmlMarshaled
+
+  with JsonMarshaled {
+
+  @xmlAttribute val id: Int = result
+
+  @xmlAttribute val name: String = result
+
+  @XmlJavaTypeAdapter(classOf[StringOptionAdapter]) val data: Option[String] = result.nextArray match { case Some(array) ⇒ Some(new String(array, text.`UTF-8`)) case _ ⇒ None }
+
+  def this() = this(null)
+
+}
+

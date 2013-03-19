@@ -4,18 +4,20 @@ package plain
 
 import scala.annotation.meta.field
 
+import com.ibm.plain.xml.XmlMarshaled
+
+import config.{ CheckedConfig, config2RichConfig }
 import javax.xml.bind.annotation.{ XmlAnyElement, XmlAttribute, XmlElement, XmlElementRef, XmlElementRefs, XmlElementWrapper, XmlTransient }
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter
-
-import config.CheckedConfig
 
 package object xml
 
   extends CheckedConfig {
 
   import config.settings._
+  import config._
 
-  final val formattedOutput = getBoolean("plain.xml.formatted-output")
+  final val formattedOutput = getBoolean("plain.xml.formatted-output", false)
 
   final val unmarshalXml = XmlMarshaled
 

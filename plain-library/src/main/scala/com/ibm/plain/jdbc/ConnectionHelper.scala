@@ -4,7 +4,8 @@ package plain
 
 package jdbc
 
-import java.sql.{ Date, PreparedStatement, ResultSet, Statement, Time, Timestamp, Types }
+import java.sql.{ Date, PreparedStatement, ResultSet, Statement, Time, Timestamp, Types, Blob }
+import java.io.{ ByteArrayInputStream, InputStream, OutputStream }
 
 import scala.language.implicitConversions
 
@@ -14,29 +15,37 @@ object ConnectionHelper {
    * see also: https://wiki.scala-lang.org/display/SYGN/Simplifying-jdbc
    */
 
-  implicit final def conn2Statement(conn: Connection): Statement = conn.createStatement
+  /**
+   * Return an Option.
+   */
+  implicit def rrs2Boolean(rs: RichResultSet) = rs.nextBoolean
+  implicit def rrs2Byte(rs: RichResultSet) = rs.nextByte
+  implicit def rrs2Int(rs: RichResultSet) = rs.nextInt
+  implicit def rrs2Long(rs: RichResultSet) = rs.nextLong
+  implicit def rrs2Float(rs: RichResultSet) = rs.nextFloat
+  implicit def rrs2Double(rs: RichResultSet) = rs.nextDouble
+  implicit def rrs2String(rs: RichResultSet) = rs.nextString
+  implicit def rrs2Date(rs: RichResultSet) = rs.nextDate
+  implicit def rrs2Time(rs: RichResultSet) = rs.nextTime
+  implicit def rrs2Timestamp(rs: RichResultSet) = rs.nextTimestamp
+  implicit def rrs2InputStream(rs: RichResultSet) = rs.nextInputStream
+  implicit def rrs2Array(rs: RichResultSet) = rs.nextArray
 
-  implicit final def rrs2Boolean(rs: RichResultSet) = rs.nextBoolean
-  implicit final def rrs2Byte(rs: RichResultSet) = rs.nextByte
-  implicit final def rrs2Int(rs: RichResultSet) = rs.nextInt
-  implicit final def rrs2Long(rs: RichResultSet) = rs.nextLong
-  implicit final def rrs2Float(rs: RichResultSet) = rs.nextFloat
-  implicit final def rrs2Double(rs: RichResultSet) = rs.nextDouble
-  implicit final def rrs2String(rs: RichResultSet) = rs.nextString
-  implicit final def rrs2Date(rs: RichResultSet) = rs.nextDate
-  implicit final def rrs2Time(rs: RichResultSet) = rs.nextTime
-  implicit final def rrs2Timestamp(rs: RichResultSet) = rs.nextTimestamp
-
-  implicit final def rs2Boolean(rs: RichResultSet) = rs.nextBoolean match { case Some(b) ⇒ b case _ ⇒ false }
-  implicit final def rs2Byte(rs: RichResultSet): Byte = rs.nextByte match { case Some(b) ⇒ b case _ ⇒ 0 }
-  implicit final def rs2Int(rs: RichResultSet): Int = rs.nextInt match { case Some(i) ⇒ i case _ ⇒ 0 }
-  implicit final def rs2Long(rs: RichResultSet): Long = rs.nextLong match { case Some(l) ⇒ l case _ ⇒ 0 }
-  implicit final def rs2Float(rs: RichResultSet) = rs.nextFloat match { case Some(f) ⇒ f case _ ⇒ 0.0F }
-  implicit final def rs2Double(rs: RichResultSet) = rs.nextDouble match { case Some(d) ⇒ d case _ ⇒ 0.0 }
-  implicit final def rs2String(rs: RichResultSet) = rs.nextString match { case Some(s) ⇒ s case _ ⇒ "" }
-  implicit final def rs2Date(rs: RichResultSet) = rs.nextDate match { case Some(d) ⇒ d case _ ⇒ Date.valueOf("1970-01-01") }
-  implicit final def rs2Time(rs: RichResultSet) = rs.nextTime match { case Some(t) ⇒ t case _ ⇒ Time.valueOf("00:00:00") }
-  implicit final def rs2Timestamp(rs: RichResultSet) = rs.nextTimestamp match { case Some(t) ⇒ t case _ ⇒ Timestamp.valueOf("1970-01-01 00:00:00.000000000") }
+  /**
+   * Return a default value in case of None.
+   */
+  implicit final def rs2Boolean(rs: RichResultSet) = rs.nextBoolean.getOrElse(false)
+  implicit final def rs2Byte(rs: RichResultSet): Byte = rs.nextByte.getOrElse(0)
+  implicit final def rs2Int(rs: RichResultSet): Int = rs.nextInt.getOrElse(0)
+  implicit final def rs2Long(rs: RichResultSet): Long = rs.nextLong.getOrElse(0L)
+  implicit final def rs2Float(rs: RichResultSet) = rs.nextFloat.getOrElse(0.0F)
+  implicit final def rs2Double(rs: RichResultSet) = rs.nextDouble.getOrElse(0.0)
+  implicit final def rs2String(rs: RichResultSet) = rs.nextString.getOrElse("")
+  implicit final def rs2Date(rs: RichResultSet) = rs.nextDate.getOrElse(Date.valueOf("1970-01-01"))
+  implicit final def rs2Time(rs: RichResultSet) = rs.nextTime.getOrElse(Time.valueOf("00:00:00"))
+  implicit final def rs2Timestamp(rs: RichResultSet) = rs.nextTimestamp.getOrElse(Timestamp.valueOf("1970-01-01 00:00:00.000000000"))
+  implicit final def rs2InputStream(rs: RichResultSet) = rs.nextInputStream.getOrElse(new ByteArrayInputStream(new Array[Byte](0)))
+  implicit final def rs2Array(rs: RichResultSet) = rs.nextArray.getOrElse(new Array[Byte](0))
 
   implicit final def resultSet2Rich(rs: ResultSet) = new RichResultSet(rs)
   implicit final def rich2ResultSet(r: RichResultSet) = r.rs
@@ -50,10 +59,12 @@ object ConnectionHelper {
   implicit final def st2Rich(s: Statement) = new RichStatement(s)
   implicit final def rich2St(rs: RichStatement) = rs.s
 
-  class RichResultSet(val rs: ResultSet) {
-    var pos = 1
+  implicit final def conn2Statement(conn: Connection): Statement = conn.createStatement
 
-    final def apply(i: Int) = { pos = i; this }
+  /**
+   *
+   */
+  final class RichResultSet(val rs: ResultSet) {
 
     final def nextBoolean: Option[Boolean] = { val ret = rs.getBoolean(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
     final def nextByte: Option[Byte] = { val ret = rs.getByte(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
@@ -65,103 +76,120 @@ object ConnectionHelper {
     final def nextDate: Option[Date] = { val ret = rs.getDate(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
     final def nextTime: Option[Time] = { val ret = rs.getTime(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
     final def nextTimestamp: Option[Timestamp] = { val ret = rs.getTimestamp(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
+    final def nextInputStream: Option[InputStream] = { val ret = rs.getBlob(pos); pos += 1; if (rs.wasNull) None else Some(ret.getBinaryStream) }
+    final def nextArray: Option[Array[Byte]] = { val ret = rs.getBlob(pos); pos += 1; if (rs.wasNull) None else { val r = Some(ret.getBytes(1, ret.length.toInt)); ret.free; r } }
 
-    final def foldLeft[X](init: X)(f: (ResultSet, X) ⇒ X): X = rs.next match {
+    final def foldLeft[A](init: A)(f: (ResultSet, A) ⇒ A): A = rs.next match {
       case false ⇒ init
       case true ⇒ foldLeft(f(rs, init))(f)
     }
-    final def map[X](f: ResultSet ⇒ X) = {
-      var ret = List[X]()
+
+    final def map[A](f: ResultSet ⇒ A) = {
+      var ret = List[A]()
       while (rs.next()) {
         ret = f(rs) :: ret
       }
       ret.reverse
     }
+
+    final def apply(i: Int) = { require(0 < i && i < rs.getMetaData.getColumnCount); pos = i; this }
+
+    private[this] final var pos = 1
+
   }
 
-  class RichPreparedStatement(val ps: PreparedStatement) {
-    var pos = 1
-    var repeat = 1
-    private final def inc = { pos += 1; this }
+  /**
+   *
+   */
+  final class RichPreparedStatement(val ps: PreparedStatement) {
 
-    final def execute[X](f: RichResultSet ⇒ X): Stream[X] = {
+    final def execute[A](f: RichResultSet ⇒ A): Stream[A] = {
       pos = 1
       makestream(f, ps.executeQuery)
     }
-    final def <<![X](f: RichResultSet ⇒ X): Stream[X] = execute(f)
+
+    final def <<![A](f: RichResultSet ⇒ A): Stream[A] = execute(f)
 
     final def execute = { pos = 1; ps.execute }
+
+    final def executeUpdate: Int = { pos = 1; ps.executeUpdate }
+
     final def <<! = execute
 
-    final def <<(x: Option[Any]): RichPreparedStatement = {
-      x match {
+    final def <<!! = executeUpdate
+
+    final def <<(any: Option[Any]): RichPreparedStatement = {
+      any match {
         case None ⇒
-          ps.setNull(pos, Types.NULL)
-          inc
-        case Some(y) ⇒ (this << y)
+          ps.setNull(pos, Types.NULL); inc
+        case Some(a) ⇒ (this << a)
       }
     }
-    final def <<?(n: Int): RichPreparedStatement = {
-      repeat = n
-      this
-    }
-    final def <<(x: Any): RichPreparedStatement = {
+
+    final def <<?(n: Int): RichPreparedStatement = { repeat = n; this }
+
+    final def <<(any: Any): RichPreparedStatement = {
       while (0 < repeat) {
-        x match {
-          case z: Boolean ⇒
-            ps.setBoolean(pos, z)
-          case z: Byte ⇒
-            ps.setByte(pos, z)
-          case z: Int ⇒
-            ps.setInt(pos, z)
-          case z: Long ⇒
-            ps.setLong(pos, z)
-          case z: Float ⇒
-            ps.setFloat(pos, z)
-          case z: Double ⇒
-            ps.setDouble(pos, z)
-          case z: String ⇒
-            ps.setString(pos, z)
-          case z: Date ⇒
-            ps.setDate(pos, z)
-          case z ⇒ ps.setObject(pos, z)
+        any match {
+          case a: Boolean ⇒ ps.setBoolean(pos, a)
+          case a: Byte ⇒ ps.setByte(pos, a)
+          case a: Int ⇒ ps.setInt(pos, a)
+          case a: Long ⇒ ps.setLong(pos, a)
+          case a: Float ⇒ ps.setFloat(pos, a)
+          case a: Double ⇒ ps.setDouble(pos, a)
+          case a: String ⇒ ps.setString(pos, a)
+          case a: Date ⇒ ps.setDate(pos, a)
+          case a: InputStream ⇒ ps.setBinaryStream(pos, a)
+          case a: Array[Byte] ⇒ ps.setBytes(pos, a)
+          case a ⇒ ps.setObject(pos, a)
         }
-        inc
+        pos += 1
         repeat -= 1
       }
       this <<? 1
     }
+
+    @inline private[this] final def inc = { pos += 1; this }
+
+    private[this] final var pos = 1
+
+    private[this] final var repeat = 1
+
   }
 
+  /**
+   *
+   */
   class RichConnection(val conn: Connection) {
     final def <<(sql: String) = new RichStatement(conn.createStatement) << sql
     final def <<(sql: Seq[String]) = new RichStatement(conn.createStatement) << sql
   }
 
+  /**
+   *
+   */
   class RichStatement(val s: Statement) {
     final def <<(sql: String) = { s.execute(sql); this }
     final def <<(sql: Seq[String]) = { for (x ← sql) s.execute(x); this }
   }
 
-  private final def makestream[X](f: RichResultSet ⇒ X, rs: ResultSet): Stream[X] = {
+  /**
+   *
+   */
+  implicit final def query[A](s: String, f: RichResultSet ⇒ A)(implicit stat: Statement): Stream[A] = {
+    makestream(f, stat.executeQuery(s))
+  }
+
+  /**
+   * Glue it all together.
+   */
+  private final def makestream[A](f: RichResultSet ⇒ A, rs: ResultSet): Stream[A] = {
     if (rs.next) {
       Stream.cons(f(new RichResultSet(rs)), makestream(f, rs))
     } else {
       rs.close
       Stream.empty
     }
-  }
-
-  implicit final def query[X](s: String, f: RichResultSet ⇒ X)(implicit stat: Statement): Stream[X] = {
-    makestream(f, stat.executeQuery(s))
-  }
-
-  /**
-   * where is this used
-   */
-  final def iso8601(timestamp: java.sql.Timestamp) = {
-    val format = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
-    format.format(timestamp)
   }
 
 }

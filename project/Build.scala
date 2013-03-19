@@ -24,7 +24,8 @@ object PlainBuild extends Build {
     .settings(libraryDependencies ++= 
       compile(
           scalareflect,
-          config, 
+          config,
+          // slf4jnoop, // uncomment to switch off logging 
           logback, 
           janino, 
           akkaSlf4j, 
@@ -36,7 +37,6 @@ object PlainBuild extends Build {
           fasterXml,
           jerseyJson,
 			derbyjdbc,
-			oraclejdbc,
 			mysqljdbc,
 			reflections
       ) ++ 
@@ -78,9 +78,12 @@ object PlainBuild extends Build {
     .settings(sampleSettings: _*)
     .dependsOn(library)
 
-  lazy val jdbcSample = Project("plain-sample-jdbc", file("plain-sample/plain-sample-jdbc"))
-    .settings(sampleSettings: _*)
-    .dependsOn(library)
+  lazy val jdbcSample = Project(
+    id = "plain-sample-jdbc", 
+    base = file("plain-sample/plain-sample-jdbc"),
+    settings = sampleSettings ++ (libraryDependencies ++= compile(oraclejdbc)),
+    dependencies = Seq(library)
+  )
 
   def cpsPlugin = Seq(
     libraryDependencies <+= scalaVersion { v => compilerPlugin("org.scala-lang.plugins" % "continuations" % v) },

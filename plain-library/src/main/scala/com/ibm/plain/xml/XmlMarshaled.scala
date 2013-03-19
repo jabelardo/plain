@@ -4,13 +4,14 @@ package plain
 
 package xml
 
-import java.io.{ InputStream, OutputStream, Reader, StringReader, StringWriter, Writer }
-import java.util.logging.{ Level, Logger }
+import java.io.{InputStream, OutputStream, Reader, StringReader, StringWriter, Writer}
+import java.util.logging.{Level, Logger}
+
+import scala.reflect.ClassTag
+
+import com.sun.jersey.json.impl.reader.XmlEventProvider
 
 import javax.xml.bind.{ JAXBContext, Marshaller }
-
-import scala.reflect._
-import scala.reflect.runtime.universe._
 
 /**
  * Do not forget to implement a default no-parameters constructor for classes deriving from XmlMarshaled or you will get InvalidAnnotationExceptions.

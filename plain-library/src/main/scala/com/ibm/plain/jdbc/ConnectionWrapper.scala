@@ -13,8 +13,8 @@ class ConnectionWrapper(connection: JdbcConnection)
 
   extends JdbcConnection {
 
+  def close = connection.close
   final def clearWarnings = connection.clearWarnings
-  final def close = connection.close
   final def commit = connection.commit
   final def createArrayOf(name: String, elements: Array[Object]) = connection.createArrayOf(name, elements)
   final def createBlob = connection.createBlob

@@ -12,8 +12,9 @@ package object json
   extends CheckedConfig {
 
   import config.settings._
+  import config._
 
-  final val formattedOutput = getBoolean("plain.json.formatted-output")
+  final val formattedOutput = getBoolean("plain.json.formatted-output", false)
 
   final val jsonparser = Json
 

@@ -47,7 +47,6 @@
 			</appender>
 		</then>
 	</if>
-	<logger name="org.reflections.Reflections" level="INFO"/>
 	<root level="${rootLevel:-DEBUG}">
 		<if
 			condition='property("plain.logging.console.enable").equalsIgnoreCase("true")'>
@@ -66,4 +65,6 @@
 			</then>
 		</if>
 	</root>
+	<logger name="org.reflections.Reflections" level="ERROR" />
+	<logger name="scala.slick" level="ERROR" />
 </configuration>
