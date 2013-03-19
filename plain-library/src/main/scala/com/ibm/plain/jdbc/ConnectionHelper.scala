@@ -108,15 +108,19 @@ object ConnectionHelper {
       makestream(f, ps.executeQuery)
     }
 
-    final def <<![A](f: RichResultSet ⇒ A): Stream[A] = execute(f)
-
-    final def execute = { pos = 1; ps.execute }
+    final def execute: Boolean = { pos = 1; ps.execute }
 
     final def executeUpdate: Int = { pos = 1; ps.executeUpdate }
+
+    final def !! = execute((rs: RichResultSet) ⇒ rs)
+
+    final def <<![A](f: RichResultSet ⇒ A) = execute(f)
 
     final def <<! = execute
 
     final def <<!! = executeUpdate
+
+    final def <<?(n: Int): RichPreparedStatement = { repeat = n; this }
 
     final def <<(any: Option[Any]): RichPreparedStatement = {
       any match {
@@ -125,8 +129,6 @@ object ConnectionHelper {
         case Some(a) ⇒ (this << a)
       }
     }
-
-    final def <<?(n: Int): RichPreparedStatement = { repeat = n; this }
 
     final def <<(any: Any): RichPreparedStatement = {
       while (0 < repeat) {
@@ -178,6 +180,13 @@ object ConnectionHelper {
    */
   implicit final def query[A](s: String, f: RichResultSet ⇒ A)(implicit stat: Statement): Stream[A] = {
     makestream(f, stat.executeQuery(s))
+  }
+
+  /**
+   *
+   */
+  implicit final def simpleQuery(s: String)(implicit stat: Statement): Stream[RichResultSet] = {
+    query(s, (rs: RichResultSet) ⇒ rs)
   }
 
   /**

@@ -70,31 +70,7 @@ final case class ConnectionFactory(
       }
     }
     debug(name + " has started.")
-
-    testMe
-
     this
-  }
-
-  private def testMe = {
-
-    import ConnectionHelper._
-
-    val longs = { val b = new StringBuilder; for (i ← 1 to 10) b.append("this is the line number " + i + "\\n"); b.toString.getBytes(text.`UTF-8`) }
-    def in(array: Array[Byte]) = new java.io.ByteArrayInputStream(array)
-
-    withConnection("DERBYTEST") { implicit connection ⇒
-      def dump = for (row ← "select * from secondtable where id < ? order by id desc" << 99999 <<! (result ⇒ Second(result))) {
-        println(row.toJson)
-        val r: Second = text.anyFromBase64(text.anyToBase64(row))
-        println(r.toXml)
-      }
-      println("delete from secondtable where id > ?" << 999 <<!!); dump
-      for (i ← 1000 until 1010) "insert into secondtable values(?, ?, ? )" << i << ("value " + i) << in(longs) <<!; dump
-      println("update secondtable set id = ?, name = 'what?', data = null where id = ?" << 9998 << 1008 <<!!); dump
-      connection.commit
-    }
-
   }
 
   override final def stop = {
@@ -123,7 +99,7 @@ final case class ConnectionFactory(
       while (None == connection && elapsed < timeout) {
         connection = idle.poll(interval, TimeUnit.MILLISECONDS) match {
           case null if connections.size < poolmax ⇒
-            val conn = datasource.unwrap(classOf[JdbcDataSource]).getConnection.unwrap(connectionclass).asInstanceOf[JdbcConnection]
+            val conn = datasource.getConnection
             setParameters(conn, connectionsettings)
             val connection = new Connection(conn, idle)
             connections.add(connection)
@@ -165,8 +141,14 @@ final case class ConnectionFactory(
   private[this] final def setParameters(any: Any, config: Config) = {
     config.entrySet.foreach(entry ⇒ {
       val methodname = entry.getKey.split("""\.""").last
-      val parameters = entry.getValue.unwrapped.asInstanceOf[java.util.List[Any]]
-      invoke(any, methodname, parameters.toArray)
+      try {
+        val parameters = entry.getValue.unwrapped.asInstanceOf[java.util.List[Any]]
+        invoke(any, methodname, parameters.toArray)
+      } catch {
+        case _: Throwable ⇒
+          val parameter = entry.getValue.unwrapped.asInstanceOf[AnyRef]
+          invoke(any, methodname, (parameter :: Nil).toArray)
+      }
     })
   }
 
@@ -237,35 +219,6 @@ final case class ConnectionFactory(
   private[this] final val datasourcepropertiessetter = settings.withFallback(config.settings.getConfig("plain.jdbc.drivers." + driver)).getString("datasource-properties-setter", "")
 
   private[this] final val connectionsettings = settings.getConfig("connection-settings", ConfigFactory.empty).withFallback(config.settings.getConfig("plain.jdbc.drivers." + driver + ".connection-settings", ConfigFactory.empty))
-
-}
-
-import javax.xml.bind.annotation._
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter
-import xml._
-import xml.Adapter._
-import json._
-import ConnectionHelper._
-
-/**
- *
- */
-@SerialVersionUID(1L)
-@XmlRootElement(name = "second")
-@XmlAccessorType(XmlAccessType.PROPERTY)
-case class Second(@transient result: RichResultSet)
-
-  extends XmlMarshaled
-
-  with JsonMarshaled {
-
-  @xmlAttribute val id: Int = result
-
-  @xmlAttribute val name: String = result
-
-  @XmlJavaTypeAdapter(classOf[StringOptionAdapter]) val data: Option[String] = result.nextArray match { case Some(array) ⇒ Some(new String(array, text.`UTF-8`)) case _ ⇒ None }
-
-  def this() = this(null)
 
 }
 

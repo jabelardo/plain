@@ -40,7 +40,9 @@ object Dependencies {
   val fasterXml     = "com.fasterxml.jackson.core"              %   "jackson-databind"            % "2.1.4"
   val jerseyJson    = "com.sun.jersey"                          %   "jersey-json"                 % "1.17.1"
   val mimepull      = "org.jvnet.mimepull"                      %   "mimepull"                    % "1.9.1"
-  val derbyjdbc     = "org.apache.derby"                        %   "derbyclient"                 % "10.9.1.0"
+  val derbyjdbc     = "org.apache.derby"                        %   "derby"                       % "10.9.1.0"
+  val derbyclient   = "org.apache.derby"                        %   "derbyclient"                 % "10.9.1.0"
+  val h2jdbc        = "com.h2database"                          %   "h2"                          % "1.3.170"
   val oraclejdbc    = "com.oracle"                              %   "ojdbc"                       % "11.2.0"
   val mysqljdbc     = "mysql"                                   %   "mysql-connector-java"        % "5.1.23"
 

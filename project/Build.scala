@@ -37,6 +37,8 @@ object PlainBuild extends Build {
           fasterXml,
           jerseyJson,
 			derbyjdbc,
+			derbyclient,
+			h2jdbc,
 			mysqljdbc,
 			reflections
       ) ++ 

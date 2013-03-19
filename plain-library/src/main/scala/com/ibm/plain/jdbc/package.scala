@@ -13,10 +13,10 @@ package object jdbc
   import config._
   import config.settings._
 
-  final def connectionFactoryForName(displayname: String): Option[ConnectionFactory] = bootstrap
+  final def connectionFactoryForName(name: String): Option[ConnectionFactory] = bootstrap
     .application
     .getComponents(classOf[ConnectionFactory])
-    .find(_.asInstanceOf[ConnectionFactory].displayname == displayname) match {
+    .find(_.asInstanceOf[ConnectionFactory].displayname == name) match {
       case Some(connectionfactory: ConnectionFactory) ⇒ Some(connectionfactory)
       case _ ⇒ None
     }
@@ -31,7 +31,10 @@ package object jdbc
     case _ ⇒ None
   }
 
-  final def withConnection(name: String)(body: Connection ⇒ Unit): Unit = { body(connectionForName(name).get) }
+  final def withConnection(name: String)(body: Connection ⇒ Unit): Unit = connectionForName(name) match {
+    case Some(connection) ⇒ body(connection)
+    case _ ⇒ throw new UnsupportedOperationException("Could not create connection for : '" + name + "'")
+  }
 
   final val startupConnectionFactories: List[String] = getStringList("plain.jdbc.startup-connection-factories", List.empty)
 

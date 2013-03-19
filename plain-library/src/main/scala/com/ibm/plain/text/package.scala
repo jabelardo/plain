@@ -59,8 +59,7 @@ package object text {
     val bos = new ByteArrayOutputStream(io.defaultBufferSize)
     val b64 = new Base64OutputStream(bos)
     val writer = new PrintWriter(new OutputStreamWriter(b64))
-    throwable.printStackTrace(writer)
-    writer.close
+    try throwable.printStackTrace(writer) finally writer.close
     new String(bos.toByteArray, `UTF-8`)
   }
 
@@ -68,8 +67,7 @@ package object text {
     val bos = new ByteArrayOutputStream(io.defaultBufferSize)
     val b64 = new Base64OutputStream(bos)
     val out = new ObjectOutputStream(b64)
-    out.writeObject(any)
-    out.close
+    try out.writeObject(any) finally out.close
     new String(bos.toByteArray, `UTF-8`)
   }
 
@@ -77,9 +75,7 @@ package object text {
     val bin = new ByteArrayInputStream(s.getBytes(`UTF-8`))
     val b64 = new Base64InputStream(bin)
     val in = new ObjectInputStream(b64)
-    val any = in.readObject.asInstanceOf[A]
-    in.close
-    any
+    try in.readObject.asInstanceOf[A] finally in.close
   }
 
   /**
