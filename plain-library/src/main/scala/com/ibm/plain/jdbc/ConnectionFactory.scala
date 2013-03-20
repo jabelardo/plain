@@ -70,6 +70,14 @@ final case class ConnectionFactory(
       }
     }
     debug(name + " has started.")
+    if ("H2TEST" == displayname) {
+      import ConnectionHelper._
+      withConnection("H2TEST") { implicit conn ⇒
+        "create table test(id integer, name varchar2(32), data blob, female boolean, size double, more varchar2(8), de varchar2, en varchar2, fr varchar2, es varchar2)" <<!!;
+        for (i ← 1 to 100) "insert into test(id, name, data, female, size, fr) values(?, ?, ?, ?, ?, ?)" << i << "value" + i << (i + "blablabla").getBytes << true << i.toDouble / 3.14 << "au revoir"<<!!;
+        for (all ← "select * from test" !!) println(all.dump)
+      }
+    }
     this
   }
 

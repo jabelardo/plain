@@ -62,9 +62,14 @@ object ConnectionHelper {
   implicit final def conn2Statement(conn: Connection): Statement = conn.createStatement
 
   /**
-   *
+   * Methods like map, list, dump and row should be used for debugging and rapid prototyping, whenever performance or memory consumption is an issue they must be avoided.
    */
   final class RichResultSet(val rs: ResultSet) {
+
+    /**
+     * Jdbc starts with 1 not with 0.
+     */
+    final def apply(i: Int) = { require(0 < i && i <= rs.getMetaData.getColumnCount); pos = i; this }
 
     final def nextBoolean: Option[Boolean] = { val ret = rs.getBoolean(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
     final def nextByte: Option[Byte] = { val ret = rs.getByte(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
@@ -84,20 +89,67 @@ object ConnectionHelper {
       case true ⇒ foldLeft(f(rs, init))(f)
     }
 
-    final def map[A](f: ResultSet ⇒ A): List[A] = {
-      var ret = List[A]()
-      while (rs.next) {
-        ret = f(rs) :: ret
-      }
-      ret.reverse
+    final def map[A](f: ResultSet ⇒ A): Seq[A] = {
+      val buffer = new scala.collection.mutable.ListBuffer[A]
+      do {
+        pos = 1
+        buffer += f(rs)
+      } while (rs.next)
+      buffer.toSeq
+    }
+
+    final def list: Seq[Map[String, Any]] = { var i = 0; map((rs: ResultSet) ⇒ { i += 1; row ++ Map("row" -> i) }) }
+
+    final def row: Map[String, Any] = (for (i ← 1 to n) yield meta(i - 1) match { case (name, width, f) ⇒ (name, f(rs)(i)) }).toMap
+
+    final def dump: String = {
+      val format = new StringBuilder
+      val buffer = new StringBuilder(io.defaultBufferSize)
+      for (i ← 1 to n) format.append("%-").append(meta(i - 1)._2).append("s ")
+      val headers = for (i ← 1 to n) yield meta(i - 1)._1
+      buffer.append(format.toString.format(headers: _*)).append("\n")
+      for (i ← 1 to n) buffer.append("-" * meta(i - 1)._2).append(" ")
+      do {
+        buffer.append("\n")
+        import scala.collection.immutable.StringOps
+        val r = for (i ← 1 to n) yield meta(i - 1) match { case (_, width, f) ⇒ new StringOps((f(rs)(i) match { case null ⇒ "null" case v ⇒ v }).toString).take(width) }
+        buffer.append(format.toString.format(r: _*))
+      } while (rs.next)
+      buffer.toString
+    }
+
+    private[this] final lazy val meta = {
+      val width = 32
+      val array = new Array[(String, Int, ResultSet ⇒ Int ⇒ Any)](n)
+      import scala.math.max
+      for (i ← 1 to n) array.update(i - 1, (metadata.getColumnName(i).toLowerCase, metadata.getColumnDisplaySize(i) match { case s if s > 127 ⇒ max(width, metadata.getColumnName(i).length) case s ⇒ max(s, metadata.getColumnName(i).length) }, getter(i)))
+      array
     }
 
     /**
-     * Jdbc starts with 1 not with 0.
+     * Should be completed to handle all cases.
      */
-    final def apply(i: Int) = { require(0 < i && i <= rs.getMetaData.getColumnCount); pos = i; this }
+    private[this] final def getter(pos: Int): (ResultSet ⇒ Int ⇒ Any) = metadata.getColumnType(pos) match {
+      case Types.VARCHAR ⇒ (rs: ResultSet) ⇒ (i: Int) ⇒ rs.getString(i)
+      case Types.CHAR ⇒ (rs: ResultSet) ⇒ (i: Int) ⇒ rs.getString(i)
+      case Types.INTEGER ⇒ (rs: ResultSet) ⇒ (i: Int) ⇒ rs.getInt(i)
+      case Types.DOUBLE ⇒ (rs: ResultSet) ⇒ (i: Int) ⇒ rs.getDouble(i)
+      case Types.BOOLEAN ⇒ (rs: ResultSet) ⇒ (i: Int) ⇒ rs.getBoolean(i)
+      case Types.BLOB ⇒ (rs: ResultSet) ⇒ (i: Int) ⇒ rs.getBlob(i) match { case null ⇒ null case blob ⇒ val a = blob.getBytes(1, blob.length.toInt); blob.free; text.anyToBase64(a) }
+      case Types.SMALLINT ⇒ (rs: ResultSet) ⇒ (i: Int) ⇒ rs.getShort(i)
+      case Types.FLOAT ⇒ (rs: ResultSet) ⇒ (i: Int) ⇒ rs.getFloat(i)
+      case Types.DATE ⇒ (rs: ResultSet) ⇒ (i: Int) ⇒ rs.getDate(i)
+      case Types.TIME ⇒ (rs: ResultSet) ⇒ (i: Int) ⇒ rs.getTime(i)
+      case Types.TIMESTAMP ⇒ (rs: ResultSet) ⇒ (i: Int) ⇒ rs.getTimestamp(i)
+      case Types.BIGINT ⇒ (rs: ResultSet) ⇒ (i: Int) ⇒ rs.getBigDecimal(i)
+      case t ⇒ throw new UnsupportedOperationException("Type mapping not implemented : " + t)
+    }
 
     private[this] final var pos = 1
+
+    private[this] final val metadata = rs.getMetaData
+
+    private[this] final val n = metadata.getColumnCount
 
   }
 
