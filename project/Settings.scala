@@ -42,7 +42,9 @@ object Settings {
     publishArtifact in Compile := false
   )
 
-  lazy val defaultSettings = baseSettings ++ eclipseSettings ++ formatSettings ++ mimaSettings ++ lsSettings ++ Seq(
+  lazy val sampleSettingsResourceOnly = sampleSettings ++ eclipseResourceOnly
+
+  lazy val defaultSettings = baseSettings ++ cpsPluginSettings ++ eclipseSettings ++ formatSettings ++ mimaSettings ++ lsSettings ++ Seq(
 
     scalacOptions in Compile ++= Seq(
 		"-g:vars",
@@ -72,8 +74,17 @@ object Settings {
     lsDocsUrl in lsync := Some(url("http://www.ibm.com"))
   )
 
+  lazy val cpsPluginSettings = Seq(
+    libraryDependencies <+= scalaVersion { v => compilerPlugin("org.scala-lang.plugins" % "continuations" % v) },
+    scalacOptions += "-P:continuations:enable"
+  )
+  
   lazy val eclipseSettings = Seq(
     EclipseKeys.createSrc := EclipseCreateSrc.Default + EclipseCreateSrc.Resource
+  )
+
+  lazy val eclipseResourceOnly = Seq(
+    EclipseKeys.createSrc := EclipseCreateSrc.ValueSet(EclipseCreateSrc.Unmanaged, EclipseCreateSrc.Resource)
   )
 
   lazy val formatSettings = SbtScalariform.scalariformSettings ++ Seq(

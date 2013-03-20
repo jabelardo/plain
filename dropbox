@@ -1,3 +1,0 @@
-cp ./plain-library/target/scala-2.10/plain-library_2.10-1.0.1-SNAPSHOT.jar ~/Dropbox
-cp ./plain-sample/plain-sample-hello-world/target/scala-2.10/plain-sample-hello-world_2.10-1.0.1-SNAPSHOT-one-jar.jar ~/Dropbox
-

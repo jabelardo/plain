@@ -26,7 +26,14 @@ trait NullOutputStream extends OutputStream {
 
 }
 
-object NullOutputStream extends NullOutputStream
+object NullOutputStream extends NullOutputStream {
+
+  /**
+   * For access from Java.
+   */
+  def getInstance(): OutputStream = this
+
+}
 
 /**
  * Writing to the CountingNullOutputStream object is like writing to /dev/null but it keeps track of the number of bytes written to it.

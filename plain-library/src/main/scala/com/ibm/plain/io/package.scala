@@ -196,6 +196,11 @@ package object io
    * The file given will be automatically deleted at JVM shutdown.
    */
   def deleteOnExit(file: File) = Io.add(file)
+  
+  /**
+   * This can be accessed as a static field (eg. for Derby database, as a null logger).
+   */
+  final val devnull = NullOutputStream
 
   /**
    * check requirements

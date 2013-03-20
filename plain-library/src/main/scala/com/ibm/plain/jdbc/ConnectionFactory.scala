@@ -139,17 +139,13 @@ final case class ConnectionFactory(
   }
 
   private[this] final def setParameters(any: Any, config: Config) = {
-    config.entrySet.foreach(entry ⇒ {
+    config.entrySet.foreach { entry ⇒
       val methodname = entry.getKey.split("""\.""").last
-      try {
-        val parameters = entry.getValue.unwrapped.asInstanceOf[java.util.List[Any]]
-        invoke(any, methodname, parameters.toArray)
-      } catch {
-        case _: Throwable ⇒
-          val parameter = entry.getValue.unwrapped.asInstanceOf[AnyRef]
-          invoke(any, methodname, (parameter :: Nil).toArray)
+      try invoke(any, methodname, entry.getValue.unwrapped.asInstanceOf[java.util.List[Any]].toArray)
+      catch {
+        case _: Throwable ⇒ invoke(any, methodname, (entry.getValue.unwrapped.asInstanceOf[AnyRef] :: Nil).toArray)
       }
-    })
+    }
   }
 
   private[this] final def setProperties(properties: ConfigList) = if (0 < properties.size) {
@@ -160,6 +156,14 @@ final case class ConnectionFactory(
       property.setProperty(list(0).toString, list(1).toString)
     }
     invoke(datasource, datasourcepropertiessetter, Array(property))
+  }
+
+  private[this] final def setSystemProperties(properties: ConfigList) = if (0 < properties.size) {
+    properties.foreach { entry ⇒
+      val list = entry.unwrapped.asInstanceOf[java.util.List[Object]]
+      require(2 <= list.size, "Invalid property : " + list)
+      System.setProperty(list(0).toString, list(1).toString) // only one at a time or you'll overwrite them all
+    }
   }
 
   private[this] final def invoke(any: Any, methodname: String, parameters: Array[AnyRef]) = {
@@ -194,7 +198,7 @@ final case class ConnectionFactory(
 
   private[this] final val driver = settings.getString("driver")
 
-  private[jdbc] final val displayname = settings.getString("display-name", "default")
+  private[jdbc] final val displayname = settings.getString("name", "default")
 
   private[this] final val growtimeout = new AtomicLong(settings.getMilliseconds("pool-grow-timeout", 200))
 
@@ -210,7 +214,11 @@ final case class ConnectionFactory(
 
   private[this] final val connectionclass = Class.forName(config.settings.getString("plain.jdbc.drivers." + driver + ".connection-class", "java.sql.Connection"))
 
-  private[this] final val datasource = config.settings.getInstanceFromClassName[javax.sql.DataSource]("plain.jdbc.drivers." + driver + ".datasource-class")
+  private[this] final val datasource = {
+    val systemproperties = settings.withFallback(config.settings.getConfig("plain.jdbc.drivers." + driver)).getList("system-properties", ConfigValueFactory.fromIterable(new java.util.LinkedList))
+    setSystemProperties(systemproperties)
+    config.settings.getInstanceFromClassName[javax.sql.DataSource]("plain.jdbc.drivers." + driver + ".datasource-class")
+  }
 
   private[this] final val datasourcesettings = settings.getConfig("datasource-settings", ConfigFactory.empty).withFallback(config.settings.getConfig("plain.jdbc.drivers." + driver + ".datasource-settings", ConfigFactory.empty))
 

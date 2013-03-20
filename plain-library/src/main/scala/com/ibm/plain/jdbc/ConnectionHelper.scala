@@ -84,15 +84,18 @@ object ConnectionHelper {
       case true ⇒ foldLeft(f(rs, init))(f)
     }
 
-    final def map[A](f: ResultSet ⇒ A) = {
+    final def map[A](f: ResultSet ⇒ A): List[A] = {
       var ret = List[A]()
-      while (rs.next()) {
+      while (rs.next) {
         ret = f(rs) :: ret
       }
       ret.reverse
     }
 
-    final def apply(i: Int) = { require(0 < i && i < rs.getMetaData.getColumnCount); pos = i; this }
+    /**
+     * Jdbc starts with 1 not with 0.
+     */
+    final def apply(i: Int) = { require(0 < i && i <= rs.getMetaData.getColumnCount); pos = i; this }
 
     private[this] final var pos = 1
 

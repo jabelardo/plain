@@ -4,8 +4,8 @@ package plain
 
 package xml
 
-import java.io.{InputStream, OutputStream, Reader, StringReader, StringWriter, Writer}
-import java.util.logging.{Level, Logger}
+import java.io.{ InputStream, OutputStream, Reader, StringReader, StringWriter, Writer }
+import java.util.logging.{ Level, Logger }
 
 import scala.reflect.ClassTag
 

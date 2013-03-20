@@ -15,17 +15,16 @@ object PlainBuild extends Build {
     * project or module structure
     */
   lazy val root = Project("root", file("."))
-    .aggregate(library, hybriddb, eai, monitorExtensionJmx, samples)
+    .aggregate(library, hybriddb, samples)
     .settings(parentSettings: _*)
 
   lazy val library = Project("plain-library", file("plain-library"))
     .settings(defaultSettings: _*)
-    .settings(cpsPlugin: _*)
     .settings(libraryDependencies ++= 
       compile(
+          // slf4jnoop, // uncomment to switch off all logging 
           scalareflect,
           config,
-          // slf4jnoop, // uncomment to switch off logging 
           logback, 
           janino, 
           akkaSlf4j, 
@@ -36,40 +35,19 @@ object PlainBuild extends Build {
           clHashMap, 
           fasterXml,
           jerseyJson,
-			derbyjdbc,
-			derbyclient,
-			h2jdbc,
-			mysqljdbc,
-			reflections
-      ) ++ 
-      test(junit, junitItf)
-  )
-
-  lazy val monitorExtensionJmx = Project(
-    id = "plain-monitor-extension-jmx",
-    base = file("plain-monitor-extension-jmx"),
-    settings = defaultSettings ++ cpsPlugin
+    	  derbyjdbc,
+		  derbyclient,
+		  h2jdbc,
+		  mysqljdbc,
+		  reflections
+      ) ++ test(junit, junitItf)
   )
 
   lazy val hybriddb = Project(
     id = "plain-hybriddb",
     base = file("plain-hybriddb"),
     dependencies = Seq(library),
-    settings = defaultSettings ++ cpsPlugin
-  )
-
-  lazy val model = Project(
-    id = "plain-model",
-    base = file("plain-model"),
-    dependencies = Seq(hybriddb),
-    settings = defaultSettings ++ cpsPlugin
-  )
-
-  lazy val eai = Project(
-    id = "plain-eai",
-    base = file("plain-eai"),
-    dependencies = Seq(library),
-    settings = defaultSettings ++ cpsPlugin
+    settings = defaultSettings
   )
 
   lazy val samples = Project("plain-sample", file("plain-sample"))
@@ -77,19 +55,14 @@ object PlainBuild extends Build {
     .aggregate(jdbcSample)
 
   lazy val helloSample = Project("plain-sample-hello-world", file("plain-sample/plain-sample-hello-world"))
-    .settings(sampleSettings: _*)
+    .settings(sampleSettingsResourceOnly: _*)
     .dependsOn(library)
 
   lazy val jdbcSample = Project(
     id = "plain-sample-jdbc", 
     base = file("plain-sample/plain-sample-jdbc"),
-    settings = sampleSettings ++ (libraryDependencies ++= compile(oraclejdbc)),
+    settings = sampleSettingsResourceOnly,
     dependencies = Seq(library)
   )
 
-  def cpsPlugin = Seq(
-    libraryDependencies <+= scalaVersion { v => compilerPlugin("org.scala-lang.plugins" % "continuations" % v) },
-    scalacOptions += "-P:continuations:enable"
-  )
-  
 }
