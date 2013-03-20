@@ -98,11 +98,18 @@ object ConnectionHelper {
       buffer.toSeq
     }
 
+    /**
+     * Call json.Json.build with this to convert the whole resultset into a Json.JArray. Do not call this on large resultsets.
+     */
     final def list: Seq[Map[String, Any]] = { var i = 0; map((rs: ResultSet) ⇒ { i += 1; row ++ Map("row" -> i) }) }
 
-    final def row: Map[String, Any] = (for (i ← 1 to n) yield meta(i - 1) match { case (name, width, f) ⇒ (name, f(rs)(i)) }).toMap
+    final def row: Map[String, Any] = (for (i ← 1 to rs.getMetaData.getColumnCount) yield meta(i - 1) match { case (name, width, f) ⇒ (name, f(rs)(i)) }).toMap
 
+    /**
+     * Do not call this on large resultsets.
+     */
     final def dump: String = {
+      val n = rs.getMetaData.getColumnCount
       val format = new StringBuilder
       val buffer = new StringBuilder(io.defaultBufferSize)
       for (i ← 1 to n) format.append("%-").append(meta(i - 1)._2).append("s ")
@@ -118,18 +125,10 @@ object ConnectionHelper {
       buffer.toString
     }
 
-    private[this] final lazy val meta = {
-      val width = 32
-      val array = new Array[(String, Int, ResultSet ⇒ Int ⇒ Any)](n)
-      import scala.math.max
-      for (i ← 1 to n) array.update(i - 1, (metadata.getColumnName(i).toLowerCase, metadata.getColumnDisplaySize(i) match { case s if s > 127 ⇒ max(width, metadata.getColumnName(i).length) case s ⇒ max(s, metadata.getColumnName(i).length) }, getter(i)))
-      array
-    }
-
     /**
      * Should be completed to handle all cases.
      */
-    private[this] final def getter(pos: Int): (ResultSet ⇒ Int ⇒ Any) = metadata.getColumnType(pos) match {
+    private[this] final def getter(pos: Int): (ResultSet ⇒ Int ⇒ Any) = rs.getMetaData.getColumnType(pos) match {
       case Types.VARCHAR ⇒ (rs: ResultSet) ⇒ (i: Int) ⇒ rs.getString(i)
       case Types.CHAR ⇒ (rs: ResultSet) ⇒ (i: Int) ⇒ rs.getString(i)
       case Types.INTEGER ⇒ (rs: ResultSet) ⇒ (i: Int) ⇒ rs.getInt(i)
@@ -147,9 +146,15 @@ object ConnectionHelper {
 
     private[this] final var pos = 1
 
-    private[this] final val metadata = rs.getMetaData
-
-    private[this] final val n = metadata.getColumnCount
+    private[this] final lazy val meta = {
+      val metadata = rs.getMetaData
+      val n = metadata.getColumnCount
+      val width = 32
+      val array = new Array[(String, Int, ResultSet ⇒ Int ⇒ Any)](n)
+      import scala.math.max
+      for (i ← 1 to n) array.update(i - 1, (metadata.getColumnName(i).toLowerCase, metadata.getColumnDisplaySize(i) match { case s if s > 127 ⇒ max(width, metadata.getColumnName(i).length) case s ⇒ max(s, metadata.getColumnName(i).length) }, getter(i)))
+      array
+    }
 
   }
 
