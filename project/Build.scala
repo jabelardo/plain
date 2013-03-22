@@ -1,5 +1,5 @@
 /**
- *  Copyright (C) 2012 IBM
+ *  Copyright (C) (R) 2013 IBM
  */
 package plain
 
