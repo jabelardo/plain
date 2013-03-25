@@ -15,7 +15,9 @@ import scala.reflect.ClassTag
  */
 object MostlyNullColumn {
 
-  type KeyMap[A] = scala.collection.mutable.OpenHashMap[A, Set[IndexType]]
+  type IndexTypeSet = scala.collection.mutable.HashSet[Int]
+
+  type KeyMap[A] = scala.collection.mutable.OpenHashMap[A, IndexTypeSet]
 
   type BitSet = scala.collection.mutable.BitSet
 
@@ -60,7 +62,7 @@ final class MostlyNullColumnBuilder[A: ClassTag](
 
   extends ColumnBuilder[Option[A], MostlyNullColumn[A]] {
 
-  final def set(index: IndexType, value: Option[A]): Unit = if (value.isEmpty) nulls.add(index) else keys.put(value.get, keys.getOrElse(value.get, Set.empty) + index)
+  final def set(index: IndexType, value: Option[A]): Unit = if (value.isEmpty) nulls.add(index) else keys.put(value.get, keys.getOrElse(value.get, new IndexTypeSet) += index)
 
   final def get = {
     val length = keys.foldLeft(0) { case (s, (_, v)) ⇒ s + v.size }

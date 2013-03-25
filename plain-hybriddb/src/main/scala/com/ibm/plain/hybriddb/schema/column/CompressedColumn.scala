@@ -15,7 +15,9 @@ import scala.reflect.ClassTag
  */
 object CompressedColumn {
 
-  type KeyMap[A] = scala.collection.mutable.OpenHashMap[A, Set[IndexType]]
+  type IndexTypeSet = scala.collection.mutable.HashSet[Int]
+
+  type KeyMap[A] = scala.collection.mutable.OpenHashMap[A, IndexTypeSet]
 
 }
 
@@ -56,7 +58,7 @@ final class CompressedColumnBuilder[A: ClassTag](
 
   extends ColumnBuilder[A, CompressedColumn[A]] {
 
-  final def set(index: IndexType, value: A): Unit = keys.put(value, keys.getOrElse(value, Set.empty) + index)
+  final def set(index: IndexType, value: A): Unit = keys.put(value, keys.getOrElse(value, new IndexTypeSet) += index)
 
   final def get = {
     val length = keys.foldLeft(0) { case (s, (_, v)) ⇒ s + v.size }

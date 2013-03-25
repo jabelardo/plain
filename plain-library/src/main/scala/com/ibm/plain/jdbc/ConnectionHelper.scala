@@ -9,6 +9,8 @@ import java.io.{ ByteArrayInputStream, InputStream, OutputStream }
 
 import scala.language.implicitConversions
 
+import com.ibm.plain.collection.immutable.Stream.{ cons ⇒ unsafeCons }
+
 object ConnectionHelper {
 
   /**
@@ -254,7 +256,7 @@ object ConnectionHelper {
    */
   private final def makestream[A](f: RichResultSet ⇒ A, rs: ResultSet): Stream[A] = {
     if (rs.next) {
-      Stream.cons(f(new RichResultSet(rs)), makestream(f, rs))
+      unsafeCons(f(new RichResultSet(rs)), makestream(f, rs))
     } else {
       rs.close
       Stream.empty

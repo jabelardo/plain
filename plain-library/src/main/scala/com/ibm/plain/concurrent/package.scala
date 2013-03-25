@@ -2,6 +2,8 @@ package com.ibm
 
 package plain
 
+import java.util.concurrent.ForkJoinPool
+
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationLong
 
@@ -20,6 +22,10 @@ package object concurrent
   import config._
   import config.settings._
 
+  final val cores = sys.runtime.availableProcessors
+
+  final val parallelism = cores * cores
+
   final def dispatcher = Concurrent.dispatcher
 
   final def scheduler = Concurrent.scheduler
@@ -28,13 +34,11 @@ package object concurrent
 
   final val ioexecutor = {
     import java.util.concurrent._
-    val cores = sys.runtime.availableProcessors
-    val parallelism = 32
     val keepalive = 60L
     val maxqueuesize = 64 * 1024
     new ThreadPoolExecutor(
       cores,
-      cores * parallelism,
+      parallelism,
       keepalive,
       TimeUnit.SECONDS,
       new ArrayBlockingQueue[Runnable](maxqueuesize))
@@ -81,9 +85,7 @@ package object concurrent
    * Simply create a scala.dispatch.Future by providing a body: => T without worrying about an execution context.
    * Usually this is too simplistic, you will probably need Future/Promise to handle full asynchronicity.
    */
-  final def future[T](body: ⇒ T): Future[T] = {
-    Future(body)(dispatcher)
-  }
+  final def future[T](body: ⇒ T): Future[T] = Future(body)(dispatcher)
 
   final val scheduleGcTimeout = getMilliseconds("plain.concurrent.schedule-gc-timeout", 60000) match {
     case timeout if 60000 <= timeout ⇒ timeout

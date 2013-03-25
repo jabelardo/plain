@@ -39,9 +39,9 @@ abstract sealed class Concurrent
 
   override def awaitTermination(timeout: Duration) = if (!actorSystem.isTerminated) actorSystem.awaitTermination(timeout)
 
-  final def dispatcher = actorSystem.dispatcher
+  final def dispatcher = { if (null == actorSystem) createActorSystem; actorSystem.dispatcher }
 
-  final def scheduler = actorSystem.scheduler
+  final def scheduler = { if (null == actorSystem) createActorSystem; actorSystem.scheduler }
 
   /**
    * Provide access to the protected field 'executorService' of the dispatcher in order to share the nicely configured threadpool from akka.

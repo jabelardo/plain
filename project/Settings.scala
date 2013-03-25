@@ -47,13 +47,13 @@ object Settings {
   lazy val defaultSettings = baseSettings ++ cpsPluginSettings ++ eclipseSettings ++ formatSettings ++ mimaSettings ++ lsSettings ++ Seq(
 
     scalacOptions in Compile ++= Seq(
-		"-g:vars",
-		"-optimize", 
+		"-g:none",
 		"-encoding", "UTF-8", 
 		"-target:jvm-1.7", 
 		"-deprecation", 
 		"-feature", 
-		"-unchecked", 
+		"-unchecked",
+		"-optimise",
 		"-Ydead-code",
 		"-Yinline",
 		"-Yinline-handlers",
