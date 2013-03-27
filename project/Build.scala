@@ -47,7 +47,7 @@ object PlainBuild extends Build {
     id = "plain-hybriddb",
     base = file("plain-hybriddb"),
     dependencies = Seq(library),
-    settings = defaultSettings
+    settings = library.settings
   )
 
   lazy val samples = Project("plain-sample", file("plain-sample"))

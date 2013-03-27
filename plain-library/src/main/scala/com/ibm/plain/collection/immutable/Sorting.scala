@@ -8,6 +8,7 @@ package immutable
 
 import scala.concurrent.{ Await, Future, TimeoutException }
 import scala.concurrent.duration.Duration
+import scala.annotation.tailrec
 
 import concurrent.{ future, parallelism }
 
@@ -16,9 +17,9 @@ import concurrent.{ future, parallelism }
  */
 object Sorting {
 
-  final def sortedArray[@specialized(Int, Long) A](values: Array[A], ordering: Ordering[A]): Array[Int] = {
+  final def sortedArray[@specialized(Int, Long, Float, Double) A](values: Array[A], ordering: Ordering[A]): Array[Int] = {
     val array = Array.range(0, values.length)
-    quickSort(array, 0, array.length, values, ordering)
+    quickSort(array, values, ordering)
     array
   }
 
@@ -26,8 +27,8 @@ object Sorting {
    * Sorts an array of indices (Array[Int]) according to a given Array[A] and an Ordering[A],
    * uses ForkJoinPool to do sorting in parallel (3x faster on 8-cpu-system).
    */
-  final def quickSort[@specialized(Int, Long) A](
-    x: Array[Int],
+  final def quickSort[@specialized(Int, Long, Float, Double) A](
+    array: Array[Int],
     off: Int,
     len: Int,
     values: Array[A],
@@ -36,9 +37,9 @@ object Sorting {
     import ordering._
 
     @inline def swap(a: Int, b: Int) {
-      val t = x(a)
-      x(a) = x(b)
-      x(b) = t
+      val t = array(a)
+      array(a) = array(b)
+      array(b) = t
     }
 
     @inline def vecswap(_a: Int, _b: Int, n: Int) {
@@ -54,14 +55,12 @@ object Sorting {
     }
 
     @inline def med3(a: Int, b: Int, c: Int) = {
-      if (values(x(a)) < values(x(b))) {
-        if (values(x(b)) < values(x(c))) b else if (values(x(a)) < values(x(c))) c else a
+      if (values(array(a)) < values(array(b))) {
+        if (values(array(b)) < values(array(c))) b else if (values(array(a)) < values(array(c))) c else a
       } else {
-        if (values(x(b)) > values(x(c))) b else if (values(x(a)) > values(x(c))) c else a
+        if (values(array(b)) > values(array(c))) b else if (values(array(a)) > values(array(c))) c else a
       }
     }
-
-    import scala.annotation.tailrec
 
     def sort2(off: Int, len: Int) {
       // Insertion sort on smallest arrays
@@ -69,7 +68,7 @@ object Sorting {
         var i = off
         while (i < len + off) {
           var j = i
-          while (j > off && values(x(j - 1)) > values(x(j))) {
+          while (j > off && values(array(j - 1)) > values(array(j))) {
             swap(j, j - 1)
             j -= 1
           }
@@ -89,7 +88,7 @@ object Sorting {
           }
           m = med3(l, m, n) // Mid-size, med of 3
         }
-        val v = values(x(m))
+        val v = values(array(m))
 
         // Establish Invariant: v* (<v)* (>v)* v*
         var a = off
@@ -98,15 +97,15 @@ object Sorting {
         var d = c
         var done = false
         while (!done) {
-          while (b <= c && values(x(b)) <= v) {
-            if (values(x(b)) == v) {
+          while (b <= c && values(array(b)) <= v) {
+            if (values(array(b)) == v) {
               swap(a, b)
               a += 1
             }
             b += 1
           }
-          while (c >= b && values(x(c)) >= v) {
-            if (values(x(c)) == v) {
+          while (c >= b && values(array(c)) >= v) {
+            if (values(array(c)) == v) {
               swap(c, d)
               d -= 1
             }
@@ -132,7 +131,7 @@ object Sorting {
         var f: Future[Unit] = null
 
         val ls = b - a
-        if (ls > 1) if (ls > (x.length / parallelism)) f = future { sort2(off, ls) } else (sort2(off, ls))
+        if (ls > 1) if (ls > (array.length / parallelism)) f = future { sort2(off, ls) } else (sort2(off, ls))
 
         val rs = d - c
         if (rs > 1) sort2(n - rs, rs)
@@ -142,5 +141,35 @@ object Sorting {
     }
     sort2(off, len)
   }
+
+  final def quickSort[@specialized(Int, Long, Float, Double) A](
+    array: Array[Int],
+    values: Array[A],
+    ordering: Ordering[A]): Unit = quickSort(array, 0, array.length, values, ordering)
+
+  /**
+   *
+   */
+  final def binarySearch[@specialized(Int, Long, Float, Double) A](
+    value: A,
+    array: Array[Int],
+    offset: Int,
+    length: Int,
+    values: Array[A],
+    ordering: Ordering[A]): Option[Int] = {
+    @tailrec def recurse(low: Int, high: Int): Option[Int] = (low + high) / 2 match {
+      case _ if high < low ⇒ None
+      case mid if 0 < ordering.compare(values(array(mid)), value) ⇒ recurse(low, mid - 1)
+      case mid if 0 > ordering.compare(values(array(mid)), value) ⇒ recurse(mid + 1, high)
+      case mid ⇒ Some(mid)
+    }
+    recurse(offset, length)
+  }
+
+  final def binarySearch[@specialized(Int, Long, Float, Double) A](
+    value: A,
+    array: Array[Int],
+    values: Array[A],
+    ordering: Ordering[A]): Option[Int] = binarySearch(value, array, 0, array.length, values, ordering)
 
 }

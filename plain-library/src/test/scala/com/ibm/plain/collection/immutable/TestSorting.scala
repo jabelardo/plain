@@ -33,9 +33,18 @@ final class TestSortedArray {
     val n = 1000000
     val v = Array.fill(n) { Random.nextInt(1000000000).toString }
     println(v.length)
-    for (i ← 1 to 10) {
+    println(v.toList.take(50))
+    for (i ← 1 to 1) {
       println(time.timeMillis {
         val a = Sorting.sortedArray(v, Ordering[String])
+        val o = new Ordering[String] {
+          def compare(a: String, b: String): Int = {
+            println(a + " " + b)
+            if (a.startsWith(b)) 0 else Ordering[String].compare(a, b)
+          }
+        }
+        var p = Sorting.binarySearch[String]("77", a, v, o).get
+        while (v(a(p)).startsWith("77")) { println(p + " " + v(a(p))); p += 1 }
       })
     }
     assert(true)
@@ -44,12 +53,15 @@ final class TestSortedArray {
   import java.sql.Timestamp
 
   @Test def test3 = {
-    val n = 1000000
+    val n = 50000000
     val v = Array.fill(n) { Random.nextInt(1000000000).toLong }
+    val x = 47114711
+    v(333) = x
     println(v.length)
-    for (i ← 1 to 300) {
+    for (i ← 1 to 1) {
       println(time.timeMillis {
-        Sorting.sortedArray(v, Ordering[Long])
+        val s = Sorting.sortedArray(v, Ordering[Long])
+        for (j ← 1 to 1) println(time.timeNanos { Sorting.binarySearch[Long](x, s, v, Ordering[Long]) })
         null
       })
     }

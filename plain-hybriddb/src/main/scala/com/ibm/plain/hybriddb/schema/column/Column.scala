@@ -17,8 +17,6 @@ trait Column[A]
 
   type ColumnType = A
 
-  type SelfType = this.type
-
   def length: IndexType
 
   def get(index: IndexType): A

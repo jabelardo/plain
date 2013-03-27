@@ -2,7 +2,7 @@ package com.ibm
 
 package plain
 
-import java.util.concurrent.ForkJoinPool
+import java.util.concurrent.{ ForkJoinPool, ThreadPoolExecutor, ArrayBlockingQueue, TimeUnit }
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationLong
@@ -33,7 +33,6 @@ package object concurrent
   final def executor = Concurrent.executor
 
   final val ioexecutor = {
-    import java.util.concurrent._
     val keepalive = 60L
     val maxqueuesize = 64 * 1024
     new ThreadPoolExecutor(

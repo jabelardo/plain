@@ -39,9 +39,9 @@ final class BitSetColumn[A](
     case None ⇒ throw new IndexOutOfBoundsException(index.toString)
   }
 
-  final def lookup(value: A): LookupSetType = bitsets.get(value) match {
-    case Some(b) ⇒ b
-    case _ ⇒ Set.empty
+  final def lookup(value: A): IndexIterator = bitsets.get(value) match {
+    case Some(b) ⇒ b.iterator
+    case _ ⇒ Set.empty.iterator
   }
 
 }

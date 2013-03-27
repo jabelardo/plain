@@ -13,9 +13,7 @@ package column
  */
 trait Lookup[A] {
 
-  type LookupSetType = scala.collection.Set[IndexType]
-
-  def lookup(value: A): LookupSetType
+  def lookup(value: A): IndexIterator
 
 }
 

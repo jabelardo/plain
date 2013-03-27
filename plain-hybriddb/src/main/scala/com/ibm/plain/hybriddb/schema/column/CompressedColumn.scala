@@ -42,9 +42,9 @@ final class CompressedColumn[A](
 
   final def get(index: IndexType): A = distinctvalues(values(index))
 
-  final def lookup(value: A): LookupSetType = keys.get(value) match {
-    case Some(s) ⇒ s
-    case _ ⇒ Set.empty
+  final def lookup(value: A): IndexIterator = keys.get(value) match {
+    case Some(s) ⇒ s.iterator
+    case _ ⇒ Set.empty.iterator
   }
 
 }

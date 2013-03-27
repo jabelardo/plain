@@ -46,9 +46,9 @@ final class MostlyNullColumn[@specialized(Int, Long) A](
 
   final def get(index: IndexType): Option[A] = if (nulls.contains(index)) None else Some(distinctvalues(values(index)))
 
-  final def lookup(value: Option[A]): LookupSetType = if (value.isEmpty) nulls else keys.get(value.get) match {
-    case Some(s) ⇒ s
-    case _ ⇒ Set.empty
+  final def lookup(value: Option[A]): IndexIterator = if (value.isEmpty) nulls.iterator else keys.get(value.get) match {
+    case Some(s) ⇒ s.iterator
+    case _ ⇒ Set.empty.iterator
   }
 
 }

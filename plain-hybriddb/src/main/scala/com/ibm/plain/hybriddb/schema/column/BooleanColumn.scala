@@ -36,7 +36,7 @@ final class BooleanColumn(
 
   final def get(index: IndexType) = trues.contains(index)
 
-  final def lookup(value: Boolean): LookupSetType = if (value) trues else falses
+  final def lookup(value: Boolean): IndexIterator = if (value) trues.iterator else falses.iterator
 
 }
 
