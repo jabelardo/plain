@@ -11,21 +11,19 @@ package column
 /**
  *
  */
-trait Indexed[A]
+trait Indexed[A] {
 
-  extends Lookup[A] {
+  def equiv(value: A): IndexIterator
 
-  @inline final def ==(value: A): IndexIterator = lookup(value)
+  def lt(value: A): IndexIterator
 
-  def <(value: A): IndexIterator
+  def gt(value: A): IndexIterator
 
-  def <=(value: A): IndexIterator
+  def lteq(value: A): IndexIterator
 
-  def >(value: A): IndexIterator
+  def gteq(value: A): IndexIterator
 
-  def >=(value: A): IndexIterator
-
-  def between(lower: A, upper: A): IndexIterator
+  def between(low: A, high: A): IndexIterator
 
 }
 

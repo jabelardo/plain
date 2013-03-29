@@ -9,6 +9,7 @@ package immutable
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import scala.util.Random
+import scala.math.Ordering._
 
 // add @Test for testing
 
@@ -43,7 +44,7 @@ final class TestSortedArray {
             if (a.startsWith(b)) 0 else Ordering[String].compare(a, b)
           }
         }
-        var p = Sorting.binarySearch[String]("77", a, v, o).get
+        var p = Sorting.recursiveBinarySearch[String]("77", a, v, o).get
         while (v(a(p)).startsWith("77")) { println(p + " " + v(a(p))); p += 1 }
       })
     }
@@ -58,13 +59,14 @@ final class TestSortedArray {
     val x = 47114711
     v(333) = x
     println(v.length)
-    for (i ← 1 to 1) {
-      println(time.timeMillis {
-        val s = Sorting.sortedArray(v, Ordering[Long])
-        for (j ← 1 to 1) println(time.timeNanos { Sorting.binarySearch[Long](x, s, v, Ordering[Long]) })
-        null
-      })
+    var t = 0L
+    val m = 1000000
+    val s = Sorting.sortedArray(v, Ordering[Long])
+    println(s.length)
+    for (i ← 1 to m) {
+      t += time.timeNanos(Sorting.binarySearch[Long](x, s, v, (a: Long, b: Long) ⇒ a > b))._2
     }
+    println("average " + (t / m))
     assert(true)
   }
 

@@ -148,7 +148,37 @@ object Sorting {
     ordering: Ordering[A]): Unit = quickSort(array, 0, array.length, values, ordering)
 
   /**
-   *
+   * Best suited to implement a values.contains(value) - which already exists.
+   */
+  final def recursiveBinarySearch[@specialized(Int, Long, Float, Double) A](
+    value: A,
+    array: Array[Int],
+    offset: Int,
+    length: Int,
+    values: Array[A],
+    ordering: Ordering[A]): Option[Int] = {
+    @tailrec def recurse(low: Int, high: Int): Option[Int] = {
+      if (high < low) None else {
+        val mid = (low + high) >>> 1
+        ordering.compare(values(array(mid)), value) match {
+          case 0 ⇒ Some(mid)
+          case c if 0 < c ⇒ recurse(low, mid - 1)
+          case c if 0 > c ⇒ recurse(mid + 1, high)
+        }
+      }
+    }
+    recurse(offset, offset + length)
+  }
+
+  final def recursiveBinarySearch[@specialized(Int, Long, Float, Double) A](
+    value: A,
+    array: Array[Int],
+    values: Array[A],
+    ordering: Ordering[A]): Option[Int] = recursiveBinarySearch(value, array, 0, array.length, values, ordering)
+
+  /**
+   * Better than the above, a one-comparison-per-iteration version of binary search, it always returns the "first of" element.
+   * Must be called with an operator of type > or >=. All other should be deducted.
    */
   final def binarySearch[@specialized(Int, Long, Float, Double) A](
     value: A,
@@ -156,20 +186,24 @@ object Sorting {
     offset: Int,
     length: Int,
     values: Array[A],
-    ordering: Ordering[A]): Option[Int] = {
-    @tailrec def recurse(low: Int, high: Int): Option[Int] = (low + high) / 2 match {
-      case _ if high < low ⇒ None
-      case mid if 0 < ordering.compare(values(array(mid)), value) ⇒ recurse(low, mid - 1)
-      case mid if 0 > ordering.compare(values(array(mid)), value) ⇒ recurse(mid + 1, high)
-      case mid ⇒ Some(mid)
+    op: (A, A) ⇒ Boolean): Option[Int] = {
+    var low = offset
+    var high = offset + length
+    while (high > low) {
+      val mid = low + ((high - low) / 2)
+      if (op(values(array(mid)), value)) {
+        high = mid
+      } else {
+        low = mid + 1
+      }
     }
-    recurse(offset, length)
+    if (low == high) Some(low) else None
   }
 
   final def binarySearch[@specialized(Int, Long, Float, Double) A](
     value: A,
     array: Array[Int],
     values: Array[A],
-    ordering: Ordering[A]): Option[Int] = binarySearch(value, array, 0, array.length, values, ordering)
+    op: (A, A) ⇒ Boolean): Option[Int] = binarySearch(value, array, 0, array.length, values, op)
 
 }

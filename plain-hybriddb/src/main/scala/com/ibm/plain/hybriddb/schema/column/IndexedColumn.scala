@@ -8,7 +8,7 @@ package schema
 
 package column
 
-import collection.immutable.Sorting._
+import collection.immutable.Sorting.{ binarySearch, sortedArray }
 
 /**
  *
@@ -25,41 +25,43 @@ class IndexedColumn[A](
 
   with Indexed[A] {
 
-  final def <(value: A): IndexIterator = new Iter(0, binarySearch(value, array, values, ordering).getOrElse(-1))
+  import ordering._
 
-  final def <=(value: A): IndexIterator = new Iter(0, binarySearch(value, array, values, ordering).getOrElse(-2) + 1)
+  final def equiv(value: A): IndexIterator = new IndexIterator {
 
-  final def >(value: A): IndexIterator = new Iter(binarySearch(value, array, values, ordering).getOrElse(Int.MaxValue - 1) + 1, array.length)
+    @inline final def hasNext = lower < array.length && value == values(array(lower))
 
-  final def >=(value: A): IndexIterator = new Iter(binarySearch(value, array, values, ordering).getOrElse(Int.MaxValue), array.length)
+    @inline final def next = { lower += 1; array(lower - 1) }
 
-  final def between(lower: A, upper: A): IndexIterator = new Iter(
-    binarySearch(lower, array, values, ordering).getOrElse(Int.MaxValue),
-    binarySearch(lower, array, values, ordering).getOrElse(-2) + 1)
-
-  final def lookup(value: A): IndexIterator = new IndexIterator {
-
-    final def hasNext = i < array.length && value == array(i)
-
-    final def next = { i += 1; array(i - 1) }
-
-    private[this] final var i = binarySearch(value, array, values, ordering).getOrElse(-1)
+    private[this] final var lower = binarySearch(value, array, values, (a: A, b: A) ⇒ a >= b).getOrElse(Int.MaxValue)
 
   }
+
+  final def gt(value: A): IndexIterator = new Iter(binarySearch(value, array, values, (a: A, b: A) ⇒ a > b).getOrElse(Int.MaxValue), array.length)
+
+  final def gteq(value: A): IndexIterator = new Iter(binarySearch(value, array, values, (a: A, b: A) ⇒ a >= b).getOrElse(Int.MaxValue), array.length)
+
+  final def lt(value: A): IndexIterator = new Iter(0, binarySearch(value, array, values, (a: A, b: A) ⇒ a >= b).getOrElse(-1))
+
+  final def lteq(value: A): IndexIterator = new Iter(0, binarySearch(value, array, values, (a: A, b: A) ⇒ a > b).getOrElse(-1))
+
+  final def between(low: A, high: A): IndexIterator = new Iter(
+    binarySearch(low, array, values, (a: A, b: A) ⇒ a >= b).getOrElse(Int.MaxValue),
+    binarySearch(high, array, values, (a: A, b: A) ⇒ a > b).getOrElse(0) - 1)
 
   protected[this] final val array = sortedArray(values, ordering)
 
   private[this] final class Iter(
 
-    final var i: IndexType,
+    private[this] final var lower: IndexType,
 
-    final val upper: IndexType)
+    private[this] final val upper: IndexType)
 
     extends IndexIterator {
 
-    final def hasNext = i < upper
+    @inline final def hasNext = lower < upper
 
-    final def next = { i += 1; array(i - 1) }
+    @inline final def next = { lower += 1; array(lower - 1) }
 
   }
 
