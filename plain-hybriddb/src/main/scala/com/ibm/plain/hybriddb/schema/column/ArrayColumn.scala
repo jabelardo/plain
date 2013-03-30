@@ -13,7 +13,7 @@ import scala.reflect.ClassTag
 /**
  *
  */
-class ArrayColumn[@specialized(Int, Long) A](
+class ArrayColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
 
   val length: IndexType,
 
@@ -30,7 +30,7 @@ class ArrayColumn[@specialized(Int, Long) A](
 /**
  *
  */
-final class ArrayColumnBuilder[@specialized(Int, Long) A: ClassTag](
+final class ArrayColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
 
   capacity: IndexType)
 

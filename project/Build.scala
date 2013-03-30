@@ -33,6 +33,7 @@ object PlainBuild extends Build {
           commonsCodec, 
           commonsIo, 
           clHashMap, 
+          lz4,
           fasterXml,
           jerseyJson,
     	  derbyjdbc,

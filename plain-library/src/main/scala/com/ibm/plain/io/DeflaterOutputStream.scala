@@ -2,7 +2,7 @@ package com.ibm
 
 package plain
 
-package aio
+package io
 
 import java.io.OutputStream
 import java.nio.ByteBuffer

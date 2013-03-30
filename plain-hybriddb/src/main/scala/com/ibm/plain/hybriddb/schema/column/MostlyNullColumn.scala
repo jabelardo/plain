@@ -28,7 +28,7 @@ import MostlyNullColumn._
 /**
  *
  */
-final class MostlyNullColumn[@specialized(Int, Long) A](
+final class MostlyNullColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
 
   val length: IndexType,
 
@@ -56,7 +56,7 @@ final class MostlyNullColumn[@specialized(Int, Long) A](
 /**
  *
  */
-final class MostlyNullColumnBuilder[A: ClassTag](
+final class MostlyNullColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
 
   capacity: IndexType)
 

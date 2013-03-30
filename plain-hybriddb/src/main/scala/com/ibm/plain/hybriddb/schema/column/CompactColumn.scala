@@ -13,7 +13,7 @@ import scala.reflect.ClassTag
 /**
  *
  */
-object CompressedColumn {
+object CompactColumn {
 
   type IndexTypeSet = scala.collection.mutable.HashSet[Int]
 
@@ -21,12 +21,12 @@ object CompressedColumn {
 
 }
 
-import CompressedColumn._
+import CompactColumn._
 
 /**
- *
+ * Use this for columns with few distinct values compared to their length (< 5%).
  */
-final class CompressedColumn[A](
+final class CompactColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
 
   val length: IndexType,
 
@@ -52,11 +52,11 @@ final class CompressedColumn[A](
 /**
  *
  */
-final class CompressedColumnBuilder[A: ClassTag](
+final class CompactColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
 
   capacity: IndexType)
 
-  extends ColumnBuilder[A, CompressedColumn[A]] {
+  extends ColumnBuilder[A, CompactColumn[A]] {
 
   final def set(index: IndexType, value: A): Unit = keys.put(value, keys.getOrElse(value, new IndexTypeSet) += index)
 
@@ -82,7 +82,7 @@ final class CompressedColumnBuilder[A: ClassTag](
       }
       d
     }
-    new CompressedColumn[A](length, keys, values, distinctvalues)
+    new CompactColumn[A](length, keys, values, distinctvalues)
   }
 
   private[this] final val keys = new KeyMap[A](capacity / 1000)

@@ -5,15 +5,15 @@ package plain
 package io
 
 import java.nio.ByteBuffer
-
 import scala.language.implicitConversions
-
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.FileOutputStream
 
 @Test class IoTest {
 
-  val print = false
+  /*
+    val print = false
 
   @Test def testNullStream = {
     val nullstream = NullOutputStream
@@ -170,6 +170,38 @@ abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefgh
       println("after gzip " + aio.format(buffer))
       assertTrue(true)
     }
+  }
+*/
+  @Test def testLZ4 = {
+    import java.io._
+    import scala.util.Random
+    var t = 0L
+    val m = 100
+    //    val array = Array.fill(10000000)(Random.nextInt(100).toString.getBytes)
+    for (j ← 1 to m) {
+      println(j)
+      t += time.timeMillis {
+        val i = new FileInputStream("/tmp/list.txt")
+        val f = new FileOutputStream("/tmp/test.lz4")
+        val o = LZ4.newHighOutputStream(f)
+        io.copyBytes(i, o)
+        i.close
+        o.close
+      }._2
+    }
+    println("average = " + (t / m))
+    t = 0L
+    for (j ← 1 to m) {
+      t += time.timeMillis {
+        val f = new FileInputStream("/tmp/test.lz4")
+        val i = LZ4.newInputStream(f)
+        val buf = new Array[Byte](64 * 1024)
+        var total = 0L
+        while (-1 < { val len = i.read(buf); total += len; len }) ()
+        i.close
+      }._2
+    }
+    println("average = " + (t / m))
   }
 
 }

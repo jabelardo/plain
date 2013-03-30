@@ -22,9 +22,9 @@ object BitSetColumn {
 import BitSetColumn._
 
 /**
- *
+ * Use this for columns with very few distinct values (< 10).
  */
-final class BitSetColumn[A](
+final class BitSetColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
 
   val length: IndexType,
 
@@ -49,7 +49,7 @@ final class BitSetColumn[A](
 /**
  *
  */
-final class BitSetColumnBuilder[A](
+final class BitSetColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
 
   capacity: IndexType)
 

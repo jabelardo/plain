@@ -24,7 +24,7 @@ import UniqueColumn._
 /**
  *
  */
-final class UniqueColumn[@specialized(Int, Long) A](
+final class UniqueColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
 
   val length: IndexType,
 
@@ -47,7 +47,7 @@ final class UniqueColumn[@specialized(Int, Long) A](
 /**
  *
  */
-final class UniqueColumnBuilder[@specialized(Int, Long) A: ClassTag](
+final class UniqueColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
 
   capacity: IndexType)
 

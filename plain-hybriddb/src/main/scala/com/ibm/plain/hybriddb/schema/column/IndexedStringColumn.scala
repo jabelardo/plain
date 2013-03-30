@@ -23,6 +23,9 @@ final class IndexedStringColumn(
 
   extends IndexedColumn[String](length, values, ordering) {
 
+  /**
+   * Still very fast as it is using binarySearch to find the first value.
+   */
   final def startsWith(value: String): IndexIterator = new IndexIterator {
 
     @inline final def hasNext = lower < array.length && values(array(lower)).startsWith(value)
@@ -33,31 +36,37 @@ final class IndexedStringColumn(
 
   }
 
-  final def startsWith(value: String, ignorecase: Boolean): IndexIterator =
-    if (ignorecase)
-      new IndexIterator {
+  final def startsWith(value: String, ignorecase: Boolean): IndexIterator = {
+    if (ignorecase) new IndexIterator {
 
-        @inline final def hasNext = lower < array.length && values(array(lower)).toLowerCase.startsWith(value.toLowerCase)
+      @inline final def hasNext = lower < array.length && values(array(lower)).toLowerCase.startsWith(value.toLowerCase)
 
-        @inline final def next = { lower += 1; array(lower - 1) }
+      @inline final def next = { lower += 1; array(lower - 1) }
 
-        private[this] final var lower = binarySearch(value, array, values, (a: String, b: String) ⇒ a.toLowerCase >= b.toLowerCase).getOrElse(Int.MaxValue)
+      private[this] final var lower = binarySearch(value, array, values, (a: String, b: String) ⇒ a.toLowerCase >= b.toLowerCase).getOrElse(Int.MaxValue)
 
-      }
-    else
-      startsWith(value)
+    }
+    else startsWith(value)
+  }
 
   /**
    * The .view makes all the difference here.
    */
   final def contains(value: String): IndexIterator = array.view.filter(i ⇒ values(i).contains(value)).iterator
 
-  final def contains(value: String, ignorecase: Boolean): IndexIterator =
+  /**
+   * The .view makes all the difference here.
+   */
+  final def contains(value: String, ignorecase: Boolean): IndexIterator = {
     if (ignorecase)
       array.view.filter(i ⇒ values(i).toLowerCase.contains(value.toLowerCase)).iterator
     else
       contains(value)
+  }
 
+  /**
+   * The .view makes all the difference here.
+   */
   final def matches(regex: String): IndexIterator = array.view.filter(i ⇒ values(i).matches(regex)).iterator
 
 }

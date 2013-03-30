@@ -37,6 +37,7 @@ object Dependencies {
   val commonsCodec  = "commons-codec"                           %   "commons-codec"               % "1.7"
   val reflections   = "org.reflections"                         %   "reflections"                 % "0.9.8"
   val clHashMap     = "com.googlecode.concurrentlinkedhashmap"  %   "concurrentlinkedhashmap-lru" % "1.3.2"
+  val lz4           = "net.jpountz.lz4"                         %   "lz4"                         % "1.1.1"
   val fasterXml     = "com.fasterxml.jackson.core"              %   "jackson-databind"            % "2.1.4"
   val jerseyJson    = "com.sun.jersey"                          %   "jersey-json"                 % "1.17.1"
   val mimepull      = "org.jvnet.mimepull"                      %   "mimepull"                    % "1.9.1"
