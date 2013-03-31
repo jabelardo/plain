@@ -53,9 +53,10 @@ final class UniqueColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float
 
   extends ColumnBuilder[A, UniqueColumn[A]] {
 
-  final def set(index: IndexType, value: A): Unit = {
-    array.update(index, value)
-    keys.put(value, index)
+  final def next(value: A): Unit = {
+    val i: IndexType = nextIndex
+    array.update(i, value)
+    keys.put(value, i)
   }
 
   final def get = new UniqueColumn[A](keys.size, array, keys)

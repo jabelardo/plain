@@ -36,16 +36,11 @@ final class ArrayColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float,
 
   extends ColumnBuilder[A, ArrayColumn[A]] {
 
-  final def set(index: IndexType, value: A): Unit = {
-    if (index >= length) length = index + 1
-    array.update(index, value)
-  }
+  final def next(value: A): Unit = array.update(nextIndex, value)
 
   final def get = new ArrayColumn[A](length, array)
 
   private[this] final val array = new Array[A](capacity)
-
-  private[this] final var length: IndexType = 0
 
 }
 

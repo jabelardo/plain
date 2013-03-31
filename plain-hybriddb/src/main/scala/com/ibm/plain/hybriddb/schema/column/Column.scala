@@ -21,7 +21,7 @@ trait Column[A]
 
   def get(index: IndexType): A
 
-  @inline final def apply(index: IndexType) = get(index)
+  final def apply(index: IndexType) = get(index)
 
 }
 
@@ -32,8 +32,14 @@ trait ColumnBuilder[A, C <: Column[_]] {
 
   def get: C
 
-  def set(index: IndexType, value: A)
+  def next(value: A)
 
-  @inline final def apply(index: IndexType, value: A) = set(index, value)
+  final def apply(index: IndexType, value: A) = next(value)
+
+  protected[this] def length: IndexType = index
+
+  protected[this] def nextIndex: IndexType = { index += 1; index - 1 }
+
+  private[this] final var index: IndexType = 0
 
 }

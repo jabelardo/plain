@@ -49,7 +49,7 @@ final class BooleanColumnBuilder(
 
   extends ColumnBuilder[Boolean, BooleanColumn] {
 
-  final def set(index: IndexType, value: Boolean) = if (value) trues.add(index) else falses.add(index)
+  final def next(value: Boolean) = if (value) trues.add(nextIndex) else falses.add(nextIndex)
 
   final def get = new BooleanColumn(trues.size + falses.size, trues, falses)
 

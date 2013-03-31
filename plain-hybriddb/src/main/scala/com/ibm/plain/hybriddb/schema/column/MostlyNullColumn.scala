@@ -62,7 +62,7 @@ final class MostlyNullColumnBuilder[@specialized(Byte, Char, Short, Int, Long, F
 
   extends ColumnBuilder[Option[A], MostlyNullColumn[A]] {
 
-  final def set(index: IndexType, value: Option[A]): Unit = if (value.isEmpty) nulls.add(index) else keys.put(value.get, keys.getOrElse(value.get, new IndexTypeSet) += index)
+  final def next(value: Option[A]): Unit = if (value.isEmpty) nulls.add(nextIndex) else keys.put(value.get, keys.getOrElse(value.get, new IndexTypeSet) += nextIndex)
 
   final def get = {
     val length = keys.foldLeft(0) { case (s, (_, v)) ⇒ s + v.size }
@@ -93,7 +93,7 @@ final class MostlyNullColumnBuilder[@specialized(Byte, Char, Short, Int, Long, F
 
   private[this] final val values = new Array[IndexType](capacity)
 
-  private[this] final val nulls = new BitSet(capacity)
+  private[this] final val nulls = new BitSet(capacity / 3)
 
 }
 

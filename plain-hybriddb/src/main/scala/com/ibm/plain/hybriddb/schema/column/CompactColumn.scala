@@ -58,7 +58,7 @@ final class CompactColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Floa
 
   extends ColumnBuilder[A, CompactColumn[A]] {
 
-  final def set(index: IndexType, value: A): Unit = keys.put(value, keys.getOrElse(value, new IndexTypeSet) += index)
+  final def next(value: A): Unit = keys.put(value, keys.getOrElse(value, new IndexTypeSet) += nextIndex)
 
   final def get = {
     val length = keys.foldLeft(0) { case (s, (_, v)) ⇒ s + v.size }

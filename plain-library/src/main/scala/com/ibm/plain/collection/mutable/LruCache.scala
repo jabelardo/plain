@@ -26,7 +26,10 @@ case class LruCache[A](
 
   final def size = store.size
 
-  final def add(key: Any, value: A) = store.putIfAbsent(key, value)
+  /**
+   * Removes the previously stored value or null.
+   */
+  final def add(key: Any, value: A): A = store.putIfAbsent(key, value)
 
   private[this] final def onremove(entry: A) = onRemove(entry)
 

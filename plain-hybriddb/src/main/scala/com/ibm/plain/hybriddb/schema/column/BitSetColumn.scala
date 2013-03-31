@@ -55,12 +55,12 @@ final class BitSetColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float
 
   extends ColumnBuilder[A, BitSetColumn[A]] {
 
-  final def set(index: IndexType, value: A): Unit = {
+  final def next(value: A): Unit = {
     val bitset = bitsets.get(value) match {
       case Some(b) ⇒ b
       case _ ⇒ val b = new BitSet(capacity / 16); bitsets.put(value, b); b
     }
-    bitset.add(index)
+    bitset.add(nextIndex)
   }
 
   final def get = new BitSetColumn[A](bitsets.foldLeft(0) { case (s, (_, b)) ⇒ s + b.size }, bitsets)
