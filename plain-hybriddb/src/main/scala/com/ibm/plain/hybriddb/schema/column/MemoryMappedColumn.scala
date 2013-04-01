@@ -16,6 +16,7 @@ import java.nio.file.{ Paths, StandardOpenOption }
 import scala.collection.mutable.ArrayBuffer
 import scala.reflect.ClassTag
 
+import collection.mutable.LeastRecentlyUsedCache
 import io.{ ByteBufferInputStream, LZ4 }
 
 /**
@@ -51,13 +52,13 @@ final class MemoryMappedColumn[@specialized(Byte, Char, Short, Int, Long, Float,
       val buf = file.map(READ_ONLY, offsets(i), offsets(i + 1) - offsets(i))
       val in = new ObjectInputStream(LZ4.newInputStream(new ByteBufferInputStream(buf)))
       val page = in.readObject.asInstanceOf[Array[A]]
-      cache.add(i, page)
+      cache.put(i, page)
       page
   }
 
   private[this] final val file = FileChannel.open(Paths.get(filepath), StandardOpenOption.READ)
 
-  private[this] final val cache = new collection.mutable.LruCache[Array[A]](maxcachesize, 0)
+  private[this] final val cache = LeastRecentlyUsedCache[Array[A]](maxcachesize)
 
   private[this] final val mask = (1 << pagefactor) - 1
 
@@ -74,6 +75,8 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
 
   maxcachesize: Int,
 
+  highcompression: Boolean,
+
   filepath: String)
 
   extends ColumnBuilder[A, MemoryMappedColumn[A]] {
@@ -81,12 +84,12 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
   /**
    * A good starting point, but should be fine tuned with the default constructor.
    */
-  final def this(capacity: IndexType, filepath: String) = this(capacity, 10, 1024, filepath)
+  final def this(capacity: IndexType, filepath: String) = this(capacity, 10, 1024, false, filepath)
 
   final def next(value: A): Unit = {
     array.update(nextIndex & mask, value)
     if (0 == (length & mask)) {
-      val os = new ObjectOutputStream(LZ4.newHighOutputStream(out))
+      val os = newStream
       os.writeObject(array)
       os.flush
       offsets += file.length
@@ -95,7 +98,7 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
 
   final def get = {
     if (0 != (length & mask)) {
-      val os = new ObjectOutputStream(LZ4.newHighOutputStream(out))
+      val os = newStream
       os.writeObject(array)
       os.flush
       offsets += file.length
@@ -103,6 +106,8 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
     out.close
     new MemoryMappedColumn[A](length, pagefactor, maxcachesize, offsets.toArray, filepath)
   }
+
+  @inline private[this] final def newStream = new ObjectOutputStream(if (highcompression) LZ4.newHighOutputStream(out) else LZ4.newFastOutputStream(out))
 
   private[this] final val array = new Array[A](1 << pagefactor)
 

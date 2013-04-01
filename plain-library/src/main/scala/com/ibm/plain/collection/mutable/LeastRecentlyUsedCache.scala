@@ -10,13 +10,13 @@ import scala.collection.JavaConversions.collectionAsScalaIterable
 
 import com.googlecode.concurrentlinkedhashmap.{ EvictionListener, ConcurrentLinkedHashMap }
 
-case class LruCache[A](
+final class LeastRecentlyUsedCache[@specialized(Byte, Char, Short, Int, Long, Float, Double) A] private (
 
-  maxcapacity: Int = 500,
+  maxcapacity: Int,
 
-  initialcapacity: Int = 16) {
+  initialcapacity: Int) {
 
-  def onRemove(elem: A): Unit = ()
+  final def setOnRemove(f: A ⇒ Unit): Unit = onremove = f
 
   final def get(key: Any) = Option(store.get(key))
 
@@ -29,14 +29,27 @@ case class LruCache[A](
   /**
    * Removes the previously stored value or null.
    */
-  final def add(key: Any, value: A): A = store.putIfAbsent(key, value)
-
-  private[this] final def onremove(entry: A) = onRemove(entry)
+  final def put(key: Any, value: A): A = store.putIfAbsent(key, value)
 
   private[this] final val store = new ConcurrentLinkedHashMap.Builder[Any, A]
     .initialCapacity(initialcapacity)
     .maximumWeightedCapacity(maxcapacity)
     .listener(new EvictionListener[Any, A] { def onEviction(k: Any, v: A) = onremove(v) })
     .build
+
+  private[this] final var onremove: A ⇒ Unit = (a: A) ⇒ ()
+
+}
+
+/**
+ *
+ */
+object LeastRecentlyUsedCache {
+
+  final def apply[A](maxcapacity: Int, initialcapacity: Int) = new LeastRecentlyUsedCache[A](maxcapacity, initialcapacity)
+
+  final def apply[A](maxcapacity: Int): LeastRecentlyUsedCache[A] = apply(maxcapacity, 0)
+
+  final def apply[A]: LeastRecentlyUsedCache[A] = apply(1024, 0)
 
 }

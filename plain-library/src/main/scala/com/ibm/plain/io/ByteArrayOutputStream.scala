@@ -10,7 +10,7 @@ import java.io.OutputStream
  * Like java.io.ByteArrayOutputStream, but with an external bytearray. For performance reasons it does no testing of array bounds. Check capacity to protect against overflow.
  */
 
-final class ByteArrayOutputStream(
+final class ByteArrayOutputStream private (
 
   private[this] final val array: Array[Byte],
 
@@ -50,7 +50,11 @@ final class ByteArrayOutputStream(
    */
   final def getInputStream = new ByteArrayInputStream(array, offset, position - offset)
 
-  final def toByteArray = array
+  final def toByteArray = {
+    val a = new Array[Byte](position)
+    Array.copy(array, 0, a, 0, position)
+    a
+  }
 
   private[this] var position = offset
 
@@ -62,3 +66,13 @@ final class ByteArrayOutputStream(
 
 }
 
+/**
+ *
+ */
+object ByteArrayOutputStream {
+
+  final def apply(array: Array[Byte], offset: Int, length: Int) = new ByteArrayOutputStream(array, offset, length)
+
+  final def apply(array: Array[Byte]) = new ByteArrayOutputStream(array, 0, array.length)
+
+}
