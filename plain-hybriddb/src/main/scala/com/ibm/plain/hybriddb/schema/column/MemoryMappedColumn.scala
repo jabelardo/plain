@@ -8,7 +8,7 @@ package schema
 
 package column
 
-import java.io.{ EOFException, File, BufferedInputStream, BufferedOutputStream, FileInputStream, FileOutputStream, ObjectInputStream, ObjectOutputStream, OutputStream, Closeable }
+import java.io.{ EOFException, File, FileInputStream, FileOutputStream, ObjectInputStream, ObjectOutputStream, OutputStream, Closeable }
 import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode.READ_ONLY
 import java.nio.file.{ Paths, StandardOpenOption }
@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import scala.annotation.tailrec
 import scala.collection.Seq
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{ ArrayBuffer, WrappedArray }
 import scala.concurrent.{ Await, Future, TimeoutException }
 import scala.concurrent.duration.Duration
 import scala.reflect.ClassTag
@@ -43,21 +43,25 @@ final class MemoryMappedColumn[@specialized(Byte, Char, Short, Int, Long, Float,
 
   pages: Array[Long],
 
+  indexpages: Array[Long],
+
   filepath: String,
 
-  ordering: Option[Ordering[A]])
+  withordering: Option[Ordering[A]])
 
   extends Column[A]
+
+  with BaseIndexed[A]
 
   with Closeable {
 
   outer ⇒
 
-  override final def toString = "MemoryMappedColumn(len=" + length + " pagefactor=" + pagefactor + " pages=" + pages.length + " pagesize(avg)=" + (pages.last / pages.length) + " filesize=" + pages.last + " ordered=" + ordering.isDefined + ")"
+  override final def toString = "MemoryMappedColumn(len=" + length + " pagefactor=" + pagefactor + " pages=" + (pages.length - 1) + " pagesize(avg)=" + (pages.last / pages.length) + " filesize=" + pages.last + " ordered=" + withordering.isDefined + ")"
 
   final def get(index: IndexType): A = page(index >> pagefactor)(index & mask)
 
-  override final def close = { file.close; cache.clear }
+  override final def close = { file.close; cache.clear; if (null != indexfile) indexfile.close }
 
   private[this] final def page(i: Int) = cache.get(i) match {
     case Some(page) ⇒ page
@@ -69,9 +73,41 @@ final class MemoryMappedColumn[@specialized(Byte, Char, Short, Int, Long, Float,
       page
   }
 
+  private[this] final def indexpage(i: Int) = indexcache.get(i) match {
+    case Some(page) ⇒ page
+    case _ ⇒
+      val buf = indexfile.map(READ_ONLY, indexpages(i), indexpages(i + 1) - indexpages(i))
+      val in = new ObjectInputStream(new ByteBufferInputStream(buf))
+      val page = in.readObject.asInstanceOf[Array[IndexType]]
+      indexcache.put(i, page)
+      page
+  }
+
+  protected final val ordering = withordering.getOrElse(null)
+
+  protected final val values = new WrappedArray[A] {
+    final def length = outer.length
+    final def apply(i: Int) = get(i)
+    final def update(i: Int, value: A) = throw null
+    final def array = throw null
+    final def elemTag = throw null
+  }
+
+  protected final val array = new WrappedArray[IndexType] {
+    final def length = outer.length
+    final def apply(i: Int) = indexpage(i >> pagefactor)(i & mask)
+    final def update(i: Int, value: Int) = throw null
+    final def array = throw null
+    final def elemTag = throw null
+  }
+
   private[this] final val file = FileChannel.open(Paths.get(filepath), StandardOpenOption.READ)
 
+  private[this] final val indexfile = if (withordering.isDefined) FileChannel.open(Paths.get(filepath + ".index"), StandardOpenOption.READ) else null
+
   private[this] final val cache = LeastRecentlyUsedCache[Array[A]](maxcachesize)
+
+  private[this] final val indexcache = LeastRecentlyUsedCache[Array[IndexType]](maxcachesize)
 
   private[this] final val mask = (1 << pagefactor) - 1
 
@@ -134,7 +170,7 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
       mergeSort(chunkcount.get)
       workingdir.delete
     }
-    new MemoryMappedColumn[A](name, length, pagefactor, maxcachesize, offsets.toArray, filepath, ordering)
+    new MemoryMappedColumn[A](name, length, pagefactor, maxcachesize, offsets.toArray, indexoffsets.toArray, filepath, ordering)
   }
 
   private[this] final def mergeSort(n: Int) = {
@@ -163,11 +199,11 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
 
     @tailrec def mergeFiles(files: Int, level: Int): Unit = if (1 < files) {
       val r = files + (if (0 == files % 2) 0 else 1)
-      println(r)
       chunkcount.set(0)
-      if (7 < (r / 4)) {
+      println("r " + r + " " + (r / 4) + " " + (r / 2))
+      if (2 < (r / 4)) {
         split4(1 to r, level, mergeChunks)
-      } else if (3 < (r / 2)) {
+      } else if (1 < (r / 2)) {
         split2(1 to r, level, mergeChunks)
       } else {
         mergeChunks(1 to r, level)
@@ -181,6 +217,7 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
       val (low, high) = range.splitAt(range.length / 2)
       low.zipAll(high, -1, -1).map {
         case (l, r) ⇒
+          println(level + " : " + l + "+" + r)
           val (left, lfile) = try input(prev + l) catch { case _: Throwable ⇒ (null, null) }
           val (right, rfile) = try input(prev + r) catch { case _: Throwable ⇒ (null, null) }
           val (out, ofile) = output(next + chunkcount.incrementAndGet)
@@ -218,7 +255,8 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
     }
 
     def unzipIndexFile = {
-      val (out, ofile) = output(new File(filepath + ".index"))
+      val ofile = new File(filepath + ".index")
+      val out = new FileOutputStream(ofile)
       val (in, ifile) = input(workingdir.listFiles.head)
       val array = new Array[IndexType](1 << pagefactor)
       var i = 0
@@ -226,9 +264,10 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
         val a = in.readObject.asInstanceOf[P]
         array.update(i & mask, a._2)
         if (0 < i && 0 == (i & mask)) {
-          val os = newStream(out)
+          val os = new ObjectOutputStream(out)
           os.writeObject(array)
           os.flush
+          indexoffsets += ofile.length
         }
         i += 1
       } catch {
@@ -239,9 +278,10 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
         i -= 1
       }
       if (0 < (i & mask)) {
-        val os = newStream(out)
+        val os = new ObjectOutputStream(out)
         os.writeObject(array.take(i & mask))
         os.flush
+        indexoffsets += ofile.length
       }
       out.close
     }
@@ -286,11 +326,11 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
 
   private[this] final def newStream(out: OutputStream) = new ObjectOutputStream(LZ4.newFastOutputStream(out))
 
-  private[this] final def output(f: File) = (new ObjectOutputStream(new BufferedOutputStream(LZ4.newFastOutputStream(new FileOutputStream(f)), buffersize)), f)
+  private[this] final def output(f: File) = (new ObjectOutputStream(LZ4.newFastOutputStream(new FileOutputStream(f))), f)
 
   private[this] final def output(suffix: Any): (ObjectOutputStream, File) = output(new File(workingdir.getAbsolutePath + "/chunk." + suffix))
 
-  private[this] final def input(f: File) = (new ObjectInputStream(new BufferedInputStream(LZ4.newInputStream(new FileInputStream(f)), buffersize)), f)
+  private[this] final def input(f: File) = (new ObjectInputStream(LZ4.newInputStream(new FileInputStream(f))), f)
 
   private[this] final def input(suffix: Any): (ObjectInputStream, File) = input(new File(workingdir.getAbsolutePath + "/chunk." + suffix))
 
@@ -298,9 +338,11 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
 
   private[this] final val offsets = { val p = new ArrayBuffer[Long]; p += 0L; p }
 
+  private[this] final val indexoffsets = { val p = new ArrayBuffer[Long]; p += 0L; p }
+
   private[this] final val file = new File(filepath)
 
-  private[this] final val out = new BufferedOutputStream(new FileOutputStream(file), buffersize)
+  private[this] final val out = new FileOutputStream(file)
 
   private[this] final var chunk: ObjectOutputStream = null
 
@@ -311,7 +353,5 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
   private[this] final val mask = (1 << pagefactor) - 1
 
   private[this] final val chunkmask = (1 << (pagefactor + 7)) - 1
-
-  private[this] final def buffersize = io.defaultBufferSize
 
 }

@@ -20,7 +20,7 @@ object Sorting {
 
   final def sortedIndexedSeq[A](
     values: IndexedSeq[A],
-    ordering: Ordering[A]): Array[Int] = {
+    ordering: Ordering[A]): IndexedSeq[Int] = {
     val array = Array.range(0, values.length)
     quickSort(array, values, ordering)
     array
@@ -179,7 +179,7 @@ object Sorting {
    */
   final def binarySearch[A](
     value: A,
-    array: Array[Int],
+    array: IndexedSeq[Int],
     offset: Int,
     length: Int,
     values: IndexedSeq[A],
@@ -199,7 +199,7 @@ object Sorting {
 
   final def binarySearch[A](
     value: A,
-    array: Array[Int],
+    array: IndexedSeq[Int],
     values: IndexedSeq[A],
     op: (A, A) ⇒ Boolean): Option[Int] = binarySearch(value, array, 0, array.length, values, op)
 

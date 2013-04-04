@@ -64,7 +64,7 @@ import collection.immutable.Sorting._
   }
 
   @Test def test4 = {
-    val n = 1000000
+    val n = 5000000
     var t = 0L
     var m = 1
     var s: MemoryMappedColumn[Double] = null
@@ -101,6 +101,12 @@ import collection.immutable.Sorting._
       for (j ← 0 until n) t += time.timeNanos { s(j) }._2
     }
     println("average " + (t / n))
+    t = 0L
+    m = 100000
+    for (i ← 1 to m) {
+      t += time.timeNanos { s.between(0.7, 0.701); s.gt(0.5) }._2
+    }
+    println("average " + (t / m))
     assert(true)
   }
 

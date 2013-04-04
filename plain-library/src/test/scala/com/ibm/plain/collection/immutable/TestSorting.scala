@@ -44,7 +44,7 @@ final class TestSortedArray {
             if (a.startsWith(b)) 0 else Ordering[String].compare(a, b)
           }
         }
-        var p = Sorting.recursiveBinarySearch[String]("77", a, 0, a.length, v, o).get
+        var p = Sorting.recursiveBinarySearch[String]("77", a.toArray, 0, a.length, v, o).get
         while (v(a(p)).startsWith("77")) { println(p + " " + v(a(p))); p += 1 }
       })
     }

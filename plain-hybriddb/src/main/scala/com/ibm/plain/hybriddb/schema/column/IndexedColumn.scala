@@ -8,6 +8,7 @@ package schema
 
 package column
 
+import scala.collection.IndexedSeq
 import scala.reflect.ClassTag
 
 import collection.immutable.Sorting.{ binarySearch, sortedIndexedSeq }
@@ -15,59 +16,21 @@ import collection.immutable.Sorting.{ binarySearch, sortedIndexedSeq }
 /**
  *
  */
-class IndexedColumn[A] private[column] (
+class IndexedColumn[A: ClassTag] private[column] (
 
   name: String,
 
   length: IndexType,
 
-  values: Array[A],
+  protected final val values: IndexedSeq[A],
 
-  ordering: Ordering[A])
+  protected final val ordering: Ordering[A])
 
-  extends ArrayColumn[A](name, length, values)
+  extends ArrayColumn[A](name, length, values.toArray)
 
-  with Indexed[A] {
+  with BaseIndexed[A] {
 
-  import ordering._
-
-  final def equiv(value: A): IndexIterator = new IndexIterator {
-
-    @inline final def hasNext = lower < array.length && value == values(array(lower))
-
-    @inline final def next = { lower += 1; array(lower - 1) }
-
-    private[this] final var lower = binarySearch(value, array, values, (a: A, b: A) ⇒ a >= b).getOrElse(Int.MaxValue)
-
-  }
-
-  final def gt(value: A): IndexIterator = new Iter(binarySearch(value, array, values, (a: A, b: A) ⇒ a > b).getOrElse(Int.MaxValue), array.length)
-
-  final def gteq(value: A): IndexIterator = new Iter(binarySearch(value, array, values, (a: A, b: A) ⇒ a >= b).getOrElse(Int.MaxValue), array.length)
-
-  final def lt(value: A): IndexIterator = new Iter(0, binarySearch(value, array, values, (a: A, b: A) ⇒ a >= b).getOrElse(-1))
-
-  final def lteq(value: A): IndexIterator = new Iter(0, binarySearch(value, array, values, (a: A, b: A) ⇒ a > b).getOrElse(-1))
-
-  final def between(low: A, high: A): IndexIterator = new Iter(
-    binarySearch(low, array, values, (a: A, b: A) ⇒ a >= b).getOrElse(Int.MaxValue),
-    binarySearch(high, array, values, (a: A, b: A) ⇒ a > b).getOrElse(0) - 1)
-
-  protected[this] final val array = sortedIndexedSeq(values, ordering)
-
-  private[this] final class Iter(
-
-    private[this] final var lower: IndexType,
-
-    private[this] final val upper: IndexType)
-
-    extends IndexIterator {
-
-    @inline final def hasNext = lower < upper
-
-    @inline final def next = { lower += 1; array(lower - 1) }
-
-  }
+  protected final val array = sortedIndexedSeq(values, ordering)
 
 }
 
