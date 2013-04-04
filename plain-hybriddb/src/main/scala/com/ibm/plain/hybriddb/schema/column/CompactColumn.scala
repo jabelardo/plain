@@ -26,7 +26,9 @@ import CompactColumn._
 /**
  * Use this for columns with few distinct values compared to their length (< 5%).
  */
-final class CompactColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
+final class CompactColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A] private[column] (
+
+  val name: String,
 
   val length: IndexType,
 
@@ -53,6 +55,8 @@ final class CompactColumn[@specialized(Byte, Char, Short, Int, Long, Float, Doub
  *
  */
 final class CompactColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
+
+  name: String,
 
   capacity: IndexType)
 
@@ -82,7 +86,7 @@ final class CompactColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Floa
       }
       d
     }
-    new CompactColumn[A](length, keys, values, distinctvalues)
+    new CompactColumn[A](name, length, keys, values, distinctvalues)
   }
 
   private[this] final val keys = new KeyMap[A](capacity / 1000)

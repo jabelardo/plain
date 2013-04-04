@@ -17,6 +17,8 @@ trait Column[A]
 
   type ColumnType = A
 
+  def name: String
+
   def length: IndexType
 
   def get(index: IndexType): A

@@ -19,6 +19,6 @@ object LZ4 {
 
   def newInputStream(in: InputStream): InputStream = new LZ4BlockInputStream(in, factory.decompressor)
 
-  private[this] final val factory = LZ4Factory.unsafeInstance
+  private[this] final val factory = LZ4Factory.fastestInstance
 
 }

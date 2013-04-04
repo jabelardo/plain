@@ -22,7 +22,9 @@ import BooleanColumn.BitSet
 /**
  *
  */
-final class BooleanColumn(
+final class BooleanColumn private[column] (
+
+  val name: String,
 
   val length: IndexType,
 
@@ -45,13 +47,15 @@ final class BooleanColumn(
  */
 final class BooleanColumnBuilder(
 
+  name: String,
+
   capacity: IndexType)
 
   extends ColumnBuilder[Boolean, BooleanColumn] {
 
   final def next(value: Boolean) = if (value) trues.add(nextIndex) else falses.add(nextIndex)
 
-  final def get = new BooleanColumn(trues.size + falses.size, trues, falses)
+  final def get = new BooleanColumn(name, trues.size + falses.size, trues, falses)
 
   private[this] final val trues = new BitSet(capacity)
 

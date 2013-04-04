@@ -8,12 +8,16 @@ package schema
 
 package column
 
-import collection.immutable.Sorting.{ binarySearch, sortedArray }
+import scala.reflect.ClassTag
+
+import collection.immutable.Sorting.{ binarySearch, sortedIndexedSeq }
 
 /**
  *
  */
-class IndexedColumn[A](
+class IndexedColumn[A] private[column] (
+
+  name: String,
 
   length: IndexType,
 
@@ -21,7 +25,7 @@ class IndexedColumn[A](
 
   ordering: Ordering[A])
 
-  extends ArrayColumn[A](length, values)
+  extends ArrayColumn[A](name, length, values)
 
   with Indexed[A] {
 
@@ -49,7 +53,7 @@ class IndexedColumn[A](
     binarySearch(low, array, values, (a: A, b: A) ⇒ a >= b).getOrElse(Int.MaxValue),
     binarySearch(high, array, values, (a: A, b: A) ⇒ a > b).getOrElse(0) - 1)
 
-  protected[this] final val array = sortedArray(values, ordering)
+  protected[this] final val array = sortedIndexedSeq(values, ordering)
 
   private[this] final class Iter(
 
@@ -66,4 +70,29 @@ class IndexedColumn[A](
   }
 
 }
+
+/**
+ *
+ */
+class IndexedColumnBuilder[A: ClassTag](
+
+  name: String,
+
+  capacity: IndexType,
+
+  ordering: Ordering[A])
+
+  extends ColumnBuilder[A, IndexedColumn[A]] {
+
+  final def next(value: A): Unit = array.update(nextIndex, value)
+
+  def get = new IndexedColumn[A](name, length, array, ordering)
+
+  protected[this] final val array = new Array[A](capacity)
+
+}
+
+
+
+
 

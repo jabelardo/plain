@@ -13,7 +13,9 @@ import collection.immutable.Sorting.binarySearch
 /**
  *
  */
-final class IndexedStringColumn(
+final class IndexedStringColumn private[column] (
+
+  name: String,
 
   length: IndexType,
 
@@ -21,7 +23,7 @@ final class IndexedStringColumn(
 
   ordering: Ordering[String])
 
-  extends IndexedColumn[String](length, values, ordering) {
+  extends IndexedColumn[String](name, length, values, ordering) {
 
   /**
    * Still very fast as it is using binarySearch to find the first value.
@@ -71,3 +73,21 @@ final class IndexedStringColumn(
 
 }
 
+/**
+ *
+ */
+final class IndexedStringColumnBuilder(
+
+  name: String,
+
+  capacity: IndexType,
+
+  ordering: Ordering[String])
+
+  extends IndexedColumnBuilder[String](name, capacity, ordering) {
+
+  override final def get = new IndexedStringColumn(name, length, array, ordering)
+
+}
+
+  

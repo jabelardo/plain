@@ -15,6 +15,8 @@ import scala.reflect.ClassTag
  */
 class ArrayColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
 
+  val name: String,
+
   val length: IndexType,
 
   private[this] final val array: Array[A])
@@ -32,13 +34,15 @@ class ArrayColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
  */
 final class ArrayColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
 
+  name: String,
+
   capacity: IndexType)
 
   extends ColumnBuilder[A, ArrayColumn[A]] {
 
   final def next(value: A): Unit = array.update(nextIndex, value)
 
-  final def get = new ArrayColumn[A](length, array)
+  final def get = new ArrayColumn[A](name, length, array)
 
   private[this] final val array = new Array[A](capacity)
 

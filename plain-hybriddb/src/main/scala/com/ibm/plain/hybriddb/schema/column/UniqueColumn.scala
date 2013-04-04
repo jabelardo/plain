@@ -26,6 +26,8 @@ import UniqueColumn._
  */
 final class UniqueColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
 
+  val name: String,
+
   val length: IndexType,
 
   private[this] final val array: Array[A],
@@ -49,6 +51,8 @@ final class UniqueColumn[@specialized(Byte, Char, Short, Int, Long, Float, Doubl
  */
 final class UniqueColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
 
+  name: String,
+
   capacity: IndexType)
 
   extends ColumnBuilder[A, UniqueColumn[A]] {
@@ -59,7 +63,7 @@ final class UniqueColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float
     keys.put(value, i)
   }
 
-  final def get = new UniqueColumn[A](keys.size, array, keys)
+  final def get = new UniqueColumn[A](name, keys.size, array, keys)
 
   private[this] final val keys = new UniqueMap[A](capacity)
 

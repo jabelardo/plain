@@ -9,6 +9,7 @@ package immutable
 import scala.concurrent.{ Await, Future, TimeoutException }
 import scala.concurrent.duration.Duration
 import scala.annotation.tailrec
+import scala.collection.IndexedSeq
 
 import concurrent.{ future, parallelism }
 
@@ -17,7 +18,9 @@ import concurrent.{ future, parallelism }
  */
 object Sorting {
 
-  final def sortedArray[@specialized(Int, Long, Float, Double) A](values: Array[A], ordering: Ordering[A]): Array[Int] = {
+  final def sortedIndexedSeq[A](
+    values: IndexedSeq[A],
+    ordering: Ordering[A]): Array[Int] = {
     val array = Array.range(0, values.length)
     quickSort(array, values, ordering)
     array
@@ -27,11 +30,11 @@ object Sorting {
    * Sorts an array of indices (Array[Int]) according to a given Array[A] and an Ordering[A],
    * uses ForkJoinPool to do sorting in parallel (3x faster on 8-cpu-system).
    */
-  final def quickSort[@specialized(Int, Long, Float, Double) A](
+  final def quickSort[A](
     array: Array[Int],
     off: Int,
     len: Int,
-    values: Array[A],
+    values: IndexedSeq[A],
     ordering: Ordering[A]) = {
 
     import ordering._
@@ -142,20 +145,20 @@ object Sorting {
     sort2(off, len)
   }
 
-  final def quickSort[@specialized(Int, Long, Float, Double) A](
+  final def quickSort[A](
     array: Array[Int],
-    values: Array[A],
+    values: IndexedSeq[A],
     ordering: Ordering[A]): Unit = quickSort(array, 0, array.length, values, ordering)
 
   /**
-   * Best suited to implement a values.contains(value) - which already exists.
+   * Best suited to implement a values.contains(value) - which already exists, not that useful, really.
    */
-  final def recursiveBinarySearch[@specialized(Int, Long, Float, Double) A](
+  final def recursiveBinarySearch[A](
     value: A,
     array: Array[Int],
     offset: Int,
     length: Int,
-    values: Array[A],
+    values: IndexedSeq[A],
     ordering: Ordering[A]): Option[Int] = {
     @tailrec def recurse(low: Int, high: Int): Option[Int] = {
       if (high < low) None else {
@@ -170,22 +173,16 @@ object Sorting {
     recurse(offset, offset + length)
   }
 
-  final def recursiveBinarySearch[@specialized(Int, Long, Float, Double) A](
-    value: A,
-    array: Array[Int],
-    values: Array[A],
-    ordering: Ordering[A]): Option[Int] = recursiveBinarySearch(value, array, 0, array.length, values, ordering)
-
   /**
    * Better than the above, a one-comparison-per-iteration version of binary search, it always returns the "first of" element.
    * Must be called with an operator of type > or >=. All other should be deducted.
    */
-  final def binarySearch[@specialized(Int, Long, Float, Double) A](
+  final def binarySearch[A](
     value: A,
     array: Array[Int],
     offset: Int,
     length: Int,
-    values: Array[A],
+    values: IndexedSeq[A],
     op: (A, A) ⇒ Boolean): Option[Int] = {
     var low = offset
     var high = offset + length
@@ -200,10 +197,10 @@ object Sorting {
     if (low == high) Some(low) else None
   }
 
-  final def binarySearch[@specialized(Int, Long, Float, Double) A](
+  final def binarySearch[A](
     value: A,
     array: Array[Int],
-    values: Array[A],
+    values: IndexedSeq[A],
     op: (A, A) ⇒ Boolean): Option[Int] = binarySearch(value, array, 0, array.length, values, op)
 
 }

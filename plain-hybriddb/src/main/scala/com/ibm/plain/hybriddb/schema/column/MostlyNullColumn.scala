@@ -30,6 +30,8 @@ import MostlyNullColumn._
  */
 final class MostlyNullColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
 
+  val name: String,
+
   val length: IndexType,
 
   private[this] final val keys: KeyMap[A],
@@ -57,6 +59,8 @@ final class MostlyNullColumn[@specialized(Byte, Char, Short, Int, Long, Float, D
  *
  */
 final class MostlyNullColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
+
+  name: String,
 
   capacity: IndexType)
 
@@ -86,7 +90,7 @@ final class MostlyNullColumnBuilder[@specialized(Byte, Char, Short, Int, Long, F
       }
       d
     }
-    new MostlyNullColumn[A](length, keys, values, distinctvalues, nulls)
+    new MostlyNullColumn[A](name, length, keys, values, distinctvalues, nulls)
   }
 
   private[this] final val keys = new KeyMap[A](capacity / 1000)

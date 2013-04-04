@@ -18,7 +18,7 @@ final class TestSortedArray {
   @Test def test1 = {
     bootstrap.application.bootstrap
     val v = Array("C", "B", "@", "A", "B", "E", "@")
-    val s = Sorting.sortedArray(v, Ordering[String])
+    val s = Sorting.sortedIndexedSeq(v, Ordering[String])
     println(v.toList)
     println(s.toArray.toList)
     println(s.toArray.map(v(_)).toList)
@@ -37,14 +37,14 @@ final class TestSortedArray {
     println(v.toList.take(50))
     for (i ← 1 to 1) {
       println(time.timeMillis {
-        val a = Sorting.sortedArray(v, Ordering[String])
+        val a = Sorting.sortedIndexedSeq(v, Ordering[String])
         val o = new Ordering[String] {
           def compare(a: String, b: String): Int = {
             println(a + " " + b)
             if (a.startsWith(b)) 0 else Ordering[String].compare(a, b)
           }
         }
-        var p = Sorting.recursiveBinarySearch[String]("77", a, v, o).get
+        var p = Sorting.recursiveBinarySearch[String]("77", a, 0, a.length, v, o).get
         while (v(a(p)).startsWith("77")) { println(p + " " + v(a(p))); p += 1 }
       })
     }
@@ -61,8 +61,8 @@ final class TestSortedArray {
     println(v.length)
     var t = 0L
     val m = 1000000
-    val s = Sorting.sortedArray(v, Ordering[Long])
-    println(s.length)
+    val (s, st) = time.timeNanos(Sorting.sortedIndexedSeq(v, Ordering[Long]))
+    println(s.length + " " + " t + " + st)
     for (i ← 1 to m) {
       t += time.timeNanos(Sorting.binarySearch[Long](x, s, v, (a: Long, b: Long) ⇒ a > b))._2
     }

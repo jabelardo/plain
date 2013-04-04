@@ -24,7 +24,9 @@ import BitSetColumn._
 /**
  * Use this for columns with very few distinct values (< 10).
  */
-final class BitSetColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
+final class BitSetColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A] private[column] (
+
+  val name: String,
 
   val length: IndexType,
 
@@ -51,6 +53,8 @@ final class BitSetColumn[@specialized(Byte, Char, Short, Int, Long, Float, Doubl
  */
 final class BitSetColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
 
+  name: String,
+
   capacity: IndexType)
 
   extends ColumnBuilder[A, BitSetColumn[A]] {
@@ -63,7 +67,7 @@ final class BitSetColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float
     bitset.add(nextIndex)
   }
 
-  final def get = new BitSetColumn[A](bitsets.foldLeft(0) { case (s, (_, b)) ⇒ s + b.size }, bitsets)
+  final def get = new BitSetColumn[A](name, bitsets.foldLeft(0) { case (s, (_, b)) ⇒ s + b.size }, bitsets)
 
   private[this] final val bitsets = new BitSetMap[A](16)
 

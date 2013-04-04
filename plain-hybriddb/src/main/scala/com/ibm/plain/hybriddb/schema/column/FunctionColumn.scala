@@ -11,7 +11,9 @@ package column
 /**
  *
  */
-final class FunctionColumn[A](
+final class FunctionColumn[A] private (
+
+  val name: String,
 
   val length: IndexType,
 
@@ -19,6 +21,12 @@ final class FunctionColumn[A](
 
   extends Column[A] {
 
-  @inline final def get(index: IndexType): A = f(index)
+  final def get(index: IndexType): A = f(index)
+
+}
+
+object FunctionColumn {
+
+  def apply[A](name: String, length: IndexType, f: IndexType ⇒ A) = new FunctionColumn(name, length, f)
 
 }

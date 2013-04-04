@@ -12,6 +12,7 @@ import java.io.{ ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream }
 
 import scala.collection.mutable.ArrayBuffer
 import scala.reflect.ClassTag
+import scala.reflect.runtime.universe.{ Type, TypeTag, typeOf }
 
 import collection.mutable.LeastRecentlyUsedCache
 import io.{ ByteArrayInputStream, LZ4 }
@@ -19,7 +20,9 @@ import io.{ ByteArrayInputStream, LZ4 }
 /**
  *
  */
-final class MemoryCompressedColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
+final class MemoryCompressedColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A] private[column] (
+
+  val name: String,
 
   val length: IndexType,
 
@@ -27,20 +30,18 @@ final class MemoryCompressedColumn[@specialized(Byte, Char, Short, Int, Long, Fl
 
   maxcachesize: Int,
 
-  arrays: Array[Array[Byte]])
+  pages: Array[Array[Byte]])
 
   extends Column[A] {
 
-  println("arrays " + arrays.length)
+  override final def toString = "MemoryCompressedColumn(len=" + length + " pagefactor=" + pagefactor + " pages=" + pages.length + " pagesize(avg)=" + (pages.foldLeft(0L) { case (l, e) ⇒ l + e.length } / pages.length) + ")"
 
-  @inline final def get(index: IndexType): A = {
-    page(index >> pagefactor)(index & mask)
-  }
+  final def get(index: IndexType): A = page(index >> pagefactor)(index & mask)
 
   private[this] final def page(i: Int) = cache.get(i) match {
     case Some(page) ⇒ page
     case _ ⇒
-      val in = new ObjectInputStream(LZ4.newInputStream(new ByteArrayInputStream(arrays(i))))
+      val in = new ObjectInputStream(LZ4.newInputStream(new ByteArrayInputStream(pages(i))))
       val page = in.readObject.asInstanceOf[Array[A]]
       cache.put(i, page)
       page
@@ -57,6 +58,8 @@ final class MemoryCompressedColumn[@specialized(Byte, Char, Short, Int, Long, Fl
  */
 final class MemoryCompressedColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
 
+  name: String,
+
   capacity: IndexType,
 
   pagefactor: Int,
@@ -70,7 +73,7 @@ final class MemoryCompressedColumnBuilder[@specialized(Byte, Char, Short, Int, L
   /**
    * A good starting point, but should be fine tuned with the default constructor.
    */
-  final def this(capacity: IndexType) = this(capacity, 10, 1024, false)
+  final def this(name: String, capacity: IndexType) = this(name, capacity, 10, 1024, false)
 
   final def next(value: A): Unit = {
     array.update(nextIndex & mask, value)
@@ -84,14 +87,14 @@ final class MemoryCompressedColumnBuilder[@specialized(Byte, Char, Short, Int, L
   }
 
   final def get = {
-    if (0 != (length & mask)) {
+    if (0 < (length & mask)) {
       out.reset
       val os = new ObjectOutputStream(if (highcompression) LZ4.newHighOutputStream(out) else LZ4.newFastOutputStream(out))
       os.writeObject(array)
       os.flush
       arrays += out.toByteArray
     }
-    new MemoryCompressedColumn[A](length, pagefactor, maxcachesize, arrays.toArray)
+    new MemoryCompressedColumn[A](name, length, pagefactor, maxcachesize, arrays.toArray)
   }
 
   private[this] final val arrays = new ArrayBuffer[Array[Byte]]
