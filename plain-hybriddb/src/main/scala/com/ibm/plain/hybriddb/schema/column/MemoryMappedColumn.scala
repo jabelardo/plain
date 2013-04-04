@@ -200,8 +200,9 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
     @tailrec def mergeFiles(files: Int, level: Int): Unit = if (1 < files) {
       val r = files + (if (0 == files % 2) 0 else 1)
       chunkcount.set(0)
-      println("r " + r + " " + (r / 4) + " " + (r / 2))
-      if (2 < (r / 4)) {
+      if (4 < (r / 8)) {
+        split8(1 to r, level, mergeChunks)
+      } else if (2 < (r / 4)) {
         split4(1 to r, level, mergeChunks)
       } else if (1 < (r / 2)) {
         split2(1 to r, level, mergeChunks)
@@ -237,7 +238,7 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
       }
     }
 
-    @tailrec def merge(left: BufferedStream, right: BufferedStream, out: ObjectOutputStream): Unit = {
+    @inline @tailrec def merge(left: BufferedStream, right: BufferedStream, out: ObjectOutputStream): Unit = {
       ((left.next, right.next) match {
         case (Some(x), Some(y)) ⇒ if (0 <= pairordering.compare(x, y)) left.consume else right.consume
         case (Some(_), None) ⇒ left.consume
@@ -306,6 +307,31 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
       Await.ready(f4, Duration.Inf)
     }
 
+    def split8(range: Range, level: Int, body: (Range, Int) ⇒ Any) = {
+      val (l, r) = range.splitAt(range.length / 2)
+      val (l1, l2) = l.splitAt(l.length / 2)
+      val (rr1, rr2) = r.splitAt(r.length / 2)
+      val (r1, r2) = l1.splitAt(l1.length / 2)
+      val (r3, r4) = l2.splitAt(l2.length / 2)
+      val (r5, r6) = rr1.splitAt(rr1.length / 2)
+      val (r7, r8) = rr2.splitAt(rr2.length / 2)
+      val f2 = future(body(r2, level))
+      val f3 = future(body(r3, level))
+      val f4 = future(body(r4, level))
+      val f5 = future(body(r5, level))
+      val f6 = future(body(r6, level))
+      val f7 = future(body(r7, level))
+      val f8 = future(body(r8, level))
+      body(r1, level)
+      Await.ready(f2, Duration.Inf)
+      Await.ready(f3, Duration.Inf)
+      Await.ready(f4, Duration.Inf)
+      Await.ready(f5, Duration.Inf)
+      Await.ready(f6, Duration.Inf)
+      Await.ready(f7, Duration.Inf)
+      Await.ready(f8, Duration.Inf)
+    }
+
     final case class BufferedStream(in: ObjectInputStream) {
       final def close = in.close
       final def next: Option[P] = {
@@ -319,7 +345,7 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
       private[this] final var buffer: Option[P] = None
     }
 
-    split4(1 to n, 0, sort)
+    split8(1 to n, 0, sort)
     mergeFiles(workingdir.listFiles.length, 0)
     unzipIndexFile
   }
@@ -334,6 +360,8 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
 
   private[this] final def input(suffix: Any): (ObjectInputStream, File) = input(new File(workingdir.getAbsolutePath + "/chunk." + suffix))
 
+  private[this] final var chunk: ObjectOutputStream = null
+
   private[this] final val array = new Array[A](1 << pagefactor)
 
   private[this] final val offsets = { val p = new ArrayBuffer[Long]; p += 0L; p }
@@ -343,8 +371,6 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
   private[this] final val file = new File(filepath)
 
   private[this] final val out = new FileOutputStream(file)
-
-  private[this] final var chunk: ObjectOutputStream = null
 
   private[this] final val chunkcount = new AtomicInteger
 
