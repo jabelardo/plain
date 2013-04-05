@@ -24,7 +24,7 @@ final class MemoryCompressedColumn[@specialized(Byte, Char, Short, Int, Long, Fl
 
   val name: String,
 
-  val length: IndexType,
+  val length: Long,
 
   pagefactor: Int,
 
@@ -36,7 +36,7 @@ final class MemoryCompressedColumn[@specialized(Byte, Char, Short, Int, Long, Fl
 
   override final def toString = "MemoryCompressedColumn(len=" + length + " pagefactor=" + pagefactor + " pages=" + pages.length + " pagesize(avg)=" + (pages.foldLeft(0L) { case (l, e) ⇒ l + e.length } / pages.length) + ")"
 
-  final def get(index: IndexType): A = page(index >> pagefactor)(index & mask)
+  final def get(index: Long): A = page(index.toInt >> pagefactor)(index.toInt & mask)
 
   private[this] final def page(i: Int) = cache.get(i) match {
     case Some(page) ⇒ page
@@ -60,7 +60,7 @@ final class MemoryCompressedColumnBuilder[@specialized(Byte, Char, Short, Int, L
 
   name: String,
 
-  capacity: IndexType,
+  capacity: Long,
 
   pagefactor: Int,
 
@@ -73,11 +73,11 @@ final class MemoryCompressedColumnBuilder[@specialized(Byte, Char, Short, Int, L
   /**
    * A good starting point, but should be fine tuned with the default constructor.
    */
-  final def this(name: String, capacity: IndexType) = this(name, capacity, 10, 1024, false)
+  final def this(name: String, capacity: Long) = this(name, capacity, 10, 1024, false)
 
   final def next(value: A): Unit = {
-    array.update(nextIndex & mask, value)
-    if (0 == (length & mask)) {
+    array.update(nextIndex.toInt & mask, value)
+    if (0 == (length.toInt & mask)) {
       out.reset
       val os = new ObjectOutputStream(if (highcompression) LZ4.newHighOutputStream(out) else LZ4.newFastOutputStream(out))
       os.writeObject(array)
@@ -87,7 +87,7 @@ final class MemoryCompressedColumnBuilder[@specialized(Byte, Char, Short, Int, L
   }
 
   final def get = {
-    if (0 < (length & mask)) {
+    if (0 < (length.toInt & mask)) {
       out.reset
       val os = new ObjectOutputStream(if (highcompression) LZ4.newHighOutputStream(out) else LZ4.newFastOutputStream(out))
       os.writeObject(array)

@@ -13,7 +13,7 @@ package column
  */
 trait Lookup[A] {
 
-  def lookup(value: A): IndexIterator
+  def lookup(value: A): Iterator[Long]
 
 }
 

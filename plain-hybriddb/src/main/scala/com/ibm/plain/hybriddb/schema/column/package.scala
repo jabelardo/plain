@@ -6,6 +6,7 @@ package hybriddb
 
 package schema
 
+import scala.language.implicitConversions
 import scala.collection.Iterator
 
 /**
@@ -13,8 +14,12 @@ import scala.collection.Iterator
  */
 package object column {
 
-  type IndexType = Int
+  final implicit def intToLongIterator(iter: Iterator[Int]) = new Iterator[Long] {
 
-  type IndexIterator = Iterator[IndexType]
+    @inline final def hasNext = iter.hasNext
+
+    @inline final def next = iter.next.toLong
+
+  }
 
 }

@@ -9,7 +9,7 @@ package immutable
 object Stream {
 
   /**
-   *
+   * Much cheaper but non-threadsafe implementation.
    */
   final class Cons[+A](hd: A, tl: ⇒ Stream[A])
 

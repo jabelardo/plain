@@ -15,18 +15,18 @@ final class FunctionColumn[A] private (
 
   val name: String,
 
-  val length: IndexType,
+  val length: Long,
 
-  private[this] final val f: IndexType ⇒ A)
+  private[this] final val f: Long ⇒ A)
 
   extends Column[A] {
 
-  final def get(index: IndexType): A = f(index)
+  final def get(index: Long): A = f(index)
 
 }
 
 object FunctionColumn {
 
-  def apply[A](name: String, length: IndexType, f: IndexType ⇒ A) = new FunctionColumn(name, length, f)
+  def apply[A](name: String, length: Long, f: Long ⇒ A) = new FunctionColumn(name, length, f)
 
 }

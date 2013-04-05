@@ -17,13 +17,13 @@ class ArrayColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
 
   val name: String,
 
-  val length: IndexType,
+  val length: Long,
 
   private[this] final val array: Array[A])
 
   extends Column[A] {
 
-  @inline final def get(index: IndexType): A = array(index)
+  @inline final def get(index: Long): A = array(index.toInt)
 
   require(length <= array.length)
 
@@ -36,15 +36,15 @@ final class ArrayColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float,
 
   name: String,
 
-  capacity: IndexType)
+  capacity: Long)
 
   extends ColumnBuilder[A, ArrayColumn[A]] {
 
-  final def next(value: A): Unit = array.update(nextIndex, value)
+  final def next(value: A): Unit = array.update(nextIndex.toInt, value)
 
   final def get = new ArrayColumn[A](name, length, array)
 
-  private[this] final val array = new Array[A](capacity)
+  private[this] final val array = new Array[A](capacity.toInt)
 
 }
 

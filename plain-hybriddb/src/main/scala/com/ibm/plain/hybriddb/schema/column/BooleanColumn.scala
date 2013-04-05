@@ -26,7 +26,7 @@ final class BooleanColumn private[column] (
 
   val name: String,
 
-  val length: IndexType,
+  val length: Long,
 
   private[this] final val trues: BitSet,
 
@@ -36,9 +36,9 @@ final class BooleanColumn private[column] (
 
   with Lookup[Boolean] {
 
-  final def get(index: IndexType) = trues.contains(index)
+  final def get(index: Long) = trues.contains(index.toInt)
 
-  final def lookup(value: Boolean): IndexIterator = if (value) trues.iterator else falses.iterator
+  final def lookup(value: Boolean): Iterator[Long] = if (value) trues.iterator else falses.iterator
 
 }
 
@@ -49,17 +49,17 @@ final class BooleanColumnBuilder(
 
   name: String,
 
-  capacity: IndexType)
+  capacity: Long)
 
   extends ColumnBuilder[Boolean, BooleanColumn] {
 
-  final def next(value: Boolean) = if (value) trues.add(nextIndex) else falses.add(nextIndex)
+  final def next(value: Boolean) = if (value) trues.add(nextIndex.toInt) else falses.add(nextIndex.toInt)
 
   final def get = new BooleanColumn(name, trues.size + falses.size, trues, falses)
 
-  private[this] final val trues = new BitSet(capacity)
+  private[this] final val trues = new BitSet(capacity.toInt)
 
-  private[this] final val falses = new BitSet(capacity)
+  private[this] final val falses = new BitSet(capacity.toInt)
 
 }
 

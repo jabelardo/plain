@@ -22,11 +22,11 @@ import collection.immutable.Sorting._
     val b = new IndexedStringColumnBuilder("s", v.length, Ordering[String])
     v.foreach(b.next(_))
     val s = b.get
-    s.gt("C").foreach(i ⇒ println(v(i))); println
-    s.gteq("C").foreach(i ⇒ println(v(i))); println
-    s.lt("C").foreach(i ⇒ println(v(i))); println
-    s.lteq("C").foreach(i ⇒ println(v(i))); println
-    s.equiv("C").foreach(i ⇒ println(v(i))); println
+    s.gt("C").foreach(i ⇒ println(v(i.toInt))); println
+    s.gteq("C").foreach(i ⇒ println(v(i.toInt))); println
+    s.lt("C").foreach(i ⇒ println(v(i.toInt))); println
+    s.lteq("C").foreach(i ⇒ println(v(i.toInt))); println
+    s.equiv("C").foreach(i ⇒ println(v(i.toInt))); println
     assert(true)
   }
 
@@ -37,8 +37,8 @@ import collection.immutable.Sorting._
     v.foreach(b.next(_))
     val s = b.get
     println(v.length)
-    s.gteq("2091").foreach(i ⇒ println(v(i))); println
-    s.lt("2091").foreach(i ⇒ println(v(i))); println
+    s.gteq("2091").foreach(i ⇒ println(v(i.toInt))); println
+    s.lt("2091").foreach(i ⇒ println(v(i.toInt))); println
     assert(true)
   }
 
@@ -56,7 +56,7 @@ import collection.immutable.Sorting._
       t += time.timeNanos {
         val it = s.matches(".*1011")
         var j = 0
-        while (it.hasNext && j < 50) { v(it.next); j += 1 }
+        while (it.hasNext && j < 50) { v(it.next.toInt); j += 1 }
       }._2
     }
     println("average " + (t / m))
@@ -64,7 +64,7 @@ import collection.immutable.Sorting._
   }
 
   @Test def test4 = {
-    val n = 50000000
+    val n = 5000000
     var t = 0L
     var m = 1
     var s: MemoryMappedColumn[Double] = null

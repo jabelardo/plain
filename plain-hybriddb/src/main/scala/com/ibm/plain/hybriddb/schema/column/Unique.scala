@@ -13,7 +13,7 @@ package column
  */
 trait Unique[A] {
 
-  def unique(value: A): Option[IndexType]
+  def unique(value: A): Option[Long]
 
   final def apply(value: A) = unique(value)
 

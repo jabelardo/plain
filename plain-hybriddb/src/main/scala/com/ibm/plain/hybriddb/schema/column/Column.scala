@@ -19,11 +19,11 @@ trait Column[A]
 
   def name: String
 
-  def length: IndexType
+  def length: Long
 
-  def get(index: IndexType): A
+  def get(index: Long): A
 
-  final def apply(index: IndexType) = get(index)
+  final def apply(index: Long) = get(index)
 
 }
 
@@ -36,12 +36,12 @@ trait ColumnBuilder[A, C <: Column[_]] {
 
   def next(value: A)
 
-  final def apply(index: IndexType, value: A) = next(value)
+  final def apply(index: Long, value: A) = next(value)
 
-  protected[this] def length: IndexType = index
+  protected[this] def length: Long = index
 
-  protected[this] def nextIndex: IndexType = { index += 1; index - 1 }
+  protected[this] def nextIndex: Long = { index += 1L; index - 1L }
 
-  private[this] final var index: IndexType = 0
+  private[this] final var index: Long = 0
 
 }

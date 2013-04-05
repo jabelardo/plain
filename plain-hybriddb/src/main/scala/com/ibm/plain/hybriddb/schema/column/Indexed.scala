@@ -17,17 +17,17 @@ import collection.immutable.Sorting.{ binarySearch, sortedIndexedSeq }
  */
 trait Indexed[A] {
 
-  def equiv(value: A): IndexIterator
+  def equiv(value: A): Iterator[Long]
 
-  def lt(value: A): IndexIterator
+  def lt(value: A): Iterator[Long]
 
-  def gt(value: A): IndexIterator
+  def gt(value: A): Iterator[Long]
 
-  def lteq(value: A): IndexIterator
+  def lteq(value: A): Iterator[Long]
 
-  def gteq(value: A): IndexIterator
+  def gteq(value: A): Iterator[Long]
 
-  def between(low: A, high: A): IndexIterator
+  def between(low: A, high: A): Iterator[Long]
 
 }
 
@@ -44,9 +44,9 @@ trait BaseIndexed[A]
 
   protected def values: IndexedSeq[A]
 
-  protected def array: IndexedSeq[IndexType]
+  protected def array: IndexedSeq[Int]
 
-  final def equiv(value: A): IndexIterator = new IndexIterator {
+  final def equiv(value: A): Iterator[Long] = new Iterator[Long] {
 
     @inline final def hasNext = lower < array.length && value == values(array(lower))
 
@@ -56,25 +56,25 @@ trait BaseIndexed[A]
 
   }
 
-  final def gt(value: A): IndexIterator = new Iter(binarySearch(value, array, values, (a: A, b: A) ⇒ a > b).getOrElse(Int.MaxValue), array.length)
+  final def gt(value: A): Iterator[Long] = new Iter(binarySearch(value, array, values, (a: A, b: A) ⇒ a > b).getOrElse(Int.MaxValue), array.length)
 
-  final def gteq(value: A): IndexIterator = new Iter(binarySearch(value, array, values, (a: A, b: A) ⇒ a >= b).getOrElse(Int.MaxValue), array.length)
+  final def gteq(value: A): Iterator[Long] = new Iter(binarySearch(value, array, values, (a: A, b: A) ⇒ a >= b).getOrElse(Int.MaxValue), array.length)
 
-  final def lt(value: A): IndexIterator = new Iter(0, binarySearch(value, array, values, (a: A, b: A) ⇒ a >= b).getOrElse(-1))
+  final def lt(value: A): Iterator[Long] = new Iter(0, binarySearch(value, array, values, (a: A, b: A) ⇒ a >= b).getOrElse(-1))
 
-  final def lteq(value: A): IndexIterator = new Iter(0, binarySearch(value, array, values, (a: A, b: A) ⇒ a > b).getOrElse(-1))
+  final def lteq(value: A): Iterator[Long] = new Iter(0, binarySearch(value, array, values, (a: A, b: A) ⇒ a > b).getOrElse(-1))
 
-  final def between(low: A, high: A): IndexIterator = new Iter(
+  final def between(low: A, high: A): Iterator[Long] = new Iter(
     binarySearch(low, array, values, (a: A, b: A) ⇒ a >= b).getOrElse(Int.MaxValue),
     binarySearch(high, array, values, (a: A, b: A) ⇒ a > b).getOrElse(0) - 1)
 
   private[this] final class Iter(
 
-    private[this] final var lower: IndexType,
+    private[this] final var lower: Int,
 
-    private[this] final val upper: IndexType)
+    private[this] final val upper: Int)
 
-    extends IndexIterator {
+    extends Iterator[Long] {
 
     @inline final def hasNext = lower < upper
 

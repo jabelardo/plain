@@ -20,7 +20,7 @@ class IndexedColumn[A: ClassTag] private[column] (
 
   name: String,
 
-  length: IndexType,
+  length: Long,
 
   protected final val values: IndexedSeq[A],
 
@@ -41,17 +41,17 @@ class IndexedColumnBuilder[A: ClassTag](
 
   name: String,
 
-  capacity: IndexType,
+  capacity: Long,
 
   ordering: Ordering[A])
 
   extends ColumnBuilder[A, IndexedColumn[A]] {
 
-  final def next(value: A): Unit = array.update(nextIndex, value)
+  final def next(value: A): Unit = array.update(nextIndex.toInt, value)
 
   def get = new IndexedColumn[A](name, length, array, ordering)
 
-  protected[this] final val array = new Array[A](capacity)
+  protected[this] final val array = new Array[A](capacity.toInt)
 
 }
 

@@ -8,7 +8,7 @@ package schema
 
 package column
 
-import java.io.{ EOFException, File, FileInputStream, FileOutputStream, ObjectInputStream, ObjectOutputStream, OutputStream, Closeable }
+import java.io.{ BufferedInputStream, EOFException, File, FileInputStream, FileOutputStream, ObjectInputStream, ObjectOutputStream, OutputStream, Closeable }
 import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode.READ_ONLY
 import java.nio.file.{ Paths, StandardOpenOption }
@@ -35,7 +35,7 @@ final class MemoryMappedColumn[@specialized(Byte, Char, Short, Int, Long, Float,
 
   val name: String,
 
-  val length: IndexType,
+  val length: Long,
 
   pagefactor: Int,
 
@@ -59,7 +59,7 @@ final class MemoryMappedColumn[@specialized(Byte, Char, Short, Int, Long, Float,
 
   override final def toString = "MemoryMappedColumn(len=" + length + " pagefactor=" + pagefactor + " pages=" + (pages.length - 1) + " pagesize(avg)=" + (pages.last / pages.length) + " filesize=" + pages.last + " ordered=" + withordering.isDefined + ")"
 
-  final def get(index: IndexType): A = page(index >> pagefactor)(index & mask)
+  final def get(index: Long): A = page(index.toInt >> pagefactor)(index.toInt & mask)
 
   override final def close = { file.close; cache.clear; if (null != indexfile) indexfile.close }
 
@@ -78,7 +78,7 @@ final class MemoryMappedColumn[@specialized(Byte, Char, Short, Int, Long, Float,
     case _ ⇒
       val buf = indexfile.map(READ_ONLY, indexpages(i), indexpages(i + 1) - indexpages(i))
       val in = new ObjectInputStream(new ByteBufferInputStream(buf))
-      val page = in.readObject.asInstanceOf[Array[IndexType]]
+      val page = in.readObject.asInstanceOf[Array[Int]]
       indexcache.put(i, page)
       page
   }
@@ -86,15 +86,15 @@ final class MemoryMappedColumn[@specialized(Byte, Char, Short, Int, Long, Float,
   protected final val ordering = withordering.getOrElse(null)
 
   protected final val values = new WrappedArray[A] {
-    final def length = outer.length
+    final def length = outer.length.toInt
     final def apply(i: Int) = get(i)
     final def update(i: Int, value: A) = throw null
     final def array = throw null
     final def elemTag = throw null
   }
 
-  protected final val array = new WrappedArray[IndexType] {
-    final def length = outer.length
+  protected final val array = new WrappedArray[Int] {
+    final def length = outer.length.toInt
     final def apply(i: Int) = indexpage(i >> pagefactor)(i & mask)
     final def update(i: Int, value: Int) = throw null
     final def array = throw null
@@ -107,7 +107,7 @@ final class MemoryMappedColumn[@specialized(Byte, Char, Short, Int, Long, Float,
 
   private[this] final val cache = LeastRecentlyUsedCache[Array[A]](maxcachesize)
 
-  private[this] final val indexcache = LeastRecentlyUsedCache[Array[IndexType]](maxcachesize)
+  private[this] final val indexcache = LeastRecentlyUsedCache[Array[Int]](maxcachesize)
 
   private[this] final val mask = (1 << pagefactor) - 1
 
@@ -120,7 +120,7 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
 
   name: String,
 
-  capacity: IndexType,
+  capacity: Long,
 
   pagefactor: Int,
 
@@ -137,12 +137,12 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
   /**
    * A good starting point, but should be fine tuned with the default constructor.
    */
-  final def this(name: String, capacity: IndexType, filepath: String, ordering: Option[Ordering[A]]) = this(name, capacity, 10, 1024, filepath, ordering)
+  final def this(name: String, capacity: Long, filepath: String, ordering: Option[Ordering[A]]) = this(name, capacity, 10, 1024, filepath, ordering)
 
   final def next(value: A): Unit = {
-    val i = nextIndex
+    val i = nextIndex.toInt
     array.update(i & mask, value)
-    if (0 == (length & mask)) {
+    if (0 == (length.toInt & mask)) {
       val os = newStream(out)
       os.writeObject(array)
       os.flush
@@ -158,9 +158,9 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
   }
 
   final def get = {
-    if (0 < (length & mask)) {
+    if (0 < (length.toInt & mask)) {
       val os = newStream(out)
-      os.writeObject(array.take(length & mask))
+      os.writeObject(array.take(length.toInt & mask))
       os.flush
       offsets += file.length
     }
@@ -174,6 +174,7 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
   }
 
   private[this] final def mergeSort(n: Int) = {
+
     implicit val pairordering = new Ordering[P] {
       @inline final def compare(a: P, b: P) = ordering.get.compare(a._1, b._1) match {
         case 0 ⇒ Ordering[Int].compare(a._2, b._2)
@@ -183,7 +184,7 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
 
     def sort(range: Range, level: Int) = for (i ← range) {
       val (in, _) = input(i)
-      val chunks =
+      val chunk =
         if (i < n) {
           Array.fill(chunkmask + 1)(in.readObject.asInstanceOf[P])
         } else {
@@ -193,8 +194,8 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
         }
       in.close
       val (sortedchunk, _) = output(i)
-      chunks.sorted.foreach(sortedchunk.writeObject)
-      sortedchunk.close
+      try chunk.sorted.foreach(sortedchunk.writeObject)
+      finally sortedchunk.close
     }
 
     @tailrec def mergeFiles(files: Int, level: Int): Unit = if (1 < files) {
@@ -210,6 +211,17 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
         mergeChunks(1 to r, level)
       }
       mergeFiles(workingdir.listFiles.length, level + 1)
+    }
+
+    final class BufferedStream(in: ObjectInputStream) {
+      final def close = in.close
+      final def next: Option[P] = if (drained) None else {
+        if (buffer.isEmpty) buffer = try Some(in.readObject.asInstanceOf[P]) catch { case e: EOFException ⇒ drained = true; None }
+        buffer
+      }
+      final def consume = { val b = buffer; buffer = None; b }
+      private[this] final var buffer: Option[P] = None
+      private[this] final var drained = false
     }
 
     def mergeChunks(range: Range, level: Int): Unit = if (1 < range.length) {
@@ -229,7 +241,7 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
             out.close
             lfile.renameTo(ofile)
           } else {
-            try merge(BufferedStream(left), BufferedStream(right), out)
+            try merge(new BufferedStream(left), new BufferedStream(right), out)
             finally {
               lfile.delete
               rfile.delete
@@ -259,7 +271,7 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
       val ofile = new File(filepath + ".index")
       val out = new FileOutputStream(ofile)
       val (in, ifile) = input(workingdir.listFiles.head)
-      val array = new Array[IndexType](1 << pagefactor)
+      val array = new Array[Int](1 << pagefactor)
       var i = 0
       try while (true) {
         val a = in.readObject.asInstanceOf[P]
@@ -332,19 +344,6 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
       Await.ready(f8, Duration.Inf)
     }
 
-    final case class BufferedStream(in: ObjectInputStream) {
-      final def close = in.close
-      final def next: Option[P] = {
-        buffer match {
-          case None ⇒ buffer = try Some(in.readObject.asInstanceOf[P]) catch { case e: EOFException ⇒ None }
-          case _ ⇒
-        }
-        buffer
-      }
-      final def consume = { val b = buffer; buffer = None; b }
-      private[this] final var buffer: Option[P] = None
-    }
-
     split8(1 to n, 0, sort)
     mergeFiles(workingdir.listFiles.length, 0)
     unzipIndexFile
@@ -356,7 +355,7 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
 
   private[this] final def output(suffix: Any): (ObjectOutputStream, File) = output(new File(workingdir.getAbsolutePath + "/chunk." + suffix))
 
-  private[this] final def input(f: File) = (new ObjectInputStream(LZ4.newInputStream(new FileInputStream(f))), f)
+  private[this] final def input(f: File) = (new ObjectInputStream(LZ4.newInputStream(new BufferedInputStream(new FileInputStream(f)))), f)
 
   private[this] final def input(suffix: Any): (ObjectInputStream, File) = input(new File(workingdir.getAbsolutePath + "/chunk." + suffix))
 

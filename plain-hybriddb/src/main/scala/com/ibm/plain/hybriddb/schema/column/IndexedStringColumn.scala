@@ -17,7 +17,7 @@ final class IndexedStringColumn private[column] (
 
   name: String,
 
-  length: IndexType,
+  length: Long,
 
   values: Array[String],
 
@@ -28,7 +28,7 @@ final class IndexedStringColumn private[column] (
   /**
    * Still very fast as it is using binarySearch to find the first value.
    */
-  final def startsWith(value: String): IndexIterator = new IndexIterator {
+  final def startsWith(value: String): Iterator[Long] = new Iterator[Long] {
 
     @inline final def hasNext = lower < array.length && values(array(lower)).startsWith(value)
 
@@ -38,8 +38,8 @@ final class IndexedStringColumn private[column] (
 
   }
 
-  final def startsWith(value: String, ignorecase: Boolean): IndexIterator = {
-    if (ignorecase) new IndexIterator {
+  final def startsWith(value: String, ignorecase: Boolean): Iterator[Long] = {
+    if (ignorecase) new Iterator[Long] {
 
       @inline final def hasNext = lower < array.length && values(array(lower)).toLowerCase.startsWith(value.toLowerCase)
 
@@ -54,12 +54,12 @@ final class IndexedStringColumn private[column] (
   /**
    * The .view makes all the difference here.
    */
-  final def contains(value: String): IndexIterator = array.view.filter(i ⇒ values(i).contains(value)).iterator
+  final def contains(value: String): Iterator[Long] = array.view.filter(i ⇒ values(i).contains(value)).iterator
 
   /**
    * The .view makes all the difference here.
    */
-  final def contains(value: String, ignorecase: Boolean): IndexIterator = {
+  final def contains(value: String, ignorecase: Boolean): Iterator[Long] = {
     if (ignorecase)
       array.view.filter(i ⇒ values(i).toLowerCase.contains(value.toLowerCase)).iterator
     else
@@ -69,7 +69,7 @@ final class IndexedStringColumn private[column] (
   /**
    * The .view makes all the difference here.
    */
-  final def matches(regex: String): IndexIterator = array.view.filter(i ⇒ values(i).matches(regex)).iterator
+  final def matches(regex: String): Iterator[Long] = array.view.filter(i ⇒ values(i).matches(regex)).iterator
 
 }
 
@@ -80,7 +80,7 @@ final class IndexedStringColumnBuilder(
 
   name: String,
 
-  capacity: IndexType,
+  capacity: Long,
 
   ordering: Ordering[String])
 

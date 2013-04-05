@@ -15,9 +15,9 @@ import scala.reflect.ClassTag
  */
 object CompactColumn {
 
-  type IndexTypeSet = scala.collection.mutable.HashSet[Int]
+  type IntSet = scala.collection.mutable.HashSet[Int]
 
-  type KeyMap[A] = scala.collection.mutable.OpenHashMap[A, IndexTypeSet]
+  type KeyMap[A] = scala.collection.mutable.OpenHashMap[A, IntSet]
 
 }
 
@@ -30,11 +30,11 @@ final class CompactColumn[@specialized(Byte, Char, Short, Int, Long, Float, Doub
 
   val name: String,
 
-  val length: IndexType,
+  val length: Long,
 
   private[this] final val keys: KeyMap[A],
 
-  private[this] final val values: Array[IndexType],
+  private[this] final val values: Array[Int],
 
   private[this] final val distinctvalues: Array[A])
 
@@ -42,9 +42,9 @@ final class CompactColumn[@specialized(Byte, Char, Short, Int, Long, Float, Doub
 
   with Lookup[A] {
 
-  final def get(index: IndexType): A = distinctvalues(values(index))
+  final def get(index: Long): A = distinctvalues(values(index.toInt))
 
-  final def lookup(value: A): IndexIterator = keys.get(value) match {
+  final def lookup(value: A): Iterator[Long] = keys.get(value) match {
     case Some(s) ⇒ s.iterator
     case _ ⇒ Set.empty.iterator
   }
@@ -58,19 +58,19 @@ final class CompactColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Floa
 
   name: String,
 
-  capacity: IndexType)
+  capacity: Long)
 
   extends ColumnBuilder[A, CompactColumn[A]] {
 
-  final def next(value: A): Unit = keys.put(value, keys.getOrElse(value, new IndexTypeSet) += nextIndex)
+  final def next(value: A): Unit = keys.put(value, keys.getOrElse(value, new IntSet) += nextIndex.toInt)
 
   final def get = {
     val length = keys.foldLeft(0) { case (s, (_, v)) ⇒ s + v.size }
     val values = {
-      val v = new Array[IndexType](length)
+      val v = new Array[Int](length)
       var i = 0
       keys.foreach {
-        case (value, key) ⇒
+        case (_, key) ⇒
           key.foreach(v.update(_, i))
           i += 1
       }
@@ -89,9 +89,7 @@ final class CompactColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Floa
     new CompactColumn[A](name, length, keys, values, distinctvalues)
   }
 
-  private[this] final val keys = new KeyMap[A](capacity / 1000)
-
-  private[this] final val values = new Array[IndexType](capacity)
+  private[this] final val keys = new KeyMap[A](capacity.toInt / 1000)
 
 }
 
