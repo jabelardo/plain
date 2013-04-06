@@ -51,11 +51,11 @@ final class BitSetColumn[@specialized(Byte, Char, Short, Int, Long, Float, Doubl
 /**
  *
  */
-final class BitSetColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
+final case class BitSetColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
 
-  name: String,
+  val name: String,
 
-  capacity: Long)
+  val capacity: Long)
 
   extends ColumnBuilder[A, BitSetColumn[A]] {
 
@@ -67,7 +67,7 @@ final class BitSetColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float
     bitset.add(nextIndex.toInt)
   }
 
-  final def get = new BitSetColumn[A](name, bitsets.foldLeft(0) { case (s, (_, b)) ⇒ s + b.size }, bitsets)
+  final def result = new BitSetColumn[A](name, bitsets.foldLeft(0) { case (s, (_, b)) ⇒ s + b.size }, bitsets)
 
   private[this] final val bitsets = new BitSetMap[A](16)
 

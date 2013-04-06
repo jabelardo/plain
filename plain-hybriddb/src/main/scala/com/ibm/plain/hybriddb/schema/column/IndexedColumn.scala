@@ -37,11 +37,11 @@ class IndexedColumn[A: ClassTag] private[column] (
 /**
  *
  */
-class IndexedColumnBuilder[A: ClassTag](
+class IndexedColumnBuilder[A: ClassTag] protected (
 
-  name: String,
+  val name: String,
 
-  capacity: Long,
+  val capacity: Long,
 
   ordering: Ordering[A])
 
@@ -49,13 +49,18 @@ class IndexedColumnBuilder[A: ClassTag](
 
   final def next(value: A): Unit = array.update(nextIndex.toInt, value)
 
-  def get = new IndexedColumn[A](name, length, array, ordering)
+  def result = new IndexedColumn[A](name, length, array, ordering)
 
   protected[this] final val array = new Array[A](capacity.toInt)
 
 }
 
+/**
+ *
+ */
+object IndexedColumnBuilder {
 
+  def apply[A: ClassTag](name: String, capacity: Long, ordering: Ordering[A]) = new IndexedColumnBuilder[A](name, capacity, ordering)
 
-
+}
 

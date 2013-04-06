@@ -8,7 +8,7 @@ package schema
 
 package column
 
-import scala.reflect._
+import scala.reflect.ClassTag
 
 /**
  *
@@ -49,7 +49,7 @@ final class UniqueColumn[@specialized(Byte, Char, Short, Int, Long, Float, Doubl
 /**
  *
  */
-final class UniqueColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
+final case class UniqueColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
 
   name: String,
 
@@ -63,7 +63,7 @@ final class UniqueColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float
     keys.put(value, i)
   }
 
-  final def get = new UniqueColumn[A](name, keys.size, array, keys)
+  final def result = new UniqueColumn[A](name, keys.size, array, keys)
 
   private[this] final val keys = new UniqueMap[A](capacity.toInt)
 

@@ -19,9 +19,9 @@ import collection.immutable.Sorting._
 
   @Test def test1 = {
     val v = Array("B", "C", "A", "E", "C", "D", "F")
-    val b = new IndexedStringColumnBuilder("s", v.length, Ordering[String])
+    val b = IndexedStringColumnBuilder("s", v.length, Ordering[String])
     v.foreach(b.next(_))
-    val s = b.get
+    val s = b.result
     s.gt("C").foreach(i ⇒ println(v(i.toInt))); println
     s.gteq("C").foreach(i ⇒ println(v(i.toInt))); println
     s.lt("C").foreach(i ⇒ println(v(i.toInt))); println
@@ -33,9 +33,9 @@ import collection.immutable.Sorting._
   @Test def test2 = {
     val n = 1000
     val v = Array.fill(n) { Random.nextInt(1000000000).toString }
-    val b = new IndexedStringColumnBuilder("s", v.length, Ordering[String])
+    val b = IndexedStringColumnBuilder("s", v.length, Ordering[String])
     v.foreach(b.next(_))
-    val s = b.get
+    val s = b.result
     println(v.length)
     s.gteq("2091").foreach(i ⇒ println(v(i.toInt))); println
     s.lt("2091").foreach(i ⇒ println(v(i.toInt))); println
@@ -46,9 +46,9 @@ import collection.immutable.Sorting._
     val n = 10000000
     val v = Array.fill(n) { Random.nextInt(1000000000).toString }
     println(v.length)
-    val b = new IndexedStringColumnBuilder("s", v.length, Ordering[String])
+    val b = IndexedStringColumnBuilder("s", v.length, Ordering[String])
     v.foreach(b.next(_))
-    val s = b.get
+    val s = b.result
     println(v.length)
     var t = 0L
     val m = 100
@@ -73,11 +73,11 @@ import collection.immutable.Sorting._
       println(v.length)
       v(333) = 3.14
       v(n - 1) = 2.72
-      val b = new MemoryMappedColumnBuilder[Double]("s", v.length, "/tmp/column.bin", Some(Ordering[Double]))
+      val b = MemoryMappedColumnBuilder[Double]("s", v.length, "/tmp/column.bin", Some(Ordering[Double]))
       for (i ← 1 to m) {
         t += time.timeNanos {
           for (j ← 0 until n) b.next(v(j))
-          s = b.get
+          s = b.result
           println("s " + s)
         }._2
       }
@@ -124,7 +124,7 @@ import collection.immutable.Sorting._
       for (i ← 1 to m) {
         t += time.timeNanos {
           for (j ← 0 until n) b.next(v(j))
-          s = b.get
+          s = b.result
           println("s " + s)
         }._2
       }
@@ -162,11 +162,11 @@ import collection.immutable.Sorting._
       println(v.length)
       v(333) = 3.14
       v(n - 1) = 2.72
-      val b = new MemoryMappedColumnBuilder[Double]("s", v.length, "/tmp/matrix.bin", Some(Ordering[Double]))
+      val b = MemoryMappedColumnBuilder[Double]("s", v.length, "/tmp/matrix.bin", Some(Ordering[Double]))
       for (i ← 1 to m) {
         t += time.timeNanos {
           for (j ← 0 until n) b.next(v(j))
-          s = b.get
+          s = b.result
           println("s " + s)
         }._2
       }

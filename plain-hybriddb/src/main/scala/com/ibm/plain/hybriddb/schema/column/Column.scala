@@ -25,6 +25,8 @@ trait Column[A]
 
   final def apply(index: Long) = get(index)
 
+  override def toString = getClass.getSimpleName + "(name=" + name + ")"
+
 }
 
 /**
@@ -32,16 +34,25 @@ trait Column[A]
  */
 trait ColumnBuilder[A, C <: Column[_]] {
 
-  def get: C
+  def name: String
+
+  def capacity: Long
+
+  def length: Long = index
+
+  def result: C
 
   def next(value: A)
 
-  final def apply(index: Long, value: A) = next(value)
+  def nextAny(value: Any): Unit = next(value.asInstanceOf[A])
 
-  protected[this] def length: Long = index
+  final def apply(value: A) = next(value)
 
-  protected[this] def nextIndex: Long = { index += 1L; index - 1L }
+  override def toString = getClass.getSimpleName + "(name=" + name + " capacity=" + capacity + ")"
+
+  protected[this] final def nextIndex: Long = { index += 1L; index - 1L }
 
   private[this] final var index: Long = 0
 
 }
+

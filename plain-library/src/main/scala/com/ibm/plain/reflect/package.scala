@@ -4,6 +4,7 @@ package plain
 
 import java.lang.reflect.{ Method, Modifier }
 import scala.collection.JavaConversions._
+import scala.reflect.runtime.universe._
 import org.reflections.Reflections
 import org.reflections.util._
 import org.reflections.scanners._
@@ -12,6 +13,8 @@ import org.reflections.scanners._
  * Some tools to ease the use the Java reflection api in Scala.
  */
 package object reflect {
+
+  final val mirror = runtimeMirror(getClass.getClassLoader)
 
   final lazy val reflections = new Reflections("com.ibm.plain") // not working with OneJar, needs work-around
 

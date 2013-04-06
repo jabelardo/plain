@@ -20,7 +20,6 @@ import scala.collection.mutable.{ ArrayBuffer, WrappedArray }
 import scala.concurrent.{ Await, Future, TimeoutException }
 import scala.concurrent.duration.Duration
 import scala.reflect.ClassTag
-import scala.reflect.runtime.universe.{ Type, TypeTag, typeOf }
 
 import collection.mutable.LeastRecentlyUsedCache
 import collection.immutable.Sorting.{ binarySearch, sortedIndexedSeq }
@@ -116,11 +115,11 @@ final class MemoryMappedColumn[@specialized(Byte, Char, Short, Int, Long, Float,
 /**
  * pagefactor is n in 2 ^ n, for instance a pagefactor of 10 will result in 1024 entries per page
  */
-final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
+final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag] private (
 
-  name: String,
+  val name: String,
 
-  capacity: Long,
+  val capacity: Long,
 
   pagefactor: Int,
 
@@ -133,11 +132,6 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
   extends ColumnBuilder[A, MemoryMappedColumn[A]] {
 
   private type P = (A, Int)
-
-  /**
-   * A good starting point, but should be fine tuned with the default constructor.
-   */
-  final def this(name: String, capacity: Long, filepath: String, ordering: Option[Ordering[A]]) = this(name, capacity, 10, 1024, filepath, ordering)
 
   final def next(value: A): Unit = {
     val i = nextIndex.toInt
@@ -157,7 +151,7 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
     }
   }
 
-  final def get = {
+  final def result = {
     if (0 < (length.toInt & mask)) {
       val os = newStream(out)
       os.writeObject(array.take(length.toInt & mask))
@@ -175,9 +169,9 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
 
   private[this] final def mergeSort(n: Int) = {
 
-    implicit val pairordering = new Ordering[P] {
+    val pairordering = new Ordering[P] {
       @inline final def compare(a: P, b: P) = ordering.get.compare(a._1, b._1) match {
-        case 0 ⇒ Ordering[Int].compare(a._2, b._2)
+        case 0 ⇒ Ordering.Int.compare(a._2, b._2)
         case c ⇒ c
       }
     }
@@ -188,24 +182,24 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
         if (i < n) {
           Array.fill(chunkmask + 1)(in.readObject.asInstanceOf[P])
         } else {
-          val a = new ArrayBuffer[P](chunkmask / 2)
+          val a = new ArrayBuffer[P](chunkmask)
           try while (true) a += in.readObject.asInstanceOf[P] catch { case e: EOFException ⇒ }
           a.toArray
         }
       in.close
       val (sortedchunk, _) = output(i)
-      try chunk.sorted.foreach(sortedchunk.writeObject)
+      try chunk.sorted(pairordering).foreach(sortedchunk.writeObject)
       finally sortedchunk.close
     }
 
     @tailrec def mergeFiles(files: Int, level: Int): Unit = if (1 < files) {
       val r = files + (if (0 == files % 2) 0 else 1)
       chunkcount.set(0)
-      if (4 < (r / 8)) {
+      if (15 < r) {
         split8(1 to r, level, mergeChunks)
-      } else if (2 < (r / 4)) {
+      } else if (7 < r) {
         split4(1 to r, level, mergeChunks)
-      } else if (1 < (r / 2)) {
+      } else if (3 < r) {
         split2(1 to r, level, mergeChunks)
       } else {
         mergeChunks(1 to r, level)
@@ -214,12 +208,12 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
     }
 
     final class BufferedStream(in: ObjectInputStream) {
-      final def close = in.close
-      final def next: Option[P] = if (drained) None else {
+      @inline final def close = in.close
+      @inline final def next: Option[P] = if (drained) None else {
         if (buffer.isEmpty) buffer = try Some(in.readObject.asInstanceOf[P]) catch { case e: EOFException ⇒ drained = true; None }
         buffer
       }
-      final def consume = { val b = buffer; buffer = None; b }
+      @inline final def consume = { val b = buffer; buffer = None; b }
       private[this] final var buffer: Option[P] = None
       private[this] final var drained = false
     }
@@ -344,9 +338,9 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
       Await.ready(f8, Duration.Inf)
     }
 
-    split8(1 to n, 0, sort)
-    mergeFiles(workingdir.listFiles.length, 0)
-    unzipIndexFile
+    println("sort " + time.timeNanos(split8(1 to n, 0, sort))._2)
+    println("merge " + time.timeNanos(mergeFiles(workingdir.listFiles.length, 0))._2)
+    println("unzip " + time.timeNanos(unzipIndexFile)._2)
   }
 
   private[this] final def newStream(out: OutputStream) = new ObjectOutputStream(LZ4.newFastOutputStream(out))
@@ -377,6 +371,17 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
 
   private[this] final val mask = (1 << pagefactor) - 1
 
-  private[this] final val chunkmask = (1 << (pagefactor + 7)) - 1
+  private[this] final val chunkmask = (1 << (pagefactor + 12)) - 1
+
+}
+
+object MemoryMappedColumnBuilder {
+
+  final def apply[A: ClassTag](name: String, capacity: Long, pagefactor: Int, maxcachesize: Int, filepath: String, withordering: Option[Ordering[A]]) = new MemoryMappedColumnBuilder[A](name, capacity, pagefactor, maxcachesize, filepath, withordering)
+
+  /**
+   * A good starting point, but should be fine tuned with the default constructor.
+   */
+  final def apply[A: ClassTag](name: String, capacity: Long, filepath: String, withordering: Option[Ordering[A]]): MemoryMappedColumnBuilder[A] = apply(name, capacity, 10, 1024, filepath, withordering)
 
 }

@@ -76,18 +76,28 @@ final class IndexedStringColumn private[column] (
 /**
  *
  */
-final class IndexedStringColumnBuilder(
+final class IndexedStringColumnBuilder private (
 
-  name: String,
+  override val name: String,
 
-  capacity: Long,
+  override val capacity: Long,
 
   ordering: Ordering[String])
 
   extends IndexedColumnBuilder[String](name, capacity, ordering) {
 
-  override final def get = new IndexedStringColumn(name, length, array, ordering)
+  override final def result = new IndexedStringColumn(name, length, array, ordering)
 
 }
+
+/**
+ *
+ */
+object IndexedStringColumnBuilder {
+
+  def apply(name: String, capacity: Long, ordering: Ordering[String]) = new IndexedStringColumnBuilder(name, capacity, ordering)
+
+}
+
 
   

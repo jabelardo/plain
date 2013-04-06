@@ -45,17 +45,17 @@ final class BooleanColumn private[column] (
 /**
  *
  */
-final class BooleanColumnBuilder(
+final case class BooleanColumnBuilder(
 
-  name: String,
+  val name: String,
 
-  capacity: Long)
+  val capacity: Long)
 
   extends ColumnBuilder[Boolean, BooleanColumn] {
 
   final def next(value: Boolean) = if (value) trues.add(nextIndex.toInt) else falses.add(nextIndex.toInt)
 
-  final def get = new BooleanColumn(name, trues.size + falses.size, trues, falses)
+  final def result = new BooleanColumn(name, trues.size + falses.size, trues, falses)
 
   private[this] final val trues = new BitSet(capacity.toInt)
 

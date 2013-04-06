@@ -12,7 +12,6 @@ import java.io.{ ByteArrayOutputStream, ObjectInputStream, ObjectOutputStream }
 
 import scala.collection.mutable.ArrayBuffer
 import scala.reflect.ClassTag
-import scala.reflect.runtime.universe.{ Type, TypeTag, typeOf }
 
 import collection.mutable.LeastRecentlyUsedCache
 import io.{ ByteArrayInputStream, LZ4 }
@@ -56,11 +55,11 @@ final class MemoryCompressedColumn[@specialized(Byte, Char, Short, Int, Long, Fl
 /**
  * pagefactor is n in 2 ^ n == entries per page, for instance a pagefactor of 10 will result in 1024 entries per page
  */
-final class MemoryCompressedColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
+final case class MemoryCompressedColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
 
-  name: String,
+  val name: String,
 
-  capacity: Long,
+  val capacity: Long,
 
   pagefactor: Int,
 
@@ -86,7 +85,7 @@ final class MemoryCompressedColumnBuilder[@specialized(Byte, Char, Short, Int, L
     }
   }
 
-  final def get = {
+  final def result = {
     if (0 < (length.toInt & mask)) {
       out.reset
       val os = new ObjectOutputStream(if (highcompression) LZ4.newHighOutputStream(out) else LZ4.newFastOutputStream(out))

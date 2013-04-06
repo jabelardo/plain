@@ -10,6 +10,8 @@ package column
 
 import scala.reflect.ClassTag
 
+import reflect.mirror
+
 /**
  *
  */
@@ -58,17 +60,17 @@ final class MostlyNullColumn[@specialized(Byte, Char, Short, Int, Long, Float, D
 /**
  *
  */
-final class MostlyNullColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
+final case class MostlyNullColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
 
-  name: String,
+  val name: String,
 
-  capacity: Long)
+  val capacity: Long)
 
   extends ColumnBuilder[Option[A], MostlyNullColumn[A]] {
 
   final def next(value: Option[A]): Unit = if (value.isEmpty) nulls.add(nextIndex.toInt) else keys.put(value.get, keys.getOrElse(value.get, new IntSet) += nextIndex.toInt)
 
-  final def get = {
+  final def result = {
     val length = keys.foldLeft(0) { case (s, (_, v)) ⇒ s + v.size }
     val values = {
       val v = new Array[Int](length)
@@ -98,4 +100,3 @@ final class MostlyNullColumnBuilder[@specialized(Byte, Char, Short, Int, Long, F
   private[this] final val nulls = new BitSet(capacity.toInt / 3)
 
 }
-

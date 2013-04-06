@@ -54,17 +54,17 @@ final class CompactColumn[@specialized(Byte, Char, Short, Int, Long, Float, Doub
 /**
  *
  */
-final class CompactColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
+final case class CompactColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
 
-  name: String,
+  val name: String,
 
-  capacity: Long)
+  val capacity: Long)
 
   extends ColumnBuilder[A, CompactColumn[A]] {
 
   final def next(value: A): Unit = keys.put(value, keys.getOrElse(value, new IntSet) += nextIndex.toInt)
 
-  final def get = {
+  final def result = {
     val length = keys.foldLeft(0) { case (s, (_, v)) ⇒ s + v.size }
     val values = {
       val v = new Array[Int](length)

@@ -32,17 +32,17 @@ class ArrayColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
 /**
  *
  */
-final class ArrayColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
+final case class ArrayColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
 
-  name: String,
+  val name: String,
 
-  capacity: Long)
+  val capacity: Long)
 
   extends ColumnBuilder[A, ArrayColumn[A]] {
 
   final def next(value: A): Unit = array.update(nextIndex.toInt, value)
 
-  final def get = new ArrayColumn[A](name, length, array)
+  final def result = new ArrayColumn[A](name, length, array)
 
   private[this] final val array = new Array[A](capacity.toInt)
 
