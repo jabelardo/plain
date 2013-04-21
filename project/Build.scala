@@ -29,6 +29,7 @@ object PlainBuild extends Build {
           janino, 
           akkaSlf4j, 
           akkaActor, 
+          shapeless,
           commonsLang, 
           commonsCodec, 
           commonsIo, 

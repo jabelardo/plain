@@ -11,9 +11,7 @@ package column
 /**
  *
  */
-final class FunctionColumn[A] private (
-
-  val name: String,
+final class FunctionColumn[A](
 
   val length: Long,
 
@@ -25,8 +23,3 @@ final class FunctionColumn[A] private (
 
 }
 
-object FunctionColumn {
-
-  def apply[A](name: String, length: Long, f: Long ⇒ A) = new FunctionColumn(name, length, f)
-
-}

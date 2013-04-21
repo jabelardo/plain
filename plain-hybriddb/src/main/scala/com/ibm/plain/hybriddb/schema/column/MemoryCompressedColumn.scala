@@ -19,9 +19,7 @@ import io.{ ByteArrayInputStream, LZ4 }
 /**
  *
  */
-final class MemoryCompressedColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A] private[column] (
-
-  val name: String,
+final class MemoryCompressedColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
 
   val length: Long,
 
@@ -31,7 +29,9 @@ final class MemoryCompressedColumn[@specialized(Byte, Char, Short, Int, Long, Fl
 
   pages: Array[Array[Byte]])
 
-  extends Column[A] {
+  extends BuiltColumn[A] {
+
+  type Builder = MemoryCompressedColumnBuilder[A]
 
   override final def toString = "MemoryCompressedColumn(len=" + length + " pagefactor=" + pagefactor + " pages=" + pages.length + " pagesize(avg)=" + (pages.foldLeft(0L) { case (l, e) ⇒ l + e.length } / pages.length) + ")"
 
@@ -55,9 +55,7 @@ final class MemoryCompressedColumn[@specialized(Byte, Char, Short, Int, Long, Fl
 /**
  * pagefactor is n in 2 ^ n == entries per page, for instance a pagefactor of 10 will result in 1024 entries per page
  */
-final case class MemoryCompressedColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
-
-  val name: String,
+final class MemoryCompressedColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
 
   val capacity: Long,
 
@@ -72,7 +70,7 @@ final case class MemoryCompressedColumnBuilder[@specialized(Byte, Char, Short, I
   /**
    * A good starting point, but should be fine tuned with the default constructor.
    */
-  final def this(name: String, capacity: Long) = this(name, capacity, 10, 1024, false)
+  final def this(capacity: Long) = this(capacity, 10, 1024, false)
 
   final def next(value: A): Unit = {
     array.update(nextIndex.toInt & mask, value)
@@ -93,7 +91,7 @@ final case class MemoryCompressedColumnBuilder[@specialized(Byte, Char, Short, I
       os.flush
       arrays += out.toByteArray
     }
-    new MemoryCompressedColumn[A](name, length, pagefactor, maxcachesize, arrays.toArray)
+    new MemoryCompressedColumn[A](length, pagefactor, maxcachesize, arrays.toArray)
   }
 
   private[this] final val arrays = new ArrayBuffer[Array[Byte]]
@@ -105,3 +103,4 @@ final case class MemoryCompressedColumnBuilder[@specialized(Byte, Char, Short, I
   private[this] final val mask = (1 << pagefactor) - 1
 
 }
+

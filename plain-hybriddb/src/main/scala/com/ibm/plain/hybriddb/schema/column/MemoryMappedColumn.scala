@@ -30,9 +30,7 @@ import reflect.ignore
 /**
  *
  */
-final class MemoryMappedColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A] private[column] (
-
-  val name: String,
+final class MemoryMappedColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A, O <: Ordering[A]](
 
   val length: Long,
 
@@ -46,15 +44,17 @@ final class MemoryMappedColumn[@specialized(Byte, Char, Short, Int, Long, Float,
 
   filepath: String,
 
-  withordering: Option[Ordering[A]])
+  withordering: Option[O])
 
-  extends Column[A]
+  extends BuiltColumn[A]
 
   with BaseIndexed[A]
 
   with Closeable {
 
   outer ⇒
+
+  type Builder = MemoryMappedColumnBuilder[A, O]
 
   override final def toString = "MemoryMappedColumn(len=" + length + " pagefactor=" + pagefactor + " pages=" + (pages.length - 1) + " pagesize(avg)=" + (pages.last / pages.length) + " filesize=" + pages.last + " ordered=" + withordering.isDefined + ")"
 
@@ -82,7 +82,7 @@ final class MemoryMappedColumn[@specialized(Byte, Char, Short, Int, Long, Float,
       page
   }
 
-  protected final val ordering = withordering.getOrElse(null)
+  protected final val ordering = withordering.getOrElse(null).asInstanceOf[Ordering[A]]
 
   protected final val values = new WrappedArray[A] {
     final def length = outer.length.toInt
@@ -115,9 +115,7 @@ final class MemoryMappedColumn[@specialized(Byte, Char, Short, Int, Long, Float,
 /**
  * pagefactor is n in 2 ^ n, for instance a pagefactor of 10 will result in 1024 entries per page
  */
-final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag] private (
-
-  val name: String,
+final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag, O <: Ordering[A]](
 
   val capacity: Long,
 
@@ -127,9 +125,11 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
 
   filepath: String,
 
-  ordering: Option[Ordering[A]])
+  withordering: Option[O])
 
-  extends ColumnBuilder[A, MemoryMappedColumn[A]] {
+  extends ColumnBuilder[A, MemoryMappedColumn[A, O]] {
+
+  final def this(capacity: Long, filepath: String, withordering: Option[O]) = this(capacity, 10, 1024, filepath, withordering)
 
   private type P = (A, Int)
 
@@ -142,7 +142,7 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
       os.flush
       offsets += file.length
     }
-    if (ordering.isDefined) {
+    if (withordering.isDefined) {
       if (0 == (i & chunkmask)) {
         ignore(chunk.close)
         chunk = output(chunkcount.incrementAndGet)._1
@@ -159,37 +159,40 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
       offsets += file.length
     }
     out.close
-    if (ordering.isDefined) {
+    if (withordering.isDefined) {
       ignore(chunk.close)
       mergeSort(chunkcount.get)
       workingdir.delete
     }
-    new MemoryMappedColumn[A](name, length, pagefactor, maxcachesize, offsets.toArray, indexoffsets.toArray, filepath, ordering)
+    new MemoryMappedColumn[A, O](length, pagefactor, maxcachesize, offsets.toArray, indexoffsets.toArray, filepath, withordering)
   }
 
   private[this] final def mergeSort(n: Int) = {
 
     val pairordering = new Ordering[P] {
-      @inline final def compare(a: P, b: P) = ordering.get.compare(a._1, b._1) match {
+      @inline final def compare(a: P, b: P) = withordering.get.compare(a._1, b._1) match {
         case 0 ⇒ Ordering.Int.compare(a._2, b._2)
         case c ⇒ c
       }
     }
 
-    def sort(range: Range, level: Int) = for (i ← range) {
-      val (in, _) = input(i)
-      val chunk =
-        if (i < n) {
-          Array.fill(chunkmask + 1)(in.readObject.asInstanceOf[P])
-        } else {
-          val a = new ArrayBuffer[P](chunkmask)
-          try while (true) a += in.readObject.asInstanceOf[P] catch { case e: EOFException ⇒ }
-          a.toArray
-        }
-      in.close
-      val (sortedchunk, _) = output(i)
-      try chunk.sorted(pairordering).foreach(sortedchunk.writeObject)
-      finally sortedchunk.close
+    def sort(range: Range, level: Int) = {
+      println(range)
+      for (i ← range) {
+        val (in, _) = input(i)
+        val chunk =
+          if (i < n) {
+            Array.fill(chunkmask + 1)(in.readObject.asInstanceOf[P])
+          } else {
+            val a = new ArrayBuffer[P](chunkmask / 2)
+            try while (true) a += in.readObject.asInstanceOf[P] catch { case e: EOFException ⇒ }
+            a.toArray
+          }
+        in.close
+        val (sortedchunk, _) = output(i)
+        try chunk.sorted(pairordering).foreach(sortedchunk.writeObject)
+        finally sortedchunk.close
+      }
     }
 
     @tailrec def mergeFiles(files: Int, level: Int): Unit = if (1 < files) {
@@ -367,21 +370,11 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
 
   private[this] final val chunkcount = new AtomicInteger
 
-  private[this] final val workingdir = if (ordering.isDefined) io.temporaryDirectory else null
+  private[this] final val workingdir = if (withordering.isDefined) io.temporaryDirectory else null
 
   private[this] final val mask = (1 << pagefactor) - 1
 
-  private[this] final val chunkmask = (1 << (pagefactor + 12)) - 1
+  private[this] final val chunkmask = (1 << (pagefactor + 10)) - 1
 
 }
 
-object MemoryMappedColumnBuilder {
-
-  final def apply[A: ClassTag](name: String, capacity: Long, pagefactor: Int, maxcachesize: Int, filepath: String, withordering: Option[Ordering[A]]) = new MemoryMappedColumnBuilder[A](name, capacity, pagefactor, maxcachesize, filepath, withordering)
-
-  /**
-   * A good starting point, but should be fine tuned with the default constructor.
-   */
-  final def apply[A: ClassTag](name: String, capacity: Long, filepath: String, withordering: Option[Ordering[A]]): MemoryMappedColumnBuilder[A] = apply(name, capacity, 10, 1024, filepath, withordering)
-
-}

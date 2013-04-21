@@ -8,10 +8,7 @@ package schema
 
 package table
 
-import scala.reflect.runtime.universe.{ Type, TypeTag, typeOf }
 import scala.collection.Seq
-
-import column.Column
 
 /**
  *

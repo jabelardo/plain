@@ -30,6 +30,7 @@ object Dependencies {
   val akkaActor     = "com.typesafe.akka"                       %%  "akka-actor"                  % "2.1.2"
   val akkaTestKit   = "com.typesafe.akka"                       %%  "akka-testkit"                % "2.1.2"
   val akkaSlf4j     = "com.typesafe.akka"                       %%  "akka-slf4j"                  % "2.1.2"
+  val shapeless     = "com.chuusai"                             %%  "shapeless"                   % "1.2.4"
   val commonsLang   = "org.apache.commons"                      %   "commons-lang3"               % "3.1"
   val commonsComp   = "org.apache.commons "                     %   "commons-compress"            % "1.4.1"
   val commonsIo     = "commons-io"                              %   "commons-io"                  % "2.4"

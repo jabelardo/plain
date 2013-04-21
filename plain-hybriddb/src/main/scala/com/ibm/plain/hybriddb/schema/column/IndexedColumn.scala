@@ -11,56 +11,49 @@ package column
 import scala.collection.IndexedSeq
 import scala.reflect.ClassTag
 
-import collection.immutable.Sorting.{ binarySearch, sortedIndexedSeq }
+import collection.immutable.Sorting.sortedIndexedSeq
 
 /**
  *
  */
-class IndexedColumn[A: ClassTag] private[column] (
+final class IndexedColumn[A: ClassTag, -O <: Ordering[A]](
 
-  name: String,
+  val length: Long,
 
-  length: Long,
+  protected[this] final val values: IndexedSeq[A],
 
-  protected final val values: IndexedSeq[A],
+  protected[this] final val ordering: O)
 
-  protected final val ordering: Ordering[A])
-
-  extends ArrayColumn[A](name, length, values.toArray)
+  extends BuiltColumn[A]
 
   with BaseIndexed[A] {
 
-  protected final val array = sortedIndexedSeq(values, ordering)
+  type Builder = IndexedColumnBuilder[A]
+
+  @inline final def get(index: Long): A = values(index.toInt)
+
+  protected[this] final val array = sortedIndexedSeq(values, ordering)
 
 }
 
 /**
  *
  */
-class IndexedColumnBuilder[A: ClassTag] protected (
-
-  val name: String,
+final class IndexedColumnBuilder[A: ClassTag](
 
   val capacity: Long,
 
   ordering: Ordering[A])
 
-  extends ColumnBuilder[A, IndexedColumn[A]] {
+  extends ColumnBuilder[A, IndexedColumn[A, Ordering[A]]] {
 
   final def next(value: A): Unit = array.update(nextIndex.toInt, value)
 
-  def result = new IndexedColumn[A](name, length, array, ordering)
+  def result = new IndexedColumn(length, array, ordering)
 
   protected[this] final val array = new Array[A](capacity.toInt)
 
 }
 
-/**
- *
- */
-object IndexedColumnBuilder {
 
-  def apply[A: ClassTag](name: String, capacity: Long, ordering: Ordering[A]) = new IndexedColumnBuilder[A](name, capacity, ordering)
-
-}
 

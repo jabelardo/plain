@@ -32,8 +32,6 @@ import MostlyNullColumn._
  */
 final class MostlyNullColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
 
-  val name: String,
-
   val length: Long,
 
   private[this] final val keys: KeyMap[A],
@@ -44,9 +42,11 @@ final class MostlyNullColumn[@specialized(Byte, Char, Short, Int, Long, Float, D
 
   private[this] final val nulls: BitSet)
 
-  extends Column[Option[A]]
+  extends BuiltColumn[Option[A]]
 
   with Lookup[Option[A]] {
+
+  type Builder = MostlyNullColumnBuilder[A]
 
   final def get(index: Long): Option[A] = if (nulls.contains(index.toInt)) None else Some(distinctvalues(values(index.toInt)))
 
@@ -60,9 +60,7 @@ final class MostlyNullColumn[@specialized(Byte, Char, Short, Int, Long, Float, D
 /**
  *
  */
-final case class MostlyNullColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
-
-  val name: String,
+final class MostlyNullColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
 
   val capacity: Long)
 
@@ -92,7 +90,7 @@ final case class MostlyNullColumnBuilder[@specialized(Byte, Char, Short, Int, Lo
       }
       d
     }
-    new MostlyNullColumn[A](name, length, keys, values, distinctvalues, nulls)
+    new MostlyNullColumn[A](length, keys, values, distinctvalues, nulls)
   }
 
   private[this] final val keys = new KeyMap[A](capacity.toInt / 1000)

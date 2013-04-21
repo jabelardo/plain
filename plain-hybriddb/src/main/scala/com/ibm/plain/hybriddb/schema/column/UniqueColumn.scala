@@ -26,17 +26,17 @@ import UniqueColumn._
  */
 final class UniqueColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
 
-  val name: String,
-
   val length: Long,
 
   private[this] final val array: Array[A],
 
   private[this] final val keys: UniqueMap[A])
 
-  extends Column[A]
+  extends BuiltColumn[A]
 
   with Unique[A] {
+
+  type Builder = UniqueColumnBuilder[A]
 
   @inline final def get(index: Long): A = array(index.toInt)
 
@@ -49,11 +49,9 @@ final class UniqueColumn[@specialized(Byte, Char, Short, Int, Long, Float, Doubl
 /**
  *
  */
-final case class UniqueColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
+final class UniqueColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
 
-  name: String,
-
-  capacity: Long)
+  val capacity: Long)
 
   extends ColumnBuilder[A, UniqueColumn[A]] {
 
@@ -63,7 +61,7 @@ final case class UniqueColumnBuilder[@specialized(Byte, Char, Short, Int, Long, 
     keys.put(value, i)
   }
 
-  final def result = new UniqueColumn[A](name, keys.size, array, keys)
+  final def result = new UniqueColumn[A](keys.size, array, keys)
 
   private[this] final val keys = new UniqueMap[A](capacity.toInt)
 

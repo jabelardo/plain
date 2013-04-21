@@ -15,9 +15,7 @@ trait Column[A]
 
   extends Serializable {
 
-  type ColumnType = A
-
-  def name: String
+  type Builder <: ColumnBuilder[A, _]
 
   def length: Long
 
@@ -25,30 +23,35 @@ trait Column[A]
 
   final def apply(index: Long) = get(index)
 
-  override def toString = getClass.getSimpleName + "(name=" + name + ")"
+}
+
+/**
+ *
+ */
+trait BuiltColumn[A]
+
+  extends Column[A] {
+
+  type Builder <: ColumnBuilder[A, _]
 
 }
 
 /**
  *
  */
-trait ColumnBuilder[A, C <: Column[_]] {
-
-  def name: String
+trait ColumnBuilder[A, C <: BuiltColumn[A]] {
 
   def capacity: Long
-
-  def length: Long = index
 
   def result: C
 
   def next(value: A)
 
-  def nextAny(value: Any): Unit = next(value.asInstanceOf[A])
-
   final def apply(value: A) = next(value)
 
-  override def toString = getClass.getSimpleName + "(name=" + name + " capacity=" + capacity + ")"
+  def nextAny(value: Any) = next(value.asInstanceOf[A])
+
+  final def length: Long = index
 
   protected[this] final def nextIndex: Long = { index += 1L; index - 1L }
 

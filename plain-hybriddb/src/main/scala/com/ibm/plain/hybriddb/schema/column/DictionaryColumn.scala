@@ -13,7 +13,7 @@ import scala.reflect.ClassTag
 /**
  *
  */
-object CompactColumn {
+object DictionaryColumn {
 
   type IntSet = scala.collection.mutable.HashSet[Int]
 
@@ -21,14 +21,12 @@ object CompactColumn {
 
 }
 
-import CompactColumn._
+import DictionaryColumn._
 
 /**
  * Use this for columns with few distinct values compared to their length (< 5%).
  */
-final class CompactColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A] private[column] (
-
-  val name: String,
+final class DictionaryColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
 
   val length: Long,
 
@@ -38,9 +36,11 @@ final class CompactColumn[@specialized(Byte, Char, Short, Int, Long, Float, Doub
 
   private[this] final val distinctvalues: Array[A])
 
-  extends Column[A]
+  extends BuiltColumn[A]
 
   with Lookup[A] {
+
+  type Builder = DictionaryColumnBuilder[A]
 
   final def get(index: Long): A = distinctvalues(values(index.toInt))
 
@@ -54,13 +54,11 @@ final class CompactColumn[@specialized(Byte, Char, Short, Int, Long, Float, Doub
 /**
  *
  */
-final case class CompactColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
-
-  val name: String,
+final class DictionaryColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
 
   val capacity: Long)
 
-  extends ColumnBuilder[A, CompactColumn[A]] {
+  extends ColumnBuilder[A, DictionaryColumn[A]] {
 
   final def next(value: A): Unit = keys.put(value, keys.getOrElse(value, new IntSet) += nextIndex.toInt)
 
@@ -86,7 +84,7 @@ final case class CompactColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
       }
       d
     }
-    new CompactColumn[A](name, length, keys, values, distinctvalues)
+    new DictionaryColumn[A](length, keys, values, distinctvalues)
   }
 
   private[this] final val keys = new KeyMap[A](capacity.toInt / 1000)

@@ -10,7 +10,7 @@ package column
 
 import scala.collection.IndexedSeq
 
-import collection.immutable.Sorting.{ binarySearch, sortedIndexedSeq }
+import collection.immutable.Sorting.binarySearch
 
 /**
  *
@@ -32,19 +32,28 @@ trait Indexed[A] {
 }
 
 /**
+ *
+ */
+trait StringIndexed {
+
+  def startsWith(value: String): Iterator[Long]
+
+}
+
+/**
  * Implements most methods of Indexed based on an IndexedSeq.
  */
 trait BaseIndexed[A]
 
   extends Indexed[A] {
 
-  protected val ordering: Ordering[A]
+  protected[this] val ordering: Ordering[A]
 
   import ordering._
 
-  protected def values: IndexedSeq[A]
+  protected[this] def values: IndexedSeq[A]
 
-  protected def array: IndexedSeq[Int]
+  protected[this] def array: IndexedSeq[Int]
 
   final def equiv(value: A): Iterator[Long] = new Iterator[Long] {
 
@@ -81,6 +90,67 @@ trait BaseIndexed[A]
     @inline final def next = { lower += 1; array(lower - 1) }
 
   }
+
+}
+
+/**
+ *
+ */
+trait BaseStringIndexed
+
+  extends StringIndexed {
+
+  protected[this] val ordering: Ordering[String]
+
+  protected[this] def values: IndexedSeq[String]
+
+  protected[this] def array: IndexedSeq[Int]
+
+  /**
+   * Still very fast as it is using binarySearch to find the first value.
+   */
+  final def startsWith(value: String): Iterator[Long] = new Iterator[Long] {
+
+    @inline final def hasNext = lower < array.length && values(array(lower)).startsWith(value)
+
+    @inline final def next = { lower += 1; array(lower - 1) }
+
+    private[this] final var lower = binarySearch(value, array, values, (a: String, b: String) ⇒ a >= b).getOrElse(Int.MaxValue)
+
+  }
+
+  final def startsWith(value: String, ignorecase: Boolean): Iterator[Long] = {
+    if (ignorecase) new Iterator[Long] {
+
+      @inline final def hasNext = lower < array.length && values(array(lower)).toLowerCase.startsWith(value.toLowerCase)
+
+      @inline final def next = { lower += 1; array(lower - 1) }
+
+      private[this] final var lower = binarySearch(value, array, values, (a: String, b: String) ⇒ a.toLowerCase >= b.toLowerCase).getOrElse(Int.MaxValue)
+
+    }
+    else startsWith(value)
+  }
+
+  /**
+   * The .view makes all the difference here.
+   */
+  final def contains(value: String): Iterator[Long] = array.view.filter(i ⇒ values(i).contains(value)).iterator
+
+  /**
+   * The .view makes all the difference here.
+   */
+  final def contains(value: String, ignorecase: Boolean): Iterator[Long] = {
+    if (ignorecase)
+      array.view.filter(i ⇒ values(i).toLowerCase.contains(value.toLowerCase)).iterator
+    else
+      contains(value)
+  }
+
+  /**
+   * The .view makes all the difference here.
+   */
+  final def matches(regex: String): Iterator[Long] = array.view.filter(i ⇒ values(i).matches(regex)).iterator
 
 }
 

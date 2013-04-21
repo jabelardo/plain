@@ -8,9 +8,13 @@ package schema
 
 package table
 
+import scala.language._
+import scala.reflect._
+import runtime._
+import universe._
 import scala.collection.Seq
-
-import column.{ Column, ColumnBuilder }
+import column._
+import sun.reflect.generics.tree.TypeSignature
 
 /**
  *
@@ -23,38 +27,6 @@ trait Table
 
   def length: Long
 
-  def width: Int
-
-  def get(rowindex: Long): Row
-
-  final def apply(rowindex: Long) = get(rowindex)
-
-  def columns: Seq[Column[_]]
-
-  def get(columnname: String): Column[_]
-
-  final def apply(columnname: String) = get(name)
-
-}
-
-class BaseTable(
-
-  val name: String,
-
-  val length: Long,
-
-  val width: Int,
-
-  val columns: Seq[Column[_]])
-
-  extends Table {
-
-  override final def toString = "Table(name=" + name + " length=" + length + " width=" + width + " columns=" + columns + ")"
-
-  def get(rowindex: Long): Row = Row(columns.map(_.get(rowindex)))
-
-  def get(columnname: String): Column[_] = throw null
-
 }
 
 /**
@@ -62,13 +34,48 @@ class BaseTable(
  */
 object Table {
 
-  def fromSeq(
-    name: String,
-    columnbuilders: Seq[ColumnBuilder[_, _]],
-    rows: Seq[Seq[Any]]): Table = {
-    val builder = new BaseTableBuilder(name, columnbuilders)
-    rows.foreach(row ⇒ builder.next(Row(row)))
-    builder.result
+  import reflect.mirror._
+
+  def fromSeq[T <: Table: TypeTag](rows: Seq[Seq[Any]]): T = {
+    val builders_ = createBuilders[T](rows.length).toList
+    val builders = new scala.collection.mutable.ListBuffer[ColumnBuilder[_, _]]
+    builders += builders_(4) += builders_(2) += builders_(3) += builders_(1) += builders_(0)
+    rows.foreach { row ⇒
+      var i = 0
+      row.foreach { v ⇒ builders(i).nextAny(v); i += 1 }
+    }
+    val tabletype = typeOf[T]
+    val ctor = tabletype.declaration(nme.CONSTRUCTOR).asMethod
+    val tableconstructor = reflectClass(tabletype.typeSymbol.asClass).reflectConstructor(ctor)
+    val parameters: List[Any] = "persons" :: rows.length :: builders.map(_.result).toList
+    tableconstructor(parameters: _*).asInstanceOf[T]
+  }
+
+  private[this] final def createBuilders[T <: Table: TypeTag](capacity: Long): Seq[ColumnBuilder[_, _]] = {
+    val tabletype = typeOf[T]
+    val columntype = typeOf[BuiltColumn[_]]
+    val buildertype = typeOf[ColumnBuilder[_, _]]
+    val columntypes = tabletype.members.filter(m ⇒ m.isTerm && !m.isMethod && m.typeSignature <:< columntype).map(_.typeSignature).toSeq
+    columntypes.map { c ⇒
+      val TypeRef(_, _, columntypeargs) = c
+      val (columnclasstag, ordering) = columntypeargs match {
+        case Nil ⇒ (null, null)
+        case ord :: Nil if ord <:< typeOf[Ordering[_]] ⇒ (null, runtimeClass(ord).newInstance)
+        case c :: ord :: Nil if ord <:< typeOf[Ordering[_]] ⇒ (ClassTag(runtimeClass(c)), runtimeClass(ord).newInstance)
+        case c :: Nil ⇒ (ClassTag(runtimeClass(c)), null)
+        case _ ⇒ throw new UnsupportedOperationException
+      }
+      val builder = c.members.filter(m ⇒ m.isType && m.typeSignature <:< buildertype).map(_.typeSignature).head
+      val ctor = builder.declaration(nme.CONSTRUCTOR).asMethod
+      val constructor = reflectClass(builder.typeSymbol.asClass).reflectConstructor(ctor)
+      (constructor.symbol.paramss.flatten.map(_.typeSignature) match {
+        case cap :: Nil if cap =:= typeOf[Long] ⇒ constructor(capacity)
+        case cap :: ctag :: Nil if cap =:= typeOf[Long] && ctag <:< typeOf[ClassTag[_]] ⇒ constructor(capacity, columnclasstag)
+        case cap :: ord :: Nil if cap =:= typeOf[Long] && ord <:< typeOf[Ordering[_]] ⇒ constructor(capacity, ordering)
+        case cap :: ord :: ctag :: Nil if cap =:= typeOf[Long] && ctag <:< typeOf[ClassTag[_]] && ord <:< typeOf[Ordering[_]] ⇒ constructor(capacity, ordering, columnclasstag)
+        case _ ⇒ throw new UnsupportedOperationException
+      }).asInstanceOf[ColumnBuilder[_, _]]
+    }
   }
 
 }
@@ -76,33 +83,9 @@ object Table {
 /**
  *
  */
-trait TableBuilder {
+trait TableBuilder[T <: Table] {
 
-  def result: Table
-
-  final def next(row: Row) = for (i ← 0 until width) columnbuilders(i).nextAny(row(i))
-
-  final def apply(row: Row) = next(row)
-
-  protected[this] def columnbuilders: Seq[ColumnBuilder[_, _]]
-
-  protected[this] final def length: Long = columnbuilders(0).length
-
-  protected[this] final def width: Int = columnbuilders.length
+  def result: T
 
 }
 
-/**
- *
- */
-final class BaseTableBuilder(
-
-  name: String,
-
-  val columnbuilders: Seq[ColumnBuilder[_, _]])
-
-  extends TableBuilder {
-
-  final def result: Table = new BaseTable(name, length, width, columnbuilders.map(_.result.asInstanceOf[Column[_]]))
-
-}

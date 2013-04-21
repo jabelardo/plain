@@ -24,17 +24,17 @@ import BitSetColumn._
 /**
  * Use this for columns with very few distinct values (< 10).
  */
-final class BitSetColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A] private[column] (
-
-  val name: String,
+final class BitSetColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
 
   val length: Long,
 
   private[this] final val bitsets: BitSetMap[A])
 
-  extends Column[A]
+  extends BuiltColumn[A]
 
   with Lookup[A] {
+
+  type Builder = BitSetColumnBuilder[A]
 
   final def get(index: Long): A = bitsets.find { case (v, b) ⇒ b.contains(index.toInt) } match {
     case Some((value, _)) ⇒ value
@@ -51,9 +51,7 @@ final class BitSetColumn[@specialized(Byte, Char, Short, Int, Long, Float, Doubl
 /**
  *
  */
-final case class BitSetColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
-
-  val name: String,
+final class BitSetColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
 
   val capacity: Long)
 
@@ -67,7 +65,7 @@ final case class BitSetColumnBuilder[@specialized(Byte, Char, Short, Int, Long, 
     bitset.add(nextIndex.toInt)
   }
 
-  final def result = new BitSetColumn[A](name, bitsets.foldLeft(0) { case (s, (_, b)) ⇒ s + b.size }, bitsets)
+  final def result = new BitSetColumn[A](bitsets.foldLeft(0) { case (s, (_, b)) ⇒ s + b.size }, bitsets)
 
   private[this] final val bitsets = new BitSetMap[A](16)
 
