@@ -16,6 +16,11 @@ package object reflect {
 
   final val mirror = runtimeMirror(getClass.getClassLoader)
 
+  final def toTuple[A <: Object](as: Seq[A]): Product = {
+    val tuple = Class.forName("scala.Tuple" + as.size)
+    tuple.getConstructors.apply(0).newInstance(as: _*).asInstanceOf[Product]
+  }
+
   final lazy val reflections = new Reflections("com.ibm.plain") // not working with OneJar, needs work-around
 
   def subClasses[A](clazz: Class[A]): Set[Class[_ <: A]] = reflections.getSubTypesOf(clazz).toSet

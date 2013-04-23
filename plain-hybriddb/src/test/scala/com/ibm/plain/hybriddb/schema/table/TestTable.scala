@@ -26,8 +26,8 @@ import column._
 
   @Test def test4 = {
     val data = List(List(1, "Dow", "John", true, 21), List(2, "Smith", "Mary", false, 23))
-    val p = Table.fromSeq[Persons](data)
-    for (i ← 0 until p.length.toInt) println(i + " : " + p.firstname(i) + " " + p.lastname(i) + " " + p.female(i))
+    val p = Table.fromSeq[Persons]("persons", data.length, data.view)
+    for (i ← 0 until p.length.toInt) println(i + " : " + p.firstname(i) + " " + p.lastname(i) + " " + p.female(i) + " " + p.age(i))
     assert(true)
   }
 
@@ -36,7 +36,7 @@ import column._
 final class MyIntOrdering extends Ordering.IntOrdering
 final class MyStringOrdering extends Ordering.StringOrdering
 
-case class Persons(
+final case class Persons(
   name: String,
   length: Long,
   id: UniqueColumn[Int],
@@ -51,29 +51,29 @@ case class Persons(
 
 }
 
-case class PersonsBuilder(
-  name: String,
-  capacity: Long,
-  id: UniqueColumnBuilder[Int],
-  lastname: IndexedStringColumnBuilder,
-  firstname: IndexedStringColumnBuilder,
-  male: BooleanColumnBuilder,
-  age: IndexedColumnBuilder[Int])
-
-  extends TableBuilder[Persons] {
-
-  def next(row: (Int, String, String, Boolean, Byte)) = {
-    val t: Tuple5[Int, String, String, Boolean, Byte] = row
-    id.next(row._1)
-    lastname.next(row._2)
-    firstname.next(row._3)
-    male.next(row._4)
-    age.next(row._5)
-  }
-
-  def result: Persons = Persons(name, id.length, id.result, lastname.result, firstname.result, male.result, age.result)
-
-}
+//case class PersonsBuilder(
+//  name: String,
+//  capacity: Long,
+//  id: UniqueColumnBuilder[Int],
+//  lastname: IndexedStringColumnBuilder,
+//  firstname: IndexedStringColumnBuilder,
+//  male: BooleanColumnBuilder,
+//  age: IndexedColumnBuilder[Int])
+//
+//  extends TableBuilder[Persons] {
+//
+//  def next(row: (Int, String, String, Boolean, Byte)) = {
+//    val t: Tuple5[Int, String, String, Boolean, Byte] = row
+//    id.next(row._1)
+//    lastname.next(row._2)
+//    firstname.next(row._3)
+//    male.next(row._4)
+//    age.next(row._5)
+//  }
+//
+//  def result: Persons = Persons(name, id.length, id.result, lastname.result, firstname.result, male.result, age.result)
+//
+//}
 
 //final class Person(
 //  name: String,

@@ -143,7 +143,7 @@ object ConnectionHelper {
       case Types.TIME ⇒ (rs: ResultSet) ⇒ (i: Int) ⇒ rs.getTime(i)
       case Types.TIMESTAMP ⇒ (rs: ResultSet) ⇒ (i: Int) ⇒ rs.getTimestamp(i)
       case Types.BIGINT ⇒ (rs: ResultSet) ⇒ (i: Int) ⇒ rs.getBigDecimal(i)
-      case t ⇒ throw new UnsupportedOperationException("Type mapping not implemented : " + t)
+      case t ⇒ unsupported
     }
 
     private[this] final var pos = 1

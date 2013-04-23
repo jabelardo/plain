@@ -71,7 +71,7 @@ final case class Response private (
         buf = buffer
         buffer = ByteBuffer.wrap(entity.array)
         encode
-      case _ ⇒ throw new UnsupportedOperationException
+      case _ ⇒ unsupported
     }
   }
 

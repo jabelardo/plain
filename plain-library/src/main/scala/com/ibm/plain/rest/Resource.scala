@@ -71,7 +71,7 @@ trait Resource
     }
   }
 
-  final def process(io: Io) = throw new UnsupportedOperationException
+  final def process(io: Io) = unsupported
 
   final def handle(context: Context) = try {
     methods.get(context.request.method) match {
@@ -124,7 +124,7 @@ trait Resource
     entity match {
       case entity: ContentEntity ⇒ context.io +++ ((entity.length, FixedLengthChannel(context.io.channel, context.io.buffer.remaining, entity.length), destination))
       case entity: ArrayEntity ⇒ context.io +++ ((entity.length, ByteArrayChannel(entity.array), destination))
-      case _ ⇒ throw new UnsupportedOperationException
+      case _ ⇒ unsupported
     }
   }
 

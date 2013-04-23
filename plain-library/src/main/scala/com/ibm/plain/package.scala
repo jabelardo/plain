@@ -49,5 +49,10 @@ package object plain
     }
   }
 
+  /**
+   * low-level code shorteners
+   */
+  def unsupported = throw new UnsupportedOperationException
+
 }
 
