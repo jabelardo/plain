@@ -27,7 +27,7 @@ package object reflect {
 
   def tryBoolean(p: ⇒ Any, show: Boolean = false) = try { p; true } catch { case e: Throwable ⇒ if (show) println(e); false }
 
-  def tryLocation = try { throw new Exception("current location") } catch { case e: Throwable ⇒ e.printStackTrace }
+  def tryLocation = try { throw new Exception("tryLocation thrown.") } catch { case e: Throwable ⇒ e.printStackTrace }
 
   def ignore(b: ⇒ Any) = try b catch { case e: Throwable ⇒ }
 

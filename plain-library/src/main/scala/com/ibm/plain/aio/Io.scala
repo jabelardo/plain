@@ -264,7 +264,33 @@ object Io
   /**
    * Accept.
    */
-  private[this] final case class AcceptHandler(pauseinmilliseconds: Long)
+  private[this] final class AcceptHandler
+
+    extends Handler[SocketChannel, Io] {
+
+    @inline final def completed(c: SocketChannel, io: Io) = {
+      import io._
+      server.accept(io, this)
+      k(io ++ SocketChannelWithTimeout(c) ++ defaultByteBuffer)
+    }
+
+    @inline final def failed(e: Throwable, io: Io) = {
+      import io._
+      if (server.isOpen) {
+        server.accept(io, this)
+        e match {
+          case _: IOException ⇒
+          case e: Throwable ⇒ warning("accept failed : " + io + " " + e)
+        }
+      }
+    }
+
+  }
+
+  /**
+   * Just an idea to avoid DNSA.
+   */
+  private[this] final class PausingAcceptHandler(pauseinmilliseconds: Long)
 
     extends Handler[SocketChannel, Io] {
 
@@ -311,7 +337,7 @@ object Io
   }
 
   final def accept(server: ServerChannel, pausebetweenaccepts: Duration): Io @suspendable =
-    shift { k: IoCont ⇒ server.accept(Io.empty ++ server ++ k, AcceptHandler(pausebetweenaccepts.toMillis)) }
+    shift { k: IoCont ⇒ server.accept(Io.empty ++ server ++ k, pausebetweenaccepts.toMillis match { case m if 0 < m ⇒ new PausingAcceptHandler(m) case _ ⇒ new AcceptHandler }) }
 
   @inline private[aio] final def read(io: Io): Io @suspendable = {
     import io._
@@ -332,12 +358,14 @@ object Io
 
     val readiteratee = io.iteratee
 
+    import http._
     @inline def readloop(io: Io): Unit @suspendable = {
       (read(io) match {
         case io if -1 < io.readwritten ⇒
           io.buffer.flip
           io.iteratee(Elem(io))
-        case io ⇒ io.iteratee(Eof)
+        case io ⇒
+          io.iteratee(Eof)
       }) match {
         case (cont @ Cont(_), Empty) ⇒
           readloop(io ++ cont ++ defaultByteBuffer)

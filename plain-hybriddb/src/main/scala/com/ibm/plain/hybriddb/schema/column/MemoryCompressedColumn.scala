@@ -19,7 +19,7 @@ import io.{ ByteArrayInputStream, LZ4 }
 /**
  *
  */
-final class MemoryCompressedColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
+@SerialVersionUID(1L) final class MemoryCompressedColumn[@specialized A](
 
   val length: Long,
 
@@ -55,7 +55,7 @@ final class MemoryCompressedColumn[@specialized(Byte, Char, Short, Int, Long, Fl
 /**
  * pagefactor is n in 2 ^ n == entries per page, for instance a pagefactor of 10 will result in 1024 entries per page
  */
-final class MemoryCompressedColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
+final class MemoryCompressedColumnBuilder[@specialized A: ClassTag](
 
   val capacity: Long,
 

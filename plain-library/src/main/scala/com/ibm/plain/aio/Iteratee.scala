@@ -15,7 +15,7 @@ import Input.{ Elem, Empty, Eof, Failure }
 /**
  * An iteratee consumes a stream of elements of type Input[E] and produces a result of type A.
  */
-sealed abstract class Iteratee[E, +A] {
+sealed abstract class Iteratee[E, +A <: Any] {
 
   import Iteratee._
 
@@ -41,8 +41,8 @@ sealed abstract class Iteratee[E, +A] {
    * All lines in a for-comprehension except the last one.
    */
   final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = this match {
-    case Cont(comp: Compose[E, A]) ⇒ Cont(comp ++ f)
-    case Cont(k) ⇒ Cont(Compose(k, f))
+    case Cont(comp: Compose[E, B]) ⇒ Cont(comp ++ f.asInstanceOf[Any ⇒ Iteratee[E, B]])
+    case Cont(k) ⇒ Cont(new Compose(k, f.asInstanceOf[Any ⇒ Iteratee[E, _]]))
     case Done(a) ⇒ f(a)
     case e @ Error(_) ⇒ e
   }
@@ -72,44 +72,45 @@ object Iteratee {
 
   final case class Cont[E, A](cont: Input[E] ⇒ (Iteratee[E, A], Input[E])) extends Iteratee[E, A]
 
-  private object Compose {
-
-    @inline def apply[E, A, B](k: Input[E] ⇒ (Iteratee[E, A], Input[E]), f: A ⇒ Iteratee[E, B]) = {
-      new Compose[E, B](k, f :: Nil, Nil)
-    }
-
-  }
+  /**
+   * private helpers
+   */
+  private final type R[E, A] = Input[E] ⇒ (Iteratee[E, A], Input[E])
 
   /**
    * This class is a performance bottleneck and could use some refinement.
    */
   private final class Compose[E, A] private (
 
-    var k: Input[E] ⇒ (Iteratee[E, _], Input[E]),
+    private[this] final val k: R[E, _],
 
-    out: List[_],
+    private[this] final val out: List[Any ⇒ Iteratee[E, _]],
 
-    in: List[_])
+    private[this] final val in: List[Any ⇒ Iteratee[E, _]])
 
-    extends (Input[E] ⇒ (Iteratee[E, A], Input[E])) {
+    extends R[E, A] {
 
-    @inline final def ++[B](f: _ ⇒ Iteratee[E, B]) = new Compose[E, B](k, out, f :: in)
+    def this(k: R[E, _], f: Any ⇒ Iteratee[E, _]) = this(k, f :: Nil, Nil)
+
+    final def ++[B](f: Any ⇒ Iteratee[E, B]): R[E, B] = {
+      new Compose[E, B](k, out, f :: in)
+    }
 
     /**
      * A plain application spends most of its time in this method.
      */
     final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = {
 
-      @inline @tailrec def run(
+      @tailrec def run(
         result: (Iteratee[E, _], Input[E]),
-        out: List[_],
-        in: List[_]): (Iteratee[E, _], Input[E]) = {
+        out: List[Any ⇒ Iteratee[E, _]],
+        in: List[Any ⇒ Iteratee[E, _]]): (Iteratee[E, _], Input[E]) = {
         if (out.isEmpty) {
-          if (in.isEmpty) result else run(result, in.reverse, Nil)
+          if (in.isEmpty) result else run(result, in match { case Nil ⇒ Nil case _ :: Nil ⇒ in case _ ⇒ in.reverse }, Nil)
         } else {
           result match {
             case (Done(value), remaining) ⇒
-              out.head.asInstanceOf[Any ⇒ Iteratee[E, _]](value) match {
+              out.head(value) match {
                 case Cont(k) ⇒ run(k(remaining), out.tail, in)
                 case e ⇒ run((e, remaining), out.tail, in)
               }

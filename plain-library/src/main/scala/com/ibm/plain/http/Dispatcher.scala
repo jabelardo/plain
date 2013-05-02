@@ -4,9 +4,6 @@ package plain
 
 package http
 
-import scala.reflect._
-import scala.reflect.runtime.universe._
-
 import com.typesafe.config.Config
 
 import aio.Io

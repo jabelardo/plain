@@ -67,13 +67,13 @@ import collection.immutable.Sorting._
     val n = 5000000
     var t = 0L
     var m = 1
-    var s: MemoryMappedColumn[Double, Ordering[Double]] = null
+    var s: FileCompressedColumn[Double, Ordering[Double]] = null
     if (true) {
       var v = Array.fill(n) { Random.nextInt(3) match { case 0 ⇒ 0.0 case 1 ⇒ 1.0 case 2 ⇒ Random.nextDouble } }
       println(v.length)
       v(333) = 3.14
       v(n - 1) = 2.72
-      val b = new MemoryMappedColumnBuilder[Double, Ordering[Double]](v.length, "/tmp/column.bin", Some(Ordering.Double))
+      val b = new FileCompressedColumnBuilder[Double, Ordering[Double]](v.length, "/tmp/column.bin", Some(Ordering.Double))
       for (i ← 1 to m) {
         t += time.timeNanos {
           for (j ← 0 until n) b.next(v(j))
@@ -156,13 +156,13 @@ import collection.immutable.Sorting._
     val n = 1000000
     var t = 0L
     var m = 1
-    var s: MemoryMappedColumn[Double, Ordering[Double]] = null
+    var s: FileCompressedColumn[Double, Ordering[Double]] = null
     if (true) {
       var v = Array.fill(n) { Random.nextInt(3) match { case 0 ⇒ 0.0 case 1 ⇒ 1.0 case 2 ⇒ Random.nextDouble } }
       println(v.length)
       v(333) = 3.14
       v(n - 1) = 2.72
-      val b = new MemoryMappedColumnBuilder[Double, Ordering[Double]](v.length, "/tmp/matrix.bin", Some(Ordering.Double))
+      val b = new FileCompressedColumnBuilder[Double, Ordering[Double]](v.length, "/tmp/matrix.bin", Some(Ordering.Double))
       for (i ← 1 to m) {
         t += time.timeNanos {
           for (j ← 0 until n) b.next(v(j))

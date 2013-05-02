@@ -13,28 +13,30 @@ import scala.language.implicitConversions
 /**
  *
  */
-object Helpers {
+object ReflectHelper {
 
   import mirror._
+
+  def typeOfInstance(any: Any) = reflect(any).symbol.typeSignature
 
   def newInstance[A: TypeTag](parameters: Seq[Any]): A = newInstance[A](typeOf[A], parameters)
 
   def newInstance[A: TypeTag](a: Type, parameters: Seq[Any]): A =
     reflectClass(a.typeSymbol.asClass).reflectConstructor(a.declaration(nme.CONSTRUCTOR).asMethod)(parameters: _*).asInstanceOf[A]
 
-  def valsOfType[A: TypeTag, C: TypeTag]: Seq[Type] = valsOfType(typeOf[A], typeOf[C])
+  def valsOfType[A: TypeTag, C: TypeTag]: Seq[Symbol] = valsOfType(typeOf[A], typeOf[C])
 
-  def valsOfType(a: Type, c: Type): Seq[Type] =
-    a.members.filter(m ⇒ m.isTerm && !m.isMethod && m.typeSignature <:< c).map(_.typeSignature).toSeq
+  def valsOfType(a: Type, c: Type): Seq[Symbol] =
+    a.members.filter(m ⇒ m.isTerm && !m.isMethod && m.typeSignature <:< c).toSeq
 
   def constructorParams[A: TypeTag]: TList = constructorParams(typeOf[A])
 
   def constructorParams(a: Type): TList =
     TList(reflectClass(a.typeSymbol.asClass).reflectConstructor(a.declaration(nme.CONSTRUCTOR).asMethod).symbol.paramss.flatten.map(_.typeSignature))
 
-  def constructorParamsOfType[A: TypeTag, C: TypeTag]: Seq[Type] = constructorParamsOfType(typeOf[A], typeOf[C])
+  def constructorParamsOfType[A: TypeTag, C: TypeTag]: List[Type] = constructorParamsOfType(typeOf[A], typeOf[C])
 
-  def constructorParamsOfType(a: Type, c: Type): Seq[Type] =
+  def constructorParamsOfType(a: Type, c: Type): List[Type] =
     reflectClass(a.typeSymbol.asClass).reflectConstructor(a.declaration(nme.CONSTRUCTOR).asMethod).symbol.paramss.flatten.map(_.typeSignature).filter(_ <:< c)
 
   def typeArguments[A: TypeTag]: List[Type] = typeArguments(typeOf[A])
@@ -65,12 +67,12 @@ object Helpers {
   sealed trait TList
 
   final case class +:(head: TType, tail: TList) extends TList {
-    def ::(h: TType) = Helpers.+:(h, this)
+    def ::(h: TType) = ReflectHelper.+:(h, this)
     override final def toString = head + " +: " + tail
   }
 
   sealed trait TNil extends TList {
-    def :::(h: TType) = Helpers.+:(h, this)
+    def :::(h: TType) = ReflectHelper.+:(h, this)
     override final def toString = "TNil"
   }
 

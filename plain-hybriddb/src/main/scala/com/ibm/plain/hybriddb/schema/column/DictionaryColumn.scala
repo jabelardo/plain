@@ -8,6 +8,7 @@ package schema
 
 package column
 
+import scala.math.max
 import scala.reflect.ClassTag
 
 /**
@@ -26,11 +27,11 @@ import DictionaryColumn._
 /**
  * Use this for columns with few distinct values compared to their length (< 5%).
  */
-final class DictionaryColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
+@SerialVersionUID(1L) final class DictionaryColumn[@specialized A](
 
   val length: Long,
 
-  private[this] final val keys: KeyMap[A],
+  private[this] final val keys: Map[A, IntSet],
 
   private[this] final val values: Array[Int],
 
@@ -54,7 +55,7 @@ final class DictionaryColumn[@specialized(Byte, Char, Short, Int, Long, Float, D
 /**
  *
  */
-final class DictionaryColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
+final class DictionaryColumnBuilder[@specialized A: ClassTag](
 
   val capacity: Long)
 
@@ -84,10 +85,10 @@ final class DictionaryColumnBuilder[@specialized(Byte, Char, Short, Int, Long, F
       }
       d
     }
-    new DictionaryColumn[A](length, keys, values, distinctvalues)
+    new DictionaryColumn[A](length, keys.toMap, values, distinctvalues)
   }
 
-  private[this] final val keys = new KeyMap[A](capacity.toInt / 1000)
+  private[this] final val keys = new KeyMap[A](max(capacity.toInt, 16))
 
 }
 

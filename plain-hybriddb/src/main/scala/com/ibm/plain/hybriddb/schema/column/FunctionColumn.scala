@@ -11,7 +11,7 @@ package column
 /**
  *
  */
-final class FunctionColumn[A](
+@SerialVersionUID(1L) final class FunctionColumn[A](
 
   val length: Long,
 

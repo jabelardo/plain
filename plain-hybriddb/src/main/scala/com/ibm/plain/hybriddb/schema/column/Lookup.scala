@@ -11,7 +11,7 @@ package column
 /**
  *
  */
-trait Lookup[A] {
+trait Lookup[@specialized A] {
 
   def lookup(value: A): Iterator[Long]
 

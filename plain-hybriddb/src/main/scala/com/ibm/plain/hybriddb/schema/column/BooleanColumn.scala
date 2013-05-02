@@ -22,7 +22,7 @@ import BooleanColumn.BitSet
 /**
  *
  */
-final class BooleanColumn(
+@SerialVersionUID(1L) final class BooleanColumn(
 
   val length: Long,
 

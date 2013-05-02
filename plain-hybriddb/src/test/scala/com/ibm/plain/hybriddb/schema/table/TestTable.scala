@@ -8,11 +8,6 @@ package schema
 
 package table
 
-import scala.language._
-import scala.reflect._
-import runtime._
-import universe._
-
 import org.junit.Test
 
 import shapeless._
@@ -22,13 +17,83 @@ import TypeOperators._
 
 import column._
 
+object Test2 {
+
+  implicit class DoubleCase(val value: (Double, Double)) {
+
+    def clone1 = new DoubleCase((value._1 + 42.0, value._2 + 43.0))
+
+    def inc1 = value._1 + 1.0
+
+    private val d = value._2 / 2.12
+
+  }
+
+  implicit final class DoubleVal(val value: (Double, Double)) extends AnyVal {
+
+    final def clone2 = new DoubleVal((value._1 + 42.0, value._2 + 43.0))
+
+    final def inc2 = value._1 + 1.0
+
+  }
+
+}
+
 @Test class TestTable {
 
   @Test def test4 = {
-    val data = List(List(1, "Dow", "John", true, 21), List(2, "Smith", "Mary", false, 23))
+    val data = List(List(1001, "Dow", "John", "London", true, 21), List(1002, "Smith", "Mary", "München", false, 23), List(1003, "Jones", "Paul", "London", false, 24))
     val p = Table.fromSeq[Persons]("persons", data.length, data.view)
-    for (i ← 0 until p.length.toInt) println(i + " : " + p.firstname(i) + " " + p.lastname(i) + " " + p.female(i) + " " + p.age(i))
+    for (i ← 0 until p.length.toInt) println(i + " : " + p.row(i))
     assert(true)
+  }
+
+  @Test def test2 = {
+    import Test2._
+    import util.Random.nextDouble
+    val max = 10000000
+    var c = 0L
+    var t = 0L
+    var dd = 0.0
+    var ds = 0.0
+    for (j ← 1 to 10) {
+      for (i ← 1 to max) {
+        c += 1
+        t += time.timeNanos { val d = (nextDouble, nextDouble).clone1.value; dd = d.inc1; ds += dd }._2
+      }
+      println("case class " + (t / c) + " " + t)
+      c = 0L
+      t = 0L
+      for (i ← 1 to max) {
+        c += 1
+        t += time.timeNanos { val d = (nextDouble, nextDouble).clone2.value; dd = d.inc2; ds += dd }._2
+      }
+      println("val class " + (t / c) + " " + t)
+    }
+    println(ds)
+  }
+
+  @Test def test1 = {
+
+    trait Assign[A] { def assign(a: Any): A }
+
+    type ToInt = { def toInt: Int }
+
+    class AssignInt extends Assign[Int] {
+      def assign(a: Any): Int = a match {
+        case a: Int ⇒ a
+        case a: Double ⇒ scala.math.round(a).toInt
+        case a: Float ⇒ scala.math.round(a)
+        case a: String ⇒ a.toInt
+        case a: Boolean ⇒ if (a) 1 else 0
+        case null ⇒ 0
+        case None ⇒ 0
+        case a: ToInt ⇒ a.toInt
+      }
+    }
+
+    class A { def toInt = 42 }
+    val in: List[Any] = List(1, 2, 3, "4", "5", 3.0, 3.14, 9.99, 3.14f, 7.toByte, 'A', new A, true, false, null, None)
   }
 
 }
@@ -36,12 +101,13 @@ import column._
 final class MyIntOrdering extends Ordering.IntOrdering
 final class MyStringOrdering extends Ordering.StringOrdering
 
-final case class Persons(
+@SerialVersionUID(1L) final case class Persons(
   name: String,
   length: Long,
   id: UniqueColumn[Int],
   lastname: IndexedStringColumn[MyStringOrdering],
   firstname: IndexedStringColumn[MyStringOrdering],
+  city: DictionaryColumn[String],
   male: BooleanColumn,
   age: IndexedColumn[Int, MyIntOrdering])
 
@@ -50,38 +116,4 @@ final case class Persons(
   val female = new FunctionColumn[Boolean](length, !male(_))
 
 }
-
-//case class PersonsBuilder(
-//  name: String,
-//  capacity: Long,
-//  id: UniqueColumnBuilder[Int],
-//  lastname: IndexedStringColumnBuilder,
-//  firstname: IndexedStringColumnBuilder,
-//  male: BooleanColumnBuilder,
-//  age: IndexedColumnBuilder[Int])
-//
-//  extends TableBuilder[Persons] {
-//
-//  def next(row: (Int, String, String, Boolean, Byte)) = {
-//    val t: Tuple5[Int, String, String, Boolean, Byte] = row
-//    id.next(row._1)
-//    lastname.next(row._2)
-//    firstname.next(row._3)
-//    male.next(row._4)
-//    age.next(row._5)
-//  }
-//
-//  def result: Persons = Persons(name, id.length, id.result, lastname.result, firstname.result, male.result, age.result)
-//
-//}
-
-//final class Person(
-//  name: String,
-//  length: Long,
-//  width: Int,
-//  columns: Seq[Column[_]],
-//  val id: UniqueColumn[Int],
-//  val lastname: IndexedStringColumn,
-//  val firstname: IndexedStringColumn,
-//  val male: BooleanColumn) extends BaseTable(name, length, width, columns)
 

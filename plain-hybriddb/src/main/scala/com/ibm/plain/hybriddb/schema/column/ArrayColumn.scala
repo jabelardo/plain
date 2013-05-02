@@ -13,7 +13,7 @@ import scala.reflect.ClassTag
 /**
  *
  */
-final class ArrayColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
+@SerialVersionUID(1L) final class ArrayColumn[@specialized A](
 
   final val length: Long,
 
@@ -32,7 +32,7 @@ final class ArrayColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double
 /**
  *
  */
-final class ArrayColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
+final class ArrayColumnBuilder[@specialized A: ClassTag](
 
   val capacity: Long)
 

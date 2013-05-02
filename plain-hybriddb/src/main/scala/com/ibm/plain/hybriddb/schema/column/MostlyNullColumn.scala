@@ -8,6 +8,7 @@ package schema
 
 package column
 
+import scala.math.max
 import scala.reflect.ClassTag
 
 import reflect.mirror
@@ -30,11 +31,11 @@ import MostlyNullColumn._
 /**
  *
  */
-final class MostlyNullColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
+@SerialVersionUID(1L) final class MostlyNullColumn[@specialized A](
 
   val length: Long,
 
-  private[this] final val keys: KeyMap[A],
+  private[this] final val keys: Map[A, IntSet],
 
   private[this] final val values: Array[Int],
 
@@ -60,7 +61,7 @@ final class MostlyNullColumn[@specialized(Byte, Char, Short, Int, Long, Float, D
 /**
  *
  */
-final class MostlyNullColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag](
+final class MostlyNullColumnBuilder[@specialized A: ClassTag](
 
   val capacity: Long)
 
@@ -90,11 +91,11 @@ final class MostlyNullColumnBuilder[@specialized(Byte, Char, Short, Int, Long, F
       }
       d
     }
-    new MostlyNullColumn[A](length, keys, values, distinctvalues, nulls)
+    new MostlyNullColumn[A](length, keys.toMap, values, distinctvalues, nulls)
   }
 
-  private[this] final val keys = new KeyMap[A](capacity.toInt / 1000)
+  private[this] final val keys = new KeyMap[A](max(capacity.toInt, 16))
 
-  private[this] final val nulls = new BitSet(capacity.toInt / 3)
+  private[this] final val nulls = new BitSet(capacity.toInt)
 
 }

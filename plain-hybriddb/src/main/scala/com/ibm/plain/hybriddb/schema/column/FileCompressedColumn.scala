@@ -30,7 +30,7 @@ import reflect.ignore
 /**
  *
  */
-final class MemoryMappedColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A, O <: Ordering[A]](
+@SerialVersionUID(1L) final class FileCompressedColumn[@specialized A, O <: Ordering[A]](
 
   val length: Long,
 
@@ -54,9 +54,9 @@ final class MemoryMappedColumn[@specialized(Byte, Char, Short, Int, Long, Float,
 
   outer ⇒
 
-  type Builder = MemoryMappedColumnBuilder[A, O]
+  type Builder = FileCompressedColumnBuilder[A, O]
 
-  override final def toString = "MemoryMappedColumn(len=" + length + " pagefactor=" + pagefactor + " pages=" + (pages.length - 1) + " pagesize(avg)=" + (pages.last / pages.length) + " filesize=" + pages.last + " ordered=" + withordering.isDefined + ")"
+  override final def toString = "FileCompressedColumn(len=" + length + " pagefactor=" + pagefactor + " pages=" + (pages.length - 1) + " pagesize(avg)=" + (pages.last / pages.length) + " filesize=" + pages.last + " ordered=" + withordering.isDefined + ")"
 
   final def get(index: Long): A = page(index.toInt >> pagefactor)(index.toInt & mask)
 
@@ -115,7 +115,7 @@ final class MemoryMappedColumn[@specialized(Byte, Char, Short, Int, Long, Float,
 /**
  * pagefactor is n in 2 ^ n, for instance a pagefactor of 10 will result in 1024 entries per page
  */
-final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A: ClassTag, O <: Ordering[A]](
+final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[A]](
 
   val capacity: Long,
 
@@ -127,7 +127,7 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
 
   withordering: Option[O])
 
-  extends ColumnBuilder[A, MemoryMappedColumn[A, O]] {
+  extends ColumnBuilder[A, FileCompressedColumn[A, O]] {
 
   final def this(capacity: Long, filepath: String, withordering: Option[O]) = this(capacity, 10, 1024, filepath, withordering)
 
@@ -164,7 +164,7 @@ final class MemoryMappedColumnBuilder[@specialized(Byte, Char, Short, Int, Long,
       mergeSort(chunkcount.get)
       workingdir.delete
     }
-    new MemoryMappedColumn[A, O](length, pagefactor, maxcachesize, offsets.toArray, indexoffsets.toArray, filepath, withordering)
+    new FileCompressedColumn[A, O](length, pagefactor, maxcachesize, offsets.toArray, indexoffsets.toArray, filepath, withordering)
   }
 
   private[this] final def mergeSort(n: Int) = {

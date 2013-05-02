@@ -16,7 +16,7 @@ import collection.immutable.Sorting.sortedIndexedSeq
 /**
  *
  */
-final class IndexedColumn[A: ClassTag, -O <: Ordering[A]](
+@SerialVersionUID(1L) final class IndexedColumn[A: ClassTag, -O <: Ordering[A]](
 
   val length: Long,
 

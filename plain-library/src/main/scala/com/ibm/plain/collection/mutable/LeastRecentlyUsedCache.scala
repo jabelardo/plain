@@ -10,7 +10,7 @@ import scala.collection.JavaConversions.collectionAsScalaIterable
 
 import com.googlecode.concurrentlinkedhashmap.{ EvictionListener, ConcurrentLinkedHashMap }
 
-final class LeastRecentlyUsedCache[@specialized(Byte, Char, Short, Int, Long, Float, Double) A] private (
+final class LeastRecentlyUsedCache[@specialized A] private (
 
   maxcapacity: Int,
 

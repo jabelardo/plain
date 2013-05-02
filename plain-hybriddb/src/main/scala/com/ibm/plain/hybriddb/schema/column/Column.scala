@@ -45,11 +45,11 @@ trait ColumnBuilder[A, C <: BuiltColumn[A]] {
 
   def result: C
 
+  def set(any: Any) = next(any.asInstanceOf[A])
+
   def next(value: A)
 
   final def apply(value: A) = next(value)
-
-  def nextAny(value: Any) = next(value.asInstanceOf[A])
 
   final def length: Long = index
 
@@ -58,4 +58,5 @@ trait ColumnBuilder[A, C <: BuiltColumn[A]] {
   private[this] final var index: Long = 0
 
 }
+
 

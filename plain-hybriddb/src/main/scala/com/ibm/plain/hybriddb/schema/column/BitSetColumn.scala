@@ -8,6 +8,8 @@ package schema
 
 package column
 
+import scala.math.max
+
 /**
  *
  */
@@ -24,11 +26,11 @@ import BitSetColumn._
 /**
  * Use this for columns with very few distinct values (< 10).
  */
-final class BitSetColumn[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
+@SerialVersionUID(1L) final class BitSetColumn[A](
 
   val length: Long,
 
-  private[this] final val bitsets: BitSetMap[A])
+  private[this] final val bitsets: Map[A, BitSet])
 
   extends BuiltColumn[A]
 
@@ -51,7 +53,7 @@ final class BitSetColumn[@specialized(Byte, Char, Short, Int, Long, Float, Doubl
 /**
  *
  */
-final class BitSetColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float, Double) A](
+final class BitSetColumnBuilder[A](
 
   val capacity: Long)
 
@@ -60,14 +62,14 @@ final class BitSetColumnBuilder[@specialized(Byte, Char, Short, Int, Long, Float
   final def next(value: A): Unit = {
     val bitset = bitsets.get(value) match {
       case Some(b) ⇒ b
-      case _ ⇒ val b = new BitSet(capacity.toInt / 16); bitsets.put(value, b); b
+      case _ ⇒ val b = new BitSet; bitsets.put(value, b); b
     }
     bitset.add(nextIndex.toInt)
   }
 
-  final def result = new BitSetColumn[A](bitsets.foldLeft(0) { case (s, (_, b)) ⇒ s + b.size }, bitsets)
+  final def result = new BitSetColumn[A](bitsets.foldLeft(0) { case (s, (_, b)) ⇒ s + b.size }, bitsets.toMap)
 
-  private[this] final val bitsets = new BitSetMap[A](16)
+  private[this] final val bitsets = new BitSetMap[A](max(capacity.toInt, 16))
 
 }
 

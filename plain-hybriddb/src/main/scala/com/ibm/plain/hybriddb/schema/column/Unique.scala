@@ -11,11 +11,9 @@ package column
 /**
  *
  */
-trait Unique[A] {
+trait Unique[@specialized A] {
 
   def unique(value: A): Option[Long]
-
-  final def apply(value: A) = unique(value)
 
 }
 
