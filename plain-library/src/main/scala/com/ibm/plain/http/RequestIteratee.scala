@@ -152,6 +152,6 @@ final class RequestIteratee private ()(implicit server: Server) {
 
 object RequestIteratee {
 
-  def apply(server: Server) = new RequestIteratee()(server)
+  final def apply(server: Server) = new RequestIteratee()(server)
 
 }

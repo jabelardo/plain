@@ -71,9 +71,12 @@ abstract sealed class IoHelper[E <: Io] {
     (i - pos, l - i)
   }
 
-  final def readBytes: Array[Byte] = buffer.remaining match {
+  final def readAllBytes = readBytes
+
+  @inline private[this] final def readBytes: Array[Byte] = buffer.remaining match {
     case 0 ⇒ Io.emptyArray
-    case n ⇒ Array.fill(buffer.remaining)(buffer.get)
+    case 1 ⇒ Array.fill(1)(buffer.get)
+    case n ⇒ val a = new Array[Byte](n); buffer.get(a); a
   }
 
   @inline private[this] final def markLimit = limitmark = buffer.limit
@@ -95,9 +98,11 @@ abstract sealed class IoHelper[E <: Io] {
 /**
  *
  */
-final private class SocketChannelWithTimeout private (
+private final class SocketChannelWithTimeout private (
 
-  channel: SocketChannel) extends Channel {
+  channel: SocketChannel)
+
+  extends Channel {
 
   @inline final def close = channel.close
 
@@ -115,21 +120,24 @@ final private class SocketChannelWithTimeout private (
 
   def write(buffer: ByteBuffer) = throw FutureNotSupported
 
-  tcpNoDelay match {
-    case 1 ⇒ channel.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.box(true))
-    case -1 ⇒ channel.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.box(false))
-    case _ ⇒
-  }
-  channel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
-  channel.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.box(false))
-  channel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(sendReceiveBufferSize))
-  channel.setOption(StandardSocketOptions.SO_SNDBUF, Integer.valueOf(sendReceiveBufferSize))
-
 }
 
-private object SocketChannelWithTimeout {
+private final object SocketChannelWithTimeout {
 
-  def apply(channel: SocketChannel) = new SocketChannelWithTimeout(channel)
+  final def apply(channel: SocketChannel) = new SocketChannelWithTimeout(tweak(channel))
+
+  private[this] final def tweak(channel: SocketChannel): SocketChannel = {
+    import StandardSocketOptions._
+    tcpNoDelay match {
+      case 1 ⇒ channel.setOption(TCP_NODELAY, Boolean.box(true))
+      case -1 ⇒ channel.setOption(TCP_NODELAY, Boolean.box(false))
+      case _ ⇒
+    }
+    channel.setOption(SO_REUSEADDR, Boolean.box(true))
+    channel.setOption(SO_KEEPALIVE, Boolean.box(false))
+    channel.setOption(SO_RCVBUF, Integer.valueOf(sendReceiveBufferSize))
+    channel.setOption(SO_SNDBUF, Integer.valueOf(sendReceiveBufferSize))
+  }
 
 }
 
@@ -173,7 +181,7 @@ final class Io private (
     warnOnce
     val len = this.length + that.length
     val b = ByteBuffer.allocate(len)
-    b.put(this.readBytes)
+    b.put(this.readAllBytes)
     this.releaseBuffer
     b.put(that.buffer)
     that.releaseBuffer
@@ -324,7 +332,7 @@ object Io
    */
   private[this] object IoHandler extends Handler[Integer, Io] {
 
-    @inline final def completed(processed: Integer, io: Io) = {
+    final def completed(processed: Integer, io: Io) = {
       import io._
       k(io ++ processed)
     }

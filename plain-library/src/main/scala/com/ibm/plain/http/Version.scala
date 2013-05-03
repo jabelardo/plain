@@ -28,13 +28,10 @@ sealed abstract class Version
 object Version {
 
   final def apply(version: String)(implicit server: Server): Version = version match {
-    case "HTTP/1.0" if server.settings.treat10VersionAs11 ⇒ `HTTP/1.1`
     case "HTTP/1.1" ⇒ `HTTP/1.1`
-    case _ ⇒ if (server.settings.treatAnyVersionAs11)
-      `HTTP/1.1`
-    else {
-      throw `400`
-    }
+    case "HTTP/1.0" if server.settings.treat10VersionAs11 ⇒ `HTTP/1.1`
+    case _ if server.settings.treatAnyVersionAs11 ⇒ `HTTP/1.1`
+    case _ ⇒ throw `400`
   }
 
   /**

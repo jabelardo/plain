@@ -8,13 +8,10 @@ import java.net.{ InetSocketAddress, StandardSocketOptions }
 import java.nio.channels.{ AsynchronousChannelGroup ⇒ Group, AsynchronousServerSocketChannel ⇒ ServerChannel }
 import java.nio.charset.Charset
 import java.util.concurrent.TimeUnit
-
 import scala.concurrent.duration.Duration
 import scala.util.continuations.reset
-
 import com.ibm.plain.bootstrap.BaseComponent
 import com.typesafe.config.{ Config, ConfigFactory }
-
 import aio.Io.{ accept, loop }
 import bootstrap.{ Application, BaseComponent }
 import config.{ CheckedConfig, config2RichConfig }

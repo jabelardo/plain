@@ -34,7 +34,7 @@ package object concurrent
 
   final val ioexecutor = {
     val keepalive = 60L
-    val maxqueuesize = 64 * 1024
+    val maxqueuesize = 1024
     new ThreadPoolExecutor(
       cores,
       parallelism,

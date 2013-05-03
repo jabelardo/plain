@@ -15,7 +15,7 @@ import Input.{ Elem, Empty, Eof, Failure }
 /**
  * An iteratee consumes a stream of elements of type Input[E] and produces a result of type A.
  */
-sealed abstract class Iteratee[E, +A <: Any] {
+sealed abstract class Iteratee[E, +A] {
 
   import Iteratee._
 
@@ -159,7 +159,7 @@ object Iteratees {
         if (in.length < n) {
           (Cont(cont(in)), Empty)
         } else {
-          (Done({ in.take(n); in.readBytes }), Elem(in.drop(n)))
+          (Done({ in.take(n); in.readAllBytes }), Elem(in.drop(n)))
         }
       case Eof ⇒ (Error(EOF), input)
       case Failure(e) ⇒ (Error(e), input)
