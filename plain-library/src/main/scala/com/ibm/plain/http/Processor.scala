@@ -40,7 +40,9 @@ abstract class Processor
             case servererror: ServerError ⇒ if (log.isDebugEnabled) debug(stackTraceToString(status))
             case _ ⇒
           }
-          Done[Io, Response](if (null != io.payload) io.payload.asInstanceOf[Response] ++ status else Response(null, status))
+          val request = try io.payload.asInstanceOf[Request] catch { case _: Throwable ⇒ null }
+          val response = try io.payload.asInstanceOf[Response] catch { case _: Throwable ⇒ null }
+          Done[Io, Response](if (null != response) response ++ status else Response(request, status))
         case e ⇒
           info("Dispatching failed : " + e)
           if (log.isDebugEnabled) debug(stackTraceToString(e))

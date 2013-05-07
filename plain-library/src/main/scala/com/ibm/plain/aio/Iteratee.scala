@@ -15,7 +15,9 @@ import Input.{ Elem, Empty, Eof, Failure }
 /**
  * An iteratee consumes a stream of elements of type Input[E] and produces a result of type A.
  */
-sealed abstract class Iteratee[E, +A] {
+sealed trait Iteratee[E, +A]
+
+  extends Any {
 
   import Iteratee._
 
@@ -50,27 +52,35 @@ sealed abstract class Iteratee[E, +A] {
   /**
    * The last line in a for-comprehension.
    */
-  @inline final def map[B](f: A ⇒ B): Iteratee[E, B] = flatMap(a ⇒ Done(f(a)))
+  final def map[B](f: A ⇒ B): Iteratee[E, B] = flatMap(a ⇒ new Done(f(a)))
 
   /**
    * A synonym for flatmap.
    */
-  @inline final def >>>[B](f: A ⇒ Iteratee[E, B]) = flatMap(f)
+  final def >>>[B](f: A ⇒ Iteratee[E, B]) = flatMap(f)
 
   /**
    * A synonym for map.
    */
-  @inline final def >>[B](f: A ⇒ B) = map(f)
+  final def >>[B](f: A ⇒ B) = map(f)
 
 }
 
 object Iteratee {
 
-  final case class Done[E, +A](a: A) extends Iteratee[E, A]
+  final class Done[E, A](val a: A) extends Iteratee[E, A]
 
-  final case class Error[E](e: Throwable) extends Iteratee[E, Nothing]
+  object Done {
 
-  final case class Cont[E, A](cont: Input[E] ⇒ (Iteratee[E, A], Input[E])) extends Iteratee[E, A]
+    @inline final def apply[E, A](a: A) = new Done[E, A](a)
+
+    @inline final def unapply[E, A](done: Done[E, A]): Option[A] = Some(done.a)
+
+  }
+
+  final case class Cont[E, A](cont: Input[E] ⇒ (Iteratee[E, A], Input[E])) extends AnyVal with Iteratee[E, A]
+
+  final case class Error[E](e: Throwable) extends AnyVal with Iteratee[E, Nothing]
 
   /**
    * private helpers

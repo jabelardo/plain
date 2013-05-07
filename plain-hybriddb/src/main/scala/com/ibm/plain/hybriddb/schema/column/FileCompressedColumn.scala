@@ -247,7 +247,7 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
       }
     }
 
-    @inline @tailrec def merge(left: BufferedStream, right: BufferedStream, out: ObjectOutputStream): Unit = {
+    @tailrec def merge(left: BufferedStream, right: BufferedStream, out: ObjectOutputStream): Unit = {
       ((left.next, right.next) match {
         case (Some(x), Some(y)) ⇒ if (0 <= pairordering.compare(x, y)) left.consume else right.consume
         case (Some(_), None) ⇒ left.consume

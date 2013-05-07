@@ -30,7 +30,9 @@ trait RenderableRoot {
 /**
  * A Renderable can put its content or fields into an implicitly provided ByteBuffer.
  */
-trait Renderable {
+trait Renderable
+
+  extends Any {
 
   def render(implicit buffer: ByteBuffer): Unit
 
@@ -77,9 +79,9 @@ object Renderable
 
   case object `:` extends SimpleRenderable(':'.toByte)
 
-  final class r private (buffer: ByteBuffer)
+  final class r private (val buffer: ByteBuffer)
 
-    extends Renderable {
+    extends AnyVal with Renderable {
 
     @inline final def render(implicit out: ByteBuffer) = out.put(buffer)
 

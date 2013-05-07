@@ -7,7 +7,9 @@ package aio
 /**
  * Input of type E. It will be produced by an Enumerator[E].
  */
-trait Input[+E] {
+trait Input[+E]
+
+  extends Any {
 
   import Input._
 
@@ -26,9 +28,9 @@ object Input {
 
   final case object Empty extends Input[Nothing]
 
-  final case class Failure(e: Throwable) extends Input[Nothing]
+  final case class Failure(e: Throwable) extends AnyVal with Input[Nothing]
 
-  final case class Elem[+E](elem: E) extends Input[E]
+  final case class Elem[+E](elem: E) extends AnyVal with Input[E]
 
 }
 

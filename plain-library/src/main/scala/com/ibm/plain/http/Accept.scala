@@ -12,7 +12,9 @@ import text.fastSplit
  */
 final case class Accept private (
 
-  mimetypes: List[MimeType]) {
+  mimetypes: List[MimeType])
+
+  extends AnyVal {
 
   import Accept._
 

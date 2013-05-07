@@ -14,7 +14,7 @@ import scala.util.parsing.combinator.JavaTokenParsers
 import com.fasterxml.jackson.databind.ObjectMapper
 import Helpers.stringToConfiggyString
 
-final case class Json(any: Any) {
+final case class Json(any: Any) extends AnyVal {
   override def toString = any match { case Some(json: Json) ⇒ json.toString case null ⇒ "null" case _ ⇒ any.toString }
   def asNull = convert[Null](null)
   def asBoolean: Boolean = any match { case Some(json: Json) ⇒ json.asBoolean case b: Boolean ⇒ b case s: String ⇒ s.toBoolean case _ ⇒ convert[Boolean](false) }
@@ -116,7 +116,7 @@ object Json {
     type JArray = java.util.List[Any]
     type JObject = java.util.Map[String, Any]
 
-    final case class Json(any: Any) {
+    final class Json(val any: Any) extends AnyVal {
       override def toString = any.toString
       def asNull = any.asInstanceOf[Null]
       def asBoolean = any.asInstanceOf[Boolean]
@@ -129,21 +129,21 @@ object Json {
       def asObject = any.asInstanceOf[Raw.JObject]
     }
 
-    implicit def Any2Json(a: Any) = Json(a)
+    implicit def Any2Json(a: Any) = new Json(a)
 
-    implicit def Any2Null(a: Any): Null = Json(a).asNull
-    implicit def Any2Boolean(a: Any) = Json(a).asBoolean
-    implicit def Any2Int(a: Any) = Json(a).asInt
-    implicit def Any2Long(a: Any) = Json(a).asLong
-    implicit def Any2Double(a: Any) = Json(a).asDouble
-    implicit def Any2BigDecimal(a: Any) = Json(a).asBigDecimal
-    implicit def Any2String(a: Any) = Json(a).asString
-    implicit def Any2Array(a: Any) = Json(a).asArray
-    implicit def Any2Object(a: Any) = Json(a).asObject
+    implicit def Any2Null(a: Any): Null = new Json(a).asNull
+    implicit def Any2Boolean(a: Any) = new Json(a).asBoolean
+    implicit def Any2Int(a: Any) = new Json(a).asInt
+    implicit def Any2Long(a: Any) = new Json(a).asLong
+    implicit def Any2Double(a: Any) = new Json(a).asDouble
+    implicit def Any2BigDecimal(a: Any) = new Json(a).asBigDecimal
+    implicit def Any2String(a: Any) = new Json(a).asString
+    implicit def Any2Array(a: Any) = new Json(a).asArray
+    implicit def Any2Object(a: Any) = new Json(a).asObject
   }
 }
 
-private final case class QuotedString(inner: String) {
+private final case class QuotedString(inner: String) extends AnyVal {
   override def toString = inner
 }
 

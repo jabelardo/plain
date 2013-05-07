@@ -9,8 +9,11 @@ import java.io.{ ByteArrayInputStream, InputStream, OutputStream }
 
 import scala.language.implicitConversions
 
-import com.ibm.plain.collection.immutable.Stream.{ cons ⇒ unsafeCons }
+import collection.immutable.Stream.{ cons ⇒ unsafeCons }
 
+/**
+ *
+ */
 object ConnectionHelper {
 
   /**
@@ -148,9 +151,9 @@ object ConnectionHelper {
 
     private[this] final var pos = 1
 
-    private[this] final lazy val columncount = rs.getMetaData.getColumnCount
+    private[this] final val columncount = rs.getMetaData.getColumnCount
 
-    private[this] final lazy val meta = {
+    private[this] final val meta = {
       val metadata = rs.getMetaData
       val width = 32
       val array = new Array[(String, Int, ResultSet ⇒ Int ⇒ Any)](columncount)
@@ -225,7 +228,7 @@ object ConnectionHelper {
   /**
    *
    */
-  class RichConnection(val conn: Connection) {
+  final class RichConnection(val conn: Connection) extends AnyVal {
     final def <<(sql: String) = new RichStatement(conn.createStatement) << sql
     final def <<(sql: Seq[String]) = new RichStatement(conn.createStatement) << sql
   }
@@ -233,7 +236,7 @@ object ConnectionHelper {
   /**
    *
    */
-  class RichStatement(val s: Statement) {
+  final class RichStatement(val s: Statement) extends AnyVal {
     final def <<(sql: String) = { s.execute(sql); this }
     final def <<(sql: Seq[String]) = { for (x ← sql) s.execute(x); this }
   }

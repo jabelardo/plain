@@ -59,4 +59,3 @@ trait ColumnBuilder[A, C <: BuiltColumn[A]] {
 
 }
 
-

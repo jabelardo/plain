@@ -40,7 +40,6 @@ trait Resource
         methods = Map.empty
         initialize
         methods = methods.map { case (method, Left(bodies)) ⇒ (method, Right(resourcePriorities(method, bodies))) case _ ⇒ null }
-        // if (log.isDebugEnabled) methods.foreach { case (method, Right(prios)) ⇒ val l = prios.toList; debug(method + " " + l.size + " " + l) case _ ⇒ }
         resourcemethods = resourcemethods ++ Map(getClass -> methods)
     }
   }

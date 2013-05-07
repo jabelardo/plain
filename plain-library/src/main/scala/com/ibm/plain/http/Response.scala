@@ -92,7 +92,7 @@ final case class Response private (
 
   @inline private[this] final def renderKeepAlive(implicit io: Io) = {
     implicit val _ = io.buffer
-    val keepalive = !status.isInstanceOf[Status.ServerError] && null != request && request.keepalive && io.roundtrips < maxRoundTrips
+    val keepalive = (null == request || request.keepalive) && io.roundtrips < maxRoundTrips
     io ++ keepalive
     r("Connection: " + (if (keepalive) "keep-alive" else "close")) + `\r\n` + ^
   }
@@ -114,7 +114,7 @@ final case class Response private (
           case _ ⇒
             r("Content-Length: ") + r(entity.length.toString) + `\r\n` + `\r\n` + ^
         }
-      case _ ⇒
+      case _ ⇒ `\r\n` + ^
     }
   }
 
