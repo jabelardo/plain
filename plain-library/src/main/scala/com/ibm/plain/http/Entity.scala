@@ -35,7 +35,7 @@ object Entity {
 
   object ByteBufferEntity {
 
-    def apply(s: String, contenttype: ContentType): ByteBufferEntity = {
+    final def apply(s: String, contenttype: ContentType): ByteBufferEntity = {
       var factor = 1.1
       var buffer: ByteBuffer = null
       while (6.0 >= factor) {
@@ -59,19 +59,19 @@ object Entity {
 
   sealed abstract class TransferEncodedEntity extends Entity { val length = -1L }
 
-  case class `identity`(contenttype: ContentType) extends TransferEncodedEntity
+  final case class `identity`(contenttype: ContentType) extends TransferEncodedEntity
 
-  case class `chunked`(contenttype: ContentType) extends TransferEncodedEntity
+  final case class `chunked`(contenttype: ContentType) extends TransferEncodedEntity
 
-  case class `gzip`(contenttype: ContentType) extends TransferEncodedEntity
+  final case class `gzip`(contenttype: ContentType) extends TransferEncodedEntity
 
-  case class `compress`(contenttype: ContentType) extends TransferEncodedEntity
+  final case class `compress`(contenttype: ContentType) extends TransferEncodedEntity
 
-  case class `deflate`(contenttype: ContentType) extends TransferEncodedEntity
+  final case class `deflate`(contenttype: ContentType) extends TransferEncodedEntity
 
   object TransferEncodedEntity {
 
-    def apply(value: String, contenttype: ContentType): TransferEncodedEntity = value.toLowerCase match {
+    final def apply(value: String, contenttype: ContentType): TransferEncodedEntity = value.toLowerCase match {
       case "identity" ⇒ `identity`(contenttype)
       case "chunked" ⇒ `chunked`(contenttype)
       case "gzip" ⇒ `gzip`(contenttype)

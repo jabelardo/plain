@@ -11,11 +11,11 @@ import Status.ClientError.`405`
  */
 sealed abstract class Method(
 
-  val safe: Boolean,
+  final val safe: Boolean,
 
-  val idempotent: Boolean,
+  final val idempotent: Boolean,
 
-  val entityallowed: Boolean)
+  final val entityallowed: Boolean)
 
 /**
  * Supported http methods.
@@ -34,8 +34,11 @@ object Method {
     case _ ⇒ throw `405`
   }
 
-  case object GET extends Method(true, true, true) // we convert a query into an entity if feasible
-  case object HEAD extends Method(true, true, true) // same
+  /**
+   * For GET we convert a query into an entity if this is feasible. Same for HEAD.
+   */
+  case object GET extends Method(true, true, true)
+  case object HEAD extends Method(true, true, true)
   case object POST extends Method(false, false, true)
   case object PUT extends Method(false, true, true)
   case object DELETE extends Method(false, true, false)

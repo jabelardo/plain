@@ -68,7 +68,9 @@ sealed trait Iteratee[E, +A]
 
 object Iteratee {
 
-  final class Done[E, A](val a: A) extends Iteratee[E, A]
+  final class Done[E, A](val a: A)
+
+    extends Iteratee[E, A]
 
   object Done {
 
@@ -78,9 +80,17 @@ object Iteratee {
 
   }
 
-  final case class Cont[E, A](cont: Input[E] ⇒ (Iteratee[E, A], Input[E])) extends AnyVal with Iteratee[E, A]
+  final case class Cont[E, A](cont: Input[E] ⇒ (Iteratee[E, A], Input[E]))
 
-  final case class Error[E](e: Throwable) extends AnyVal with Iteratee[E, Nothing]
+    extends AnyVal
+
+    with Iteratee[E, A]
+
+  final case class Error[E](e: Throwable)
+
+    extends AnyVal
+
+    with Iteratee[E, Nothing]
 
   /**
    * private helpers
@@ -102,7 +112,7 @@ object Iteratee {
 
     def this(k: R[E, _], f: Any ⇒ Iteratee[E, _]) = this(k, f :: Nil, Nil)
 
-    final def ++[B](f: Any ⇒ Iteratee[E, B]): R[E, B] = {
+    @inline final def ++[B](f: Any ⇒ Iteratee[E, B]): R[E, B] = {
       new Compose[E, B](k, out, f :: in)
     }
 
@@ -111,7 +121,7 @@ object Iteratee {
      */
     final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = {
 
-      @tailrec def run(
+      @inline @tailrec def run(
         result: (Iteratee[E, _], Input[E]),
         out: List[Any ⇒ Iteratee[E, _]],
         in: List[Any ⇒ Iteratee[E, _]]): (Iteratee[E, _], Input[E]) = {
@@ -147,7 +157,7 @@ object Iteratees {
   import Io._
   import Iteratee._
 
-  def take(n: Int)(implicit cset: Charset) = {
+  final def take(n: Int)(implicit cset: Charset) = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
@@ -162,7 +172,7 @@ object Iteratees {
     Cont(cont(Io.empty))
   }
 
-  def takeBytes(n: Int) = {
+  final def takeBytes(n: Int) = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, Array[Byte]], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
@@ -177,7 +187,7 @@ object Iteratees {
     Cont(cont(Io.empty))
   }
 
-  def peek(n: Int)(implicit cset: Charset) = {
+  final def peek(n: Int)(implicit cset: Charset) = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
@@ -193,7 +203,7 @@ object Iteratees {
     Cont(cont(Io.empty))
   }
 
-  def takeWhile(p: Int ⇒ Boolean)(implicit cset: Charset): Iteratee[Io, String] = {
+  final def takeWhile(p: Int ⇒ Boolean)(implicit cset: Charset): Iteratee[Io, String] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
@@ -209,9 +219,9 @@ object Iteratees {
     Cont(cont(Io.empty))
   }
 
-  def takeUntil(p: Int ⇒ Boolean)(implicit cset: Charset): Iteratee[Io, String] = takeWhile(b ⇒ !p(b))(cset)
+  final def takeUntil(p: Int ⇒ Boolean)(implicit cset: Charset): Iteratee[Io, String] = takeWhile(b ⇒ !p(b))(cset)
 
-  def takeUntil(delimiter: Byte)(implicit cset: Charset): Iteratee[Io, String] = {
+  final def takeUntil(delimiter: Byte)(implicit cset: Charset): Iteratee[Io, String] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
@@ -227,7 +237,7 @@ object Iteratees {
     Cont(cont(Io.empty))
   }
 
-  def drop(n: Int): Iteratee[Io, Unit] = {
+  final def drop(n: Int): Iteratee[Io, Unit] = {
     def cont(remaining: Int)(input: Input[Io]): (Iteratee[Io, Unit], Input[Io]) = input match {
       case Elem(more) ⇒
         val len = more.length

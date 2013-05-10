@@ -9,7 +9,11 @@ import java.text.SimpleDateFormat
 /**
  * Helpers to parse the values of header fields.
  */
-trait HeaderValue[A] { def value(s: String): A }
+trait HeaderValue[A] {
+
+  def value(s: String): A
+
+}
 
 object HeaderValue {
 
@@ -41,7 +45,7 @@ object HeaderValue {
   /**
    * The DateValue object provides the SimpleDateFormat used in http header fields.
    */
-  private final val dateformat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z")
+  private[this] final val dateformat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z")
 
 }
 

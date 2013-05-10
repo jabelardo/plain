@@ -54,5 +54,7 @@ package object plain
    */
   def unsupported = throw new UnsupportedOperationException
 
+  def deprecated = throw new UnsupportedOperationException("Deprecated.")
+
 }
 

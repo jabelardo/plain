@@ -46,6 +46,7 @@ object Dependencies {
   val derbyclient   = "org.apache.derby"                        %   "derbyclient"                 % "10.9.1.0"
   val h2jdbc        = "com.h2database"                          %   "h2"                          % "1.3.170"
   val mysqljdbc     = "mysql"                                   %   "mysql-connector-java"        % "5.1.23"
+  val servlet25     = "javax.servlet"                           %   "servlet-api"                 % "2.5"
 
   /**
    * Commercial JDBC drivers must be provided at runtime, sorry. Here we list what we have tested.

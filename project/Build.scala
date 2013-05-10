@@ -41,6 +41,7 @@ object PlainBuild extends Build {
 		  derbyclient,
 		  h2jdbc,
 		  mysqljdbc,
+		  servlet25,
 		  reflections
       ) ++ test(junit, junitItf)
   )
