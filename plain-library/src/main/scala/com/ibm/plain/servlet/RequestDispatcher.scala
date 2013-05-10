@@ -2,11 +2,8 @@ package com.ibm
 
 package plain
 
-package http
-
 package servlet
 
-import ServletHelpers._
 import javax.servlet.{ RequestDispatcher ⇒ JRequestDispatcher, ServletRequest, ServletResponse }
 
 /**

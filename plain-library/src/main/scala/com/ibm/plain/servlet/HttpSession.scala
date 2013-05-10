@@ -2,18 +2,15 @@ package com.ibm
 
 package plain
 
-package http
-
 package servlet
 
-import ServletHelpers.{ Attributes, Times, Values }
 import javax.servlet.{ ServletContext ⇒ JServletContext }
 import javax.servlet.http.{ HttpSession ⇒ JHttpSession, HttpSessionContext }
 
 /**
  *
  */
-final class HttpSession
+final class HttpSession private
 
   extends JHttpSession
 
@@ -30,5 +27,11 @@ final class HttpSession
   @deprecated("2.1", "will be removed") final def getSessionContext: HttpSessionContext = deprecated
 
   final def invalidate = unsupported
+
+}
+
+object HttpSession {
+
+  final def apply = new HttpSession
 
 }

@@ -2,8 +2,6 @@ package com.ibm
 
 package plain
 
-package http
-
 package servlet
 
 import java.io.InputStream

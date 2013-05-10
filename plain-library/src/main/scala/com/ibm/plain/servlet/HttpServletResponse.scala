@@ -2,20 +2,22 @@ package com.ibm
 
 package plain
 
-package http
-
 package servlet
 
 import javax.servlet.http.{ HttpServletResponse ⇒ JHttpServletResponse }
 
-import ServletHelpers._
+import rest.Context
 
 /**
  *
  */
-final class HttpServletResponse
+final class HttpServletResponse(
+
+  protected[this] val context: Context)
 
   extends JHttpServletResponse
+
+  with Contexts
 
   with Contents
 
@@ -26,11 +28,20 @@ final class HttpServletResponse
   with Headers
 
   with Encodings
-  
+
   with Sendings
 
   with Locales
 
   with Cookies {
+
+}
+
+/**
+ *
+ */
+object HttpServletResponse {
+
+  final def apply(context: Context): HttpServletResponse = new HttpServletResponse(context)
 
 }

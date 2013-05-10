@@ -2,17 +2,14 @@ package com.ibm
 
 package plain
 
-package http
-
 package servlet
 
-import ServletHelpers.{ Attributes, Dispatchers, InitParameters, Logging, MimeTypes, Resources, Servlets }
-import javax.servlet.{ServletContext => JServletContext}
+import javax.servlet.{ ServletContext ⇒ JServletContext }
 
 /**
  *
  */
-final class ServletContext
+final class ServletContext private
 
   extends JServletContext
 
@@ -46,5 +43,7 @@ final class ServletContext
  *
  */
 object ServletContext {
+
+  final def apply: ServletContext = new ServletContext
 
 }

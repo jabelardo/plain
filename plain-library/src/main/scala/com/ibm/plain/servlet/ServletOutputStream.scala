@@ -2,8 +2,6 @@ package com.ibm
 
 package plain
 
-package http
-
 package servlet
 
 import java.io.OutputStream
@@ -12,7 +10,9 @@ import javax.servlet.{ ServletOutputStream ⇒ JServletOutputStream }
 /**
  *
  */
-final class ServletOutputStream(out: OutputStream)
+final class ServletOutputStream private (
+
+  out: OutputStream)
 
   extends JServletOutputStream {
 
@@ -26,3 +26,11 @@ final class ServletOutputStream(out: OutputStream)
 
 }
 
+/**
+ *
+ */
+object ServletOutputStream {
+
+  final def apply(out: OutputStream): ServletOutputStream = new ServletOutputStream(out)
+
+}

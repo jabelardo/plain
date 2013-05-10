@@ -116,9 +116,9 @@ private final class SocketChannelWithTimeout private (
     channel.write(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, attachment, handler)
   }
 
-  def read(buffer: ByteBuffer) = throw FutureNotSupported
+  def read(buffer: ByteBuffer) = channel.read(buffer)
 
-  def write(buffer: ByteBuffer) = throw FutureNotSupported
+  def write(buffer: ByteBuffer) = channel.write(buffer)
 
 }
 

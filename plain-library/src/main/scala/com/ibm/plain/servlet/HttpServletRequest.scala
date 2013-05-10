@@ -2,20 +2,22 @@ package com.ibm
 
 package plain
 
-package http
-
 package servlet
 
 import javax.servlet.http.{ HttpServletRequest ⇒ JHttpServletRequest }
 
-import ServletHelpers._
+import rest.Context
 
 /**
  *
  */
-final class HttpServletRequest
+final class HttpServletRequest private (
+
+  protected[this] val context: Context)
 
   extends JHttpServletRequest
+
+  with Contexts
 
   with Attributes
 
@@ -38,5 +40,14 @@ final class HttpServletRequest
   with Paths
 
   with Cookies {
+
+}
+
+/**
+ *
+ */
+object HttpServletRequest {
+
+  final def apply(context: Context): HttpServletRequest = new HttpServletRequest(context)
 
 }
