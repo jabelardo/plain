@@ -50,8 +50,8 @@ final case class Request(
  */
 object Request {
 
-  type Path = Seq[String]
+  type Path = List[String]
 
-  type Variables = Map[String, String]
+  type Variables = scala.collection.Map[String, String]
 
 }

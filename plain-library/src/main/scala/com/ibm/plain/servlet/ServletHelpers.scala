@@ -5,6 +5,7 @@ package plain
 package servlet
 
 import java.io.{ BufferedReader, InputStream, PrintWriter }
+import java.nio.ByteBuffer
 import java.nio.channels.Channels
 import java.net.URL
 import java.security.Principal
@@ -93,17 +94,17 @@ trait Headers {
 
   final def getDateHeader(name: String): Long = unsupported
 
-  final def setHeader(name: String, value: String) = { println("setHeader " + name + ":" + value); context.response.headers = context.response.headers ++ Map(name -> value) }
+  final def setHeader(name: String, value: String): Unit = context.response.headers = context.response.headers ++ Map(name -> value)
 
-  final def setIntHeader(name: String, value: Int) = unsupported
+  final def setIntHeader(name: String, value: Int): Unit = unsupported
 
-  final def setDateHeader(name: String, value: Long) = { println("setDateHeader " + name + ":" + value); context.response.headers = context.response.headers ++ Map(name -> new java.util.Date(value).toGMTString) }
+  final def setDateHeader(name: String, value: Long): Unit = context.response.headers = context.response.headers ++ Map(name -> new java.util.Date(value).toGMTString)
 
-  final def addHeader(name: String, value: String) = unsupported
+  final def addHeader(name: String, value: String): Unit = unsupported
 
-  final def addIntHeader(name: String, value: Int) = unsupported
+  final def addIntHeader(name: String, value: Int): Unit = unsupported
 
-  final def addDateHeader(name: String, value: Long) = unsupported
+  final def addDateHeader(name: String, value: Long): Unit = unsupported
 
   final def containsHeader(name: String): Boolean = context.request.headers.contains(name)
 
@@ -221,13 +222,13 @@ trait Contents {
 
   final def getContentLength: Int = unsupported
 
-  final def getContentType: String = unsupported
+  final lazy val getContentType: String = { bytebuffer.flip; new String(bytebuffer.array, 0, bytebuffer.remaining) }
 
   final def getInputStream: ServletInputStream = unsupported
 
   final def getReader: BufferedReader = unsupported
 
-  final def getOutputStream: ServletOutputStream = ServletOutputStream(Channels.newOutputStream(context.io.channel))
+  final def getOutputStream: ServletOutputStream = ServletOutputStream(new io.ByteBufferOutputStream(bytebuffer))
 
   final def getWriter: PrintWriter = unsupported
 
@@ -238,6 +239,8 @@ trait Contents {
   final def setContentType(contenttype: String) = { println("contenttype " + contenttype) }
 
   final def setCharacterEncoding(encoding: String) = unsupported
+
+  private[this] final val bytebuffer: ByteBuffer = ByteBuffer.allocate(10000)
 
 }
 

@@ -25,7 +25,6 @@ import collection.mutable.LeastRecentlyUsedCache
 import collection.immutable.Sorting.{ binarySearch, sortedIndexedSeq }
 import concurrent.{ future, parallelism }
 import io.{ ByteBufferInputStream, LZ4 }
-import reflect.ignore
 
 /**
  *

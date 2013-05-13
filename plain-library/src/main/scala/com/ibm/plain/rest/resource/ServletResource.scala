@@ -8,14 +8,13 @@ package resource
 
 import javax.servlet.Servlet
 
-import rest.Resource
 import servlet._
 
 final class ServletResource
 
   extends Resource {
 
-  Get {
+  def get = {
     val servlet = Class.forName("com.vaadin.terminal.gwt.server.ApplicationServlet").newInstance.asInstanceOf[Servlet]
     val servletconfig = ServletConfig.apply
     servletconfig.setInitParameter("application", "com.vaadin.demo.sampler.SamplerApplication")
@@ -23,8 +22,15 @@ final class ServletResource
     val servletrequest = HttpServletRequest(context)
     val servletresponse = HttpServletResponse(context)
     servlet.service(servletrequest, servletresponse)
-    42.toString.getBytes
+    val s = servletresponse.getContentType
+    s
   }
+
+  Get { get }
+
+  Get { query: String ⇒ get }
+
+  Post { s: String ⇒ get }
 
 }
 

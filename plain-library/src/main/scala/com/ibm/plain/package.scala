@@ -56,5 +56,7 @@ package object plain
 
   def deprecated = throw new UnsupportedOperationException("Deprecated.")
 
+  def ignore(b: ⇒ Any) = try b catch { case e: Throwable ⇒ }
+
 }
 

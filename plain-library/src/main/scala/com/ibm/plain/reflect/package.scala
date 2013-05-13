@@ -29,8 +29,6 @@ package object reflect {
 
   def tryLocation = try { throw new Exception("tryLocation thrown.") } catch { case e: Throwable ⇒ e.printStackTrace }
 
-  def ignore(b: ⇒ Any) = try b catch { case e: Throwable ⇒ }
-
   /**
    * Returns the primitive corresponding to it, for example Int for java.lang.Integer
    */

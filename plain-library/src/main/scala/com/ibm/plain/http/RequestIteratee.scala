@@ -6,6 +6,8 @@ package http
 
 import org.apache.commons.codec.net.URLCodec
 
+import scala.collection.mutable.OpenHashMap
+
 import aio._
 import aio.Iteratee._
 import aio.Iteratees._
@@ -52,7 +54,7 @@ final class RequestIteratee private ()(implicit server: Server) {
             segment ← readPathSegment
             more ← cont(if (0 < segment.length) segment :: segments else segments)
           } yield more
-          case a ⇒ Done(segments.reverse)
+          case a ⇒ Done(if (1 < segments.length) segments.reverse else segments)
         }
 
         cont(Nil)
@@ -110,18 +112,18 @@ final class RequestIteratee private ()(implicit server: Server) {
       } yield (name.toLowerCase, value)
     }
 
-    @noinline def cont(headers: List[(String, String)]): Iteratee[Io, Headers] = peek(1) >>> {
+    @noinline def cont(headers: OpenHashMap[String, String]): Iteratee[Io, Headers] = peek(1) >>> {
       case "\r" ⇒ for {
         _ ← drop(2)
-        done ← Done(headers.toMap)
+        done ← Done(headers)
       } yield done
       case _ ⇒ for {
         header ← readHeader
-        moreheaders ← cont(header :: headers)
+        moreheaders ← cont(headers += header)
       } yield moreheaders
     }
 
-    cont(Nil)
+    cont(new OpenHashMap[String, String])
   }
 
   private[this] final def readEntity(headers: Headers, query: Option[String]): Iteratee[Io, Option[Entity]] =

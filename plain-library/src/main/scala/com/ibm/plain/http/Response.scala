@@ -7,6 +7,7 @@ package http
 import java.nio.ByteBuffer
 
 import scala.util.continuations.suspendable
+import scala.collection.mutable.OpenHashMap
 
 import aio.{ ChannelTransfer, Encoder, Io, RenderableRoot, releaseByteBuffer, tooTinyToCareSize, maxRoundTrips }
 import aio.Iteratee.{ Cont, Done }
@@ -162,7 +163,7 @@ final case class Response private (
  */
 object Response {
 
-  def apply(request: Request, status: Status) = new Response(request, Version.`HTTP/1.1`, status, Map.empty, None)
+  def apply(request: Request, status: Status) = new Response(request, Version.`HTTP/1.1`, status, new OpenHashMap[String, String], None)
 
 }
 

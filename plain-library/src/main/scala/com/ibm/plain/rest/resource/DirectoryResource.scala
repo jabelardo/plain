@@ -24,9 +24,12 @@ class DirectoryResource
 
   extends Resource {
 
-  Get {
-    def get(file: Path) = AsynchronousByteChannelEntity(forReading(file), ContentType(forExtension(getExtension(file.toString)).getOrElse(`application/octet-stream`)), size(file))
+  Get { get }
 
+  Get { _: String ⇒ get }
+
+  private[this] final def get = {
+    def get(file: Path) = AsynchronousByteChannelEntity(forReading(file), ContentType(forExtension(getExtension(file.toString)).getOrElse(`application/octet-stream`)), size(file))
     root(context).resolve(context.remainder.mkString("/")) match {
       case file if file.toString.contains("..") ⇒ throw ClientError.`401`
       case file if exists(file) && isRegularFile(file) ⇒ get(file)

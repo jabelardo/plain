@@ -7,6 +7,7 @@ package rest
 import scala.annotation.tailrec
 import scala.language.existentials
 import scala.util.control.ControlThrowable
+import scala.collection.mutable.OpenHashMap
 
 import com.typesafe.config.Config
 
@@ -93,11 +94,11 @@ final case class Templates(
     @inline @tailrec
     def get0(
       path: Path,
-      variables: List[(String, String)],
+      variables: OpenHashMap[String, String],
       templates: Templates): Option[(Class[_ <: Resource], Config, Variables, Path)] = {
 
       @inline def resource(tail: Path) = templates.resource match {
-        case Some((resourceclass, config, remainderallowed)) if Nil == tail || remainderallowed ⇒ Some((resourceclass, config, variables.toMap, tail))
+        case Some((resourceclass, config, remainderallowed)) if Nil == tail || remainderallowed ⇒ Some((resourceclass, config, variables, tail))
         case _ ⇒ None
       }
 
@@ -108,13 +109,13 @@ final case class Templates(
             case Some(subbranch) ⇒ get0(tail, variables, subbranch)
             case _ ⇒ resource(l)
           }
-          case Some(Left((name, branch))) ⇒ get0(tail, (name, head) :: variables, branch)
+          case Some(Left((name, branch))) ⇒ get0(tail, variables += ((name, head)), branch)
           case _ ⇒ resource(l)
         }
       }
     }
 
-    get0(path, Nil, this)
+    get0(path, new OpenHashMap, this)
   }
 
   override final def toString = {
