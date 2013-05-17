@@ -5,46 +5,25 @@ package plain
 package servlet
 
 import javax.servlet.{ ServletContext ⇒ JServletContext }
+import rest.Context
 
 /**
  *
  */
-final class ServletContext private
+final class ServletContext private (
+
+  protected[this] final val context: Context)
 
   extends JServletContext
 
-  with Attributes
-
-  with InitParameters
-
-  with Resources
-
-  with Servlets
-
-  with Dispatchers
-
-  with MimeTypes
-
-  with Logging {
-
-  final val getMajorVersion = 2
-
-  final val getMinorVersion = 5
-
-  final def getContext(uripath: String): JServletContext = unsupported
-
-  final def getContextPath: String = unsupported
-
-  final def getServerInfo: String = unsupported
-
-}
+  with spi.ServletContext
 
 /**
  *
  */
 object ServletContext {
 
-  final def apply: ServletContext = new ServletContext
+  final def apply(context: Context): ServletContext = new ServletContext(context)
 
 }
 

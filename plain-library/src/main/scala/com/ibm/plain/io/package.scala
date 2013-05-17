@@ -26,7 +26,7 @@ package object io
   /**
    * Copies the entire inputstream to outputstream, then flushs the outputstream.
    */
-  def copyBytes(in: InputStream, out: OutputStream, buffersize: Int = defaultBufferSize) {
+  final def copyBytes(in: InputStream, out: OutputStream, buffersize: Int = defaultBufferSize) {
     copyBytesNio(newChannel(in), newChannel(out), buffersize)
     out.flush
   }
@@ -34,7 +34,7 @@ package object io
   /**
    * Copies the entire inputstream to outputstream, then flushs the outputstream.
    */
-  def copyBytesIo(in: InputStream, out: OutputStream, buffersize: Int = defaultBufferSize) {
+  final def copyBytesIo(in: InputStream, out: OutputStream, buffersize: Int = defaultBufferSize) {
     val buffer = new Array[Byte](buffersize)
     var bytesread = 0
     while (-1 < { bytesread = in.read(buffer, 0, buffersize); bytesread }) {
@@ -46,7 +46,7 @@ package object io
   /**
    * Copies the entire readable channel to the writable channel.
    */
-  def copyBytesNio(in: ReadableByteChannel, out: WritableByteChannel, buffersize: Int = defaultBufferSize) {
+  final def copyBytesNio(in: ReadableByteChannel, out: WritableByteChannel, buffersize: Int = defaultBufferSize) {
     if (in.isInstanceOf[FileChannel]) {
       val f = in.asInstanceOf[FileChannel]
       f.transferTo(0, f.size, out)
@@ -54,20 +54,22 @@ package object io
       val f = out.asInstanceOf[FileChannel]
       f.transferFrom(in, 0, Long.MaxValue)
     } else {
-      val b = ByteBuffer.allocateDirect(buffersize)
-      var bytesread = 0
-      while (-1 < { bytesread = in.read(b); bytesread }) {
-        b.flip
-        out.write(b)
-        b.clear
-      }
+      val b = aio.bestFitByteBuffer(buffersize)
+      try {
+        var bytesread = 0
+        while (-1 < { bytesread = in.read(b); bytesread }) {
+          b.flip
+          out.write(b)
+          b.clear
+        }
+      } finally aio.releaseByteBuffer(b)
     }
   }
 
   /**
    * Copies the entire reader to writer, then flushs the writer.
    */
-  def copyText(in: Reader, out: Writer, buffersize: Int = defaultBufferSize) {
+  final def copyText(in: Reader, out: Writer, buffersize: Int = defaultBufferSize) {
     var bytesread = 0
     val buffer = new Array[Char](buffersize)
     while (-1 < { bytesread = in.read(buffer, 0, buffersize); bytesread }) {
@@ -79,7 +81,7 @@ package object io
   /**
    * Copies the entire reader to writer line by line to fix newline problems, then flushs the writer.
    */
-  def copyLines(in: Reader, out: Writer, buffersize: Int = defaultBufferSize) {
+  final def copyLines(in: Reader, out: Writer, buffersize: Int = defaultBufferSize) {
     val reader = new java.io.LineNumberReader(in)
     val writer = new java.io.PrintWriter(out)
     var line: String = null
@@ -92,7 +94,7 @@ package object io
   /**
    * Copies the entire inputstream to a ByteArrayOutputStream
    */
-  def copyFully(in: InputStream, buffersize: Int = defaultBufferSize) = {
+  final def copyFully(in: InputStream, buffersize: Int = defaultBufferSize) = {
     val out = new java.io.ByteArrayOutputStream
     copyBytes(in, out)
     out
@@ -101,7 +103,7 @@ package object io
   /**
    * Compress a ByteBuffer in place using GZIP.
    */
-  def gzip(buffer: ByteBuffer): ByteBuffer = {
+  final def gzip(buffer: ByteBuffer): ByteBuffer = {
     val in = new ByteBufferInputStream(buffer)
     val out = new GZIPOutputStream(new BufferedOutputStream(new ByteBufferOutputStream(buffer)), defaultBufferSize)
     copyBytesIo(in, out)
@@ -112,7 +114,7 @@ package object io
   /**
    * Decompress a ByteBuffer in place using GZIP. It assumes that the gunzipped content will fit into its capacity.
    */
-  def gunzip(buffer: ByteBuffer): ByteBuffer = {
+  final def gunzip(buffer: ByteBuffer): ByteBuffer = {
     val in = new GZIPInputStream(new ByteBufferInputStream(buffer))
     val out = new BufferedOutputStream(new ByteBufferOutputStream(buffer))
     copyBytesIo(in, out)
@@ -128,9 +130,9 @@ package object io
   /**
    * To make deleteDirectory more robust.
    */
-  val deleteDirectoryRetries = getInt("plain.io.delete-directory-retries", 5)
+  final val deleteDirectoryRetries = getInt("plain.io.delete-directory-retries", 5)
 
-  val deleteDirectoryPauseBetweenRetries = getMilliseconds("plain.io.delete-directory-pause-between-retries", 10000)
+  final val deleteDirectoryPauseBetweenRetries = getMilliseconds("plain.io.delete-directory-pause-between-retries", 10000)
 
   final val temp = try {
     val tmp = getString("plain.config.temp", System.getenv("TMP"))
@@ -145,7 +147,7 @@ package object io
   /**
    * Create a temporary file somewhere in the default location. It will be deleted at JVM shutdown.
    */
-  def temporaryFile = {
+  final def temporaryFile = {
     val f = Files.createTempFile(temp, null, null).toFile
     deleteOnExit(f)
     f
@@ -154,7 +156,7 @@ package object io
   /**
    * Create a temporary file in the given directory. It will be deleted at JVM shutdown.
    */
-  def temporaryFileInDirectory(directory: File) = {
+  final def temporaryFileInDirectory(directory: File) = {
     val f = Files.createTempFile(directory.toPath, null, null).toFile
     deleteOnExit(f)
     f
@@ -163,7 +165,7 @@ package object io
   /**
    * Create a temporary directory somewhere in the default location. It will be deleted at JVM shutdown together with all files it includes.
    */
-  def temporaryDirectory = {
+  final def temporaryDirectory = {
     val d = Files.createTempDirectory(temp, null).toFile
     deleteOnExit(d)
     d
@@ -172,7 +174,7 @@ package object io
   /**
    * Delete a directory and all of its contents in a background thread. Use delete-directory-retries and delete-directory-timeout to make this method more robust.
    */
-  def deleteDirectory(directory: File) = spawn {
+  final def deleteDirectory(directory: File) = spawn {
     try {
       if (directory.exists) FileUtils.deleteDirectory(directory)
     } catch {
@@ -195,7 +197,7 @@ package object io
   /**
    * The file given will be automatically deleted at JVM shutdown.
    */
-  def deleteOnExit(file: File) = Io.add(file)
+  final def deleteOnExit(file: File) = Io.add(file)
 
   /**
    * This can be accessed as a static field (eg. for Derby database, as a null logger).

@@ -4,34 +4,25 @@ package plain
 
 package servlet
 
-import javax.servlet.{ ServletContext ⇒ JServletContext }
-import javax.servlet.http.{ HttpSession ⇒ JHttpSession, HttpSessionContext }
+import javax.servlet.http.{ HttpSession ⇒ JHttpSession }
+import rest.Context
 
 /**
  *
  */
-final class HttpSession private
+final class HttpSession private (
+
+  protected[this] final val context: Context)
 
   extends JHttpSession
 
-  with Attributes
+  with spi.HttpSession
 
-  with Values
-
-  with Times {
-
-  final def getId: String = unsupported
-
-  final def getServletContext: JServletContext = unsupported
-
-  @deprecated("2.1", "will be removed") final def getSessionContext: HttpSessionContext = deprecated
-
-  final def invalidate = unsupported
-
-}
-
+/**
+ *
+ */
 object HttpSession {
 
-  final def apply = new HttpSession
+  final def apply(context: Context) = new HttpSession(context)
 
 }

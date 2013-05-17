@@ -16,8 +16,9 @@ final class ServletResource
 
   def get = {
     val servlet = Class.forName("com.vaadin.terminal.gwt.server.ApplicationServlet").newInstance.asInstanceOf[Servlet]
-    val servletconfig = ServletConfig.apply
+    val servletconfig = ServletConfig(context)
     servletconfig.setInitParameter("application", "com.vaadin.demo.sampler.SamplerApplication")
+    servletconfig.setInitParameter("productionMode", "true")
     servlet.init(servletconfig)
     val servletrequest = HttpServletRequest(context)
     val servletresponse = HttpServletResponse(context)
@@ -30,7 +31,7 @@ final class ServletResource
 
   Get { query: String ⇒ get }
 
-  Post { s: String ⇒ get }
+  Post { f: String ⇒ println("post " + f); get }
 
 }
 

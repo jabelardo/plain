@@ -13,35 +13,11 @@ import rest.Context
  */
 final class HttpServletRequest private (
 
-  protected[this] val context: Context)
+  protected[this] final val context: Context)
 
   extends JHttpServletRequest
 
-  with Contexts
-
-  with Attributes
-
-  with Parameters
-
-  with Dispatchers
-
-  with Contents
-
-  with Locales
-
-  with NetInfos
-
-  with Headers
-
-  with Sessions
-
-  with Users
-
-  with Paths
-
-  with Cookies {
-
-}
+  with spi.HttpServletRequest
 
 /**
  *
