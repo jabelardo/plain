@@ -13,9 +13,11 @@ trait HasContent {
 
   self: HasContext ⇒
 
+  override final def toString = { println("getContentType"); bytebuffer.flip; new String(bytebuffer.array, 0, bytebuffer.remaining) }
+
   final def getContentLength: Int = unsupported
 
-  final lazy val getContentType: String = { bytebuffer.flip; new String(bytebuffer.array, 0, bytebuffer.remaining) }
+  final def getContentType: String = unsupported
 
   final def getInputStream: ServletInputStream = unsupported
 

@@ -3,12 +3,14 @@ package com.ibm
 package plain
 
 import java.nio.ByteBuffer
-import java.nio.channels.AsynchronousFileChannel
 
+import scala.annotation.tailrec
 import scala.language.implicitConversions
 import scala.util.control.ControlThrowable
 
-import config.CheckedConfig
+import com.ibm.plain.aio.Aio
+
+import config.{ CheckedConfig, config2RichConfig }
 import logging.HasLogger
 
 package object aio
@@ -40,22 +42,22 @@ package object aio
     }
   }
 
-  @inline def defaultByteBuffer = Aio.defaultBufferPool.getBuffer
+  @inline def defaultByteBuffer = Aio.defaultBufferPool.get
 
-  @inline def tinyByteBuffer = Aio.tinyBufferPool.getBuffer
+  @inline def tinyByteBuffer = Aio.tinyBufferPool.get
 
-  @inline def largeByteBuffer = Aio.largeBufferPool.getBuffer
+  @inline def largeByteBuffer = Aio.largeBufferPool.get
 
-  @inline def hugeByteBuffer = Aio.hugeBufferPool.getBuffer
+  @inline def hugeByteBuffer = Aio.hugeBufferPool.get
 
   /**
    * Quite dangerous, never call this function on a buffer more than once or it could be later used by more than one at the same time.
    */
   final def releaseByteBuffer(buffer: ByteBuffer) = buffer.capacity match {
-    case `tinyBufferSize` ⇒ Aio.tinyBufferPool.releaseBuffer(buffer)
-    case `defaultBufferSize` ⇒ Aio.defaultBufferPool.releaseBuffer(buffer)
-    case `largeBufferSize` ⇒ Aio.largeBufferPool.releaseBuffer(buffer)
-    case `hugeBufferSize` ⇒ Aio.hugeBufferPool.releaseBuffer(buffer)
+    case `tinyBufferSize` ⇒ Aio.tinyBufferPool.release(buffer)
+    case `defaultBufferSize` ⇒ Aio.defaultBufferPool.release(buffer)
+    case `largeBufferSize` ⇒ Aio.largeBufferPool.release(buffer)
+    case `hugeBufferSize` ⇒ Aio.hugeBufferPool.release(buffer)
     case _ ⇒
   }
 

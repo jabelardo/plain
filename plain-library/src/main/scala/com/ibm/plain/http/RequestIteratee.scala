@@ -48,7 +48,7 @@ final class RequestIteratee private ()(implicit server: Server) {
 
       val readPath: Iteratee[Io, Path] = {
 
-        @inline def cont(segments: List[String]): Iteratee[Io, Path] = peek(1) >>> {
+        @inline def cont(segments: List[String]): Iteratee[Io, Path] = peek(1) flatMap {
           case `/` ⇒ for {
             _ ← drop(1)
             segment ← readPathSegment
@@ -60,7 +60,7 @@ final class RequestIteratee private ()(implicit server: Server) {
         cont(Nil)
       }
 
-      val readQuery: Iteratee[Io, Option[String]] = peek(1) >>> {
+      val readQuery: Iteratee[Io, Option[String]] = peek(1) flatMap {
         case `?` ⇒ for {
           _ ← drop(1)
           query ← readQuerySegment
@@ -68,7 +68,7 @@ final class RequestIteratee private ()(implicit server: Server) {
         case _ ⇒ Done(None)
       }
 
-      peek(1) >>> {
+      peek(1) flatMap {
         case `/` ⇒ for {
           path ← readPath
           query ← readQuery
@@ -90,7 +90,7 @@ final class RequestIteratee private ()(implicit server: Server) {
 
     val readHeader: Iteratee[Io, (String, String)] = {
 
-      @inline def cont(lines: String): Iteratee[Io, String] = peek(1) >>> {
+      @inline def cont(lines: String): Iteratee[Io, String] = peek(1) flatMap {
         case " " | "\t" ⇒ for {
           _ ← drop(1)
           line ← takeUntil(`\r`)(defaultCharacterSet)
@@ -112,7 +112,7 @@ final class RequestIteratee private ()(implicit server: Server) {
       } yield (name.toLowerCase, value)
     }
 
-    @inline def cont(headers: OpenHashMap[String, String]): Iteratee[Io, Headers] = peek(1) >>> {
+    def cont(headers: OpenHashMap[String, String]): Iteratee[Io, Headers] = peek(1) flatMap {
       case "\r" ⇒ for {
         _ ← drop(2)
         done ← Done(headers)

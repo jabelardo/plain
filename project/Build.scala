@@ -22,7 +22,6 @@ object PlainBuild extends Build {
     .settings(defaultSettings: _*)
     .settings(libraryDependencies ++= 
       compile(
-          // slf4jnoop, // uncomment to switch off all logging 
           scalareflect,
           config,
           logback, 
@@ -42,6 +41,7 @@ object PlainBuild extends Build {
 		  h2jdbc,
 		  mysqljdbc,
 		  servlet25,
+		  disruptor,
 		  reflections
       ) ++ test(junit, junitItf)
   )

@@ -13,7 +13,7 @@ import scala.math.max
 import Input.{ Elem, Empty, Eof, Failure }
 
 /**
- * An iteratee consumes a stream of elements of type Input[E] and produces a result of type A.
+ * An Iteratee consumes elements of type Input[E] and produces a result of type A.
  */
 sealed trait Iteratee[E, +A]
 
@@ -30,45 +30,30 @@ sealed trait Iteratee[E, +A]
     case e: Throwable ⇒ (Error(e), input)
   }
 
-  /**
-   * Used later at api level, e.g. HttpProcessor, and is very useful, therefore.
-   */
-  final def result: A = this(Eof)._1 match {
-    case Done(a) ⇒ a
-    case Error(e) ⇒ throw e
-    case Cont(_) ⇒ throw NotYetDone
+  @inline final def result: A = {
+    this(Eof)._1 match {
+      case Done(a) ⇒ a
+      case Cont(_) ⇒ throw NotYetDone
+      case Error(e) ⇒ throw e
+    }
   }
 
-  /**
-   * All lines in a for-comprehension except the last one.
-   */
-  final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = this match {
-    case Cont(comp: Compose[E, B]) ⇒ Cont(comp ++ f.asInstanceOf[Any ⇒ Iteratee[E, B]])
-    case Cont(k) ⇒ Cont(new Compose(k, f.asInstanceOf[Any ⇒ Iteratee[E, _]]))
-    case Done(a) ⇒ f(a)
-    case e @ Error(_) ⇒ e
+  final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = {
+    this match {
+      case Done(a) ⇒ f(a)
+      case Cont(comp: Compose[E, B]) ⇒ Cont(comp ++ f.asInstanceOf[Any ⇒ Iteratee[E, B]])
+      case Cont(k) ⇒ Cont(new Compose(k, f.asInstanceOf[Any ⇒ Iteratee[E, _]]))
+      case e @ Error(_) ⇒ e
+    }
   }
 
-  /**
-   * The last line in a for-comprehension.
-   */
-  final def map[B](f: A ⇒ B): Iteratee[E, B] = flatMap(a ⇒ new Done(f(a)))
-
-  /**
-   * A synonym for flatmap.
-   */
-  final def >>>[B](f: A ⇒ Iteratee[E, B]) = flatMap(f)
-
-  /**
-   * A synonym for map.
-   */
-  final def >>[B](f: A ⇒ B) = map(f)
+  final def map[B](f: A ⇒ B): Iteratee[E, B] = flatMap(a ⇒ Done(f(a)))
 
 }
 
 object Iteratee {
 
-  final class Done[E, A](val a: A)
+  final class Done[E, A] private (val a: A)
 
     extends Iteratee[E, A]
 
@@ -100,7 +85,7 @@ object Iteratee {
   /**
    * This class is a performance bottleneck and could use some refinement.
    */
-  private final class Compose[E, A] private (
+  private[aio] final class Compose[E, A] private (
 
     private[this] final val k: R[E, _],
 
@@ -110,16 +95,16 @@ object Iteratee {
 
     extends R[E, A] {
 
-    def this(k: R[E, _], f: Any ⇒ Iteratee[E, _]) = this(k, f :: Nil, Nil)
+    final def this(k: R[E, _], f: Any ⇒ Iteratee[E, _]) = { this(k, f :: Nil, Nil) }
 
     @inline final def ++[B](f: Any ⇒ Iteratee[E, B]): R[E, B] = {
       new Compose[E, B](k, out, f :: in)
     }
 
     /**
-     * A plain application spends most of its time in this method.
+     * A plain application spends most of its time in this method. This is hard-coded "trampolining".
      */
-    final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = {
+    @inline final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = {
 
       @inline @tailrec def run(
         result: (Iteratee[E, _], Input[E]),
@@ -157,8 +142,8 @@ object Iteratees {
   import Io._
   import Iteratee._
 
-  final def take(n: Int)(implicit cset: Charset) = {
-    def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
+  @inline final def take(n: Int)(implicit cset: Charset) = {
+    @inline def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
         if (in.length < n) {
@@ -166,14 +151,14 @@ object Iteratees {
         } else {
           (Done(in.take(n).decode), Elem(in.drop(n)))
         }
-      case Eof ⇒ (Error(EOF), input)
       case Failure(e) ⇒ (Error(e), input)
+      case _ ⇒ (Error(EOF), input)
     }
     Cont(cont(Io.empty))
   }
 
-  final def takeBytes(n: Int) = {
-    def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, Array[Byte]], Input[Io]) = input match {
+  @inline final def takeBytes(n: Int) = {
+    @inline def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, Array[Byte]], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
         if (in.length < n) {
@@ -181,14 +166,14 @@ object Iteratees {
         } else {
           (Done({ in.take(n); in.readAllBytes }), Elem(in.drop(n)))
         }
-      case Eof ⇒ (Error(EOF), input)
       case Failure(e) ⇒ (Error(e), input)
+      case _ ⇒ (Error(EOF), input)
     }
     Cont(cont(Io.empty))
   }
 
-  final def peek(n: Int)(implicit cset: Charset) = {
-    def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
+  @inline final def peek(n: Int)(implicit cset: Charset) = {
+    @inline def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
         if (in.length < n) {
@@ -196,15 +181,14 @@ object Iteratees {
         } else {
           (Done(in.peek(n).decode), Elem(in))
         }
-      case Eof ⇒
-        (Done(taken.decode), Eof)
       case Failure(e) ⇒ (Error(e), input)
+      case _ ⇒ (Done(taken.decode), Eof)
     }
     Cont(cont(Io.empty))
   }
 
-  final def takeWhile(p: Int ⇒ Boolean)(implicit cset: Charset): Iteratee[Io, String] = {
-    def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
+  @inline final def takeWhile(p: Int ⇒ Boolean)(implicit cset: Charset): Iteratee[Io, String] = {
+    @inline def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
         val (found, remaining) = in.span(p)
@@ -213,16 +197,16 @@ object Iteratees {
         } else {
           (Cont(cont(in)), Empty)
         }
-      case Eof ⇒ (Error(EOF), input)
       case Failure(e) ⇒ (Error(e), input)
+      case _ ⇒ (Error(EOF), input)
     }
     Cont(cont(Io.empty))
   }
 
-  final def takeUntil(p: Int ⇒ Boolean)(implicit cset: Charset): Iteratee[Io, String] = takeWhile(b ⇒ !p(b))(cset)
+  @inline final def takeUntil(p: Int ⇒ Boolean)(implicit cset: Charset): Iteratee[Io, String] = takeWhile(b ⇒ !p(b))(cset)
 
-  final def takeUntil(delimiter: Byte)(implicit cset: Charset): Iteratee[Io, String] = {
-    def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
+  @inline final def takeUntil(delimiter: Byte)(implicit cset: Charset): Iteratee[Io, String] = {
+    @inline def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
         val pos = in.indexOf(delimiter)
@@ -231,14 +215,14 @@ object Iteratees {
         } else {
           (Done(in.take(pos).decode), Elem(in.drop(1)))
         }
-      case Eof ⇒ (Error(EOF), input)
       case Failure(e) ⇒ (Error(e), input)
+      case _ ⇒ (Error(EOF), input)
     }
     Cont(cont(Io.empty))
   }
 
-  final def drop(n: Int): Iteratee[Io, Unit] = {
-    def cont(remaining: Int)(input: Input[Io]): (Iteratee[Io, Unit], Input[Io]) = input match {
+  @inline final def drop(n: Int): Iteratee[Io, Unit] = {
+    @inline def cont(remaining: Int)(input: Input[Io]): (Iteratee[Io, Unit], Input[Io]) = input match {
       case Elem(more) ⇒
         val len = more.length
         if (remaining > len) {
@@ -246,8 +230,8 @@ object Iteratees {
         } else {
           (Done(()), Elem(more.drop(remaining)))
         }
-      case Eof ⇒ (Error(EOF), input)
       case Failure(e) ⇒ (Error(e), input)
+      case _ ⇒ (Error(EOF), input)
     }
     Cont(cont(n))
   }

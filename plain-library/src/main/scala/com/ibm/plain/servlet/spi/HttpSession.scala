@@ -27,4 +27,3 @@ trait HttpSession
 
   with HasInvalidate
 
-  

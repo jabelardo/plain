@@ -23,7 +23,7 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
    */
   final def size = pool.size
 
-  @tailrec final def getBuffer: ByteBuffer = if (trylock) {
+  @tailrec final def get: ByteBuffer = if (trylock) {
     try pool match {
       case head :: tail ⇒
         pool = tail
@@ -33,11 +33,11 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
         ByteBuffer.allocateDirect(buffersize)
     } finally unlock
   } else {
-    Thread.sleep(0, 50) // removing this will degrade performance dramatically
-    getBuffer
+    Thread.sleep(0, 50) // removing this will degrade performance dramatically in 'on-the-edge' situations
+    get
   }
 
-  @tailrec final def releaseBuffer(buffer: ByteBuffer): Unit = if (trylock) {
+  @tailrec final def release(buffer: ByteBuffer): Unit = if (trylock) {
     try {
       // require(!pool.exists(_ eq buffer), "buffer released twice " + pool.size)
       buffer.clear
@@ -45,8 +45,8 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
       // debug("current " + pool.size + ", buffer size " + buffersize + ", initial pool size " + initialpoolsize)
     } finally unlock
   } else {
-    Thread.sleep(0, 50) // see above
-    releaseBuffer(buffer)
+    Thread.sleep(0, 50) 
+    release(buffer)
   }
 
   @inline private[this] final def trylock = locked.compareAndSet(false, true)

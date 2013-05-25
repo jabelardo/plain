@@ -7,17 +7,17 @@ package aio
 /**
  * Input of type E. It will be produced by an Enumerator[E].
  */
-trait Input[+E]
+sealed trait Input[+E]
 
   extends Any {
 
   import Input._
 
-  def map[B](f: E ⇒ B): Input[B] = this match {
+  final def map[B](f: E ⇒ B): Input[B] = this match {
+    case Elem(elem) ⇒ Elem(f(elem))
     case Eof ⇒ Eof
     case Empty ⇒ Empty
     case e @ Failure(_) ⇒ e
-    case Elem(elem) ⇒ Elem(f(elem))
   }
 
 }

@@ -18,12 +18,14 @@ final class ServletResource
     val servlet = Class.forName("com.vaadin.terminal.gwt.server.ApplicationServlet").newInstance.asInstanceOf[Servlet]
     val servletconfig = ServletConfig(context)
     servletconfig.setInitParameter("application", "com.vaadin.demo.sampler.SamplerApplication")
+    //    servletconfig.setInitParameter("widgetset", "com.vaadin.demo.sampler.gwt.SamplerWidgetSet")
     servletconfig.setInitParameter("productionMode", "true")
+    servletconfig.setInitParameter("resourceCacheTime", "3600")
     servlet.init(servletconfig)
     val servletrequest = HttpServletRequest(context)
     val servletresponse = HttpServletResponse(context)
     servlet.service(servletrequest, servletresponse)
-    val s = servletresponse.getContentType
+    val s = servletresponse.toString
     s
   }
 

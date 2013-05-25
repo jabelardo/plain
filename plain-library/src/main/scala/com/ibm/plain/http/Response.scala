@@ -26,7 +26,7 @@ final case class Response private (
 
   var status: Status,
 
-  var headers: Headers,
+  val headers: Headers,
 
   var entity: Option[Entity])
 
@@ -38,17 +38,16 @@ final case class Response private (
 
   @inline final def ++(status: Status): Type = { this.status = status; this }
 
-  @inline final def ++(headers: Headers): Type = { this.headers = headers; this }
-
-  final def renderHeader(io: Io): Io = {
+  @inline final def renderHeader(io: Io): Io = {
     implicit val _ = io
     renderVersion
+    renderServer
     renderKeepAlive
     renderContent
     renderEntity
   }
 
-  final def renderBody(io: Io): Io @suspendable = {
+  @inline final def renderBody(io: Io): Io @suspendable = {
     import io._
     @inline def encode = {
       encoder match {
@@ -76,7 +75,7 @@ final case class Response private (
     }
   }
 
-  final def renderFooter(io: Io): Io = {
+  @inline final def renderFooter(io: Io): Io = {
     import io._
     if (null != buf) {
       releaseByteBuffer(buffer)
@@ -89,6 +88,11 @@ final case class Response private (
     implicit val buffer = io.buffer
     buffer.clear
     version + ` ` + status + `\r\n` + ^
+  }
+
+  @inline private[this] final def renderServer(implicit io: Io) = {
+    implicit val buffer = io.buffer
+    r("Server: plain 1.0.1") + `\r\n` + ^
   }
 
   @inline private[this] final def renderKeepAlive(implicit io: Io) = {

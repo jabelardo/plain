@@ -17,5 +17,3 @@ trait ServletConfig
 
   with HasServlet
 
-
-  

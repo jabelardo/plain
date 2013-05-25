@@ -34,4 +34,3 @@ trait HttpServletRequest
   with HasPath
 
   with HasCookie
-  

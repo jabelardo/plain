@@ -27,5 +27,5 @@ trait HttpServletResponse
 
   with HasLocale
 
-  with HasCookie 
+  with HasCookie
 

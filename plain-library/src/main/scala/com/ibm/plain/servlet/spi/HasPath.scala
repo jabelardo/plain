@@ -16,7 +16,7 @@ trait HasPath {
 
   final def getPathTranslated: String = unsupported
 
-  final def getServletPath: String = getRequestURI
+  final def getServletPath: String = ""
 
   final def getQueryString: String = { val q = context.request.query match { case Some(value) ⇒ value case _ ⇒ null }; println("q " + q); q }
 

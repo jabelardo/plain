@@ -4,9 +4,6 @@ package plain
 
 package object hybriddb
 
-  extends config.CheckedConfig {
-
-  import config._
-  import config.settings._
+  extends com.ibm.plain.config.CheckedConfig {
 
 }

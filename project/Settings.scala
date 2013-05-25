@@ -26,7 +26,7 @@ object Settings {
     resolvers += "cc.spray releases" at "http://repo.spray.cc",
     organization := "com.ibm.plain",
     version      := "1.0.1-SNAPSHOT",
-    scalaVersion := "2.10.1",
+    scalaVersion := "2.10.2-RC1",
     logLevel     := Level.Info,
     exportJars   := true,
     mainClass in Compile := Some("com.ibm.plain.bootstrap.Main")

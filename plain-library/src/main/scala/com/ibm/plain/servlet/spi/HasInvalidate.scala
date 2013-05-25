@@ -11,7 +11,7 @@ package spi
  */
 trait HasInvalidate {
 
-  final def invalidate: Unit = ()
+  final def invalidate: Unit = println("invalidate")
 
 }
 

@@ -28,8 +28,4 @@ trait ServletContext
   with HasMimeType
 
   with HasVersion
-  
-  
 
-
-  

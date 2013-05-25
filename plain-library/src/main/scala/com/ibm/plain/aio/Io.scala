@@ -398,7 +398,7 @@ object Io
             case (length: Long, source: Channel, destination: Channel) ⇒
               ChannelTransfer(source, destination, io).transfer
               writeloop(renderable.renderHeader(io ++ renderable))
-            case pl ⇒
+            case _ ⇒
               writeloop(renderable.renderHeader(io ++ renderable))
           }
         case Error(e: InterruptedByTimeoutException) ⇒
