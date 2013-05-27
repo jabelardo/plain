@@ -21,61 +21,72 @@ sealed trait Iteratee[E, +A]
 
   import Iteratee._
 
-  final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = try {
-    this match {
-      case Cont(k) ⇒ k(input)
-      case it ⇒ (it, input)
-    }
-  } catch {
-    case e: Throwable ⇒ (Error(e), input)
+  def apply(input: Input[E]): (Iteratee[E, A], Input[E])
+
+  final def result: A = this(Eof) match {
+    case (Done(a), _) ⇒ a
+    case (Error(e), _) ⇒ throw e
+    case _ ⇒ throw new IllegalStateException
   }
 
-  @inline final def result: A = {
-    this(Eof)._1 match {
-      case Done(a) ⇒ a
-      case Cont(_) ⇒ throw NotYetDone
-      case Error(e) ⇒ throw e
-    }
-  }
+  def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B]
 
-  final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = {
-    this match {
-      case Done(a) ⇒ f(a)
-      case Cont(comp: Compose[E, B]) ⇒ Cont(comp ++ f.asInstanceOf[Any ⇒ Iteratee[E, B]])
-      case Cont(k) ⇒ Cont(new Compose(k, f.asInstanceOf[Any ⇒ Iteratee[E, _]]))
-      case e @ Error(_) ⇒ e
-    }
-  }
-
-  final def map[B](f: A ⇒ B): Iteratee[E, B] = flatMap(a ⇒ Done(f(a)))
+  def map[B](f: A ⇒ B): Iteratee[E, B]
 
 }
 
 object Iteratee {
 
-  final class Done[E, A] private (val a: A)
+  final case class Done[E, A](a: A)
 
-    extends Iteratee[E, A]
+    extends AnyVal with Iteratee[E, A] {
 
-  object Done {
+    final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = (this, input)
 
-    @inline final def apply[E, A](a: A) = new Done[E, A](a)
+    final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = f(a)
 
-    @inline final def unapply[E, A](done: Done[E, A]): Option[A] = Some(done.a)
+    final def map[B](f: A ⇒ B): Iteratee[E, B] = Done(f(a))
 
   }
 
-  final case class Cont[E, A](cont: Input[E] ⇒ (Iteratee[E, A], Input[E]))
+  final case class Cont[E, A](k: Input[E] ⇒ (Iteratee[E, A], Input[E]))
 
     extends AnyVal
 
-    with Iteratee[E, A]
+    with Iteratee[E, A] {
+
+    final override def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = try {
+      k(input)
+    } catch {
+      case e: Throwable ⇒ (Error(e), input)
+    }
+
+    final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = {
+      k match {
+        case comp: Compose[E, B] ⇒ Cont(comp ++ f.asInstanceOf[Any ⇒ Iteratee[E, B]])
+        case _ ⇒ Cont(new Compose(k, f.asInstanceOf[Any ⇒ Iteratee[E, _]] :: Nil, Nil))
+      }
+    }
+
+    final def map[B](f: A ⇒ B): Iteratee[E, B] = flatMap(a ⇒ g(a, f))
+
+    @inline final def g[B](a: A, f: A ⇒ B): Iteratee[E, B] = Done(f(a))
+
+  }
 
   final case class Error[E](e: Throwable)
 
     extends AnyVal
 
-    with Iteratee[E, Nothing]
+    with Iteratee[E, Nothing] {
+
+    final def apply(input: Input[E]): (Iteratee[E, Nothing], Input[E]) = (this, input)
+
+    final def flatMap[B](f: Nothing ⇒ Iteratee[E, B]): Iteratee[E, B] = this
+
+    final def map[B](f: Nothing ⇒ B): Iteratee[E, B] = this
+
+  }
 
   /**
    * private helpers
@@ -85,7 +96,7 @@ object Iteratee {
   /**
    * This class is a performance bottleneck and could use some refinement.
    */
-  private[aio] final class Compose[E, A] private (
+  private[aio] final class Compose[E, A](
 
     private[this] final val k: R[E, _],
 
@@ -95,18 +106,11 @@ object Iteratee {
 
     extends R[E, A] {
 
-    final def this(k: R[E, _], f: Any ⇒ Iteratee[E, _]) = { this(k, f :: Nil, Nil) }
+    final def ++[B](f: Any ⇒ Iteratee[E, B]): R[E, B] = new Compose[E, B](k, out, f :: in)
 
-    @inline final def ++[B](f: Any ⇒ Iteratee[E, B]): R[E, B] = {
-      new Compose[E, B](k, out, f :: in)
-    }
+    final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = {
 
-    /**
-     * A plain application spends most of its time in this method. This is hard-coded "trampolining".
-     */
-    @inline final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = {
-
-      @inline @tailrec def run(
+      @tailrec def run(
         result: (Iteratee[E, _], Input[E]),
         out: List[Any ⇒ Iteratee[E, _]],
         in: List[Any ⇒ Iteratee[E, _]]): (Iteratee[E, _], Input[E]) = {
@@ -130,113 +134,4 @@ object Iteratee {
 
   }
 
-  private final val NotYetDone = new IllegalStateException("Not yet done.")
-
 }
-
-/**
- * The minimum needed Iteratees to fold over a stream of bytes to produce an HttpRequest object.
- */
-object Iteratees {
-
-  import Io._
-  import Iteratee._
-
-  @inline final def take(n: Int)(implicit cset: Charset) = {
-    @inline def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
-      case Elem(more) ⇒
-        val in = taken ++ more
-        if (in.length < n) {
-          (Cont(cont(in)), Empty)
-        } else {
-          (Done(in.take(n).decode), Elem(in.drop(n)))
-        }
-      case Failure(e) ⇒ (Error(e), input)
-      case _ ⇒ (Error(EOF), input)
-    }
-    Cont(cont(Io.empty))
-  }
-
-  @inline final def takeBytes(n: Int) = {
-    @inline def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, Array[Byte]], Input[Io]) = input match {
-      case Elem(more) ⇒
-        val in = taken ++ more
-        if (in.length < n) {
-          (Cont(cont(in)), Empty)
-        } else {
-          (Done({ in.take(n); in.readAllBytes }), Elem(in.drop(n)))
-        }
-      case Failure(e) ⇒ (Error(e), input)
-      case _ ⇒ (Error(EOF), input)
-    }
-    Cont(cont(Io.empty))
-  }
-
-  @inline final def peek(n: Int)(implicit cset: Charset) = {
-    @inline def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
-      case Elem(more) ⇒
-        val in = taken ++ more
-        if (in.length < n) {
-          (Cont(cont(in)), Empty)
-        } else {
-          (Done(in.peek(n).decode), Elem(in))
-        }
-      case Failure(e) ⇒ (Error(e), input)
-      case _ ⇒ (Done(taken.decode), Eof)
-    }
-    Cont(cont(Io.empty))
-  }
-
-  @inline final def takeWhile(p: Int ⇒ Boolean)(implicit cset: Charset): Iteratee[Io, String] = {
-    @inline def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
-      case Elem(more) ⇒
-        val in = taken ++ more
-        val (found, remaining) = in.span(p)
-        if (0 < remaining) {
-          (Done(in.take(found).decode), Elem(in))
-        } else {
-          (Cont(cont(in)), Empty)
-        }
-      case Failure(e) ⇒ (Error(e), input)
-      case _ ⇒ (Error(EOF), input)
-    }
-    Cont(cont(Io.empty))
-  }
-
-  @inline final def takeUntil(p: Int ⇒ Boolean)(implicit cset: Charset): Iteratee[Io, String] = takeWhile(b ⇒ !p(b))(cset)
-
-  @inline final def takeUntil(delimiter: Byte)(implicit cset: Charset): Iteratee[Io, String] = {
-    @inline def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
-      case Elem(more) ⇒
-        val in = taken ++ more
-        val pos = in.indexOf(delimiter)
-        if (0 > pos) {
-          (Cont(cont(in)), Empty)
-        } else {
-          (Done(in.take(pos).decode), Elem(in.drop(1)))
-        }
-      case Failure(e) ⇒ (Error(e), input)
-      case _ ⇒ (Error(EOF), input)
-    }
-    Cont(cont(Io.empty))
-  }
-
-  @inline final def drop(n: Int): Iteratee[Io, Unit] = {
-    @inline def cont(remaining: Int)(input: Input[Io]): (Iteratee[Io, Unit], Input[Io]) = input match {
-      case Elem(more) ⇒
-        val len = more.length
-        if (remaining > len) {
-          (Cont(cont(remaining - len)), Empty)
-        } else {
-          (Done(()), Elem(more.drop(remaining)))
-        }
-      case Failure(e) ⇒ (Error(e), input)
-      case _ ⇒ (Error(EOF), input)
-    }
-    Cont(cont(n))
-  }
-
-  final val EOF = new EOFException("Unexpected EOF")
-
-}
-

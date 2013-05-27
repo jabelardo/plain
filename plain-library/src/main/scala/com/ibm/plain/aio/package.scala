@@ -8,9 +8,7 @@ import scala.annotation.tailrec
 import scala.language.implicitConversions
 import scala.util.control.ControlThrowable
 
-import com.ibm.plain.aio.Aio
-
-import config.{ CheckedConfig, config2RichConfig }
+import config.CheckedConfig
 import logging.HasLogger
 
 package object aio

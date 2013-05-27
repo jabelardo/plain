@@ -45,7 +45,7 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
       // debug("current " + pool.size + ", buffer size " + buffersize + ", initial pool size " + initialpoolsize)
     } finally unlock
   } else {
-    Thread.sleep(0, 50) 
+    Thread.sleep(0, 50)
     release(buffer)
   }
 
