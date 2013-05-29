@@ -4,13 +4,9 @@ package plain
 
 package aio
 
-import java.io.EOFException
-import java.nio.charset.Charset
-
 import scala.annotation.tailrec
-import scala.math.max
 
-import Input.{ Elem, Empty, Eof, Failure }
+import Input.Eof
 
 /**
  * An Iteratee consumes elements of type Input[E] and produces a result of type A.
@@ -49,31 +45,6 @@ object Iteratee {
 
   }
 
-  final case class Cont[E, A](k: Input[E] ⇒ (Iteratee[E, A], Input[E]))
-
-    extends AnyVal
-
-    with Iteratee[E, A] {
-
-    final override def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = try {
-      k(input)
-    } catch {
-      case e: Throwable ⇒ (Error(e), input)
-    }
-
-    final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = {
-      k match {
-        case comp: Compose[E, B] ⇒ Cont(comp ++ f.asInstanceOf[Any ⇒ Iteratee[E, B]])
-        case _ ⇒ Cont(new Compose(k, f.asInstanceOf[Any ⇒ Iteratee[E, _]] :: Nil, Nil))
-      }
-    }
-
-    final def map[B](f: A ⇒ B): Iteratee[E, B] = flatMap(a ⇒ g(a, f))
-
-    @inline final def g[B](a: A, f: A ⇒ B): Iteratee[E, B] = Done(f(a))
-
-  }
-
   final case class Error[E](e: Throwable)
 
     extends AnyVal
@@ -88,34 +59,49 @@ object Iteratee {
 
   }
 
-  /**
-   * private helpers
-   */
-  private final type R[E, A] = Input[E] ⇒ (Iteratee[E, A], Input[E])
+  final case class Cont[E, A](k: Input[E] ⇒ (Iteratee[E, A], Input[E]))
 
-  /**
-   * This class is a performance bottleneck and could use some refinement.
-   */
-  private[aio] final class Compose[E, A](
+    extends AnyVal
 
-    private[this] final val k: R[E, _],
+    with Iteratee[E, A] {
 
-    private[this] final val out: List[Any ⇒ Iteratee[E, _]],
+    final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = try {
+      k(input)
+    } catch {
+      case e: Throwable ⇒ (Error(e), input)
+    }
 
-    private[this] final val in: List[Any ⇒ Iteratee[E, _]])
+    final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = k match {
+      case comp: Compose[E, B] ⇒ Cont(new Compose(comp.k, comp.out, f.asInstanceOf[Any ⇒ Iteratee[E, _]] :: comp.in))
+      case k ⇒ Cont(new Compose(k, f.asInstanceOf[Any ⇒ Iteratee[E, _]] :: Nil, Nil))
+    }
+
+    final def map[B](f: A ⇒ B): Iteratee[E, B] = flatMap(a ⇒ g(a, f))
+
+    private final def g[B](a: A, f: A ⇒ B): Iteratee[E, B] = Done(f(a))
+
+  }
+
+  private final class Compose[E, A](
+
+    final val k: R[E, _],
+
+    final var out: List[Any ⇒ Iteratee[E, _]],
+
+    final var in: List[Any ⇒ Iteratee[E, _]])
 
     extends R[E, A] {
 
-    final def ++[B](f: Any ⇒ Iteratee[E, B]): R[E, B] = new Compose[E, B](k, out, f :: in)
-
     final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = {
-
       @tailrec def run(
         result: (Iteratee[E, _], Input[E]),
         out: List[Any ⇒ Iteratee[E, _]],
         in: List[Any ⇒ Iteratee[E, _]]): (Iteratee[E, _], Input[E]) = {
         if (out.isEmpty) {
-          if (in.isEmpty) result else run(result, in match { case Nil ⇒ Nil case _ :: Nil ⇒ in case _ ⇒ in.reverse }, Nil)
+          if (in.isEmpty)
+            result
+          else
+            run(result, in match { case _ :: Nil ⇒ in case _ ⇒ in.reverse }, Nil)
         } else {
           result match {
             case (Done(value), remaining) ⇒
@@ -133,5 +119,7 @@ object Iteratee {
     }
 
   }
+
+  private final type R[E, A] = Input[E] ⇒ (Iteratee[E, A], Input[E])
 
 }

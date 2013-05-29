@@ -34,10 +34,10 @@ abstract sealed class IoHelper[E <: Io] {
     buffer.remaining match {
       case 0 ⇒ Io.emptyString
       case 1 ⇒ String.valueOf(buffer.get.toChar)
-      case _ ⇒ new String(readBytes, cset)
+      case n ⇒ new String(readBytes, 0, n, cset)
     })
 
-  final def length: Int = buffer.remaining
+  @inline final def length: Int = buffer.remaining
 
   final def take(n: Int): Io = {
     markLimit
@@ -71,7 +71,7 @@ abstract sealed class IoHelper[E <: Io] {
     (i - pos, l - i)
   }
 
-  final def readAllBytes = readBytes
+  @inline final def readAllBytes = readBytes
 
   @inline private[this] final def readBytes: Array[Byte] = buffer.remaining match {
     case 0 ⇒ Io.emptyArray

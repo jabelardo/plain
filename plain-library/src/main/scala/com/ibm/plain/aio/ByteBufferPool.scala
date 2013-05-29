@@ -33,7 +33,7 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
         ByteBuffer.allocateDirect(buffersize)
     } finally unlock
   } else {
-    Thread.sleep(0, 50) // removing this will degrade performance dramatically in 'on-the-edge' situations
+    Thread.`yield`
     get
   }
 
@@ -45,7 +45,7 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
       // debug("current " + pool.size + ", buffer size " + buffersize + ", initial pool size " + initialpoolsize)
     } finally unlock
   } else {
-    Thread.sleep(0, 50)
+    Thread.`yield`
     release(buffer)
   }
 
