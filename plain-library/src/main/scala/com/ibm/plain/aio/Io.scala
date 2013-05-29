@@ -5,19 +5,18 @@ package plain
 package aio
 
 import java.io.IOException
-import java.net.StandardSocketOptions
 import java.nio.ByteBuffer
-import java.nio.channels.{ AsynchronousServerSocketChannel ⇒ ServerChannel, AsynchronousSocketChannel ⇒ SocketChannel, AsynchronousByteChannel ⇒ Channel, CompletionHandler ⇒ Handler, InterruptedByTimeoutException }
+import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel, AsynchronousServerSocketChannel ⇒ ServerChannel, AsynchronousSocketChannel ⇒ SocketChannel, CompletionHandler ⇒ Handler, InterruptedByTimeoutException }
 import java.nio.charset.Charset
-import java.util.concurrent.TimeUnit
 
-import scala.math.min
-import scala.util.continuations.{ reset, shift, suspendable }
 import scala.concurrent.duration.Duration
+import scala.math.min
+import scala.util.continuations.{ shift, suspendable }
 
-import io.gzip
-import Iteratee.{ Cont, Done, Error }
+import com.ibm.plain.aio.Iteratee.Error
+
 import Input.{ Elem, Empty, Eof }
+import Iteratee.{ Cont, Done, Error }
 import concurrent.{ OnlyOnce, scheduleOnce }
 import logging.HasLogger
 
@@ -96,52 +95,6 @@ abstract sealed class IoHelper[E <: Io] {
 }
 
 /**
- *
- */
-private final class SocketChannelWithTimeout private (
-
-  channel: SocketChannel)
-
-  extends Channel {
-
-  @inline final def close = channel.close
-
-  @inline final def isOpen = channel.isOpen
-
-  @inline final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[Integer, _ >: A]) = {
-    channel.read(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, attachment, handler)
-  }
-
-  @inline final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[Integer, _ >: A]) = {
-    channel.write(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, attachment, handler)
-  }
-
-  def read(buffer: ByteBuffer) = channel.read(buffer)
-
-  def write(buffer: ByteBuffer) = channel.write(buffer)
-
-}
-
-private final object SocketChannelWithTimeout {
-
-  final def apply(channel: SocketChannel) = new SocketChannelWithTimeout(tweak(channel))
-
-  private[this] final def tweak(channel: SocketChannel): SocketChannel = {
-    import StandardSocketOptions._
-    tcpNoDelay match {
-      case 1 ⇒ channel.setOption(TCP_NODELAY, Boolean.box(true))
-      case -1 ⇒ channel.setOption(TCP_NODELAY, Boolean.box(false))
-      case _ ⇒
-    }
-    channel.setOption(SO_REUSEADDR, Boolean.box(true))
-    channel.setOption(SO_KEEPALIVE, Boolean.box(false))
-    channel.setOption(SO_RCVBUF, Integer.valueOf(sendReceiveBufferSize))
-    channel.setOption(SO_SNDBUF, Integer.valueOf(sendReceiveBufferSize))
-  }
-
-}
-
-/**
  * Io represents the context of an asynchronous i/o operation.
  */
 final class Io private (
@@ -189,52 +142,52 @@ final class Io private (
     that + b
   }
 
-  @inline def ++(server: ServerChannel) = { this.server = server; this }
+  @inline final def ++(server: ServerChannel) = { this.server = server; this }
 
-  @inline def ++(channel: Channel) = new Io(server, channel, buffer, iteratee, renderable, k, readwritten, keepalive, roundtrips, payload)
+  @inline final def ++(channel: Channel) = new Io(server, channel, buffer, iteratee, renderable, k, readwritten, keepalive, roundtrips, payload)
 
-  @inline def ++(iteratee: Iteratee[Io, _]) = { this.iteratee = iteratee; this }
+  @inline final def ++(iteratee: Iteratee[Io, _]) = { this.iteratee = iteratee; this }
 
-  @inline def ++(renderable: RenderableRoot) = { this.renderable = renderable; this }
+  @inline final def ++(renderable: RenderableRoot) = { this.renderable = renderable; this }
 
-  @inline def ++(k: IoCont) = { this.k = k; this }
+  @inline final def ++(k: IoCont) = { this.k = k; this }
 
-  @inline def ++(readwritten: Int) = { this.readwritten = readwritten; this }
+  @inline final def ++(readwritten: Int) = { this.readwritten = readwritten; this }
 
-  @inline def ++(roundtrips: Long) = { this.roundtrips = roundtrips; this }
+  @inline final def ++(roundtrips: Long) = { this.roundtrips = roundtrips; this }
 
-  @inline def ++(keepalive: Boolean) = { if (this.keepalive) this.keepalive = keepalive; this }
+  @inline final def ++(keepalive: Boolean) = { if (this.keepalive) this.keepalive = keepalive; this }
 
-  @inline def +++(payload: Any) = { this.payload = payload; this }
+  @inline final def +++(payload: Any) = { this.payload = payload; this }
 
-  @inline def ++(buffer: ByteBuffer) = if (0 < this.buffer.remaining) {
+  @inline final def ++(buffer: ByteBuffer) = if (0 < this.buffer.remaining) {
     new Io(server, channel, buffer, iteratee, renderable, k, readwritten, keepalive, roundtrips, payload)
   } else {
     this + buffer
   }
 
-  @inline def isError = iteratee.isInstanceOf[Error[_]]
+  @inline final def isError = iteratee.isInstanceOf[Error[_]]
 
-  @inline private def +(buffer: ByteBuffer) = {
+  @inline private final def +(buffer: ByteBuffer) = {
     if (this.buffer ne emptyBuffer) releaseByteBuffer(this.buffer)
     this.buffer = buffer
     this
   }
 
-  @inline private def releaseBuffer = if (buffer ne emptyBuffer) {
+  @inline private final def releaseBuffer = if (buffer ne emptyBuffer) {
     releaseByteBuffer(buffer)
     buffer = emptyBuffer
   }
 
-  @inline private def clear = buffer.clear
+  @inline private final def clear = buffer.clear
 
-  @inline private def release = {
+  @inline private final def release = {
     releaseBuffer
     if (channel.isOpen) channel.close
     payload = null
   }
 
-  @inline private def error(e: Throwable) = {
+  @inline private final def error(e: Throwable) = {
     e match {
       case _: IOException ⇒
       case e ⇒ logger.debug("Io.error " + e.toString)
@@ -330,9 +283,11 @@ object Io
   /**
    * Read/Write
    */
-  private[this] object IoHandler extends Handler[Integer, Io] {
+  private[this] object IoHandler
 
-    final def completed(processed: Integer, io: Io) = {
+    extends Handler[Integer, Io] {
+
+    @inline final def completed(processed: Integer, io: Io) = {
       import io._
       k(io ++ processed)
     }
@@ -366,7 +321,6 @@ object Io
 
     val readiteratee = io.iteratee
 
-    import http._
     @inline def readloop(io: Io): Unit @suspendable = {
       (read(io) match {
         case io if -1 < io.readwritten ⇒
