@@ -96,6 +96,22 @@ object Iteratees {
     Cont(cont(Io.empty) _)
   }
 
+  final def takeUntilCrLf(implicit cset: Charset): Iteratee[Io, String] = {
+    def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
+      case Elem(more) ⇒
+        val in = taken ++ more
+        val pos = in.indexOf(`\r`)
+        if (0 > pos) {
+          (Cont(cont(in) _), Empty)
+        } else {
+          (Done(in.take(pos).decode), Elem(in.drop(2)))
+        }
+      case Failure(e) ⇒ (Error(e), input)
+      case _ ⇒ (Error(EOF), input)
+    }
+    Cont(cont(Io.empty) _)
+  }
+
   final def drop(n: Int): Iteratee[Io, Unit] = {
     def cont(remaining: Int)(input: Input[Io]): (Iteratee[Io, Unit], Input[Io]) = input match {
       case Elem(more) ⇒
@@ -110,6 +126,8 @@ object Iteratees {
     }
     Cont(cont(n) _)
   }
+
+  private[this] final val `\r` = '\r'.toByte
 
   final val EOF = new EOFException("Unexpected EOF")
 

@@ -41,7 +41,7 @@ sealed abstract class Status
  */
 object Status {
 
-  abstract sealed class BaseStatus(r: String) extends Status {
+  sealed abstract class BaseStatus(r: String) extends Status {
 
     final val code = reflect.simpleName(getClass.getName).getBytes(`US-ASCII`)
 

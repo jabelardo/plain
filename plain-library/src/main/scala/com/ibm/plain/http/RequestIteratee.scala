@@ -81,8 +81,7 @@ final class RequestIteratee private ()(implicit server: Server) {
       method ← takeUntil(` `)
       pathquery ← readRequestUri
       _ ← takeWhile(whitespace)
-      version ← takeUntil(`\r`)
-      _ ← drop(1)
+      version ← takeUntilCrLf
     } yield (Method(method), pathquery._1, pathquery._2, Version(version))
   }
 
@@ -93,8 +92,7 @@ final class RequestIteratee private ()(implicit server: Server) {
       def cont(lines: String): Iteratee[Io, String] = peek(1) flatMap {
         case " " | "\t" ⇒ for {
           _ ← drop(1)
-          line ← takeUntil(`\r`)(defaultCharacterSet)
-          _ ← drop(1)
+          line ← takeUntilCrLf(defaultCharacterSet)
           morelines ← cont(lines + line)
         } yield morelines
         case _ ⇒ Done(lines)
@@ -105,8 +103,7 @@ final class RequestIteratee private ()(implicit server: Server) {
         _ ← takeUntil(`:`)
         _ ← takeWhile(whitespace)
         value ← for {
-          line ← takeUntil(`\r`)(defaultCharacterSet)
-          _ ← drop(1)
+          line ← takeUntilCrLf(defaultCharacterSet)
           morelines ← cont(line)
         } yield morelines
       } yield (name.toLowerCase, value)
@@ -141,7 +138,6 @@ final class RequestIteratee private ()(implicit server: Server) {
         case Some(s) ⇒ Done(Some(ArrayEntity(s.getBytes(defaultCharacterSet), `text/plain`)))
         case _ ⇒ Done(None)
       }
-
     }
 
   final val readRequest: Iteratee[Io, Request] = for {
