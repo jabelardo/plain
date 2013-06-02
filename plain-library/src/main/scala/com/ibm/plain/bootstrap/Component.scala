@@ -8,8 +8,6 @@ import java.util.concurrent.TimeoutException
 
 import scala.concurrent.duration.Duration
 
-import concurrent.sleep
-
 /**
  * A Component will be started automatically by the bootstrapping mechanism if it is enabled which it is by default.
  * It will also be stopped by the tear down mechanism. All components are registered automatically with bootstrap and tear down.
@@ -82,7 +80,7 @@ abstract class BaseComponent[C](n: String)
     if (isStarted) {
       stop
       started = false
-      sleep(1)
+      Thread.`yield`
     }
   } catch {
     case e: Throwable ⇒ println("Excption during stop of '" + name + "' : " + e)

@@ -9,7 +9,7 @@ import java.nio.channels.Channels.newChannel
 import java.nio.file.{ Files, Paths }
 import java.util.zip.{ GZIPInputStream, GZIPOutputStream }
 import org.apache.commons.io.FileUtils
-import concurrent.{ sleep, spawn }
+import concurrent.spawn
 import config.config2RichConfig
 import config.settings.{ getInt, getMilliseconds }
 import config.CheckedConfig
@@ -183,7 +183,7 @@ package object io
         while (0 < retries) {
           try {
             createLogger(this).info("deleteDirectory : retry " + retries + " " + directory)
-            sleep(deleteDirectoryPauseBetweenRetries)
+            Thread.sleep(deleteDirectoryPauseBetweenRetries)
             FileUtils.deleteDirectory(directory)
             retries = 0
           } catch {

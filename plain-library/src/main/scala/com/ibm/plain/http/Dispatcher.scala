@@ -7,6 +7,7 @@ package http
 import com.typesafe.config.Config
 
 import aio.Io
+import aio.Iteratee._
 
 /**
  * This could be the RestDispatcher, for instance. As instances of this class will be created via Class.newInstance
@@ -34,3 +35,4 @@ abstract class Dispatcher
   private[http] final var config_ : Config = null
 
 }
+

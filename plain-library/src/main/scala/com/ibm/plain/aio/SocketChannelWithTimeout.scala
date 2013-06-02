@@ -4,7 +4,7 @@ package plain
 
 package aio
 
-import java.net.StandardSocketOptions.{ SO_KEEPALIVE, SO_RCVBUF, SO_REUSEADDR, SO_SNDBUF, TCP_NODELAY }
+import java.net.StandardSocketOptions.{ SO_KEEPALIVE, SO_RCVBUF, SO_REUSEADDR, SO_SNDBUF, SO_LINGER, TCP_NODELAY }
 import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel, AsynchronousSocketChannel ⇒ SocketChannel, CompletionHandler ⇒ Handler }
 import java.util.concurrent.TimeUnit

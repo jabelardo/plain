@@ -119,6 +119,11 @@ object Server
   private final val channelGroup = Group.withThreadPool(concurrent.ioexecutor)
 
   /**
+   * better on xp 64 with ping
+   * private final val channelGroup = Group.withFixedThreadPool(concurrent.cores, java.util.concurrent.Executors.defaultThreadFactory)
+   */
+
+  /**
    * A per-server provided configuration, unspecified details will be inherited from defaultServerConfiguration.
    */
   final case class ServerConfiguration(

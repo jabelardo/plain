@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets.{ ISO_8859_1, US_ASCII, UTF_8 }
 
 import scala.annotation.tailrec
 
+import org.apache.commons.codec.net.URLCodec
 import org.apache.commons.codec.binary.Base64
 
 import io.{ Base64InputStream, Base64OutputStream }
@@ -34,6 +35,8 @@ package object text {
    * This overrides the default for HTTP/1.1 (ISO-8859-1) in our framework just because of the Euro sign (€).
    */
   final val `ISO-8859-15` = Charset.forName("ISO-8859-15")
+
+  final val utf8codec = new URLCodec(`UTF-8`.toString)
 
   /**
    * Convert input to readable output if input is base64-encoded else return input.

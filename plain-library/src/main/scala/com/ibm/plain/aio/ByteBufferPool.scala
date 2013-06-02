@@ -24,14 +24,20 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
   final def size = pool.size
 
   @tailrec final def get: ByteBuffer = if (trylock) {
-    try pool match {
+    val buffer = try pool match {
       case head :: tail ⇒
         pool = tail
         head
-      case Nil ⇒
-        onlyonce { warning("ByteBufferPool exhausted : buffer size " + buffersize + ", initial pool size " + initialpoolsize) }
-        ByteBuffer.allocateDirect(buffersize)
+      case _ ⇒
+        null
     } finally unlock
+    if (null != buffer) {
+      buffer.clear
+      buffer
+    } else {
+      onlyonce { warning("ByteBufferPool exhausted : buffer size " + buffersize + ", initial pool size " + initialpoolsize) }
+      ByteBuffer.allocateDirect(buffersize)
+    }
   } else {
     Thread.`yield`
     get

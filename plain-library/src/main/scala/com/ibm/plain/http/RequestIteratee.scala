@@ -4,8 +4,6 @@ package plain
 
 package http
 
-import org.apache.commons.codec.net.URLCodec
-
 import scala.collection.mutable.OpenHashMap
 
 import aio._
@@ -32,15 +30,13 @@ final class RequestIteratee private ()(implicit server: Server) {
 
   private[this] implicit final val ascii = `US-ASCII`
 
-  private[this] final val codec = new URLCodec(`UTF-8`.toString)
-
   private[this] final val readRequestLine = {
 
     val readRequestUri: Iteratee[Io, (Path, Option[String])] = {
 
       def readUriSegment(allowed: Set[Int], nodecoding: Boolean): Iteratee[Io, String] = for {
         segment ← takeWhile(allowed)(defaultCharacterSet)
-      } yield if (nodecoding) segment else codec.decode(segment)
+      } yield if (nodecoding) segment else utf8codec.decode(segment)
 
       val readPathSegment = readUriSegment(path, disableUrlDecoding)
 
@@ -134,7 +130,7 @@ final class RequestIteratee private ()(implicit server: Server) {
           case nolength ⇒ Done(None)
         }
       }
-      case nocontent ⇒ query match {
+      case _ ⇒ query match {
         case Some(s) ⇒ Done(Some(ArrayEntity(s.getBytes(defaultCharacterSet), `text/plain`)))
         case _ ⇒ Done(None)
       }

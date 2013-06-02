@@ -5,7 +5,6 @@ package plain
 package rest
 
 import java.nio.{ ByteBuffer, CharBuffer }
-import org.apache.commons.codec.net.URLCodec
 import scala.collection.mutable.{ HashMap, MultiMap, Set ⇒ MutableSet }
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.{ Type, typeOf }
@@ -15,7 +14,7 @@ import json.Json.{ JArray, JObject }
 import text.{ `UTF-8`, fastSplit, convertCharset }
 import xml.XmlMarshaled
 import aio.tooTinyToCareSize
-import http.defaultCharacterSet
+import http.{ defaultCharacterSet, defaultcodec }
 import http.Status.{ ClientError, ServerError }
 import http.ContentType
 import http.MimeType
@@ -45,8 +44,6 @@ private final class Matching {
 
   import Types._
 
-  private[this] final val codec = new URLCodec(defaultCharacterSet.toString)
-
   final val decodeEntity: Decoder[Entity] = (entity: Option[Entity]) ⇒ entity match { case Some(entity) ⇒ entity case _ ⇒ throw ClientError.`415` }
 
   final val decodeUnit: Decoder[Unit] = (entity: Option[Entity]) ⇒ ()
@@ -56,7 +53,7 @@ private final class Matching {
   final val decodeString: Decoder[String] = (entity: Option[Entity]) ⇒ entity match { case Some(a: ArrayEntity) ⇒ new String(a.array, a.contenttype.charsetOrDefault) case _ ⇒ throw ClientError.`415` }
 
   final val decodeForm: Decoder[Form] = (entity: Option[Entity]) ⇒ {
-    @inline def c(s: String) = convertCharset(codec.decode(s), defaultCharacterSet, `UTF-8`)
+    @inline def c(s: String) = convertCharset(defaultcodec.decode(s), defaultCharacterSet, `UTF-8`)
     val form = fastSplit(decodeString(entity), '&')
       .map(fastSplit(_, '='))
       .collect { case List(k, v) ⇒ (c(k), c(v)) }
@@ -104,7 +101,7 @@ private final class Matching {
   final val encodeString: Encoder = ((s: String) ⇒ Some(if (tooTinyToCareSize < s.length) ByteBufferEntity(s, ContentType(`text/html`, `UTF-8`)) else ArrayEntity(s.getBytes(`UTF-8`), ContentType(`text/html`, `UTF-8`)))).asInstanceOf[Encoder]
 
   final val encodeForm: Encoder = ((form: Form) ⇒ {
-    @inline def c(s: String) = codec.encode(convertCharset(s, `UTF-8`, defaultCharacterSet))
+    @inline def c(s: String) = defaultcodec.encode(convertCharset(s, `UTF-8`, defaultCharacterSet))
     val f = form.foldLeft(new StringBuilder) { case (l, (k, values)) ⇒ values.foreach(value ⇒ l.append(c(k)).append('=').append(c(value)).append('&')); l }
     Some(ByteBufferEntity(f.stripSuffix("&"), `application/x-www-form-urlencoded`))
   }).asInstanceOf[Encoder]

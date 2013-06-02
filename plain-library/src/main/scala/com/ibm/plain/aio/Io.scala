@@ -11,7 +11,7 @@ import java.nio.charset.Charset
 
 import scala.concurrent.duration.Duration
 import scala.math.min
-import scala.util.continuations.{ shift, suspendable }
+import scala.util.continuations.{ shift, shiftR, suspendable }
 
 import com.ibm.plain.aio.Iteratee.Error
 
@@ -97,7 +97,7 @@ abstract sealed class IoHelper[E <: Io] {
 /**
  * Io represents the context of an asynchronous i/o operation.
  */
-final class Io private (
+final case class Io private (
 
   var server: ServerChannel,
 
@@ -144,7 +144,7 @@ final class Io private (
 
   @inline final def ++(server: ServerChannel) = { this.server = server; this }
 
-  @inline final def ++(channel: Channel) = new Io(server, channel, buffer, iteratee, renderable, k, readwritten, keepalive, roundtrips, payload)
+  @inline final def ++(channel: Channel) = Io(server, channel, buffer, iteratee, renderable, k, readwritten, keepalive, roundtrips, payload)
 
   @inline final def ++(iteratee: Iteratee[Io, _]) = { this.iteratee = iteratee; this }
 
@@ -161,7 +161,7 @@ final class Io private (
   @inline final def +++(payload: Any) = { this.payload = payload; this }
 
   @inline final def ++(buffer: ByteBuffer) = if (0 < this.buffer.remaining) {
-    new Io(server, channel, buffer, iteratee, renderable, k, readwritten, keepalive, roundtrips, payload)
+    Io(server, channel, buffer, iteratee, renderable, k, readwritten, keepalive, roundtrips, payload)
   } else {
     this + buffer
   }
@@ -210,7 +210,7 @@ object Io
 
   final type IoCont = Io ⇒ Unit
 
-  @inline private[aio] final def empty = new Io(null, null, emptyBuffer, null, null, null, -1, true, 0L, null)
+  @inline private[aio] final def empty = Io(null, null, emptyBuffer, null, null, null, -1, true, 0L, null)
 
   final private[aio] val emptyArray = new Array[Byte](0)
 
@@ -225,14 +225,14 @@ object Io
   /**
    * Accept.
    */
-  private[this] final class AcceptHandler
+  private[this] object AcceptHandler
 
     extends Handler[SocketChannel, Io] {
 
-    @inline final def completed(c: SocketChannel, io: Io) = {
+    @inline final def completed(ch: SocketChannel, io: Io) = {
       import io._
       server.accept(io, this)
-      k(io ++ SocketChannelWithTimeout(c) ++ defaultByteBuffer)
+      k(io ++ SocketChannelWithTimeout(ch) ++ defaultByteBuffer)
     }
 
     @inline final def failed(e: Throwable, io: Io) = {
@@ -299,8 +299,9 @@ object Io
 
   }
 
-  final def accept(server: ServerChannel, pausebetweenaccepts: Duration): Io @suspendable =
-    shift { k: IoCont ⇒ server.accept(Io.empty ++ server ++ k, pausebetweenaccepts.toMillis match { case m if 0 < m ⇒ new PausingAcceptHandler(m) case _ ⇒ new AcceptHandler }) }
+  final def accept(server: ServerChannel, pausebetweenaccepts: Duration): Io @suspendable = {
+    shift { k: IoCont ⇒ server.accept(Io.empty ++ server ++ k, pausebetweenaccepts.toMillis match { case m if 0 < m ⇒ new PausingAcceptHandler(m) case _ ⇒ AcceptHandler }) }
+  }
 
   @inline private[aio] final def read(io: Io): Io @suspendable = {
     import io._
@@ -321,7 +322,7 @@ object Io
 
     val readiteratee = io.iteratee
 
-    @inline def readloop(io: Io): Unit @suspendable = {
+    def readloop(io: Io): Unit @suspendable = {
       (read(io) match {
         case io if -1 < io.readwritten ⇒
           io.buffer.flip
@@ -343,7 +344,7 @@ object Io
       }
     }
 
-    @inline def processloop(io: Io): Unit @suspendable = {
+    def processloop(io: Io): Unit @suspendable = {
       (processor.doProcess(io) match {
         case io ⇒ io.iteratee
       }) match {
@@ -366,7 +367,7 @@ object Io
       }
     }
 
-    @inline def writeloop(io: Io): Unit @suspendable = {
+    def writeloop(io: Io): Unit @suspendable = {
       (write(io) match {
         case io ⇒ io.iteratee
       }) match {
@@ -375,6 +376,7 @@ object Io
         case Cont(_) ⇒
           writeloop(io.renderable.renderBody(io))
         case Error(e: IOException) ⇒
+          ignored
         case Error(e) ⇒
           info("writeloop " + e.toString)
         case e ⇒

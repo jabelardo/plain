@@ -3,13 +3,10 @@ package com.ibm
 package plain
 
 import java.util.concurrent.{ ForkJoinPool, ThreadPoolExecutor, ArrayBlockingQueue, TimeUnit }
-
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationLong
-
 import akka.actor.Cancellable
 import akka.dispatch.MessageDispatcher
-
 import logging.HasLogger
 import config.CheckedConfig
 
@@ -32,21 +29,18 @@ package object concurrent
 
   final def executor = Concurrent.executor
 
-  final val ioexecutor = {
-    val keepalive = 60L
-    val maxqueuesize = 1024
-    new ThreadPoolExecutor(
-      cores,
-      parallelism,
-      keepalive,
-      TimeUnit.SECONDS,
-      new ArrayBlockingQueue[Runnable](maxqueuesize))
-  }
+  final def ioexecutor = executor
+  //  {
+  //    val keepalive = 60L
+  //    val maxqueuesize = 1024
+  //    new ThreadPoolExecutor(
+  //      cores,
+  //      parallelism,
+  //      keepalive,
+  //      TimeUnit.SECONDS,
+  //      new ArrayBlockingQueue[Runnable](maxqueuesize))
+  //  }
 
-  /**
-   * Tired of typing 'Thread.'? Use this one. We won't win a Turing award with it for sure.
-   */
-  final def sleep(milliseconds: Long) = Thread.sleep(milliseconds)
   /**
    * Spawn a body: => Unit to an execution context and forget about it. Use this only if you have no need to handle errors during the execution of 'body'.
    */

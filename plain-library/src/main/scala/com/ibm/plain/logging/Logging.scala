@@ -21,7 +21,6 @@ import ch.qos.logback.classic.joran.JoranConfigurator
 import ch.qos.logback.core.util.StatusPrinter
 
 import bootstrap.BaseComponent
-import concurrent.sleep
 
 /**
  * Just needed for inheritance.

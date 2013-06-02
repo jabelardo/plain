@@ -97,15 +97,5 @@ object Renderable
 
   }
 
-  private def warning = onlyonce {
-    logging.defaultLogger.warning("The aio.defaultBufferSize is too small to hold an entire http response header and should be enlarged: " + defaultBufferSize)
-  }
-
-  private def fatal = {
-    val msg = "The aio.defaultBufferSize is too small to hold a single part of the http response header and must be enlarged: " + defaultBufferSize
-    logging.defaultLogger.error(msg)
-    throw new Exception(msg)
-  }
-
 }
 
