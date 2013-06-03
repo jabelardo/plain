@@ -11,7 +11,6 @@ import scala.util.control.ControlThrowable
 import aio.Io
 import aio.Renderable
 import aio.Renderable._
-import text.`US-ASCII`
 
 /**
  * A typical 'flow control' type of exception. Used for Http error/success handling.
@@ -22,19 +21,10 @@ sealed abstract class Status
 
   with Renderable {
 
-  /**
-   * Only [0-9]3 are allowed here.
-   */
-  def code: Array[Byte]
+  def code: String
 
-  /**
-   * Only US-ASCII characters are allowed here.
-   */
-  def reason: Array[Byte]
+  def reason: String
 
-  /**
-   * Combination of code and reason for rendering.
-   */
   def text: Array[Byte]
 
   @inline final def render(implicit buffer: ByteBuffer) = r(text) + ^
@@ -46,15 +36,15 @@ sealed abstract class Status
  */
 object Status {
 
-  sealed abstract class BaseStatus(r: String) extends Status {
+  sealed abstract class BaseStatus(rsn: String) extends Status {
 
-    final val code = reflect.simpleName(getClass.getName).getBytes(`US-ASCII`)
+    final val code = reflect.simpleName(getClass.getName)
 
-    final val reason = r.getBytes(`US-ASCII`)
+    final val reason = rsn
 
-    final val text = code ++ Array[Byte](' '.toByte) ++ reason
+    final val text = (code + " " + reason).getBytes
 
-    override final val toString = reflect.simpleParentName(getClass.getName) + "(code=" + new String(code) + ", reason=" + r + ")"
+    override final val toString = reflect.simpleParentName(getClass.getName) + "(code=" + code + ", reason=" + reason + ")"
 
   }
 

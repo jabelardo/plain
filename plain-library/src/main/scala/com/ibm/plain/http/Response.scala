@@ -12,6 +12,7 @@ import scala.collection.mutable.OpenHashMap
 import aio.{ ChannelTransfer, Encoder, Io, RenderableRoot, releaseByteBuffer, tooTinyToCareSize, maxRoundTrips }
 import aio.Iteratee.{ Cont, Done }
 import aio.Renderable._
+import text.`UTF-8`
 import Entity.{ ArrayEntity, AsynchronousByteChannelEntity, ByteBufferEntity }
 import Message.Headers
 
@@ -34,17 +35,21 @@ final case class Response private (
 
   with RenderableRoot {
 
+  import Response._
+
   type Type = Response
 
   @inline final def ++(status: Status): Type = { this.status = status; this }
 
   @inline final def renderHeader(io: Io): Io = {
     implicit val _ = io
+    io.buffer.clear
+    bytebuffer = io.buffer
     renderVersion
     renderServer
-    renderKeepAlive
+    renderKeepAlive(io)
     renderContent
-    renderEntity
+    renderEntity(io)
   }
 
   @inline final def renderBody(io: Io): Io @suspendable = {
@@ -64,11 +69,11 @@ final case class Response private (
         case _ ⇒ ChannelTransfer(entity.channel, channel, io ++ Done[Io, Boolean](keepalive)).transfer
       }
       case Some(entity: ByteBufferEntity) ⇒
-        buf = buffer
+        markbuffer = buffer
         buffer = entity.buffer
         encode
       case Some(entity: ArrayEntity) ⇒
-        buf = buffer
+        markbuffer = buffer
         buffer = ByteBuffer.wrap(entity.array)
         encode
       case _ ⇒ unsupported
@@ -77,55 +82,49 @@ final case class Response private (
 
   @inline final def renderFooter(io: Io): Io = {
     import io._
-    if (null != buf) {
+    if (null != markbuffer) {
       releaseByteBuffer(buffer)
-      buffer = buf
+      buffer = markbuffer
+      markbuffer = null
     }
     io
   }
 
-  @inline private[this] final def renderVersion(implicit io: Io) = {
-    implicit val buffer = io.buffer
-    buffer.clear
+  @inline private[this] final def renderVersion = {
     version + ` ` + status + `\r\n` + ^
   }
 
-  @inline private[this] final def renderServer(implicit io: Io) = {
-    implicit val buffer = io.buffer
-    r("Server: plain 1.0.1") + `\r\n` + ^
+  @inline private[this] final def renderServer = {
+    r(`Server: `) + `\r\n` + ^
   }
 
-  @inline private[this] final def renderKeepAlive(implicit io: Io) = {
-    implicit val _ = io.buffer
+  @inline private[this] final def renderKeepAlive(io: Io) = {
     val keepalive = (null == request || request.keepalive) && io.roundtrips < maxRoundTrips
     io ++ keepalive
-    r("Connection: " + (if (keepalive) "keep-alive" else "close")) + `\r\n` + ^
+    r(`Connection: `) + r(if (keepalive) `keep-alive` else `close`) + `\r\n` + ^
   }
 
-  @inline private[this] final def renderContent(implicit io: Io): Unit = {
-    import io._
-    implicit val _ = buffer
+  @inline private[this] final def renderContent: Unit = {
     encoder = entity match {
       case Some(entity) if tooTinyToCareSize < entity.length || -1 == entity.length ⇒ request.transferEncoding
       case _ ⇒ None
     }
     entity match {
       case Some(entity) ⇒
-        r("Content-Type: ") + entity.contenttype + `\r\n` + ^
+        r(`Content-Type: `) + entity.contenttype + `\r\n` + ^
         encoder match {
-          case Some(enc) ⇒
-            r("Content-Encoding: ") + r(enc.name) + `\r\n` + ^
-            r("Transfer-Encoding: chunked") + `\r\n` + ^
+          case Some(encoding) ⇒
+            r(`Content-Encoding: `) + r(encoding.text) + `\r\n` + ^
+            r(`Transfer-Encoding: chunked`) + `\r\n` + ^
           case _ ⇒
-            r("Content-Length: ") + r(entity.length.toString) + `\r\n` + `\r\n` + ^
+            r(`Content-Length: `) + r(entity.length) + `\r\n` + `\r\n` + ^
         }
       case _ ⇒ `\r\n` + ^
     }
   }
 
-  @inline private[this] final def renderEntity(implicit io: Io): Io = {
+  @inline private[this] final def renderEntity(io: Io): Io = {
     import io._
-    implicit val _ = buffer
     @inline def encode(entity: Entity) = {
       encoder match {
         case Some(enc) ⇒
@@ -141,7 +140,7 @@ final case class Response private (
     }
     entity match {
       case Some(entity: ByteBufferEntity) if entity.length <= buffer.remaining ⇒
-        r(entity.buffer) + ^
+        rb(entity.buffer) + ^
         releaseByteBuffer(entity.buffer)
         encode(entity)
       case Some(entity: ArrayEntity) if entity.length <= buffer.remaining ⇒
@@ -158,7 +157,9 @@ final case class Response private (
 
   private[this] final var encoder: Option[Encoder] = None
 
-  private[this] final var buf: ByteBuffer = null
+  private[this] final var markbuffer: ByteBuffer = null
+
+  private[this] final implicit var bytebuffer: ByteBuffer = null
 
 }
 
@@ -167,7 +168,23 @@ final case class Response private (
  */
 object Response {
 
-  def apply(request: Request, status: Status) = new Response(request, Version.`HTTP/1.1`, status, new OpenHashMap[String, String], None)
+  final def apply(request: Request, status: Status) = new Response(request, Version.`HTTP/1.1`, status, new OpenHashMap[String, String], None)
+
+  private final val `keep-alive` = "keep-alive".getBytes
+
+  private final val `close` = "close".getBytes
+
+  private final val `Connection: ` = "Connection: ".getBytes
+
+  private final val `Content-Type: ` = "Content-Type: ".getBytes
+
+  private final val `Content-Encoding: ` = "Content-Encoding: ".getBytes
+
+  private final val `Content-Length: ` = "Content-Length: ".getBytes
+
+  private final val `Transfer-Encoding: chunked` = "Transfer-Encoding: chunked".getBytes
+
+  private final val `Server: ` = ("Server: plain " + config.version).getBytes
 
 }
 

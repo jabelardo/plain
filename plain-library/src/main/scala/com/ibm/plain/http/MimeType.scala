@@ -127,7 +127,7 @@ object MimeType {
 
     final val extensions = ext.toSet
 
-    final val text = name.getBytes(`US-ASCII`)
+    final val text = name.getBytes
 
     extensions.foreach { e ⇒ extensionsmap = extensionsmap ++ Map(e -> this) }
 

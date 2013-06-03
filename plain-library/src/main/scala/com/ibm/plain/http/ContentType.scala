@@ -28,7 +28,7 @@ final case class ContentType private (
 
   import ContentType._
 
-  @inline def charsetOrDefault = charset match { case Some(charset) ⇒ charset case None ⇒ defaultCharacterSet }
+  @inline final def charsetOrDefault = charset match { case Some(charset) ⇒ charset case None ⇒ defaultCharacterSet }
 
   @inline final def render(implicit buffer: ByteBuffer) = charset match { case None ⇒ mimetype.render case Some(c) ⇒ mimetype + "; charset=" + c.displayName + ^ }
 

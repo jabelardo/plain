@@ -13,6 +13,8 @@ trait Encoder {
 
   def name: String
 
+  def text: Array[Byte]
+
   def encode(buffer: ByteBuffer)
 
   def finish(buffer: ByteBuffer)

@@ -17,6 +17,8 @@ abstract sealed class BaseEncoder(
 
   extends Encoder {
 
+  final val text = name.getBytes
+
   final def finish(buffer: ByteBuffer) = {
     deflater.finish
     val a = new Array[Byte](16)

@@ -10,7 +10,6 @@ import aio.Io
 import aio.Renderable
 import aio.Renderable._
 import Status.ClientError.`400`
-import text.`US-ASCII`
 
 /**
  * Supported http versions. The current implementation only supports HTTP/1.1.
@@ -19,7 +18,7 @@ sealed abstract class Version
 
   extends Renderable {
 
-  final val version = toString.getBytes(`US-ASCII`)
+  final val version = toString.getBytes
 
   final def render(implicit buffer: ByteBuffer) = r(version) + ^
 

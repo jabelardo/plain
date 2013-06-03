@@ -47,15 +47,15 @@ object Renderable {
 
   case object `\r\n` extends Renderable {
 
-    @inline final def render(implicit buffer: ByteBuffer) = { buffer.put(crlf) }
+    @inline final def render(implicit buffer: ByteBuffer) = { buffer.put(text) }
 
-    private[this] final val crlf = "\r\n".getBytes
+    private[this] final val text = "\r\n".getBytes
 
   }
 
   sealed abstract class SimpleRenderable(
 
-    byte: Byte)
+    private[this] final val byte: Byte)
 
     extends Renderable {
 
@@ -74,25 +74,33 @@ object Renderable {
 
   case object `:` extends SimpleRenderable(':'.toByte)
 
-  var c = 0L
+  final class r private (val array: Array[Byte])
 
-  final class r private (val buffer: ByteBuffer)
+    extends AnyVal with Renderable {
 
-    extends Renderable {
-
-    c += 1; println("r " + aio.format(buffer) + " " + c)
-
-    @inline final def render(implicit out: ByteBuffer) = out.put(buffer)
+    @inline final def render(implicit out: ByteBuffer) = out.put(array)
 
   }
 
   object r {
 
-    @inline final def apply(buffer: ByteBuffer) = new r(buffer)
+    @inline final def apply(array: Array[Byte]): r = new r(array)
 
-    @inline final def apply(a: Array[Byte]): r = apply(ByteBuffer.wrap(a))
+    @inline final def apply(l: Long): r = new r(l.toString.getBytes)
 
-    @inline final def apply(s: String): r = apply(s.getBytes(`US-ASCII`))
+  }
+
+  final class rb private (val buffer: ByteBuffer)
+
+    extends AnyVal with Renderable {
+
+    @inline final def render(implicit out: ByteBuffer) = out.put(buffer)
+
+  }
+
+  object rb {
+
+    @inline final def apply(buffer: ByteBuffer): rb = new rb(buffer)
 
   }
 

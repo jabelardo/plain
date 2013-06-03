@@ -29,9 +29,9 @@ sealed abstract class Entity {
  */
 object Entity {
 
-  final case class ArrayEntity(array: Array[Byte], contenttype: ContentType) extends Entity { val length = array.length.toLong }
+  final case class ArrayEntity(array: Array[Byte], contenttype: ContentType) extends Entity { val length: Long = array.length }
 
-  final case class ByteBufferEntity(buffer: ByteBuffer, contenttype: ContentType) extends Entity { val length = buffer.remaining.toLong }
+  final case class ByteBufferEntity(buffer: ByteBuffer, contenttype: ContentType) extends Entity { val length: Long = buffer.remaining }
 
   object ByteBufferEntity {
 
