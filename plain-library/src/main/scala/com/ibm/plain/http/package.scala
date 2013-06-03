@@ -17,6 +17,8 @@ package object http
 
   final val defaultCharacterSet = text.`ISO-8859-15`
 
+  var c = 0L
+
   final val defaultcodec = new URLCodec(defaultCharacterSet.toString)
 
   final lazy val defaultServerConfiguration = Server.ServerConfiguration("plain.http.default-server", true)

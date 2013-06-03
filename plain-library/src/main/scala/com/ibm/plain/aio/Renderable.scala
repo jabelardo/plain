@@ -4,15 +4,12 @@ package plain
 
 package aio
 
-import java.nio.{ BufferOverflowException, ByteBuffer }
-import java.util.concurrent.TimeUnit
+import java.nio.ByteBuffer
 
-import scala.util.continuations.{ reset, shift, suspendable }
+import scala.util.continuations.suspendable
 
-import Iteratee.{ Done, Error }
-import Iteratee.Error
-import text.`US-ASCII`
 import concurrent.OnlyOnce
+import text.`US-ASCII`
 
 /**
  *
@@ -46,9 +43,7 @@ trait Renderable
 /**
  * Basic constants used for rendering an http response.
  */
-object Renderable
-
-  extends OnlyOnce {
+object Renderable {
 
   case object `\r\n` extends Renderable {
 
@@ -79,9 +74,13 @@ object Renderable
 
   case object `:` extends SimpleRenderable(':'.toByte)
 
+  var c = 0L
+
   final class r private (val buffer: ByteBuffer)
 
-    extends AnyVal with Renderable {
+    extends Renderable {
+
+    c += 1; println("r " + aio.format(buffer) + " " + c)
 
     @inline final def render(implicit out: ByteBuffer) = out.put(buffer)
 

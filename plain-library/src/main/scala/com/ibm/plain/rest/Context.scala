@@ -16,7 +16,7 @@ import Resource.MethodBody
  */
 final class Context private (
 
-  var io: Io,
+  val io: Io,
 
   var config: Config,
 
@@ -31,8 +31,6 @@ final class Context private (
   var throwable: Throwable,
 
   var methodbody: MethodBody) {
-
-  @inline final def ++(io: Io) = { this.io = io; this }
 
   @inline final def ++(config: Config) = { this.config = config; this }
 

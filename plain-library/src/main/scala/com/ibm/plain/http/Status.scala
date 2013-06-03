@@ -32,7 +32,12 @@ sealed abstract class Status
    */
   def reason: Array[Byte]
 
-  @inline final def render(implicit buffer: ByteBuffer) = r(code) + ` ` + r(reason) + ^
+  /**
+   * Combination of code and reason for rendering.
+   */
+  def text: Array[Byte]
+
+  @inline final def render(implicit buffer: ByteBuffer) = r(text) + ^
 
 }
 
@@ -47,7 +52,9 @@ object Status {
 
     final val reason = r.getBytes(`US-ASCII`)
 
-    override final def toString = reflect.simpleParentName(getClass.getName) + "(code=" + new String(code) + ", reason=" + r + ")"
+    final val text = code ++ Array[Byte](' '.toByte) ++ reason
+
+    override final val toString = reflect.simpleParentName(getClass.getName) + "(code=" + new String(code) + ", reason=" + r + ")"
 
   }
 

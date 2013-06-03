@@ -11,7 +11,7 @@ import java.nio.charset.Charset
 
 import scala.concurrent.duration.Duration
 import scala.math.min
-import scala.util.continuations.{ shift, shiftR, suspendable }
+import scala.util.continuations.{ shift, suspendable }
 
 import com.ibm.plain.aio.Iteratee.Error
 
@@ -72,11 +72,7 @@ abstract sealed class IoHelper[E <: Io] {
 
   @inline final def readAllBytes = readBytes
 
-  @inline private[this] final def readBytes: Array[Byte] = buffer.remaining match {
-    case 0 ⇒ Io.emptyArray
-    case 1 ⇒ Array.fill(1)(buffer.get)
-    case n ⇒ val a = new Array[Byte](n); buffer.get(a); a
-  }
+  @inline private[this] final def readBytes: Array[Byte] = Array.fill(buffer.remaining)(buffer.get)
 
   @inline private[this] final def markLimit = limitmark = buffer.limit
 
@@ -101,7 +97,7 @@ final case class Io private (
 
   var server: ServerChannel,
 
-  val channel: Channel,
+  var channel: Channel,
 
   var buffer: ByteBuffer,
 
@@ -123,10 +119,12 @@ final case class Io private (
 
   import Io._
 
+  @inline final def isError = iteratee.isInstanceOf[Error[_]]
+
   /**
    * The trick method of the entire algorithm, it should be called only when the buffer is too small and on start with Io.empty.
    */
-  final def ++(that: Io): Io = if (0 == this.length) {
+  @inline final def ++(that: Io): Io = if (0 == this.length) {
     that
   } else if (0 == that.length) {
     this
@@ -141,8 +139,6 @@ final case class Io private (
     b.flip
     that + b
   }
-
-  @inline final def ++(server: ServerChannel) = { this.server = server; this }
 
   @inline final def ++(channel: Channel) = Io(server, channel, buffer, iteratee, renderable, k, readwritten, keepalive, roundtrips, payload)
 
@@ -166,8 +162,6 @@ final case class Io private (
     this + buffer
   }
 
-  @inline final def isError = iteratee.isInstanceOf[Error[_]]
-
   @inline private final def +(buffer: ByteBuffer) = {
     if (this.buffer ne emptyBuffer) releaseByteBuffer(this.buffer)
     this.buffer = buffer
@@ -183,7 +177,15 @@ final case class Io private (
 
   @inline private final def release = {
     releaseBuffer
+    server = null
     if (channel.isOpen) channel.close
+    channel = null
+    iteratee = null
+    renderable = null
+    k = null
+    readwritten = -1
+    keepalive = true
+    roundtrips = 0L
     payload = null
   }
 
@@ -210,13 +212,15 @@ object Io
 
   final type IoCont = Io ⇒ Unit
 
-  @inline private[aio] final def empty = Io(null, null, emptyBuffer, null, null, null, -1, true, 0L, null)
+  @inline private[aio] final def apply(server: ServerChannel): Io = Io(server, null, emptyBuffer, null, null, null, -1, true, 0L, null)
 
   final private[aio] val emptyArray = new Array[Byte](0)
 
   final private[aio] val emptyBuffer = ByteBuffer.wrap(emptyArray)
 
   final private[aio] val emptyString = new String
+
+  final private[aio] val empty = Io(null, null, emptyBuffer, null, null, null, -1, true, 0L, null)
 
   final private def warnOnce = onlyonce { warning("Chunked input found. Enlarge aio.default-buffer-size : " + defaultBufferSize) }
 
@@ -300,7 +304,7 @@ object Io
   }
 
   final def accept(server: ServerChannel, pausebetweenaccepts: Duration): Io @suspendable = {
-    shift { k: IoCont ⇒ server.accept(Io.empty ++ server ++ k, pausebetweenaccepts.toMillis match { case m if 0 < m ⇒ new PausingAcceptHandler(m) case _ ⇒ AcceptHandler }) }
+    shift { k: IoCont ⇒ server.accept(Io(server) ++ k, pausebetweenaccepts.toMillis match { case m if 0 < m ⇒ new PausingAcceptHandler(m) case _ ⇒ AcceptHandler }) }
   }
 
   @inline private[aio] final def read(io: Io): Io @suspendable = {
@@ -318,7 +322,7 @@ object Io
 
   @inline private[this] final val ignored = ()
 
-  final def loop[E, A <: RenderableRoot](io: Io, processor: Processor[E, A]): Unit @suspendable = {
+  final def loop[E, A <: RenderableRoot](io: Io, processor: Processor[A]): Unit @suspendable = {
 
     val readiteratee = io.iteratee
 

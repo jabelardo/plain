@@ -11,6 +11,7 @@ import reflect.{ scalifiedName, subClasses }
 import aio.Io
 import aio.Renderable
 import aio.Renderable._
+import text.`US-ASCII`
 import Status.ClientError.`415`
 
 /**
@@ -26,7 +27,9 @@ abstract class MimeType
 
   def extensions: Set[String]
 
-  @inline final def render(implicit buffer: ByteBuffer) = r(name) + ^
+  def text: Array[Byte]
+
+  @inline final def render(implicit buffer: ByteBuffer) = r(text) + ^
 
 }
 
@@ -123,6 +126,8 @@ object MimeType {
     final val name = toString
 
     final val extensions = ext.toSet
+
+    final val text = name.getBytes(`US-ASCII`)
 
     extensions.foreach { e ⇒ extensionsmap = extensionsmap ++ Map(e -> this) }
 
@@ -224,6 +229,8 @@ object MimeType {
     if (1 != (name.size - name.replace("/", "").size)) throw `415`
 
     override final val toString = name
+
+    final val text = name.getBytes(`US-ASCII`)
 
   }
 

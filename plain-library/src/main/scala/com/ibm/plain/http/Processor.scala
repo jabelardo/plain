@@ -20,7 +20,7 @@ import text.stackTraceToString
  */
 abstract class Processor
 
-  extends AioProcessor[Request, Response]
+  extends AioProcessor[Response]
 
   with HasLogger {
 

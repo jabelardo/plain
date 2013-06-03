@@ -30,6 +30,7 @@ package object concurrent
   final def executor = Concurrent.executor
 
   final def ioexecutor = executor
+
   //  {
   //    val keepalive = 60L
   //    val maxqueuesize = 1024
@@ -80,7 +81,7 @@ package object concurrent
    */
   final def future[T](body: ⇒ T): Future[T] = Future(body)(dispatcher)
 
-  final val scheduleGcTimeout = getMilliseconds("plain.concurrent.schedule-gc-timeout", 60000) match {
+  final val scheduleGcTimeout = getMilliseconds("plain.concurrent.schedule-gc-timeout", 600000) match {
     case timeout if 60000 <= timeout ⇒ timeout
     case _ ⇒ -1
   }
