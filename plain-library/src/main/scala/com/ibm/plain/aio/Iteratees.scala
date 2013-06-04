@@ -17,14 +17,14 @@ import Iteratee.{ Cont, Done, Error }
  */
 object Iteratees {
 
-  final def take(n: Int)(implicit cset: Charset) = {
+  final def take(n: Int)(implicit cset: Charset): Iteratee[Io, String] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
         if (in.length < n) {
-          (Cont(cont(in) _), Empty)
+          (Cont(cont(in)), Empty)
         } else {
-          (Done(in.take(n).decode), Elem(in.drop(n)))
+          (Done(in.take(n).decode), Elem(in))
         }
       case Failure(e) ⇒ (Error(e), input)
       case _ ⇒ (Error(EOF), input)
@@ -32,14 +32,14 @@ object Iteratees {
     Cont(cont(Io.empty) _)
   }
 
-  final def takeBytes(n: Int) = {
+  final def takeBytes(n: Int): Iteratee[Io, Array[Byte]] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, Array[Byte]], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
         if (in.length < n) {
-          (Cont(cont(in) _), Empty)
+          (Cont(cont(in)), Empty)
         } else {
-          (Done({ in.take(n); in.readAllBytes }), Elem(in.drop(n)))
+          (Done.apply(in.take(n).consume), Elem(in))
         }
       case Failure(e) ⇒ (Error(e), input)
       case _ ⇒ (Error(EOF), input)
@@ -47,12 +47,21 @@ object Iteratees {
     Cont(cont(Io.empty) _)
   }
 
-  final def peek(n: Int)(implicit cset: Charset) = {
+  final def peek: Iteratee[Io, Byte] = {
+    def cont(input: Input[Io]): (Iteratee[Io, Byte], Input[Io]) = input match {
+      case Elem(more) ⇒ (Done(more.peek), Elem(more))
+      case Failure(e) ⇒ (Error(e), input)
+      case _ ⇒ (Error(EOF), input)
+    }
+    Cont(cont _)
+  }
+
+  final def peek(n: Int)(implicit cset: Charset): Iteratee[Io, String] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
         if (in.length < n) {
-          (Cont(cont(in) _), Empty)
+          (Cont(cont(in)), Empty)
         } else {
           (Done(in.peek(n).decode), Elem(in))
         }
@@ -70,7 +79,7 @@ object Iteratees {
         if (0 < remaining) {
           (Done(in.take(found).decode), Elem(in))
         } else {
-          (Cont(cont(in) _), Empty)
+          (Cont(cont(in)), Empty)
         }
       case Failure(e) ⇒ (Error(e), input)
       case _ ⇒ (Error(EOF), input)
@@ -86,7 +95,7 @@ object Iteratees {
         val in = taken ++ more
         val pos = in.indexOf(delimiter)
         if (0 > pos) {
-          (Cont(cont(in) _), Empty)
+          (Cont(cont(in)), Empty)
         } else {
           (Done(in.take(pos).decode), Elem(in.drop(1)))
         }
@@ -102,7 +111,7 @@ object Iteratees {
         val in = taken ++ more
         val pos = in.indexOf(`\r`)
         if (0 > pos) {
-          (Cont(cont(in) _), Empty)
+          (Cont(cont(in)), Empty)
         } else {
           (Done(in.take(pos).decode), Elem(in.drop(2)))
         }
@@ -117,7 +126,7 @@ object Iteratees {
       case Elem(more) ⇒
         val len = more.length
         if (remaining > len) {
-          (Cont(cont(remaining - len) _), Empty)
+          (Cont(cont(remaining - len)), Empty)
         } else {
           (Done(()), Elem(more.drop(remaining)))
         }
@@ -127,9 +136,9 @@ object Iteratees {
     Cont(cont(n) _)
   }
 
-  private[this] final val `\r` = '\r'.toByte
-
   final val EOF = new EOFException("Unexpected EOF")
+
+  private[this] final val `\r` = '\r'.toByte
 
 }
 

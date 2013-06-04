@@ -17,8 +17,8 @@ private[http] object RequestConstants {
   final val `\r` = '\r'.toByte
   final val del = 127.toByte
 
-  final val `/` = "/"
-  final val `?` = "?"
+  final val `/` = '/'.toByte
+  final val `?` = '?'.toByte
   final val `;` = ";"
   final val cr = "\r"
   final val lf = "\n"

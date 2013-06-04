@@ -11,7 +11,6 @@ import reflect.{ scalifiedName, subClasses }
 import aio.Io
 import aio.Renderable
 import aio.Renderable._
-import text.`US-ASCII`
 import Status.ClientError.`415`
 
 /**
@@ -230,7 +229,7 @@ object MimeType {
 
     override final val toString = name
 
-    final val text = name.getBytes(`US-ASCII`)
+    final val text = name.getBytes
 
   }
 

@@ -21,76 +21,6 @@ import concurrent.{ OnlyOnce, scheduleOnce }
 import logging.HasLogger
 
 /**
- * Helper for Io with all low-level ByteBuffer methods.
- */
-abstract sealed class IoHelper[E <: Io] {
-
-  private[this] val self: E = this.asInstanceOf[E]
-
-  import self._
-
-  final def decode(implicit cset: Charset): String = resetBuffer(
-    buffer.remaining match {
-      case 0 ⇒ Io.emptyString
-      case 1 ⇒ String.valueOf(buffer.get.toChar)
-      case n ⇒ new String(readBytes, 0, n, cset)
-    })
-
-  @inline final def length: Int = buffer.remaining
-
-  final def take(n: Int): Io = {
-    markLimit
-    buffer.limit(min(buffer.limit, buffer.position + n))
-    self
-  }
-
-  final def peek(n: Int): Io = {
-    markPosition
-    take(n)
-  }
-
-  final def drop(n: Int): Io = {
-    buffer.position(min(buffer.limit, buffer.position + n))
-    self
-  }
-
-  final def indexOf(b: Byte): Int = {
-    val p = buffer.position
-    val l = buffer.limit
-    var i = p
-    while (i < l && b != buffer.get(i)) i += 1
-    if (i == l) -1 else i - p
-  }
-
-  final def span(p: Int ⇒ Boolean): (Int, Int) = {
-    val pos = buffer.position
-    val l = buffer.limit
-    var i = pos
-    while (i < l && p(buffer.get(i))) i += 1
-    (i - pos, l - i)
-  }
-
-  @inline final def readAllBytes = readBytes
-
-  @inline private[this] final def readBytes: Array[Byte] = Array.fill(buffer.remaining)(buffer.get)
-
-  @inline private[this] final def markLimit = limitmark = buffer.limit
-
-  @inline private[this] final def markPosition = positionmark = buffer.position
-
-  @inline private[this] final def resetBuffer[A](a: A): A = {
-    buffer.limit(limitmark)
-    if (-1 < positionmark) { buffer.position(positionmark); positionmark = -1 }
-    a
-  }
-
-  private[this] final var limitmark = -1
-
-  private[this] final var positionmark = -1
-
-}
-
-/**
  * Io represents the context of an asynchronous i/o operation.
  */
 final case class Io private (
@@ -113,9 +43,7 @@ final case class Io private (
 
   var roundtrips: Long,
 
-  var payload: Any)
-
-  extends IoHelper[Io] {
+  var payload: Any) {
 
   import Io._
 
@@ -132,7 +60,7 @@ final case class Io private (
     warnOnce
     val len = this.length + that.length
     val b = ByteBuffer.allocate(len)
-    b.put(this.readAllBytes)
+    b.put(this.readBytes(this.buffer.remaining))
     this.releaseBuffer
     b.put(that.buffer)
     that.releaseBuffer
@@ -197,6 +125,74 @@ final case class Io private (
     releaseBuffer
   }
 
+  final def decode(implicit cset: Charset): String = advanceBuffer(
+    buffer.remaining match {
+      case 0 ⇒ Io.emptyString
+      case n ⇒ new String(readBytes(n), cset).intern
+    })
+
+  final def consume: Array[Byte] = advanceBuffer(
+    buffer.remaining match {
+      case 0 ⇒ Io.emptyArray
+      case n ⇒ readBytes(n)
+    })
+
+  @inline final def length: Int = buffer.remaining
+
+  final def take(n: Int): Io = {
+    markLimit
+    buffer.limit(min(buffer.limit, buffer.position + n))
+    this
+  }
+
+  final def peek(n: Int): Io = {
+    markPosition
+    take(n)
+  }
+
+  @inline final def peek: Byte = buffer.get(buffer.position)
+
+  final def drop(n: Int): Io = {
+    buffer.position(min(buffer.limit, buffer.position + n))
+    this
+  }
+
+  final def indexOf(b: Byte): Int = {
+    val p = buffer.position
+    val l = buffer.limit
+    var i = p
+    while (i < l && b != buffer.get(i)) i += 1
+    if (i == l) -1 else i - p
+  }
+
+  final def span(p: Int ⇒ Boolean): (Int, Int) = {
+    val pos = buffer.position
+    val l = buffer.limit
+    var i = pos
+    while (i < l && p(buffer.get(i))) i += 1
+    (i - pos, l - i)
+  }
+
+  @inline private[this] final def readBytes(n: Int): Array[Byte] = if (arraysize > n) { buffer.get(array, 0, n); array } else Array.fill(n)(buffer.get)
+
+  @inline private[this] final def markLimit = limitmark = buffer.limit
+
+  @inline private[this] final def markPosition = positionmark = buffer.position
+
+  @inline private[this] final def advanceBuffer[A](a: A): A = {
+    buffer.limit(limitmark)
+    if (-1 < positionmark) { buffer.position(positionmark); positionmark = -1 }
+    a
+  }
+
+  private[this] final var limitmark = -1
+
+  private[this] final var positionmark = -1
+
+  private[this] final val arraysize = 80
+
+  private[this] final val array = new Array[Byte](arraysize)
+
 }
 
 /**
@@ -209,6 +205,9 @@ object Io
   with OnlyOnce {
 
   import Iteratee._
+
+  var c1 = 0L
+  var c2 = 0L
 
   final type IoCont = Io ⇒ Unit
 

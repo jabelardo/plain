@@ -36,8 +36,6 @@ package object text {
    */
   final val `ISO-8859-15` = Charset.forName("ISO-8859-15")
 
-  var c = 0L
-
   final val utf8codec = new URLCodec(`UTF-8`.toString)
 
   /**

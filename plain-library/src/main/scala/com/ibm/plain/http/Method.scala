@@ -22,15 +22,15 @@ sealed abstract class Method(
  */
 object Method {
 
-  final def apply(name: String): Method = name match {
-    case "GET" ⇒ GET
-    case "HEAD" ⇒ HEAD
+  final def apply(method: String): Method = method match {
+    case _ if 'G' == method(0) ⇒ GET
     case "POST" ⇒ POST
     case "PUT" ⇒ PUT
-    case "DELETE" ⇒ DELETE
-    case "OPTIONS" ⇒ OPTIONS
-    case "CONNECT" ⇒ CONNECT
-    case "TRACE" ⇒ TRACE
+    case _ if 'H' == method(0) ⇒ HEAD
+    case _ if 'D' == method(0) ⇒ DELETE
+    case _ if 'O' == method(0) ⇒ OPTIONS
+    case _ if 'C' == method(0) ⇒ CONNECT
+    case _ if 'T' == method(0) ⇒ TRACE
     case _ ⇒ throw `405`
   }
 
