@@ -58,11 +58,10 @@ final case class Io private (
     this
   } else {
     warnOnce
-    val len = this.length + that.length
-    val b = ByteBuffer.allocate(len)
+    val b = ByteBuffer.allocate(this.length + that.length)
     b.put(this.readBytes(this.buffer.remaining))
-    this.releaseBuffer
     b.put(that.buffer)
+    this.releaseBuffer
     that.releaseBuffer
     b.flip
     that + b
@@ -128,7 +127,10 @@ final case class Io private (
   final def decode(implicit cset: Charset): String = advanceBuffer(
     buffer.remaining match {
       case 0 ⇒ Io.emptyString
-      case n ⇒ new String(readBytes(n), cset).intern
+      case n ⇒ readBytes(n) match {
+        case a if a eq array ⇒ StringPool.get(a, n)
+        case a ⇒ new String(a, 0, n, cset)
+      }
     })
 
   final def consume: Array[Byte] = advanceBuffer(
@@ -173,7 +175,7 @@ final case class Io private (
     (i - pos, l - i)
   }
 
-  @inline private[this] final def readBytes(n: Int): Array[Byte] = if (arraysize > n) { buffer.get(array, 0, n); array } else Array.fill(n)(buffer.get)
+  @inline private[this] final def readBytes(n: Int): Array[Byte] = if (StringPool.arraySize >= n) { buffer.get(array, 0, n); array } else Array.fill(n)(buffer.get)
 
   @inline private[this] final def markLimit = limitmark = buffer.limit
 
@@ -189,9 +191,7 @@ final case class Io private (
 
   private[this] final var positionmark = -1
 
-  private[this] final val arraysize = 80
-
-  private[this] final val array = new Array[Byte](arraysize)
+  private[this] final val array = new Array[Byte](StringPool.arraySize)
 
 }
 

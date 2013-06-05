@@ -20,11 +20,6 @@ package object aio
   import config._
   import config.settings._
 
-  /**
-   * This should be thrown at the end of process or similar methods when the input was processed successfully, it is used as a success indicator at some points of AIO control flow.
-   */
-  case object ControlCompleted extends ControlThrowable
-
   final def bestFitByteBuffer(length: Int) = {
     if (length <= tinyBufferSize)
       tinyByteBuffer

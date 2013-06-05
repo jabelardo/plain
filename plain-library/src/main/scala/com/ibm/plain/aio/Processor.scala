@@ -21,14 +21,6 @@ trait Processor[A]
 
   def failed(e: Throwable, io: Io)
 
-  private[aio] final def doProcess(io: Io): Io @suspendable = {
-    import io._
-    shift { k: Io.IoCont ⇒
-      try process(io ++ k) catch {
-        case ControlCompleted ⇒
-        case e: Throwable ⇒ failed(e, io)
-      }
-    }
-  }
+  private[aio] final def doProcess(io: Io): Io @suspendable = shift { k: Io.IoCont ⇒ try process(io ++ k) catch { case e: Throwable ⇒ failed(e, io) } }
 
 }

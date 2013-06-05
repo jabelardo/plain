@@ -52,7 +52,7 @@ final class PingResource
 
 object PingResource {
 
-  val pong = {
+  final val pong = {
     //     val s = new StringBuilder; (1 to 270).foreach(s.append("pong!").append(_).append("\n")); s.toString.getBytes
     "pong!".getBytes
   }

@@ -86,7 +86,34 @@ object Renderable {
 
     @inline final def apply(array: Array[Byte]): r = new r(array)
 
-    @inline final def apply(l: Long): r = new r(l.toString.getBytes)
+    @inline final def apply(l: Long): r = new r(ls(l))
+
+    @inline private[this] final def ls(l: Long) = l match {
+      case 0 ⇒ `0`
+      case 1 ⇒ `1`
+      case 2 ⇒ `2`
+      case 3 ⇒ `3`
+      case 4 ⇒ `4`
+      case 5 ⇒ `5`
+      case 6 ⇒ `6`
+      case 7 ⇒ `7`
+      case 8 ⇒ `8`
+      case 9 ⇒ `9`
+      case 10 ⇒ `10`
+      case l ⇒ l.toString.getBytes
+    }
+
+    private[this] final val `0` = "0".getBytes
+    private[this] final val `1` = "1".getBytes
+    private[this] final val `2` = "2".getBytes
+    private[this] final val `3` = "3".getBytes
+    private[this] final val `4` = "4".getBytes
+    private[this] final val `5` = "5".getBytes
+    private[this] final val `6` = "6".getBytes
+    private[this] final val `7` = "7".getBytes
+    private[this] final val `8` = "8".getBytes
+    private[this] final val `9` = "9".getBytes
+    private[this] final val `10` = "10".getBytes
 
   }
 

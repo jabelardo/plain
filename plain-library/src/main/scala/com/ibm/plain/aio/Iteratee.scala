@@ -11,9 +11,7 @@ import Input.Eof
 /**
  * An Iteratee consumes elements of type Input[E] and produces a result of type A.
  */
-sealed trait Iteratee[E, +A]
-
-  extends Any {
+sealed trait Iteratee[E, +A] {
 
   import Iteratee._
 
@@ -33,23 +31,29 @@ sealed trait Iteratee[E, +A]
 
 object Iteratee {
 
-  final case class Done[E, A](a: A)
+  final class Done[E, A] private (val a: A)
 
-    extends AnyVal with Iteratee[E, A] {
+    extends Iteratee[E, A] {
 
     final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = (this, input)
 
     final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = f(a)
 
-    final def map[B](f: A ⇒ B): Iteratee[E, B] = Done(f(a))
+    final def map[B](f: A ⇒ B): Iteratee[E, B] = new Done(f(a))
 
   }
 
-  final case class Error[E](e: Throwable)
+  object Done {
 
-    extends AnyVal
+    @inline final def apply[E, A](a: A) = new Done[E, A](a)
 
-    with Iteratee[E, Nothing] {
+    @inline final def unapply[E, A](done: Done[E, A]): Option[A] = Some(done.a)
+
+  }
+
+  final class Error[E] private (val e: Throwable)
+
+    extends Iteratee[E, Nothing] {
 
     final def apply(input: Input[E]): (Iteratee[E, Nothing], Input[E]) = (this, input)
 
@@ -59,11 +63,17 @@ object Iteratee {
 
   }
 
-  final case class Cont[E, A](k: Input[E] ⇒ (Iteratee[E, A], Input[E]))
+  object Error {
 
-    extends AnyVal
+    @inline final def apply[E](e: Throwable) = new Error[E](e)
 
-    with Iteratee[E, A] {
+    @inline final def unapply[E](error: Error[E]): Option[Throwable] = Some(error.e)
+
+  }
+
+  final class Cont[E, A] private (val k: Input[E] ⇒ (Iteratee[E, A], Input[E]))
+
+    extends Iteratee[E, A] {
 
     final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = try {
       k(input)
@@ -76,9 +86,15 @@ object Iteratee {
       case k ⇒ Cont(new Compose(k, f.asInstanceOf[Any ⇒ Iteratee[E, _]] :: Nil, Nil))
     }
 
-    final def map[B](f: A ⇒ B): Iteratee[E, B] = flatMap(a ⇒ g(a, f))
+    final def map[B](f: A ⇒ B): Iteratee[E, B] = flatMap(a ⇒ Done(f(a)))
 
-    private final def g[B](a: A, f: A ⇒ B): Iteratee[E, B] = Done(f(a))
+  }
+
+  object Cont {
+
+    @inline final def apply[E, A](k: Input[E] ⇒ (Iteratee[E, A], Input[E])) = new Cont[E, A](k)
+
+    @inline final def unapply[E, A](cont: Cont[E, A]): Option[Input[E] ⇒ (Iteratee[E, A], Input[E])] = Some(cont.k)
 
   }
 

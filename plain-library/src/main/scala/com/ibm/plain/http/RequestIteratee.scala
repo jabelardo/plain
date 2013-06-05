@@ -74,11 +74,19 @@ final class RequestIteratee private ()(implicit server: Server) {
     }
 
     for {
-      method ← takeUntil(` `)
+      method ← peek flatMap {
+        case `G` ⇒ for (_ ← drop(4)) yield Method.GET
+        case `H` ⇒ for (_ ← drop(5)) yield Method.HEAD
+        case `D` ⇒ for (_ ← drop(7)) yield Method.DELETE
+        case `C` ⇒ for (_ ← drop(8)) yield Method.CONNECT
+        case `O` ⇒ for (_ ← drop(8)) yield Method.OPTIONS
+        case `T` ⇒ for (_ ← drop(6)) yield Method.TRACE
+        case _ ⇒ for (name ← takeUntil(` `)) yield Method(name)
+      }
       pathquery ← readRequestUri
       _ ← takeWhile(whitespace)
       version ← takeUntilCrLf
-    } yield (Method(method), pathquery._1, pathquery._2, Version(version))
+    } yield (method, pathquery._1, pathquery._2, Version(version))
   }
 
   private[this] final val readHeaders: Iteratee[Io, Headers] = {

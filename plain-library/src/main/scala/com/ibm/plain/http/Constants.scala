@@ -23,6 +23,14 @@ private[http] object RequestConstants {
   final val cr = "\r"
   final val lf = "\n"
 
+  // first letter of methods
+  final val `G` = 'G'.toByte
+  final val `H` = 'H'.toByte
+  final val `D` = 'D'.toByte
+  final val `O` = 'O'.toByte
+  final val `C` = 'C'.toByte
+  final val `T` = 'T'.toByte
+
   final val char = b(0 to 127)
   final val lower = b('a' to 'z')
   final val upper = b('A' to 'Z')

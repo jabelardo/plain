@@ -49,10 +49,7 @@ final case class Server(
         serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
         serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(aio.sendReceiveBufferSize))
         serverChannel.bind(bindaddress, backlog)
-        val iteratee = RequestIteratee(this)
-        reset {
-          loop(accept(serverChannel, pauseBetweenAccepts) ++ iteratee.readRequest, dispatcher)
-        }
+        reset { loop(accept(serverChannel, pauseBetweenAccepts) ++ RequestIteratee(this).readRequest, dispatcher) }
         debug(name + " has started.")
       }
 
