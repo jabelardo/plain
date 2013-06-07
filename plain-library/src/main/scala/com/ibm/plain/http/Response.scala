@@ -6,9 +6,6 @@ package http
 
 import java.nio.ByteBuffer
 
-import scala.util.continuations.suspendable
-import scala.collection.mutable.OpenHashMap
-
 import aio.{ ChannelTransfer, Encoder, Io, RenderableRoot, releaseByteBuffer, tooTinyToCareSize, maxRoundTrips }
 import aio.Iteratee.{ Cont, Done }
 import aio.Renderable._
@@ -52,7 +49,7 @@ final case class Response private (
     renderEntity(io)
   }
 
-  @inline final def renderBody(io: Io): Io @suspendable = {
+  @inline final def renderBody(io: Io): Io = {
     import io._
     @inline def encode = {
       encoder match {
@@ -64,10 +61,10 @@ final case class Response private (
       io ++ Done[Io, Boolean](keepalive)
     }
     entity match {
-      case Some(entity: AsynchronousByteChannelEntity) ⇒ encoder match {
-        case Some(enc) ⇒ ChannelTransfer(entity.channel, channel, io ++ Done[Io, Boolean](keepalive)).transfer(enc)
-        case _ ⇒ ChannelTransfer(entity.channel, channel, io ++ Done[Io, Boolean](keepalive)).transfer
-      }
+      //      case Some(entity: AsynchronousByteChannelEntity) ⇒ encoder match {
+      //        case Some(enc) ⇒ ChannelTransfer(entity.channel, channel, io ++ Done[Io, Boolean](keepalive)).transfer(enc)
+      //        case _ ⇒ ChannelTransfer(entity.channel, channel, io ++ Done[Io, Boolean](keepalive)).transfer
+      //      }
       case Some(entity: ByteBufferEntity) ⇒
         markbuffer = buffer
         buffer = entity.buffer
@@ -99,7 +96,7 @@ final case class Response private (
   }
 
   @inline private[this] final def renderKeepAlive(io: Io) = {
-    val keepalive = (null == request || request.keepalive) && io.roundtrips < maxRoundTrips
+    val keepalive = null == request || request.keepalive
     io ++ keepalive
     r(`Connection: `) + r(if (keepalive) `keep-alive` else `close`) + `\r\n` + ^
   }
@@ -168,7 +165,7 @@ final case class Response private (
  */
 object Response {
 
-  final def apply(request: Request, status: Status) = new Response(request, Version.`HTTP/1.1`, status, new OpenHashMap[String, String], None)
+  final def apply(request: Request, status: Status) = new Response(request, Version.`HTTP/1.1`, status, null, None)
 
   private final val `keep-alive` = "keep-alive".getBytes
 

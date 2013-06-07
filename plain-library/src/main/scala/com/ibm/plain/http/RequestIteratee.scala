@@ -4,8 +4,6 @@ package plain
 
 package http
 
-import scala.collection.mutable.OpenHashMap
-
 import aio._
 import aio.Iteratee._
 import aio.Iteratees._
@@ -89,7 +87,7 @@ final class RequestIteratee private ()(implicit server: Server) {
     } yield (method, pathquery._1, pathquery._2, Version(version))
   }
 
-  private[this] final val readHeaders: Iteratee[Io, Headers] = {
+  private[this] final def readHeaders: Iteratee[Io, Headers] = {
 
     val readHeader: Iteratee[Io, (String, String)] = {
 
@@ -113,18 +111,18 @@ final class RequestIteratee private ()(implicit server: Server) {
       } yield (name.toLowerCase, value)
     }
 
-    def cont(headers: OpenHashMap[String, String]): Iteratee[Io, Headers] = peek flatMap {
+    def cont(headers: List[(String, String)]): Iteratee[Io, Headers] = peek flatMap {
       case `\r` ⇒ for {
         _ ← drop(2)
-        done ← Done(headers)
+        done ← Done(headers.toMap)
       } yield done
       case _ ⇒ for {
         header ← readHeader
-        moreheaders ← cont(headers += header)
+        moreheaders ← cont(header :: headers)
       } yield moreheaders
     }
 
-    cont(new OpenHashMap[String, String])
+    cont(Nil)
   }
 
   private[this] final def readEntity(headers: Headers, query: Option[String]): Iteratee[Io, Option[Entity]] =

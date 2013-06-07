@@ -6,8 +6,6 @@ package aio
 
 import java.nio.channels.{ CompletionHandler ⇒ Handler }
 
-import scala.util.continuations.{ shift, suspendable }
-
 /**
  * An aio Processor processes an input of type Io and produces a result of type A or an error.
  */
@@ -21,6 +19,13 @@ trait Processor[A]
 
   def failed(e: Throwable, io: Io)
 
-  private[aio] final def doProcess(io: Io): Io @suspendable = shift { k: Io.IoCont ⇒ try process(io ++ k) catch { case e: Throwable ⇒ failed(e, io) } }
+  private[aio] final def doProcess(io: Io, handler: Handler[Null, Io]): Unit = try {
+    process(io)
+    handler.completed(null, io)
+  } catch {
+    case e: Throwable ⇒
+      failed(e, io)
+      handler.failed(e, io)
+  }
 
 }

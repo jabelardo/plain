@@ -28,6 +28,6 @@ trait Message {
  */
 object Message {
 
-  type Headers = scala.collection.mutable.Map[String, String]
+  type Headers = scala.collection.Map[String, String]
 
 }

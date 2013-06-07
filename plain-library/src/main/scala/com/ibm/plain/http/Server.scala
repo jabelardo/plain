@@ -8,12 +8,14 @@ import java.net.{ InetSocketAddress, StandardSocketOptions }
 import java.nio.channels.{ AsynchronousChannelGroup ⇒ Group, AsynchronousServerSocketChannel ⇒ ServerChannel }
 import java.nio.charset.Charset
 import java.util.concurrent.TimeUnit
+
 import scala.concurrent.duration.Duration
-import scala.util.continuations.reset
+
 import com.ibm.plain.bootstrap.BaseComponent
 import com.typesafe.config.{ Config, ConfigFactory }
-import aio.Io.{ accept, loop }
-import bootstrap.{ Application, BaseComponent }
+
+import aio.Io.loop
+import bootstrap.Application
 import config.{ CheckedConfig, config2RichConfig }
 import logging.HasLogger
 
@@ -45,11 +47,11 @@ final case class Server(
     if (isEnabled) {
 
       def startOne = {
-        serverChannel = ServerChannel.open(channelGroup)
+        serverChannel = if (0 == channelGroupPoolType) ServerChannel.open else ServerChannel.open(channelGroup)
         serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
         serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(aio.sendReceiveBufferSize))
         serverChannel.bind(bindaddress, backlog)
-        reset { loop(accept(serverChannel, pauseBetweenAccepts) ++ RequestIteratee(this).readRequest, dispatcher) }
+        loop(serverChannel, RequestIteratee(this).readRequest, dispatcher)
         debug(name + " has started.")
       }
 
@@ -113,12 +115,11 @@ object Server
 
   extends HasLogger {
 
-  private final val channelGroup = Group.withThreadPool(concurrent.ioexecutor)
-
-  /**
-   * better on xp 64 with ping
-   * private final val channelGroup = Group.withFixedThreadPool(concurrent.cores, java.util.concurrent.Executors.defaultThreadFactory)
-   */
+  private final val channelGroup = channelGroupPoolType match {
+    case 1 ⇒ Group.withFixedThreadPool(concurrent.cores, java.util.concurrent.Executors.defaultThreadFactory)
+    case 2 ⇒ Group.withFixedThreadPool(concurrent.parallelism, java.util.concurrent.Executors.defaultThreadFactory)
+    case _ ⇒ Group.withThreadPool(concurrent.ioexecutor)
+  }
 
   /**
    * A per-server provided configuration, unspecified details will be inherited from defaultServerConfiguration.

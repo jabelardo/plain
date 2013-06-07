@@ -11,7 +11,6 @@ import java.nio.charset.Charset
 
 import scala.concurrent.duration.Duration
 import scala.math.min
-import scala.util.continuations.{ shift, suspendable }
 
 import com.ibm.plain.aio.Iteratee.Error
 
@@ -23,9 +22,7 @@ import logging.HasLogger
 /**
  * Io represents the context of an asynchronous i/o operation.
  */
-final case class Io private (
-
-  var server: ServerChannel,
+final class Io private (
 
   var channel: Channel,
 
@@ -35,13 +32,7 @@ final case class Io private (
 
   var renderable: RenderableRoot,
 
-  var k: Io.IoCont,
-
-  var readwritten: Int,
-
   var keepalive: Boolean,
-
-  var roundtrips: Long,
 
   var payload: Any) {
 
@@ -67,24 +58,18 @@ final case class Io private (
     that + b
   }
 
-  @inline final def ++(channel: Channel) = Io(server, channel, buffer, iteratee, renderable, k, readwritten, keepalive, roundtrips, payload)
+  @inline final def ++(channel: Channel) = new Io(channel, buffer, iteratee, renderable, keepalive, payload)
 
   @inline final def ++(iteratee: Iteratee[Io, _]) = { this.iteratee = iteratee; this }
 
   @inline final def ++(renderable: RenderableRoot) = { this.renderable = renderable; this }
-
-  @inline final def ++(k: IoCont) = { this.k = k; this }
-
-  @inline final def ++(readwritten: Int) = { this.readwritten = readwritten; this }
-
-  @inline final def ++(roundtrips: Long) = { this.roundtrips = roundtrips; this }
 
   @inline final def ++(keepalive: Boolean) = { if (this.keepalive) this.keepalive = keepalive; this }
 
   @inline final def +++(payload: Any) = { this.payload = payload; this }
 
   @inline final def ++(buffer: ByteBuffer) = if (0 < this.buffer.remaining) {
-    Io(server, channel, buffer, iteratee, renderable, k, readwritten, keepalive, roundtrips, payload)
+    new Io(channel, buffer, iteratee, renderable, keepalive, payload)
   } else {
     this + buffer
   }
@@ -104,16 +89,7 @@ final case class Io private (
 
   @inline private final def release = {
     releaseBuffer
-    server = null
     if (channel.isOpen) channel.close
-    channel = null
-    iteratee = null
-    renderable = null
-    k = null
-    readwritten = -1
-    keepalive = true
-    roundtrips = 0L
-    payload = null
   }
 
   @inline private final def error(e: Throwable) = {
@@ -196,7 +172,7 @@ final case class Io private (
 }
 
 /**
- * The Io object contains all the complex continuations stuff, it is sort of an 'Io' monad.
+ * The Io object contains all the complex continuations stuff, it is sort of an 'Io' monad. Not anymore, back to callbacks.
  */
 object Io
 
@@ -206,189 +182,234 @@ object Io
 
   import Iteratee._
 
-  var c1 = 0L
-  var c2 = 0L
-
-  final type IoCont = Io ⇒ Unit
-
-  @inline private[aio] final def apply(server: ServerChannel): Io = Io(server, null, emptyBuffer, null, null, null, -1, true, 0L, null)
-
   final private[aio] val emptyArray = new Array[Byte](0)
 
   final private[aio] val emptyBuffer = ByteBuffer.wrap(emptyArray)
 
   final private[aio] val emptyString = new String
 
-  final private[aio] val empty = Io(null, null, emptyBuffer, null, null, null, -1, true, 0L, null)
+  final private[aio] val empty = new Io(null, emptyBuffer, null, null, false, null)
+
+  final private[aio] def apply(iteratee: Iteratee[Io, _]): Io = new Io(null, emptyBuffer, iteratee, null, true, null)
 
   final private def warnOnce = onlyonce { warning("Chunked input found. Enlarge aio.default-buffer-size : " + defaultBufferSize) }
 
   final private val logger = log
 
   /**
-   * Accept.
+   * Io handlers
    */
-  private[this] object AcceptHandler
 
-    extends Handler[SocketChannel, Io] {
+  final def loop[E, A <: RenderableRoot](server: ServerChannel, readiteratee: Iteratee[Io, _], processor: Processor[A]): Unit = {
 
-    @inline final def completed(ch: SocketChannel, io: Io) = {
-      import io._
-      server.accept(io, this)
-      k(io ++ SocketChannelWithTimeout(ch) ++ defaultByteBuffer)
-    }
+    object AcceptHandler
 
-    @inline final def failed(e: Throwable, io: Io) = {
-      import io._
-      if (server.isOpen) {
-        server.accept(io, this)
-        e match {
-          case _: IOException ⇒
-          case e: Throwable ⇒ warning("accept failed : " + io + " " + e)
+      extends Handler[SocketChannel, Io] {
+
+      @inline final def completed(ch: SocketChannel, io: Io) = {
+        accept
+        read(io ++ SocketChannelWithTimeout(ch) ++ defaultByteBuffer)
+      }
+
+      @inline final def failed(e: Throwable, io: Io) = {
+        if (server.isOpen) {
+          accept
+          e match {
+            case _: IOException ⇒ ignore
+            case e: Throwable ⇒ warning("Accept failed : " + e)
+          }
         }
       }
+
     }
 
-  }
+    object ReadHandler
 
-  /**
-   * Just an idea to avoid DNSA.
-   */
-  private[this] final class PausingAcceptHandler(pauseinmilliseconds: Long)
+      extends Handler[Integer, Io] {
 
-    extends Handler[SocketChannel, Io] {
-
-    @inline final def completed(c: SocketChannel, io: Io) = {
-      import io._
-      if (0 == pauseinmilliseconds)
-        server.accept(io, this)
-      else
-        scheduleOnce(pauseinmilliseconds)(server.accept(io, this))
-      k(io ++ SocketChannelWithTimeout(c) ++ defaultByteBuffer)
-    }
-
-    @inline final def failed(e: Throwable, io: Io) = {
-      import io._
-      if (server.isOpen) {
-        /**
-         * Do not pause here, in case of failure we want to be back online asap.
-         */
-        server.accept(io, this)
-        e match {
-          case _: IOException ⇒
-          case e: Throwable ⇒ warning("accept failed : " + io + " " + e)
-        }
-      }
-    }
-
-  }
-
-  /**
-   * Read/Write
-   */
-  private[this] object IoHandler
-
-    extends Handler[Integer, Io] {
-
-    @inline final def completed(processed: Integer, io: Io) = {
-      import io._
-      k(io ++ processed)
-    }
-
-    @inline final def failed(e: Throwable, io: Io) = {
-      import io._
-      k(io ++ Error[Io](e))
-    }
-
-  }
-
-  final def accept(server: ServerChannel, pausebetweenaccepts: Duration): Io @suspendable = {
-    shift { k: IoCont ⇒ server.accept(Io(server) ++ k, pausebetweenaccepts.toMillis match { case m if 0 < m ⇒ new PausingAcceptHandler(m) case _ ⇒ AcceptHandler }) }
-  }
-
-  @inline private[aio] final def read(io: Io): Io @suspendable = {
-    import io._
-    shift { k: IoCont ⇒ buffer.clear; channel.read(buffer, io ++ k, IoHandler) }
-  }
-
-  @inline private[aio] final def write(io: Io): Io @suspendable = {
-    import io._
-    shift { k: IoCont ⇒ channel.write(buffer, io ++ k, IoHandler) }
-    if (0 == buffer.remaining || io.isError) io else write(io)
-  }
-
-  @inline private[this] final def unhandled(e: Any) = error("unhandled " + e)
-
-  @inline private[this] final val ignored = ()
-
-  final def loop[E, A <: RenderableRoot](io: Io, processor: Processor[A]): Unit @suspendable = {
-
-    val readiteratee = io.iteratee
-
-    def readloop(io: Io): Unit @suspendable = {
-      (read(io) match {
-        case io if -1 < io.readwritten ⇒
+      @inline final def completed(processed: Integer, io: Io) = {
+        (if (-1 < processed) {
           io.buffer.flip
           io.iteratee(Elem(io))
-        case io ⇒
+        } else {
           io.iteratee(Eof)
-      }) match {
-        case (cont @ Cont(_), Empty) ⇒
-          readloop(io ++ cont ++ defaultByteBuffer)
-        case (e @ Done(_), Elem(io)) ⇒
-          processloop(io ++ e)
-        case (e @ Error(_), Elem(io)) ⇒
-          io.clear
-          processloop(io ++ e)
-        case (_, Eof) ⇒
-          ignored
-        case e ⇒
-          unhandled(e)
+        }) match {
+          case (cont @ Cont(_), Empty) ⇒
+            read(io ++ cont ++ defaultByteBuffer)
+          case (e @ Done(_), Elem(io)) ⇒
+            process(io ++ e)
+          case (e @ Error(_), Elem(io)) ⇒
+            io.clear
+            process(io ++ e)
+          case (_, Eof) ⇒
+            ignore
+          case e ⇒
+            unhandled(e)
+        }
       }
+
+      @inline final def failed(e: Throwable, io: Io) = io ++ Error[Io](e)
+
     }
 
-    def processloop(io: Io): Unit @suspendable = {
-      (processor.doProcess(io) match {
-        case io ⇒ io.iteratee
-      }) match {
-        case Done(renderable: RenderableRoot) ⇒
-          io.payload match {
-            case (length: Long, source: Channel, destination: Channel) ⇒
-              ChannelTransfer(source, destination, io).transfer
-              writeloop(renderable.renderHeader(io ++ renderable))
-            case _ ⇒
-              writeloop(renderable.renderHeader(io ++ renderable))
+    object ProcessHandler
+
+      extends Handler[Null, Io] {
+
+      @inline final def completed(processed: Null, io: Io) = {
+        io.iteratee match {
+          case Done(renderable: RenderableRoot) ⇒
+            io.payload match {
+              case (length: Long, source: Channel, destination: Channel) ⇒
+              //                ChannelTransfer(source, destination, io).transfer
+              //                writeloop(renderable.renderHeader(io ++ renderable))
+              case _ ⇒
+                write(renderable.renderHeader(io ++ renderable))
+            }
+          case Error(e: InterruptedByTimeoutException) ⇒
+            ignore
+          case Error(e: IOException) ⇒
+            io.error(e)
+          case Error(e) ⇒
+            info("process " + e.toString)
+            io.error(e)
+          case e ⇒
+            unhandled(e)
+        }
+      }
+
+      @inline final def failed(e: Throwable, io: Io) = io ++ Error[Io](e)
+
+    }
+
+    object WriteHandler
+
+      extends Handler[Integer, Io] {
+
+      @inline final def completed(processed: Integer, io: Io) = {
+        if (0 == io.buffer.remaining || io.isError) {
+          io.iteratee match {
+            case Done(keepalive: Boolean) ⇒
+              if (keepalive) {
+                read(io.renderable.renderFooter(io) ++ readiteratee)
+              } else {
+                io.release
+              }
+            case Cont(_) ⇒
+              write(io.renderable.renderBody(io))
+            case Error(e: IOException) ⇒
+              io.release
+              ignore
+            case Error(e) ⇒
+              info("writeloop " + e.toString)
+            case e ⇒
+              unhandled(e)
           }
-        case Error(e: InterruptedByTimeoutException) ⇒
-        case Error(e: IOException) ⇒
-          io.error(e)
-        case Error(e) ⇒
-          info("processloop " + e.toString)
-          io.error(e)
-        case e ⇒
-          unhandled(e)
+        } else {
+          write(io)
+        }
       }
+
+      @inline final def failed(e: Throwable, io: Io) = io ++ Error[Io](e)
+
     }
 
-    def writeloop(io: Io): Unit @suspendable = {
-      (write(io) match {
-        case io ⇒ io.iteratee
-      }) match {
-        case Done(keepalive: Boolean) ⇒
-          if (keepalive) readloop(io.renderable.renderFooter(io) ++ readiteratee ++ (io.roundtrips + 1L))
-        case Cont(_) ⇒
-          writeloop(io.renderable.renderBody(io))
-        case Error(e: IOException) ⇒
-          ignored
-        case Error(e) ⇒
-          info("writeloop " + e.toString)
-        case e ⇒
-          unhandled(e)
-      }
+    /**
+     * Io methods.
+     */
+
+    @inline def accept: Unit = {
+      server.accept(Io(readiteratee), AcceptHandler)
     }
 
-    readloop(io)
-    io.release
+    @inline def read(io: Io): Unit = {
+      io.clear
+      io.channel.read(io.buffer, io, ReadHandler)
+    }
+
+    @inline def process(io: Io): Unit = {
+      processor.doProcess(io, ProcessHandler)
+    }
+
+    @inline def write(io: Io): Unit = {
+      io.channel.write(io.buffer, io, WriteHandler)
+    }
+
+    @inline def unhandled(e: Any) = error("unhandled " + e)
+
+    @inline def ignore = ()
+
+    accept
+
   }
+  //  final def loop[E, A <: RenderableRoot](io: Io, processor: Processor[A]): Unit @suspendable = {
+  //
+  //    val readiteratee = io.iteratee
+  //
+  //    def readloop(io: Io): Unit @suspendable = {
+  //      (read(io) match {
+  //        case io if -1 < io.readwritten ⇒
+  //          io.buffer.flip
+  //          io.iteratee(Elem(io))
+  //        case io ⇒
+  //          io.iteratee(Eof)
+  //      }) match {
+  //        case (cont @ Cont(_), Empty) ⇒
+  //          readloop(io ++ cont ++ defaultByteBuffer)
+  //        case (e @ Done(_), Elem(io)) ⇒
+  //          processloop(io ++ e)
+  //        case (e @ Error(_), Elem(io)) ⇒
+  //          io.clear
+  //          processloop(io ++ e)
+  //        case (_, Eof) ⇒
+  //          ignore
+  //        case e ⇒
+  //          unhandled(e)
+  //      }
+  //    }
+  //
+  //    def processloop(io: Io): Unit @suspendable = {
+  //      (processor.doProcess(io) match {
+  //        case io ⇒ io.iteratee
+  //      }) match {
+  //        case Done(renderable: RenderableRoot) ⇒
+  //          io.payload match {
+  //            case (length: Long, source: Channel, destination: Channel) ⇒
+  //              ChannelTransfer(source, destination, io).transfer
+  //              writeloop(renderable.renderHeader(io ++ renderable))
+  //            case _ ⇒
+  //              writeloop(renderable.renderHeader(io ++ renderable))
+  //          }
+  //        case Error(e: InterruptedByTimeoutException) ⇒
+  //        case Error(e: IOException) ⇒
+  //          io.error(e)
+  //        case Error(e) ⇒
+  //          info("processloop " + e.toString)
+  //          io.error(e)
+  //        case e ⇒
+  //          unhandled(e)
+  //      }
+  //    }
+  //
+  //    def writeloop(io: Io): Unit @suspendable = {
+  //      (write(io) match {
+  //        case io ⇒ io.iteratee
+  //      }) match {
+  //        case Done(keepalive: Boolean) ⇒
+  //          if (keepalive) readloop(io.renderable.renderFooter(io) ++ readiteratee ++ (io.roundtrips + 1L))
+  //        case Cont(_) ⇒
+  //          writeloop(io.renderable.renderBody(io))
+  //        case Error(e: IOException) ⇒
+  //          ignore
+  //        case Error(e) ⇒
+  //          info("writeloop " + e.toString)
+  //        case e ⇒
+  //          unhandled(e)
+  //      }
+  //    }
+  //
+  //    readloop(io)
+  //    io.release
+  //  }
 
 }

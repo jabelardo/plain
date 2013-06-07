@@ -29,6 +29,8 @@ package object reflect {
 
   def tryLocation = try { throw new Exception("tryLocation thrown.") } catch { case e: Throwable ⇒ e.printStackTrace }
 
+  def stackSize = try { throw new Exception("stackSize thrown.") } catch { case e: Throwable ⇒ println("stackSize : " + e.getStackTrace.size) }
+
   /**
    * Returns the primitive corresponding to it, for example Int for java.lang.Integer
    */

@@ -21,4 +21,6 @@ package object http
 
   final lazy val defaultServerConfiguration = Server.ServerConfiguration("plain.http.default-server", true)
 
+  final val channelGroupPoolType = getInt("plain.http.channel-group-pool-type", -1)
+
 }

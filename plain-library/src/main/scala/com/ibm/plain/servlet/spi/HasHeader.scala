@@ -24,11 +24,11 @@ trait HasHeader {
 
   final def getDateHeader(name: String): Long = unsupported
 
-  final def setHeader(name: String, value: String): Unit = context.response.headers.put(name, value)
+  final def setHeader(name: String, value: String): Unit = unsupported // context.response.headers.put(name, value)
 
   final def setIntHeader(name: String, value: Int): Unit = unsupported
 
-  final def setDateHeader(name: String, value: Long): Unit = context.response.headers.put(name, new java.util.Date(value).toString)
+  final def setDateHeader(name: String, value: Long): Unit = unsupported // context.response.headers.put(name, new java.util.Date(value).toString)
 
   final def addHeader(name: String, value: String): Unit = unsupported
 

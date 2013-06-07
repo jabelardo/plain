@@ -6,8 +6,6 @@ package aio
 
 import java.nio.ByteBuffer
 
-import scala.util.continuations.suspendable
-
 import concurrent.OnlyOnce
 import text.`US-ASCII`
 
@@ -18,7 +16,7 @@ trait RenderableRoot {
 
   def renderHeader(io: Io): Io
 
-  def renderBody(io: Io): Io @suspendable
+  def renderBody(io: Io): Io
 
   def renderFooter(io: Io): Io
 
