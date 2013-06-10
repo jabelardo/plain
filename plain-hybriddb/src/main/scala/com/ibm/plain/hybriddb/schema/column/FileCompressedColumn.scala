@@ -211,7 +211,7 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
 
     final class BufferedStream(in: ObjectInputStream) {
       @inline final def close = in.close
-      @inline final def next: Option[P] = if (drained) None else {
+      final def next: Option[P] = if (drained) None else {
         if (buffer.isEmpty) buffer = try Some(in.readObject.asInstanceOf[P]) catch { case e: EOFException ⇒ drained = true; None }
         buffer
       }

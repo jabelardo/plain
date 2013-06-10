@@ -97,8 +97,6 @@ package object aio
 
   final val tcpNoDelay = getInt("plain.aio.tcp-no-delay", 0)
 
-  final val maxRoundTrips = getInt("plain.aio.max-roundtrips", 1000)
-
   /**
    * Check requirements.
    */

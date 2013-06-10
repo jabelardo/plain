@@ -11,7 +11,7 @@ import scala.util.continuations.{ reify, suspendable }
 import com.typesafe.config.Config
 import logging.HasLogger
 import reflect.tryBoolean
-import aio.{ ByteArrayChannel, FixedLengthChannel, Io }
+import aio.{ ByteArrayChannel, FixedLengthChannel, Io, Transfer }
 import http.{ Request, Response, Status, Entity, Method, MimeType, Accept }
 import http.Entity._
 import http.MimeType._
@@ -64,7 +64,7 @@ trait Resource
         case Some(failed) ⇒ failed(e)
         case _ ⇒
       }
-      super.failed(e, context.io +++ context.response)
+      super.failed(e, context.io ++ context.response.asInstanceOf[aio.Message])
     } finally {
       threadlocal.remove
     }
@@ -121,8 +121,8 @@ trait Resource
 
   protected[this] final def transfer(entity: Entity, destination: Channel) = {
     entity match {
-      case entity: ContentEntity ⇒ context.io +++ ((entity.length, FixedLengthChannel(context.io.channel, context.io.buffer.remaining, entity.length), destination))
-      case entity: ArrayEntity ⇒ context.io +++ ((entity.length, ByteArrayChannel(entity.array), destination))
+      case entity: ContentEntity ⇒ context.io ++ Transfer(FixedLengthChannel(context.io.channel, context.io.buffer.remaining, entity.length), destination, None)
+      case entity: ArrayEntity ⇒ context.io ++ Transfer(ByteArrayChannel(entity.array), destination, None)
       case _ ⇒ unsupported
     }
   }

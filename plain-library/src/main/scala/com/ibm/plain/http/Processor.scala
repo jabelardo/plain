@@ -24,7 +24,7 @@ abstract class Processor
 
   with HasLogger {
 
-  @inline final def completed(response: Response, io: Io) = {
+  final def completed(response: Response, io: Io) = {
     io ++ Done[Io, Response](response)
   }
 
@@ -36,8 +36,8 @@ abstract class Processor
           case servererror: ServerError ⇒ if (log.isDebugEnabled) debug(stackTraceToString(status))
           case _ ⇒
         }
-        val request = try io.payload.asInstanceOf[Request] catch { case _: Throwable ⇒ null }
-        val response = try io.payload.asInstanceOf[Response] catch { case _: Throwable ⇒ null }
+        val request = try io.message.asInstanceOf[Request] catch { case _: Throwable ⇒ null }
+        val response = try io.message.asInstanceOf[Response] catch { case _: Throwable ⇒ null }
         Done[Io, Response](if (null != response) response ++ status else Response(request, status))
       case e ⇒
         info("Dispatching failed : " + e)

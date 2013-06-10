@@ -38,11 +38,11 @@ abstract class Dispatcher
                 case _ ⇒
               }
               resource.handle(context ++ config ++ variables ++ remainder)
-            case _ ⇒ io +++ request; throw ServerError.`500`
+            case _ ⇒ io ++ request; throw ServerError.`500`
           }
-        case _ ⇒ io +++ request; throw ClientError.`404`
+        case _ ⇒ io ++ request; throw ClientError.`404`
       }
-      case _ ⇒ io +++ request; throw ServerError.`501`
+      case _ ⇒ io ++ request; throw ServerError.`501`
     }
   }
 

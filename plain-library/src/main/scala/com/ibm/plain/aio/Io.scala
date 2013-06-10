@@ -32,9 +32,13 @@ final class Io private (
 
   var renderable: RenderableRoot,
 
-  var keepalive: Boolean,
+  var encoder: Encoder,
 
-  var payload: Any) {
+  var transfer: Transfer,
+
+  var message: Message,
+
+  var keepalive: Boolean) {
 
   import Io._
 
@@ -58,18 +62,22 @@ final class Io private (
     that + b
   }
 
-  @inline final def ++(channel: Channel) = new Io(channel, buffer, iteratee, renderable, keepalive, payload)
+  @inline final def ++(channel: Channel) = new Io(channel, buffer, iteratee, renderable, encoder, transfer, message, keepalive)
 
   @inline final def ++(iteratee: Iteratee[Io, _]) = { this.iteratee = iteratee; this }
 
   @inline final def ++(renderable: RenderableRoot) = { this.renderable = renderable; this }
 
+  @inline final def ++(encoder: Encoder) = { this.encoder = encoder; this }
+
+  @inline final def ++(transfer: Transfer) = { this.transfer = transfer; this }
+
+  @inline final def ++(message: Message) = { this.message = message; this }
+
   @inline final def ++(keepalive: Boolean) = { if (this.keepalive) this.keepalive = keepalive; this }
 
-  @inline final def +++(payload: Any) = { this.payload = payload; this }
-
   @inline final def ++(buffer: ByteBuffer) = if (0 < this.buffer.remaining) {
-    new Io(channel, buffer, iteratee, renderable, keepalive, payload)
+    new Io(channel, buffer, iteratee, renderable, encoder, transfer, message, keepalive)
   } else {
     this + buffer
   }
@@ -85,9 +93,7 @@ final class Io private (
     buffer = emptyBuffer
   }
 
-  @inline private final def clear = buffer.clear
-
-  @inline private final def release = {
+  @inline private[aio] final def release = {
     releaseBuffer
     if (channel.isOpen) channel.close
   }
@@ -188,9 +194,9 @@ object Io
 
   final private[aio] val emptyString = new String
 
-  final private[aio] val empty = new Io(null, emptyBuffer, null, null, false, null)
+  final private[aio] val empty = new Io(null, emptyBuffer, null, null, null, null, null, false)
 
-  final private[aio] def apply(iteratee: Iteratee[Io, _]): Io = new Io(null, emptyBuffer, iteratee, null, true, null)
+  final private[aio] def apply(iteratee: Iteratee[Io, _]): Io = new Io(null, emptyBuffer, iteratee, null, null, null, null, true)
 
   final private def warnOnce = onlyonce { warning("Chunked input found. Enlarge aio.default-buffer-size : " + defaultBufferSize) }
 
@@ -239,7 +245,7 @@ object Io
           case (e @ Done(_), Elem(io)) ⇒
             process(io ++ e)
           case (e @ Error(_), Elem(io)) ⇒
-            io.clear
+            io.buffer.clear
             process(io ++ e)
           case (_, Eof) ⇒
             ignore
@@ -259,12 +265,9 @@ object Io
       @inline final def completed(processed: Null, io: Io) = {
         io.iteratee match {
           case Done(renderable: RenderableRoot) ⇒
-            io.payload match {
-              case (length: Long, source: Channel, destination: Channel) ⇒
-              //                ChannelTransfer(source, destination, io).transfer
-              //                writeloop(renderable.renderHeader(io ++ renderable))
-              case _ ⇒
-                write(renderable.renderHeader(io ++ renderable))
+            renderable.renderHeader(io ++ renderable).transfer match {
+              case Transfer(_, _, _) ⇒ TransferHandler.read(io)
+              case _ ⇒ write(io)
             }
           case Error(e: InterruptedByTimeoutException) ⇒
             ignore
@@ -278,7 +281,7 @@ object Io
         }
       }
 
-      @inline final def failed(e: Throwable, io: Io) = io ++ Error[Io](e)
+      @inline final def failed(e: Throwable, io: Io) = completed(null, io)
 
     }
 
@@ -296,7 +299,10 @@ object Io
                 io.release
               }
             case Cont(_) ⇒
-              write(io.renderable.renderBody(io))
+              io.renderable.renderBody(io).transfer match {
+                case Transfer(_, _, _) ⇒ TransferHandler.read(io)
+                case _ ⇒ write(io)
+              }
             case Error(e: IOException) ⇒
               io.release
               ignore
@@ -310,7 +316,54 @@ object Io
         }
       }
 
-      @inline final def failed(e: Throwable, io: Io) = io ++ Error[Io](e)
+      @inline final def failed(e: Throwable, io: Io) = io.release
+
+    }
+
+    object TransferHandler
+
+      extends Handler[Integer, Io] {
+
+      @inline def read(io: Io): Unit = if (0 < io.buffer.remaining) {
+        write(io)
+      } else {
+        io.buffer.clear
+        io.transfer.source.read(io.buffer, io, this)
+      }
+
+      @inline def write(io: Io) = io.transfer.destination.write(io.buffer, io, TransferWriteHandler)
+
+      @inline def completed(processed: Integer, io: Io) = {
+        io.buffer.flip
+        if (0 < processed) {
+          if (io.transfer.encoder.isDefined) {
+            io.transfer.encoder.get.encode(io.buffer)
+            io.buffer.flip
+          }
+          write(io)
+        } else {
+          if (io.transfer.encoder.isDefined) {
+            io.transfer.encoder.get.finish(io.buffer)
+          }
+          io.transfer.source match { case f: FileByteChannel ⇒ f.close case _ ⇒ }
+          io.transfer.destination match { case f: FileByteChannel ⇒ f.close case _ ⇒ }
+          io.transfer = null
+          WriteHandler.completed(0, io)
+        }
+      }
+
+      @inline def failed(e: Throwable, io: Io) = {
+        io.transfer = null
+        WriteHandler.failed(e, io)
+      }
+
+      object TransferWriteHandler extends Handler[Integer, Io] {
+
+        @inline def completed(processed: Integer, io: Io) = read(io)
+
+        @inline def failed(e: Throwable, io: Io) = TransferHandler.failed(e, io)
+
+      }
 
     }
 
@@ -323,7 +376,7 @@ object Io
     }
 
     @inline def read(io: Io): Unit = {
-      io.clear
+      io.buffer.clear
       io.channel.read(io.buffer, io, ReadHandler)
     }
 
@@ -342,74 +395,5 @@ object Io
     accept
 
   }
-  //  final def loop[E, A <: RenderableRoot](io: Io, processor: Processor[A]): Unit @suspendable = {
-  //
-  //    val readiteratee = io.iteratee
-  //
-  //    def readloop(io: Io): Unit @suspendable = {
-  //      (read(io) match {
-  //        case io if -1 < io.readwritten ⇒
-  //          io.buffer.flip
-  //          io.iteratee(Elem(io))
-  //        case io ⇒
-  //          io.iteratee(Eof)
-  //      }) match {
-  //        case (cont @ Cont(_), Empty) ⇒
-  //          readloop(io ++ cont ++ defaultByteBuffer)
-  //        case (e @ Done(_), Elem(io)) ⇒
-  //          processloop(io ++ e)
-  //        case (e @ Error(_), Elem(io)) ⇒
-  //          io.clear
-  //          processloop(io ++ e)
-  //        case (_, Eof) ⇒
-  //          ignore
-  //        case e ⇒
-  //          unhandled(e)
-  //      }
-  //    }
-  //
-  //    def processloop(io: Io): Unit @suspendable = {
-  //      (processor.doProcess(io) match {
-  //        case io ⇒ io.iteratee
-  //      }) match {
-  //        case Done(renderable: RenderableRoot) ⇒
-  //          io.payload match {
-  //            case (length: Long, source: Channel, destination: Channel) ⇒
-  //              ChannelTransfer(source, destination, io).transfer
-  //              writeloop(renderable.renderHeader(io ++ renderable))
-  //            case _ ⇒
-  //              writeloop(renderable.renderHeader(io ++ renderable))
-  //          }
-  //        case Error(e: InterruptedByTimeoutException) ⇒
-  //        case Error(e: IOException) ⇒
-  //          io.error(e)
-  //        case Error(e) ⇒
-  //          info("processloop " + e.toString)
-  //          io.error(e)
-  //        case e ⇒
-  //          unhandled(e)
-  //      }
-  //    }
-  //
-  //    def writeloop(io: Io): Unit @suspendable = {
-  //      (write(io) match {
-  //        case io ⇒ io.iteratee
-  //      }) match {
-  //        case Done(keepalive: Boolean) ⇒
-  //          if (keepalive) readloop(io.renderable.renderFooter(io) ++ readiteratee ++ (io.roundtrips + 1L))
-  //        case Cont(_) ⇒
-  //          writeloop(io.renderable.renderBody(io))
-  //        case Error(e: IOException) ⇒
-  //          ignore
-  //        case Error(e) ⇒
-  //          info("writeloop " + e.toString)
-  //        case e ⇒
-  //          unhandled(e)
-  //      }
-  //    }
-  //
-  //    readloop(io)
-  //    io.release
-  //  }
 
 }

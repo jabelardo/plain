@@ -9,7 +9,9 @@ import Message._
 /**
  *
  */
-trait Message {
+trait Message
+
+  extends aio.Message {
 
   def headers: Headers
 

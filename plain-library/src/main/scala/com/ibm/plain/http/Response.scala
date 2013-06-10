@@ -6,7 +6,7 @@ package http
 
 import java.nio.ByteBuffer
 
-import aio.{ ChannelTransfer, Encoder, Io, RenderableRoot, releaseByteBuffer, tooTinyToCareSize, maxRoundTrips }
+import aio.{ Transfer, Encoder, Io, RenderableRoot, releaseByteBuffer, tooTinyToCareSize }
 import aio.Iteratee.{ Cont, Done }
 import aio.Renderable._
 import text.`UTF-8`
@@ -52,7 +52,7 @@ final case class Response private (
   @inline final def renderBody(io: Io): Io = {
     import io._
     @inline def encode = {
-      encoder match {
+      encoding match {
         case Some(enc) ⇒
           enc.encode(buffer)
           enc.finish(buffer)
@@ -61,10 +61,8 @@ final case class Response private (
       io ++ Done[Io, Boolean](keepalive)
     }
     entity match {
-      //      case Some(entity: AsynchronousByteChannelEntity) ⇒ encoder match {
-      //        case Some(enc) ⇒ ChannelTransfer(entity.channel, channel, io ++ Done[Io, Boolean](keepalive)).transfer(enc)
-      //        case _ ⇒ ChannelTransfer(entity.channel, channel, io ++ Done[Io, Boolean](keepalive)).transfer
-      //      }
+      case Some(entity: AsynchronousByteChannelEntity) ⇒
+        io ++ Transfer(entity.channel, channel, encoding) ++ Done[Io, Boolean](keepalive)
       case Some(entity: ByteBufferEntity) ⇒
         markbuffer = buffer
         buffer = entity.buffer
@@ -102,14 +100,14 @@ final case class Response private (
   }
 
   @inline private[this] final def renderContent: Unit = {
-    encoder = entity match {
+    encoding = entity match {
       case Some(entity) if tooTinyToCareSize < entity.length || -1 == entity.length ⇒ request.transferEncoding
       case _ ⇒ None
     }
     entity match {
       case Some(entity) ⇒
         r(`Content-Type: `) + entity.contenttype + `\r\n` + ^
-        encoder match {
+        encoding match {
           case Some(encoding) ⇒
             r(`Content-Encoding: `) + r(encoding.text) + `\r\n` + ^
             r(`Transfer-Encoding: chunked`) + `\r\n` + ^
@@ -123,7 +121,7 @@ final case class Response private (
   @inline private[this] final def renderEntity(io: Io): Io = {
     import io._
     @inline def encode(entity: Entity) = {
-      encoder match {
+      encoding match {
         case Some(enc) ⇒
           buffer.limit(buffer.position)
           buffer.position(buffer.position - entity.length.toInt)
@@ -152,7 +150,7 @@ final case class Response private (
     }
   }
 
-  private[this] final var encoder: Option[Encoder] = None
+  private[this] final var encoding: Option[Encoder] = None
 
   private[this] final var markbuffer: ByteBuffer = null
 
