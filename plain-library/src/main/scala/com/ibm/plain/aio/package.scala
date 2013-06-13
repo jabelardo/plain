@@ -95,7 +95,10 @@ package object aio
    */
   final val sendReceiveBufferSize = getBytes("plain.aio.send-receive-buffer-size", 54 * 1024).toInt
 
-  final val tcpNoDelay = getInt("plain.aio.tcp-no-delay", 0)
+  final val tcpNoDelay = {
+    val nodelay = getInt("plain.aio.tcp-no-delay", 0)
+    if (0 == nodelay && os.isUnix) 1 else nodelay
+  }
 
   /**
    * Check requirements.

@@ -30,6 +30,8 @@ private final class SocketChannelWithTimeout private (
     channel.write(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, attachment, handler)
   }
 
+  // not used 
+
   final def read(buffer: ByteBuffer) = channel.read(buffer)
 
   final def write(buffer: ByteBuffer) = channel.write(buffer)

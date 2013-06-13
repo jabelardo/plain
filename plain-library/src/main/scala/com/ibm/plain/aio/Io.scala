@@ -221,7 +221,7 @@ object Io
         if (server.isOpen) {
           accept
           e match {
-            case _: IOException ⇒ ignore
+            case _: IOException ⇒ debug("Accept failed : " + e)
             case e: Throwable ⇒ warning("Accept failed : " + e)
           }
         }
@@ -234,27 +234,31 @@ object Io
       extends Handler[Integer, Io] {
 
       @inline final def completed(processed: Integer, io: Io) = {
-        (if (-1 < processed) {
-          io.buffer.flip
-          io.iteratee(Elem(io))
+        if (0 > processed) {
+          io.release
         } else {
-          io.iteratee(Eof)
-        }) match {
-          case (cont @ Cont(_), Empty) ⇒
-            read(io ++ cont ++ defaultByteBuffer)
-          case (e @ Done(_), Elem(io)) ⇒
-            process(io ++ e)
-          case (e @ Error(_), Elem(io)) ⇒
-            io.buffer.clear
-            process(io ++ e)
-          case (_, Eof) ⇒
-            ignore
-          case e ⇒
-            unhandled(e)
+          (if (-1 < processed) {
+            io.buffer.flip
+            io.iteratee(Elem(io))
+          } else {
+            io.iteratee(Eof)
+          }) match {
+            case (cont @ Cont(_), Empty) ⇒
+              read(io ++ cont ++ defaultByteBuffer)
+            case (e @ Done(_), Elem(io)) ⇒
+              process(io ++ e)
+            case (e @ Error(_), Elem(io)) ⇒
+              io.buffer.clear
+              process(io ++ e)
+            case (_, Eof) ⇒
+              ignore
+            case e ⇒
+              unhandled(e)
+          }
         }
       }
 
-      @inline final def failed(e: Throwable, io: Io) = io ++ Error[Io](e)
+      @inline final def failed(e: Throwable, io: Io) = io.release
 
     }
 
@@ -290,7 +294,9 @@ object Io
       extends Handler[Integer, Io] {
 
       @inline final def completed(processed: Integer, io: Io) = {
-        if (0 == io.buffer.remaining || io.isError) {
+        if (0 > processed) {
+          io.release
+        } else if (0 == io.buffer.remaining || io.isError) {
           io.iteratee match {
             case Done(keepalive: Boolean) ⇒
               if (keepalive) {

@@ -18,7 +18,7 @@ object Dependencies {
   def runtime     (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "runtime")
   def container   (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "container")
 
-  val scalareflect  = "org.scala-lang"                          %   "scala-reflect"               % "2.10.1"
+  val scalareflect  = "org.scala-lang"                          %   "scala-reflect"               % "2.10.2"
   val scalatest     = "org.scalatest"                           %%  "scalatest"                   % "1.9.1"
   val specs2        = "org.specs2"                              %%  "specs2"                      % "1.14"
   val junit         = "junit"                                   %   "junit"                       % "4.11"

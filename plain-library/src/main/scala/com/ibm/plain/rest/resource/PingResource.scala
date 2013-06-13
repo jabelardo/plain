@@ -6,24 +6,15 @@ package rest
 
 package resource
 
-import scala.util.continuations.{ reset, suspendable }
-
-import aio.ChannelTransfer
-import aio.FileByteChannel.forWriting
-import aio.FixedLengthChannel
-import xml._
-import json._
-import json.Json._
-import http.Entity._
-import http.{ Entity, Response }
+import json.Json
 
 final class PingResource
 
   extends Resource {
 
-  import PingResource._
+  Get { "pong!" }
 
-  Get { pong }
+  Get { Json(Map("Hello" -> "world!")) }
 
   //  Get { f: Form ⇒ json.Json(f) }
   //
@@ -50,12 +41,12 @@ final class PingResource
 
 }
 
-object PingResource {
-
-  final val pong = {
-    //     val s = new StringBuilder; (1 to 270).foreach(s.append("pong!").append(_).append("\n")); s.toString.getBytes
-    "pong!".getBytes
-  }
-
-}
-
+//object PingResource {
+//
+//  final val pong = {
+//    //     val s = new StringBuilder; (1 to 270).foreach(s.append("pong!").append(_).append("\n")); s.toString.getBytes
+//    "pong!".getBytes
+//  }
+//
+//}
+//

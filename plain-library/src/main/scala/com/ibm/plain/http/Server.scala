@@ -47,7 +47,7 @@ final case class Server(
     if (isEnabled) {
 
       def startOne = {
-        serverChannel = if (0 == channelGroupPoolType) ServerChannel.open else ServerChannel.open(channelGroup)
+        serverChannel = if (0 == channelGroupThreadPoolType) ServerChannel.open else ServerChannel.open(channelGroup)
         serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
         serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(aio.sendReceiveBufferSize))
         serverChannel.bind(bindaddress, backlog)
@@ -115,11 +115,13 @@ object Server
 
   extends HasLogger {
 
-  private final val channelGroup = channelGroupPoolType match {
+  private final val channelGroup = channelGroupThreadPoolType match {
     case 1 ⇒ Group.withFixedThreadPool(concurrent.cores, java.util.concurrent.Executors.defaultThreadFactory)
     case 2 ⇒ Group.withFixedThreadPool(concurrent.parallelism, java.util.concurrent.Executors.defaultThreadFactory)
     case _ ⇒ Group.withThreadPool(concurrent.ioexecutor)
   }
+
+  debug("ThreadPool type = " + channelGroupThreadPoolType + ", cores = " + concurrent.cores + ", parallelism = " + concurrent.parallelism)
 
   /**
    * A per-server provided configuration, unspecified details will be inherited from defaultServerConfiguration.

@@ -14,7 +14,7 @@ import scala.util.parsing.combinator.JavaTokenParsers
 import com.fasterxml.jackson.databind.ObjectMapper
 import Helpers.stringToConfiggyString
 
-final case class Json(any: Any) extends AnyVal {
+final case class Json(any: Any) {
   override def toString = any match { case Some(json: Json) ⇒ json.toString case null ⇒ "null" case _ ⇒ any.toString }
   def asNull = convert[Null](null)
   def asBoolean: Boolean = any match { case Some(json: Json) ⇒ json.asBoolean case b: Boolean ⇒ b case s: String ⇒ s.toBoolean case _ ⇒ convert[Boolean](false) }

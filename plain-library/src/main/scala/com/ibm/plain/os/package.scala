@@ -33,7 +33,11 @@ package object os
 
   final val isUnix = IS_OS_UNIX
 
+  final val isLinux = IS_OS_LINUX
+
   final val isWindows = IS_OS_WINDOWS
+
+  final val isOSX = IS_OS_MAC_OSX
 
   /**
    * The current user running the JVM.

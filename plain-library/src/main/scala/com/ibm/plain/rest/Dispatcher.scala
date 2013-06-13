@@ -22,6 +22,8 @@ abstract class Dispatcher
 
   extends HttpDispatcher {
 
+  var c = 0L
+
   @inline final def dispatch(request: Request, io: Io) = handle(Context(io) ++ request)
 
   final def handle(context: Context) = {
@@ -38,11 +40,11 @@ abstract class Dispatcher
                 case _ ⇒
               }
               resource.handle(context ++ config ++ variables ++ remainder)
-            case _ ⇒ io ++ request; throw ServerError.`500`
+            case _ ⇒ throw ServerError.`500`
           }
-        case _ ⇒ io ++ request; throw ClientError.`404`
+        case _ ⇒ throw ClientError.`404`
       }
-      case _ ⇒ io ++ request; throw ServerError.`501`
+      case _ ⇒ throw ServerError.`501`
     }
   }
 
