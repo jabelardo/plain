@@ -22,8 +22,6 @@ abstract class Dispatcher
 
   extends HttpDispatcher {
 
-  var c = 0L
-
   @inline final def dispatch(request: Request, io: Io) = handle(Context(io) ++ request)
 
   final def handle(context: Context) = {
