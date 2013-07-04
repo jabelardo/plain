@@ -5,6 +5,7 @@ package plain
 package jdbc
 
 import java.sql.{ Date, PreparedStatement, ResultSet, Statement, Time, Timestamp, Types, Blob }
+import java.sql.ResultSet.{ FETCH_FORWARD, TYPE_FORWARD_ONLY, CONCUR_READ_ONLY }
 import java.io.{ ByteArrayInputStream, InputStream, OutputStream }
 
 import scala.language.implicitConversions
@@ -58,7 +59,7 @@ object ConnectionHelper {
   implicit final def ps2Rich(ps: PreparedStatement) = new RichPreparedStatement(ps)
   implicit final def rich2PS(r: RichPreparedStatement) = r.ps
 
-  implicit final def str2RichPrepared(s: String)(implicit conn: Connection): RichPreparedStatement = conn.prepareStatement(s)
+  implicit final def str2RichPrepared(s: String)(implicit conn: Connection): RichPreparedStatement = conn.prepareStatement(s, FETCH_FORWARD, TYPE_FORWARD_ONLY, CONCUR_READ_ONLY)
   implicit final def conn2Rich(conn: Connection) = new RichConnection(conn)
 
   implicit final def st2Rich(s: Statement) = new RichStatement(s)

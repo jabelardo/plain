@@ -45,7 +45,7 @@ object Dependencies {
   val derbyjdbc     = "org.apache.derby"                        %   "derby"                       % "10.9.1.0"
   val derbyclient   = "org.apache.derby"                        %   "derbyclient"                 % "10.9.1.0"
   val h2jdbc        = "com.h2database"                          %   "h2"                          % "1.3.170"
-  val mysqljdbc     = "mysql"                                   %   "mysql-connector-java"        % "5.1.23"
+  val mysqljdbc     = "mysql"                                   %   "mysql-connector-java"        % "5.1.25"
   val servlet25     = "javax.servlet"                           %   "servlet-api"                 % "2.5"
   val disruptor     = "com.lmax"                                %   "disruptor"                   % "3.1.0"
 

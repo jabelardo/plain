@@ -22,7 +22,7 @@ abstract class Dispatcher
 
   extends HttpDispatcher {
 
-  @inline final def dispatch(request: Request, io: Io) = handle(Context(io) ++ request)
+  @inline final def dispatch(requests: List[Request], io: Io) = requests.foreach(request ⇒ handle(Context(io) ++ request))
 
   final def handle(context: Context) = {
     import context.io
@@ -61,4 +61,3 @@ abstract class Dispatcher
  * The default rest-dispatcher, it will always respond with 501.
  */
 class DefaultDispatcher extends Dispatcher
-

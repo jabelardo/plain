@@ -14,6 +14,7 @@ import Request.Path
 import Status.ServerError.`501`
 import Header.Entity.{ `Content-Length`, `Content-Type` }
 import Header.General.`Transfer-Encoding`
+import Version.`HTTP/1.1`
 import Entity.{ ArrayEntity, ContentEntity, TransferEncodedEntity }
 import MimeType.`text/plain`
 
@@ -142,11 +143,26 @@ final class RequestIteratee private ()(implicit server: Server) {
       }
     }
 
-  final val readRequest: Iteratee[Io, Request] = for {
+  private[this] final val readRequest: Iteratee[Io, Request] = for {
     mpqv ← readRequestLine
     headers ← readHeaders
     entity ← readEntity(headers, mpqv._3)
   } yield Request(mpqv._1, mpqv._2, mpqv._3, mpqv._4, headers, entity)
+
+  final def readRequests: Iteratee[Io, List[Request]] = {
+
+    def cont(requests: List[Request]): Iteratee[Io, List[Request]] = isEof flatMap {
+      case false if (requests.headOption match { case Some(request) ⇒ `HTTP/1.1` == request.version case _ ⇒ true }) ⇒ for {
+        request ← readRequest
+        morerequests ← cont(request :: requests)
+      } yield morerequests
+      case true ⇒ for {
+        done ← Done(if (1 < requests.length) requests.reverse else requests)
+      } yield done
+    }
+
+    cont(Nil)
+  }
 
 }
 

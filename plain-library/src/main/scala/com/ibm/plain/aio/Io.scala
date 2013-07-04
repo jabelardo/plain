@@ -237,15 +237,11 @@ object Io
         if (0 > processed) {
           io.release
         } else {
-          (if (-1 < processed) {
-            io.buffer.flip
-            io.iteratee(Elem(io))
-          } else {
-            io.iteratee(Eof)
-          }) match {
+          io.buffer.flip
+          if (0 == processed) io.iteratee(Eof) else io.iteratee(Elem(io)) match {
             case (cont @ Cont(_), Empty) ⇒
               read(io ++ cont ++ defaultByteBuffer)
-            case (e @ Done(_), Elem(io)) ⇒
+            case (e @ Done(r), Eof) ⇒
               process(io ++ e)
             case (e @ Error(_), Elem(io)) ⇒
               io.buffer.clear
@@ -278,7 +274,7 @@ object Io
           case Error(e: IOException) ⇒
             io.error(e)
           case Error(e) ⇒
-            info("process " + e.toString)
+            info("process failed " + e.toString)
             io.error(e)
           case e ⇒
             unhandled(e)
@@ -313,7 +309,7 @@ object Io
               io.release
               ignore
             case Error(e) ⇒
-              info("writeloop " + e.toString)
+              info("write failed " + e.toString)
             case e ⇒
               unhandled(e)
           }
