@@ -6,6 +6,8 @@ package rest
 
 import com.typesafe.config.{ Config, ConfigFactory }
 
+import scala.collection.concurrent.TrieMap
+
 import aio.Io
 import aio.Iteratees.drop
 import aio.FileByteChannel.forWriting
@@ -22,27 +24,31 @@ abstract class Dispatcher
 
   extends HttpDispatcher {
 
-  @inline final def dispatch(requests: List[Request], io: Io) = requests.foreach(request ⇒ handle(Context(io) ++ request))
+  @inline final def dispatch(request: Request, io: Io) = handle(Context(io) ++ request)
 
   final def handle(context: Context) = {
     import context.io
     import context.request
-    templates match {
-      case Some(root) ⇒ root.get(request.path) match {
-        case Some((clazz, config, variables, remainder)) ⇒
-          clazz.newInstance match {
-            case resource: Resource ⇒
-              request.entity match {
-                case Some(ContentEntity(_, length)) if request.method.entityallowed ⇒
-                case Some(_) if !request.method.entityallowed ⇒ throw ServerError.`501`
-                case _ ⇒
-              }
-              resource.handle(context ++ config ++ variables ++ remainder)
-            case _ ⇒ throw ServerError.`500`
-          }
-        case _ ⇒ throw ClientError.`404`
+    resources.get(request.path.mkString("/")) match {
+      case Some(resource) ⇒ resource.handle(context)
+      case _ ⇒ templates match {
+        case Some(root) ⇒ root.get(request.path) match {
+          case Some((clazz, config, variables, remainder)) ⇒
+            clazz.newInstance match {
+              case resource: Resource ⇒
+                request.entity match {
+                  case Some(ContentEntity(_, length)) if request.method.entityallowed ⇒
+                  case Some(_) if !request.method.entityallowed ⇒ throw ServerError.`501`
+                  case _ ⇒
+                }
+                if (config.isEmpty && variables.isEmpty && remainder.isEmpty) resources.put(request.path.mkString("/"), resource)
+                resource.handle(context ++ config ++ variables ++ remainder)
+              case _ ⇒ throw ServerError.`500`
+            }
+          case _ ⇒ throw ClientError.`404`
+        }
+        case _ ⇒ throw ServerError.`501`
       }
-      case _ ⇒ throw ServerError.`501`
     }
   }
 
@@ -54,6 +60,8 @@ abstract class Dispatcher
   }
 
   protected[this] final var templates: Option[Templates] = None
+
+  private[this] final val resources = new TrieMap[String, Resource]
 
 }
 

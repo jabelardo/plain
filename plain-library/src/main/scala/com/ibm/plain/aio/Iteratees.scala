@@ -58,7 +58,7 @@ object Iteratees {
 
   final def isEof: Iteratee[Io, Boolean] = {
     def cont(input: Input[Io]): (Iteratee[Io, Boolean], Input[Io]) = input match {
-      case Elem(more) if 0 < more.buffer.remaining ⇒ (Done(false), Elem(more))
+      case Elem(more) if 0 < more.readbuffer.remaining ⇒ (Done(false), Elem(more))
       case _ ⇒ (Done(true), Eof)
     }
     Cont(cont _)

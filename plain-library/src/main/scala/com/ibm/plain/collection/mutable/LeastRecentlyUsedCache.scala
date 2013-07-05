@@ -18,9 +18,9 @@ final class LeastRecentlyUsedCache[@specialized A] private (
 
   final def setOnRemove(f: A ⇒ Unit): Unit = onremove = f
 
-  final def get(key: Any) = Option(store.get(key))
+  final def get(key: Any) = store.get(key) match { case null ⇒ None case value ⇒ Some(value) }
 
-  final def remove(key: Any) = Option(store.remove(key))
+  final def remove(key: Any) = store.remove(key) match { case null ⇒ None case value ⇒ Some(value) }
 
   final def clear = { store.values.foreach(onremove); store.clear }
 

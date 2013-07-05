@@ -12,9 +12,11 @@ final class PingResource
 
   extends Resource {
 
-  Get { "pong!" }
+  import PingResource._
 
-  Get { Json(Map("Hello" -> "world!")) }
+  Get { pong.duplicate }
+
+  //  Get { Json(Map("Hello" -> "world!")) }
 
   //  Get { f: Form ⇒ json.Json(f) }
   //
@@ -41,12 +43,8 @@ final class PingResource
 
 }
 
-//object PingResource {
-//
-//  final val pong = {
-//    //     val s = new StringBuilder; (1 to 270).foreach(s.append("pong!").append(_).append("\n")); s.toString.getBytes
-//    "pong!".getBytes
-//  }
-//
-//}
-//
+object PingResource {
+
+  final val pong = { val p = "pong!".getBytes; val b = java.nio.ByteBuffer.allocateDirect(p.length); b.put(p); b.flip; b }
+
+}

@@ -30,3 +30,9 @@ trait BaseUniform
   extends HttpProcessor
 
   with Uniform
+
+/**
+ * Mark any Uniform with this trait when it is safe to use an instance from different threads and repeatedly (that is it has no inner state).
+ */
+trait ReentrantUniform
+

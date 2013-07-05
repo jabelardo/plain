@@ -40,8 +40,7 @@ final case class Response private (
 
   @inline final def renderHeader(io: Io): Io = {
     implicit val _ = io
-    io.buffer.clear
-    bytebuffer = io.buffer
+    bytebuffer = io.writebuffer
     renderVersion
     renderServer
     renderKeepAlive(io)
@@ -54,8 +53,8 @@ final case class Response private (
     @inline def encode = {
       encoding match {
         case Some(enc) ⇒
-          enc.encode(buffer)
-          enc.finish(buffer)
+          enc.encode(writebuffer)
+          enc.finish(writebuffer)
         case _ ⇒
       }
       io ++ Done[Io, Boolean](keepalive)
@@ -64,12 +63,12 @@ final case class Response private (
       case Some(entity: AsynchronousByteChannelEntity) ⇒
         io ++ Transfer(entity.channel, channel, encoding) ++ Done[Io, Boolean](keepalive)
       case Some(entity: ByteBufferEntity) ⇒
-        markbuffer = buffer
-        buffer = entity.buffer
+        markbuffer = writebuffer
+        writebuffer = entity.buffer
         encode
       case Some(entity: ArrayEntity) ⇒
-        markbuffer = buffer
-        buffer = ByteBuffer.wrap(entity.array)
+        markbuffer = writebuffer
+        writebuffer = ByteBuffer.wrap(entity.array)
         encode
       case _ ⇒ unsupported
     }
@@ -78,8 +77,8 @@ final case class Response private (
   @inline final def renderFooter(io: Io): Io = {
     import io._
     if (null != markbuffer) {
-      releaseByteBuffer(buffer)
-      buffer = markbuffer
+      releaseByteBuffer(writebuffer)
+      writebuffer = markbuffer
       markbuffer = null
     }
     io
@@ -123,29 +122,26 @@ final case class Response private (
     @inline def encode(entity: Entity) = {
       encoding match {
         case Some(enc) ⇒
-          buffer.limit(buffer.position)
-          buffer.position(buffer.position - entity.length.toInt)
-          enc.encode(buffer)
-          enc.finish(buffer)
-          buffer.position(0)
+          writebuffer.limit(writebuffer.position)
+          writebuffer.position(writebuffer.position - entity.length.toInt)
+          enc.encode(writebuffer)
+          enc.finish(writebuffer)
+          writebuffer.position(0)
         case _ ⇒
-          buffer.flip
       }
       io ++ Done[Io, Boolean](keepalive)
     }
     entity match {
-      case Some(entity: ByteBufferEntity) if entity.length <= buffer.remaining ⇒
+      case Some(entity: ByteBufferEntity) if entity.length <= writebuffer.remaining ⇒
         rb(entity.buffer) + ^
         releaseByteBuffer(entity.buffer)
         encode(entity)
-      case Some(entity: ArrayEntity) if entity.length <= buffer.remaining ⇒
+      case Some(entity: ArrayEntity) if entity.length <= writebuffer.remaining ⇒
         r(entity.array) + ^
         encode(entity)
       case Some(_) ⇒
-        buffer.flip
         io ++ Cont[Io, Boolean](null)
       case None ⇒
-        buffer.flip
         io ++ Done[Io, Boolean](keepalive)
     }
   }
