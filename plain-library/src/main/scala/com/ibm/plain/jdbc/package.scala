@@ -2,12 +2,12 @@ package com.ibm
 
 package plain
 
-import java.sql.{ SQLException, Savepoint }
+import java.sql.Savepoint
+import javax.sql.DataSource
 
 import com.ibm.plain.jdbc.{ Connection, ConnectionFactory, DataSourceWrapper }
 
 import config.{ CheckedConfig, config2RichConfig }
-import javax.sql.DataSource
 
 package object jdbc
 
@@ -44,7 +44,7 @@ package object jdbc
     case Some(connection) ⇒
       connection.setAutoCommit(true); try body(connection) finally connection.close
     case _ ⇒
-      throw new SQLException("Could not create connection for : '" + name + "'")
+      throw new IllegalStateException("Could not create connection for : '" + name + "'")
   }
 
   /**
@@ -58,7 +58,7 @@ package object jdbc
     case Some(connection) ⇒
       connection.setAutoCommit(false); val savepoint = connection.setSavepoint; try body(connection)(savepoint) finally connection.close
     case _ ⇒
-      throw new SQLException("Could not create connection for : '" + name + "'")
+      throw new IllegalStateException("Could not create connection for : '" + name + "'")
   }
 
   final val startupConnectionFactories: List[String] = getStringList("plain.jdbc.startup-connection-factories", List.empty)

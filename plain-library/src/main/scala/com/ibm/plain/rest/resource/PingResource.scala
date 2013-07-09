@@ -45,6 +45,6 @@ final class PingResource
 
 object PingResource {
 
-  final val pong = { val p = "pong!".getBytes; val b = java.nio.ByteBuffer.allocateDirect(p.length); b.put(p); b.flip; b }
+  final val pong = { val a = "pong!".getBytes; val b = java.nio.ByteBuffer.allocateDirect(a.length); b.put(a); b.flip; b }
 
 }

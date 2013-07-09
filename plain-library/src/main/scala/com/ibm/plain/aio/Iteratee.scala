@@ -39,7 +39,7 @@ object Iteratee {
 
     final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = f(a)
 
-    final def map[B](f: A ⇒ B): Iteratee[E, B] = new Done(f(a))
+    final def map[B](f: A ⇒ B): Iteratee[E, B] = Done(f(a))
 
   }
 
@@ -75,14 +75,10 @@ object Iteratee {
 
     extends Iteratee[E, A] {
 
-    final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = try {
-      k(input)
-    } catch {
-      case e: Throwable ⇒ (Error(e), input)
-    }
+    final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = k(input)
 
     final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = k match {
-      case comp: Compose[E, B] ⇒ Cont(new Compose(comp.k, comp.out, f.asInstanceOf[Any ⇒ Iteratee[E, _]] :: comp.in))
+      case comp: Compose[E, B] ⇒ Cont(comp.clone(f.asInstanceOf[Any ⇒ Iteratee[E, _]]))
       case k ⇒ Cont(new Compose(k, f.asInstanceOf[Any ⇒ Iteratee[E, _]] :: Nil, Nil))
     }
 
@@ -100,13 +96,15 @@ object Iteratee {
 
   private final class Compose[E, A](
 
-    final val k: R[E, _],
+    private[this] final val k: R[E, _],
 
-    final var out: List[Any ⇒ Iteratee[E, _]],
+    private[this] final val out: List[Any ⇒ Iteratee[E, _]],
 
-    final var in: List[Any ⇒ Iteratee[E, _]])
+    private[this] final val in: List[Any ⇒ Iteratee[E, _]])
 
     extends R[E, A] {
+
+    @inline final def clone(f: Any ⇒ Iteratee[E, _]) = { new Compose(k, out, f :: in) }
 
     final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = {
       @tailrec def run(
@@ -114,10 +112,11 @@ object Iteratee {
         out: List[Any ⇒ Iteratee[E, _]],
         in: List[Any ⇒ Iteratee[E, _]]): (Iteratee[E, _], Input[E]) = {
         if (out.isEmpty) {
-          if (in.isEmpty)
+          if (in.isEmpty) {
             result
-          else
-            run(result, in match { case _ :: Nil ⇒ in case _ ⇒ in.reverse }, Nil)
+          } else {
+            run(result, if (1 < in.length) in.reverse else in, Nil)
+          }
         } else {
           result match {
             case (Done(value), remaining) ⇒
