@@ -7,15 +7,14 @@ package logging
 import java.io.{ FileOutputStream, PrintStream }
 import java.nio.file.{ Files, Paths }
 
-import scala.concurrent.duration._
-
 import org.slf4j.LoggerFactory
+
+import scala.concurrent.duration._
 
 import akka.actor.ActorSystem
 import akka.event.{ Logging ⇒ AkkaLogging }
 import akka.event.Logging.{ DebugLevel, ErrorLevel, InfoLevel, WarningLevel, levelFor }
 import akka.event.LoggingAdapter
-import bootstrap.BaseComponent
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.joran.JoranConfigurator
 import ch.qos.logback.core.util.StatusPrinter

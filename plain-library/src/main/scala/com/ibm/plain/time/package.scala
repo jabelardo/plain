@@ -7,6 +7,7 @@ import scala.concurrent.duration._
 
 import akka.event.LoggingAdapter
 import config.CheckedConfig
+import concurrent.schedule
 
 /**
  * Utilities to ease the handling of time values and simple tools for micro benchmarking and profiling.
@@ -18,12 +19,33 @@ package object time
   /**
    * now in milliseconds since 1970
    */
-  def now: Long = System.currentTimeMillis
+  final def now: Long = System.currentTimeMillis
 
   /**
    * now in nanoseconds since 1970
    */
-  def nowNanos: Long = System.nanoTime
+  final def nowNanos: Long = System.nanoTime
+
+  final val `UTC` = java.util.TimeZone.getTimeZone("UTC")
+
+  final val rfc1123format = {
+    val f = new java.text.SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss 'GMT'", java.util.Locale.US)
+    f.setTimeZone(`UTC`)
+    f
+  }
+
+  @volatile final var rfc1123bytearray: Array[Byte] = {
+    schedule(2000) { rfc1123bytearray = rfc1123format.format(now).getBytes }
+    null
+  }
+
+  // prevent "false sharing"
+  @volatile final var padding1: Array[Byte] = null
+  @volatile final var padding2: Array[Byte] = null
+  @volatile final var padding3: Array[Byte] = null
+  @volatile final var padding4: Array[Byte] = null
+  @volatile final var padding5: Array[Byte] = null
+  @volatile final var padding6: Array[Byte] = null
 
   /**
    * Executes f and returns the time elapsed in milliseconds.

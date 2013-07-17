@@ -23,8 +23,8 @@ object Dependencies {
   val specs2        = "org.specs2"                              %%  "specs2"                      % "1.14"
   val junit         = "junit"                                   %   "junit"                       % "4.11"
   val junitItf      = "com.novocode"                            %   "junit-interface"             % "0.9"
-  val config        = "com.typesafe"                            %   "config"                      % "1.0.1"
-  val logback       = "ch.qos.logback"                          %   "logback-classic"             % "1.0.12"
+  val config        = "com.typesafe"                            %   "config"                      % "1.0.2"
+  val logback       = "ch.qos.logback"                          %   "logback-classic"             % "1.0.13"
   val janino        = "org.codehaus.janino"                     %   "janino"                      % "2.6.1"
   val akkaActor     = "com.typesafe.akka"                       %%  "akka-actor"                  % "2.2.0"
   val akkaTestKit   = "com.typesafe.akka"                       %%  "akka-testkit"                % "2.2.0"
@@ -46,7 +46,7 @@ object Dependencies {
   val h2jdbc        = "com.h2database"                          %   "h2"                          % "1.3.172"
   val mysqljdbc     = "mysql"                                   %   "mysql-connector-java"        % "5.1.25"
   val servlet25     = "javax.servlet"                           %   "servlet-api"                 % "2.5"
-  val disruptor     = "com.lmax"                                %   "disruptor"                   % "3.1.0"
+  val disruptor     = "com.lmax"                                %   "disruptor"                   % "3.1.1"
 
   /**
    * Commercial JDBC drivers must be provided at runtime, sorry. Here we list what we have tested.

@@ -10,6 +10,7 @@ import aio.{ Transfer, Encoder, Io, RenderableRoot, releaseByteBuffer, tooTinyTo
 import aio.Iteratee.{ Cont, Done }
 import aio.Renderable._
 import text.`UTF-8`
+import time.{ now, rfc1123bytearray }
 import Entity.{ ArrayEntity, AsynchronousByteChannelEntity, ByteBufferEntity }
 import Message.Headers
 
@@ -42,7 +43,7 @@ final case class Response private (
     implicit val _ = io
     bytebuffer = io.writebuffer
     renderVersion
-    renderServer
+    renderMandatory
     renderKeepAlive(io)
     renderContent
     renderEntity(io)
@@ -88,8 +89,8 @@ final case class Response private (
     version + ` ` + status + `\r\n` + ^
   }
 
-  @inline private[this] final def renderServer = {
-    r(`Server: `) + `\r\n` + ^
+  @inline private[this] final def renderMandatory = {
+    r(`Server: `) + `\r\n` + r(`Date: `) + r(rfc1123bytearray) + `\r\n` + ^
   }
 
   @inline private[this] final def renderKeepAlive(io: Io) = {
@@ -176,6 +177,8 @@ object Response {
   private final val `Transfer-Encoding: chunked` = "Transfer-Encoding: chunked".getBytes
 
   private final val `Server: ` = ("Server: plain " + config.version).getBytes
+
+  private final val `Date: ` = "Date: ".getBytes
 
 }
 

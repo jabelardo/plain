@@ -14,7 +14,7 @@ final class PingResource
 
   import PingResource._
 
-  Get { pong.duplicate }
+  Get { pong }
 
   //  Get { Json(Map("Hello" -> "world!")) }
 
@@ -45,6 +45,8 @@ final class PingResource
 
 object PingResource {
 
-  final val pong = { val a = "pong!".getBytes; val b = java.nio.ByteBuffer.allocateDirect(a.length); b.put(a); b.flip; b }
+  final val pong = "pong!".getBytes
+
+  // final val pong = { val s = new StringBuilder; for (i ← 1 to 1000) s.append("pong!"); s.toString.getBytes }
 
 }
