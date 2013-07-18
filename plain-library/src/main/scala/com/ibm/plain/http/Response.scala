@@ -127,7 +127,8 @@ final case class Response private (
           writebuffer.position(writebuffer.position - entity.length.toInt)
           enc.encode(writebuffer)
           enc.finish(writebuffer)
-          writebuffer.position(0)
+          writebuffer.position(writebuffer.limit)
+          writebuffer.limit(writebuffer.capacity)
         case _ ⇒
       }
       io ++ Done[Io, Boolean](keepalive)
