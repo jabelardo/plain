@@ -54,10 +54,10 @@ object ConnectionHelper {
   implicit final def rs2Array(rs: RichResultSet) = rs.nextArray.getOrElse(new Array[Byte](0))
 
   implicit final def resultSet2Rich(rs: ResultSet) = new RichResultSet(rs)
-  implicit final def rich2ResultSet(r: RichResultSet) = r.rs
+  //  implicit final def rich2ResultSet(r: RichResultSet) = r.rs
 
   implicit final def ps2Rich(ps: PreparedStatement) = new RichPreparedStatement(ps)
-  implicit final def rich2PS(r: RichPreparedStatement) = r.ps
+  //  implicit final def rich2PS(r: RichPreparedStatement) = r.ps
 
   implicit final def str2RichPrepared(s: String)(implicit conn: Connection): RichPreparedStatement = conn.prepareStatement(s, FETCH_FORWARD, TYPE_FORWARD_ONLY, CONCUR_READ_ONLY)
   implicit final def conn2Rich(conn: Connection) = new RichConnection(conn)
@@ -70,7 +70,7 @@ object ConnectionHelper {
   /**
    * Methods like map, list, dump and row should be used for debugging and rapid prototyping, whenever performance or memory consumption is an issue they must be avoided.
    */
-  final class RichResultSet(val rs: ResultSet) {
+  final class RichResultSet(private[this] val rs: ResultSet) {
 
     /**
      * Jdbc starts with 1 not with 0.
@@ -168,7 +168,7 @@ object ConnectionHelper {
   /**
    *
    */
-  final class RichPreparedStatement(val ps: PreparedStatement) {
+  final class RichPreparedStatement(private[this] val ps: PreparedStatement) {
 
     final def execute[A](f: RichResultSet ⇒ A): Stream[A] = {
       pos = 1
@@ -259,7 +259,7 @@ object ConnectionHelper {
   /**
    * Glue it all together.
    */
-  private final def makestream[A](f: RichResultSet ⇒ A, rs: ResultSet): Stream[A] = {
+  @inline private[this] final def makestream[A](f: RichResultSet ⇒ A, rs: ResultSet): Stream[A] = {
     if (rs.next) {
       unsafeCons(f(new RichResultSet(rs)), makestream(f, rs))
     } else {
