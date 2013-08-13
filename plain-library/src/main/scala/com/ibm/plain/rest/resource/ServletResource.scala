@@ -14,7 +14,7 @@ final class ServletResource
 
   extends Resource {
 
-  def get = {
+  final private def get = {
     val servlet = Class.forName("com.vaadin.terminal.gwt.server.ApplicationServlet").newInstance.asInstanceOf[Servlet]
     val servletconfig = ServletConfig(context)
     servletconfig.setInitParameter("application", "com.vaadin.demo.sampler.SamplerApplication")
@@ -25,15 +25,14 @@ final class ServletResource
     val servletrequest = HttpServletRequest(context)
     val servletresponse = HttpServletResponse(context)
     servlet.service(servletrequest, servletresponse)
-    val s = servletresponse.toString
-    s
+    servletresponse.toString
   }
 
   Get { get }
 
   Get { query: String ⇒ get }
 
-  Post { f: String ⇒ println("post " + f); get }
+  Post { f: String ⇒ println("POST " + f); get }
 
 }
 

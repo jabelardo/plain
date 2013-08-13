@@ -45,8 +45,8 @@ final class PingResource
 
 object PingResource {
 
-  // final val pong = "pong!".getBytes
+  final val pong = "pong!".getBytes
 
-  final val pong = { val s = new StringBuilder; for (i ← 1 to 400) s.append("pong!"); s.toString.getBytes }
+  // final val pong = { val s = new StringBuilder; for (i ← 1 to 400) s.append("pong!"); s.toString.getBytes }
 
 }

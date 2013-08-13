@@ -42,6 +42,7 @@ import io.{ ByteArrayInputStream, LZ4 }
     case _ ⇒
       val in = new ObjectInputStream(LZ4.newInputStream(new ByteArrayInputStream(pages(i))))
       val page = in.readObject.asInstanceOf[Array[A]]
+      in.close
       cache.put(i, page)
       page
   }
@@ -74,24 +75,20 @@ final class MemoryCompressedColumnBuilder[@specialized A: ClassTag](
 
   final def next(value: A): Unit = {
     array.update(nextIndex.toInt & mask, value)
-    if (0 == (length.toInt & mask)) {
-      out.reset
-      val os = new ObjectOutputStream(if (highcompression) LZ4.newHighOutputStream(out) else LZ4.newFastOutputStream(out))
-      os.writeObject(array)
-      os.flush
-      arrays += out.toByteArray
-    }
+    if (0 == (length.toInt & mask)) flush
   }
 
   final def result = {
-    if (0 < (length.toInt & mask)) {
-      out.reset
-      val os = new ObjectOutputStream(if (highcompression) LZ4.newHighOutputStream(out) else LZ4.newFastOutputStream(out))
-      os.writeObject(array)
-      os.flush
-      arrays += out.toByteArray
-    }
+    if (0 < (length.toInt & mask)) flush
     new MemoryCompressedColumn[A](length, pagefactor, maxcachesize, arrays.toArray)
+  }
+
+  private[this] final def flush = {
+    out.reset
+    val os = new ObjectOutputStream(if (highcompression) LZ4.newHighOutputStream(out) else LZ4.newFastOutputStream(out))
+    os.writeObject(array)
+    os.close
+    arrays += out.toByteArray
   }
 
   private[this] final val arrays = new ArrayBuffer[Array[Byte]]

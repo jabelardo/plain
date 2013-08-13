@@ -53,7 +53,7 @@ trait ColumnBuilder[A, C <: BuiltColumn[A]] {
 
   final def length: Long = index
 
-  protected[this] final def nextIndex: Long = { index += 1L; index - 1L }
+  protected[this] final def nextIndex: Long = { val i = index; index += 1L; i }
 
   private[this] final var index: Long = 0
 

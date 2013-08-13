@@ -20,9 +20,9 @@ object Dependencies {
 
   val scalareflect  = "org.scala-lang"                          %   "scala-reflect"               % "2.10.2"
   val scalatest     = "org.scalatest"                           %%  "scalatest"                   % "1.9.1"
-  val specs2        = "org.specs2"                              %%  "specs2"                      % "1.14"
+  val specs2        = "org.specs2"                              %%  "specs2"                      % "2.11"
   val junit         = "junit"                                   %   "junit"                       % "4.11"
-  val junitItf      = "com.novocode"                            %   "junit-interface"             % "0.9"
+  val junitItf      = "com.novocode"                            %   "junit-interface"             % "0.10"
   val config        = "com.typesafe"                            %   "config"                      % "1.0.2"
   val logback       = "ch.qos.logback"                          %   "logback-classic"             % "1.0.13"
   val janino        = "org.codehaus.janino"                     %   "janino"                      % "2.6.1"
@@ -43,8 +43,8 @@ object Dependencies {
   val mimepull      = "org.jvnet.mimepull"                      %   "mimepull"                    % "1.9.3"
   val derbyjdbc     = "org.apache.derby"                        %   "derby"                       % "10.10.1.1"
   val derbyclient   = "org.apache.derby"                        %   "derbyclient"                 % "10.10.1.1"
-  val h2jdbc        = "com.h2database"                          %   "h2"                          % "1.3.172"
-  val mysqljdbc     = "mysql"                                   %   "mysql-connector-java"        % "5.1.25"
+  val h2jdbc        = "com.h2database"                          %   "h2"                          % "1.3.173"
+  val mysqljdbc     = "mysql"                                   %   "mysql-connector-java"        % "5.1.26"
   val servlet25     = "javax.servlet"                           %   "servlet-api"                 % "2.5"
   val disruptor     = "com.lmax"                                %   "disruptor"                   % "3.1.1"
 
