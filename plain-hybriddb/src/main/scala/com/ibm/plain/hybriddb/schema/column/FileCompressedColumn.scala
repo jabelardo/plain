@@ -145,7 +145,6 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
     }
     if (withordering.isDefined) {
       if (0 == (i & chunkmask)) {
-        println(chunkmask + " " + value)
         ignore(chunk.close)
         chunk = output(chunkcount.incrementAndGet)._1
       }
@@ -161,7 +160,6 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
       offsets += file.length
     }
     out.doClose
-    println("chunks " + chunkcount.get)
     if (withordering.isDefined) {
       ignore(chunk.close)
       mergeSort(chunkcount.get)

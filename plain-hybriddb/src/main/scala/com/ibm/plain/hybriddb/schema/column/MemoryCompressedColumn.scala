@@ -93,7 +93,7 @@ final class MemoryCompressedColumnBuilder[@specialized A: ClassTag](
 
   private[this] final val arrays = new ArrayBuffer[Array[Byte]]
 
-  private[this] final val array = new Array[A](1 << pagefactor)
+  private final val array = new Array[A](1 << pagefactor)
 
   private[this] final val out = new ByteArrayOutputStream(8 * 1024)
 
