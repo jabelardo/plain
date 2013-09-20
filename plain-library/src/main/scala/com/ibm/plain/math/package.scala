@@ -14,9 +14,9 @@ package object math
   /**
    * If it is a power of 2 only one bit can be set. This is so clever ...
    */
-  def isPowerOfTwo(i: Int) = 1 == Integer.bitCount(i)
+  final def isPowerOfTwo(i: Int) = 1 == Integer.bitCount(i)
 
-  def nextPowerOfTwo(i: Int): Int = {
+  final def nextPowerOfTwo(i: Int): Int = {
     var x = i - 1
     x |= x >> 1
     x |= x >> 2
@@ -26,7 +26,7 @@ package object math
     x + 1
   }
 
-  def nextPowerOfTwo(l: Long): Long = {
+  final def nextPowerOfTwo(l: Long): Long = {
     var x = l - 1
     x |= x >> 1
     x |= x >> 2

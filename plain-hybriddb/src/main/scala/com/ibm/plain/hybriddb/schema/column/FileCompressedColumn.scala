@@ -145,6 +145,7 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
     }
     if (withordering.isDefined) {
       if (0 == (i & chunkmask)) {
+        println(chunkmask + " " + value)
         ignore(chunk.close)
         chunk = output(chunkcount.incrementAndGet)._1
       }
@@ -160,6 +161,7 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
       offsets += file.length
     }
     out.doClose
+    println("chunks " + chunkcount.get)
     if (withordering.isDefined) {
       ignore(chunk.close)
       mergeSort(chunkcount.get)
@@ -340,7 +342,11 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
       Await.ready(f8, Duration.Inf)
     }
 
-    split8(1 to n, 0, sort)
+    concurrent.cores match {
+      case 1 | 2 ⇒ split2(1 to n, 0, sort)
+      case 3 | 4 ⇒ split4(1 to n, 0, sort)
+      case _ ⇒ split8(1 to n, 0, sort)
+    }
     mergeFiles(workingdir.listFiles.length, 0)
     unzipIndexFile
   }
@@ -359,9 +365,9 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
 
   private[this] final val array = new Array[A](1 << pagefactor)
 
-  private[this] final val offsets = { val p = new ArrayBuffer[Long]; p += 0L; p }
+  private[this] final val offsets = { val p = new ArrayBuffer[Long](1024); p += 0L; p }
 
-  private[this] final val indexoffsets = { val p = new ArrayBuffer[Long]; p += 0L; p }
+  private[this] final val indexoffsets = { val p = new ArrayBuffer[Long](1024); p += 0L; p }
 
   private[this] final val file = new File(filepath)
 
@@ -373,10 +379,10 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
 
   private[this] final val mask = (1 << pagefactor) - 1
 
-  private[this] final val chunkmask = (1 << (pagefactor + 10)) - 1
+  private[this] final val chunkmask = (1 << (pagefactor + 12)) - 1
 
   private[this] final val buffersize = 1 * 1024 * 1024
-  
+
   require(24 > pagefactor, "pagefactor should be a reasonable value between 8 and 16")
 
 }
