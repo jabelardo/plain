@@ -13,11 +13,11 @@ import net.jpountz.lz4.{ LZ4BlockInputStream, LZ4BlockOutputStream, LZ4Factory }
  */
 object LZ4 {
 
-  def newFastOutputStream(out: OutputStream): OutputStream = new LZ4BlockOutputStream(out, 64 * 1024, factory.fastCompressor)
+  def newFastOutputStream(out: OutputStream): OutputStream = new LZ4BlockOutputStream(out, defaultLargeBufferSize, factory.fastCompressor)
 
-  def newHighOutputStream(out: OutputStream): OutputStream = new LZ4BlockOutputStream(out, 64 * 1024, factory.highCompressor)
+  def newHighOutputStream(out: OutputStream): OutputStream = new LZ4BlockOutputStream(out, defaultLargeBufferSize, factory.highCompressor)
 
-  def newInputStream(in: InputStream): InputStream = new LZ4BlockInputStream(in, factory.decompressor)
+  def newInputStream(in: InputStream): InputStream = new LZ4BlockInputStream(in, factory.fastDecompressor)
 
   private[this] final val factory = LZ4Factory.fastestInstance
 

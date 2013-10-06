@@ -18,7 +18,7 @@ object Dependencies {
   def runtime     (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "runtime")
   def container   (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "container")
 
-  val scalareflect  = "org.scala-lang"                          %   "scala-reflect"               % "2.10.2"
+  val scalareflect  = "org.scala-lang"                          %   "scala-reflect"               % "2.10.3"
   val scalatest     = "org.scalatest"                           %%  "scalatest"                   % "1.9.1"
   val specs2        = "org.specs2"                              %%  "specs2"                      % "2.11"
   val junit         = "junit"                                   %   "junit"                       % "4.11"
@@ -36,9 +36,9 @@ object Dependencies {
   val commonsNet    = "commons-net"                             %   "commons-net"                 % "3.3"
   val commonsCodec  = "commons-codec"                           %   "commons-codec"               % "1.8"
   val reflections   = "org.reflections"                         %   "reflections"                 % "0.9.8"
-  val clHashMap     = "com.googlecode.concurrentlinkedhashmap"  %   "concurrentlinkedhashmap-lru" % "1.3.2"
-  val lz4           = "net.jpountz.lz4"                         %   "lz4"                         % "1.1.2"
-  val fasterXml     = "com.fasterxml.jackson.core"              %   "jackson-databind"            % "2.2.2"
+  val clHashMap     = "com.googlecode.concurrentlinkedhashmap"  %   "concurrentlinkedhashmap-lru" % "1.4"
+  val lz4           = "net.jpountz.lz4"                         %   "lz4"                         % "1.2.0"
+  val fasterXml     = "com.fasterxml.jackson.core"              %   "jackson-databind"            % "2.2.3"
   val jerseyJson    = "com.sun.jersey"                          %   "jersey-json"                 % "1.17.1"
   val mimepull      = "org.jvnet.mimepull"                      %   "mimepull"                    % "1.9.3"
   val derbyjdbc     = "org.apache.derby"                        %   "derby"                       % "10.10.1.1"
@@ -46,7 +46,7 @@ object Dependencies {
   val h2jdbc        = "com.h2database"                          %   "h2"                          % "1.3.173"
   val mysqljdbc     = "mysql"                                   %   "mysql-connector-java"        % "5.1.26"
   val servlet25     = "javax.servlet"                           %   "servlet-api"                 % "2.5"
-  val disruptor     = "com.lmax"                                %   "disruptor"                   % "3.1.1"
+  val disruptor     = "com.lmax"                                %   "disruptor"                   % "3.2.0"
 
   /**
    * Commercial JDBC drivers must be provided at runtime, sorry. Here we list what we have tested.

@@ -200,25 +200,26 @@ import collection.immutable.Sorting._
 
   @Test def test7 = {
     import math.Matrix
-    val n = 1000000000
+    val n = 10000000
     var t = 0L
     var m = 1
-    var s: MemoryCompressedColumn[Double] = null
+    var s: FileCompressedColumn[Double, Ordering[Double]] = null
     if (true) {
-      var v = Array.fill(n) { Random.nextInt(3) match { case 0 ⇒ 0.0 case 1 ⇒ 1.0 case 2 ⇒ Random.nextDouble } }
-      println(v.length)
-      v(333) = 3.14
-      v(n - 1) = 2.72
-      val b = new MemoryCompressedColumnBuilder[Double](v.length, 20, 1000, false)
+      val b = new FileCompressedColumnBuilder[Double, Ordering[Double]](n, 12, 1000, "/tmp/matrix.bin", Some(Ordering.Double))
       for (i ← 1 to m) {
         t += time.timeNanos {
-          for (j ← 0 until n) b.next(v(j))
+          for (j ← 0 until n) b.next(j match {
+            case 333 ⇒ 3.14
+            case j if n - 1 == j ⇒ 2.72
+            case j if 0 == (j + 1) % 1000000 ⇒
+              println(j + 1); Random.nextInt(3) match { case 0 ⇒ 0.0 case 1 ⇒ 1.0 case 2 ⇒ Random.nextDouble }
+            case _ ⇒ Random.nextInt(3) match { case 0 ⇒ 0.0 case 1 ⇒ 1.0 case 2 ⇒ Random.nextDouble }
+          })
           s = b.result
           println("s " + s)
         }._2
       }
       println("average0 " + (t / m))
-      v = null
     }
     System.gc
     t = 0L
@@ -230,7 +231,6 @@ import collection.immutable.Sorting._
     }
     println("average1 " + (t / m))
     println("333 " + s(333))
-    println(s)
     assert(s(333) == 3.14)
     assert(s(n - 1) == 2.72)
     t = 0L

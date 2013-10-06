@@ -184,7 +184,7 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
           if (i < n) {
             Array.fill(chunkmask + 1)(in.readObject.asInstanceOf[P])
           } else {
-            val a = new ArrayBuffer[P](chunkmask / 2)
+            val a = new ArrayBuffer[P](chunkmask)
             try while (true) a += in.readObject.asInstanceOf[P] catch { case e: EOFException ⇒ }
             a.toArray
           }
@@ -195,7 +195,7 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
       }
     }
 
-    @tailrec def mergeFiles(files: Int, level: Int): Unit = if (1 < files) {
+    @tailrec @inline def mergeFiles(files: Int, level: Int): Unit = if (1 < files) {
       val r = files + (if (0 == files % 2) 0 else 1)
       chunkcount.set(0)
       if (15 < r) {
@@ -212,16 +212,19 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
 
     final class BufferedStream(in: ObjectInputStream) {
       @inline final def close = in.close
-      final def next: Option[P] = if (drained) None else {
-        if (buffer.isEmpty) buffer = try Some(in.readObject.asInstanceOf[P]) catch { case e: EOFException ⇒ drained = true; None }
-        buffer
-      }
+      final def next: Option[P] =
+        if (drained) None else {
+          if (buffer.isEmpty) buffer = try Some(in.readObject.asInstanceOf[P]) catch {
+            case e: EOFException ⇒ drained = true; None
+          }
+          buffer
+        }
       @inline final def consume = { val b = buffer; buffer = None; b }
       private[this] final var buffer: Option[P] = None
       private[this] final var drained = false
     }
 
-    def mergeChunks(range: Range, level: Int): Unit = if (1 < range.length) {
+    @inline def mergeChunks(range: Range, level: Int): Unit = if (1 < range.length) {
       val prev = "_" * level
       val next = "_" * (level + 1)
       val (low, high) = range.splitAt(range.length / 2)
@@ -246,7 +249,7 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
       }
     }
 
-    @tailrec def merge(left: BufferedStream, right: BufferedStream, out: ObjectOutputStream): Unit = {
+    @tailrec @inline def merge(left: BufferedStream, right: BufferedStream, out: ObjectOutputStream): Unit = {
       ((left.next, right.next) match {
         case (Some(x), Some(y)) ⇒ if (0 <= pairordering.compare(x, y)) left.consume else right.consume
         case (Some(_), None) ⇒ left.consume
@@ -377,9 +380,9 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
 
   private[this] final val mask = (1 << pagefactor) - 1
 
-  private[this] final val chunkmask = (1 << (pagefactor + 12)) - 1
+  private[this] final val chunkmask = (1 << (pagefactor + 8)) - 1
 
-  private[this] final val buffersize = 1 * 1024 * 1024
+  private[this] final val buffersize = 128 * 1024
 
   require(24 > pagefactor, "pagefactor should be a reasonable value between 8 and 16")
 
