@@ -7,11 +7,8 @@ import sbt._
 import Keys._
 
 import com.typesafe.sbt._
-import com.typesafe.tools.mima.plugin.MimaPlugin.mimaDefaultSettings
-import com.typesafe.tools.mima.plugin.MimaKeys.previousArtifact
 import com.typesafe.sbteclipse.plugin.EclipsePlugin.EclipseKeys
 import com.typesafe.sbteclipse.plugin.EclipsePlugin.EclipseCreateSrc
-import com.github.retronym.SbtOneJar
 import ls.Plugin.{ lsSettings, LsKeys }
 import LsKeys.{ lsync, docsUrl => lsDocsUrl, tags => lsTags }
 
@@ -38,16 +35,16 @@ object Settings {
     publishArtifact in Compile := false
   )
 
-  lazy val sampleSettings = defaultSettings ++ onejarSettings ++ Seq(
+  lazy val sampleSettings = defaultSettings ++ Seq(
     publishArtifact in Compile := false
   )
 
   lazy val sampleSettingsResourceOnly = sampleSettings ++ eclipseResourceOnly
 
-  lazy val defaultSettings = baseSettings ++ cpsPluginSettings ++ eclipseSettings ++ formatSettings ++ mimaSettings ++ lsSettings ++ Seq(
+  lazy val defaultSettings = baseSettings ++ cpsPluginSettings ++ eclipseSettings ++ formatSettings ++ lsSettings ++ Seq(
 
     scalacOptions in Compile ++= Seq(
-		"-g:none",
+		"-g:vars",
 		"-encoding", "UTF-8", 
 		"-target:jvm-1.7", 
 		"-deprecation", 
@@ -96,11 +93,5 @@ object Settings {
     import scalariform.formatter.preferences._
     FormattingPreferences().setPreference(RewriteArrowSymbols, true)
   }
-
-  lazy val mimaSettings = mimaDefaultSettings ++ Seq(
-    previousArtifact := None
-  )
-  
-  lazy val onejarSettings = SbtOneJar.oneJarSettings
 
 }

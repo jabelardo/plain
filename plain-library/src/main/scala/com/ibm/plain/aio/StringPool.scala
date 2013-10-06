@@ -15,7 +15,7 @@ import scala.collection.mutable.OpenHashMap
  */
 object StringPool {
 
-  final def get(array: Array[Byte], length: Int)(implicit cset: Charset): String = {
+  @inline final def get(array: Array[Byte], length: Int)(implicit cset: Charset): String = {
     strings.get(hash(array, length)) match {
       case Some(s) ⇒ s
       case _ ⇒ new String(array, 0, length, cset)
@@ -38,22 +38,39 @@ object StringPool {
     add(" ")
     add("  ")
     add("   ")
+    add("    ")
+    add("GET")
+    add("HEAD")
     add("POST")
     add("PUT")
+    add("DELETE")
+    add("OPTIONS")
+    add("TRACE")
     add("HTTP/1.1")
     add("HTTP/1.0")
     add("Connection")
+    add("connection")
     add("Keep-Alive")
+    add("Keep-alive")
+    add("keep-alive")
     add("User-Agent")
+    add("User-agent")
+    add("user-agent")
     add("Host")
+    add("host")
     add("Accept")
+    add("accept")
+    add("Accept-Encoding")
+    add("Accept-encoding")
+    add("accept-encoding")
+    add("Accept-Language")
+    add("Accept-language")
+    add("accept-language")
+    add("gzip, deflate")
+    add("en-us,en;q=0.5")
     add("*/*")
-    add("ping")
-    add("ApacheBench/2.3")
     add("127.0.0.1")
-    add("127.0.0.1:80")
-    add("127.0.0.1:8080")
-    add("127.0.0.1:7500")
+    add("localhost")
 
     map
   }
@@ -65,7 +82,7 @@ object StringPool {
     h
   }
 
-  final val arraySize = 32 // must be the same value as used in Io
+  final val arraySize = 256
 
 }
 

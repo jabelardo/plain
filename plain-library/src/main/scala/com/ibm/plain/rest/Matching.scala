@@ -94,7 +94,7 @@ private final class Matching {
 
   final val encodeUnit: Encoder = ((u: Unit) ⇒ None).asInstanceOf[Encoder]
 
-  final val encodeArray: Encoder = ((array: Array[Byte]) ⇒ Some(ArrayEntity(array, ContentType(`text/plain`, `UTF-8`)))).asInstanceOf[Encoder]
+  final val encodeArray: Encoder = ((array: Array[Byte]) ⇒ Some(ArrayEntity(array, `text/plain`))).asInstanceOf[Encoder]
 
   final val encodeByteBuffer: Encoder = ((buffer: ByteBuffer) ⇒ Some(ByteBufferEntity(buffer, `application/octet-stream`))).asInstanceOf[Encoder]
 

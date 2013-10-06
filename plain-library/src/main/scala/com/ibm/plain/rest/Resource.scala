@@ -121,7 +121,7 @@ trait Resource
 
   protected[this] final def transfer(entity: Entity, destination: Channel) = {
     entity match {
-      case entity: ContentEntity ⇒ context.io ++ Transfer(FixedLengthChannel(context.io.channel, context.io.buffer.remaining, entity.length), destination, None)
+      case entity: ContentEntity ⇒ context.io ++ Transfer(FixedLengthChannel(context.io.channel, context.io.readbuffer.remaining, entity.length), destination, None)
       case entity: ArrayEntity ⇒ context.io ++ Transfer(ByteArrayChannel(entity.array), destination, None)
       case _ ⇒ unsupported
     }

@@ -127,6 +127,8 @@ package object io
    */
   final val defaultBufferSize = getBytes("plain.io.default-buffer-size", 2 * 1024).toInt
 
+  final val defaultLargeBufferSize = getBytes("plain.io.default-large-buffer-size", 64 * 1024).toInt
+
   /**
    * To make deleteDirectory more robust.
    */

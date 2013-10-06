@@ -8,7 +8,7 @@ package schema
 
 package column
 
-import java.io.{ BufferedInputStream, EOFException, File, FileInputStream, FileOutputStream, ObjectInputStream, ObjectOutputStream, OutputStream, Closeable }
+import java.io.{ BufferedInputStream, BufferedOutputStream, EOFException, File, FileInputStream, FileOutputStream, ObjectInputStream, ObjectOutputStream, OutputStream, Closeable }
 import java.nio.channels.FileChannel
 import java.nio.channels.FileChannel.MapMode.READ_ONLY
 import java.nio.file.{ Paths, StandardOpenOption }
@@ -55,11 +55,11 @@ import io.{ ByteBufferInputStream, LZ4 }
 
   type Builder = FileCompressedColumnBuilder[A, O]
 
-  override final def toString = "FileCompressedColumn(len=" + length + " pagefactor=" + pagefactor + " pages=" + (pages.length - 1) + " pagesize(avg)=" + (pages.last / pages.length) + " filesize=" + pages.last + " ordered=" + withordering.isDefined + ")"
+  override final def toString = "FileCompressedColumn(len=" + length + " pagefactor=" + pagefactor + " entryperpage(avg)=" + (1 << pagefactor) + " pages=" + (pages.length - 1) + " pagesize(avg)=" + (pages.last / pages.length) + " ordered=" + withordering.isDefined + " filesize=" + pages.last + " file=" + filepath + ")"
 
   final def get(index: Long): A = page(index.toInt >> pagefactor)(index.toInt & mask)
 
-  override final def close = { file.close; cache.clear; if (null != indexfile) indexfile.close }
+  override final def close = { ignore { file.close; cache.clear; if (null != indexfile) indexfile.close } }
 
   private[this] final def page(i: Int) = cache.get(i) match {
     case Some(page) ⇒ page
@@ -67,6 +67,7 @@ import io.{ ByteBufferInputStream, LZ4 }
       val buf = file.map(READ_ONLY, pages(i), pages(i + 1) - pages(i))
       val in = new ObjectInputStream(LZ4.newInputStream(new ByteBufferInputStream(buf)))
       val page = in.readObject.asInstanceOf[Array[A]]
+      in.close
       cache.put(i, page)
       page
   }
@@ -76,9 +77,10 @@ import io.{ ByteBufferInputStream, LZ4 }
     case _ ⇒
       val buf = indexfile.map(READ_ONLY, indexpages(i), indexpages(i + 1) - indexpages(i))
       val in = new ObjectInputStream(new ByteBufferInputStream(buf))
-      val page = in.readObject.asInstanceOf[Array[Int]]
-      indexcache.put(i, page)
-      page
+      val indexpage = in.readObject.asInstanceOf[Array[Int]]
+      in.close
+      indexcache.put(i, indexpage)
+      indexpage
   }
 
   protected final val ordering = withordering.getOrElse(null).asInstanceOf[Ordering[A]]
@@ -138,7 +140,7 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
     if (0 == (length.toInt & mask)) {
       val os = newStream(out)
       os.writeObject(array)
-      os.flush
+      os.close
       offsets += file.length
     }
     if (withordering.isDefined) {
@@ -154,10 +156,10 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
     if (0 < (length.toInt & mask)) {
       val os = newStream(out)
       os.writeObject(array.take(length.toInt & mask))
-      os.flush
+      os.close
       offsets += file.length
     }
-    out.close
+    out.doClose
     if (withordering.isDefined) {
       ignore(chunk.close)
       mergeSort(chunkcount.get)
@@ -176,14 +178,13 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
     }
 
     def sort(range: Range, level: Int) = {
-      println(range)
       for (i ← range) {
         val (in, _) = input(i)
         val chunk =
           if (i < n) {
             Array.fill(chunkmask + 1)(in.readObject.asInstanceOf[P])
           } else {
-            val a = new ArrayBuffer[P](chunkmask / 2)
+            val a = new ArrayBuffer[P](chunkmask)
             try while (true) a += in.readObject.asInstanceOf[P] catch { case e: EOFException ⇒ }
             a.toArray
           }
@@ -194,7 +195,7 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
       }
     }
 
-    @tailrec def mergeFiles(files: Int, level: Int): Unit = if (1 < files) {
+    @tailrec @inline def mergeFiles(files: Int, level: Int): Unit = if (1 < files) {
       val r = files + (if (0 == files % 2) 0 else 1)
       chunkcount.set(0)
       if (15 < r) {
@@ -211,22 +212,24 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
 
     final class BufferedStream(in: ObjectInputStream) {
       @inline final def close = in.close
-      final def next: Option[P] = if (drained) None else {
-        if (buffer.isEmpty) buffer = try Some(in.readObject.asInstanceOf[P]) catch { case e: EOFException ⇒ drained = true; None }
-        buffer
-      }
+      final def next: Option[P] =
+        if (drained) None else {
+          if (buffer.isEmpty) buffer = try Some(in.readObject.asInstanceOf[P]) catch {
+            case e: EOFException ⇒ drained = true; None
+          }
+          buffer
+        }
       @inline final def consume = { val b = buffer; buffer = None; b }
       private[this] final var buffer: Option[P] = None
       private[this] final var drained = false
     }
 
-    def mergeChunks(range: Range, level: Int): Unit = if (1 < range.length) {
+    @inline def mergeChunks(range: Range, level: Int): Unit = if (1 < range.length) {
       val prev = "_" * level
       val next = "_" * (level + 1)
       val (low, high) = range.splitAt(range.length / 2)
       low.zipAll(high, -1, -1).map {
         case (l, r) ⇒
-          println(level + " : " + l + "+" + r)
           val (left, lfile) = try input(prev + l) catch { case _: Throwable ⇒ (null, null) }
           val (right, rfile) = try input(prev + r) catch { case _: Throwable ⇒ (null, null) }
           val (out, ofile) = output(next + chunkcount.incrementAndGet)
@@ -246,7 +249,7 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
       }
     }
 
-    @tailrec def merge(left: BufferedStream, right: BufferedStream, out: ObjectOutputStream): Unit = {
+    @tailrec @inline def merge(left: BufferedStream, right: BufferedStream, out: ObjectOutputStream): Unit = {
       ((left.next, right.next) match {
         case (Some(x), Some(y)) ⇒ if (0 <= pairordering.compare(x, y)) left.consume else right.consume
         case (Some(_), None) ⇒ left.consume
@@ -265,7 +268,7 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
 
     def unzipIndexFile = {
       val ofile = new File(filepath + ".index")
-      val out = new FileOutputStream(ofile)
+      val out = new BufferedOutputStream(new FileOutputStream(ofile), buffersize)
       val (in, ifile) = input(workingdir.listFiles.head)
       val array = new Array[Int](1 << pagefactor)
       var i = 0
@@ -340,18 +343,22 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
       Await.ready(f8, Duration.Inf)
     }
 
-    println("sort " + time.timeNanos(split8(1 to n, 0, sort))._2)
-    println("merge " + time.timeNanos(mergeFiles(workingdir.listFiles.length, 0))._2)
-    println("unzip " + time.timeNanos(unzipIndexFile)._2)
+    concurrent.cores match {
+      case 1 | 2 ⇒ split2(1 to n, 0, sort)
+      case 3 | 4 ⇒ split4(1 to n, 0, sort)
+      case _ ⇒ split8(1 to n, 0, sort)
+    }
+    mergeFiles(workingdir.listFiles.length, 0)
+    unzipIndexFile
   }
 
   private[this] final def newStream(out: OutputStream) = new ObjectOutputStream(LZ4.newFastOutputStream(out))
 
-  private[this] final def output(f: File) = (new ObjectOutputStream(LZ4.newFastOutputStream(new FileOutputStream(f))), f)
+  private[this] final def output(f: File) = (new ObjectOutputStream(LZ4.newFastOutputStream(new BufferedOutputStream(new FileOutputStream(f), buffersize))), f)
 
   private[this] final def output(suffix: Any): (ObjectOutputStream, File) = output(new File(workingdir.getAbsolutePath + "/chunk." + suffix))
 
-  private[this] final def input(f: File) = (new ObjectInputStream(LZ4.newInputStream(new BufferedInputStream(new FileInputStream(f)))), f)
+  private[this] final def input(f: File) = (new ObjectInputStream(LZ4.newInputStream(new BufferedInputStream(new FileInputStream(f), buffersize))), f)
 
   private[this] final def input(suffix: Any): (ObjectInputStream, File) = input(new File(workingdir.getAbsolutePath + "/chunk." + suffix))
 
@@ -359,13 +366,13 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
 
   private[this] final val array = new Array[A](1 << pagefactor)
 
-  private[this] final val offsets = { val p = new ArrayBuffer[Long]; p += 0L; p }
+  private[this] final val offsets = { val p = new ArrayBuffer[Long](1024); p += 0L; p }
 
-  private[this] final val indexoffsets = { val p = new ArrayBuffer[Long]; p += 0L; p }
+  private[this] final val indexoffsets = { val p = new ArrayBuffer[Long](1024); p += 0L; p }
 
   private[this] final val file = new File(filepath)
 
-  private[this] final val out = new FileOutputStream(file)
+  private[this] final val out = new BufferedOutputStream(new FileOutputStream(file), buffersize) with io.IgnoreClose
 
   private[this] final val chunkcount = new AtomicInteger
 
@@ -373,7 +380,11 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
 
   private[this] final val mask = (1 << pagefactor) - 1
 
-  private[this] final val chunkmask = (1 << (pagefactor + 10)) - 1
+  private[this] final val chunkmask = (1 << (pagefactor + 8)) - 1
+
+  private[this] final val buffersize = 128 * 1024
+
+  require(24 > pagefactor, "pagefactor should be a reasonable value between 8 and 16")
 
 }
 

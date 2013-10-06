@@ -86,32 +86,46 @@ object Renderable {
 
     @inline final def apply(l: Long): r = new r(ls(l))
 
-    @inline private[this] final def ls(l: Long) = l match {
-      case 0 ⇒ `0`
-      case 1 ⇒ `1`
-      case 2 ⇒ `2`
-      case 3 ⇒ `3`
-      case 4 ⇒ `4`
-      case 5 ⇒ `5`
-      case 6 ⇒ `6`
-      case 7 ⇒ `7`
-      case 8 ⇒ `8`
-      case 9 ⇒ `9`
-      case 10 ⇒ `10`
-      case l ⇒ l.toString.getBytes
-    }
+    @inline final def apply(i: Int): r = new r(ls(i))
 
-    private[this] final val `0` = "0".getBytes
-    private[this] final val `1` = "1".getBytes
-    private[this] final val `2` = "2".getBytes
-    private[this] final val `3` = "3".getBytes
-    private[this] final val `4` = "4".getBytes
-    private[this] final val `5` = "5".getBytes
-    private[this] final val `6` = "6".getBytes
-    private[this] final val `7` = "7".getBytes
-    private[this] final val `8` = "8".getBytes
-    private[this] final val `9` = "9".getBytes
-    private[this] final val `10` = "10".getBytes
+    @inline private[this] final def ls(l: Long) = try longs(l.toInt) catch { case _: Throwable ⇒ l.toString.getBytes }
+
+    @inline private[this] final def ls(i: Int) = try longs(i) catch { case _: Throwable ⇒ i.toString.getBytes }
+
+    private[this] final val longs: Array[Array[Byte]] = Array(
+      "0".getBytes,
+      "1".getBytes,
+      "2".getBytes,
+      "3".getBytes,
+      "4".getBytes,
+      "5".getBytes,
+      "6".getBytes,
+      "7".getBytes,
+      "8".getBytes,
+      "9".getBytes,
+      "10".getBytes,
+      "11".getBytes,
+      "12".getBytes,
+      "13".getBytes,
+      "14".getBytes,
+      "15".getBytes,
+      "16".getBytes,
+      "17".getBytes,
+      "18".getBytes,
+      "19".getBytes,
+      "20".getBytes,
+      "21".getBytes,
+      "22".getBytes,
+      "23".getBytes,
+      "24".getBytes,
+      "25".getBytes,
+      "26".getBytes,
+      "27".getBytes,
+      "28".getBytes,
+      "29".getBytes,
+      "30".getBytes,
+      "31".getBytes,
+      "32".getBytes)
 
   }
 

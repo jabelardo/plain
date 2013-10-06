@@ -11,9 +11,10 @@ import aio.Input._
 import text._
 import Message.Headers
 import Request.Path
-import Status.ServerError.`501`
+import Status.ClientError.`400`
 import Header.Entity.{ `Content-Length`, `Content-Type` }
 import Header.General.`Transfer-Encoding`
+import Version.`HTTP/1.1`
 import Entity.{ ArrayEntity, ContentEntity, TransferEncodedEntity }
 import MimeType.`text/plain`
 
@@ -67,7 +68,7 @@ final class RequestIteratee private ()(implicit server: Server) {
           path ← readPath
           query ← readQuery
         } yield (path, query)
-        case _ ⇒ throw `501`
+        case _ ⇒ throw `400`
       }
     }
 

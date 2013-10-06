@@ -26,7 +26,9 @@ final class Io private (
 
   var channel: Channel,
 
-  var buffer: ByteBuffer,
+  var readbuffer: ByteBuffer,
+
+  var writebuffer: ByteBuffer,
 
   var iteratee: Iteratee[Io, _],
 
@@ -54,15 +56,15 @@ final class Io private (
   } else {
     warnOnce
     val b = ByteBuffer.allocate(this.length + that.length)
-    b.put(this.readBytes(this.buffer.remaining))
-    b.put(that.buffer)
-    this.releaseBuffer
-    that.releaseBuffer
+    b.put(this.readBytes(this.readbuffer.remaining))
+    b.put(that.readbuffer)
+    this.releaseReadBuffer
+    that.releaseReadBuffer
     b.flip
     that + b
   }
 
-  @inline final def ++(channel: Channel) = new Io(channel, buffer, iteratee, renderable, encoder, transfer, message, keepalive)
+  @inline final def ++(channel: Channel) = new Io(channel, readbuffer, writebuffer, iteratee, renderable, encoder, transfer, message, keepalive)
 
   @inline final def ++(iteratee: Iteratee[Io, _]) = { this.iteratee = iteratee; this }
 
@@ -76,25 +78,31 @@ final class Io private (
 
   @inline final def ++(keepalive: Boolean) = { if (this.keepalive) this.keepalive = keepalive; this }
 
-  @inline final def ++(buffer: ByteBuffer) = if (0 < this.buffer.remaining) {
-    new Io(channel, buffer, iteratee, renderable, encoder, transfer, message, keepalive)
+  @inline final def ++(readbuffer: ByteBuffer) = if (0 < this.readbuffer.remaining) {
+    new Io(channel, readbuffer, writebuffer, iteratee, renderable, encoder, transfer, message, keepalive)
   } else {
-    this + buffer
+    this + readbuffer
   }
 
-  @inline private final def +(buffer: ByteBuffer) = {
-    if (this.buffer ne emptyBuffer) releaseByteBuffer(this.buffer)
-    this.buffer = buffer
+  @inline private final def +(readbuffer: ByteBuffer) = {
+    if (this.readbuffer ne emptyBuffer) releaseByteBuffer(this.readbuffer)
+    this.readbuffer = readbuffer
     this
   }
 
-  @inline private final def releaseBuffer = if (buffer ne emptyBuffer) {
-    releaseByteBuffer(buffer)
-    buffer = emptyBuffer
+  @inline private final def releaseReadBuffer = if (readbuffer ne emptyBuffer) {
+    releaseByteBuffer(readbuffer)
+    readbuffer = emptyBuffer
+  }
+
+  @inline private[this] final def releaseWriteBuffer = if (writebuffer ne emptyBuffer) {
+    releaseByteBuffer(writebuffer)
+    writebuffer = emptyBuffer
   }
 
   @inline private[aio] final def release = {
-    releaseBuffer
+    releaseReadBuffer
+    releaseWriteBuffer
     if (channel.isOpen) channel.close
   }
 
@@ -103,11 +111,11 @@ final class Io private (
       case _: IOException ⇒
       case e ⇒ logger.debug("Io.error " + e.toString)
     }
-    releaseBuffer
+    releaseReadBuffer
   }
 
   final def decode(implicit cset: Charset): String = advanceBuffer(
-    buffer.remaining match {
+    readbuffer.remaining match {
       case 0 ⇒ Io.emptyString
       case n ⇒ readBytes(n) match {
         case a if a eq array ⇒ StringPool.get(a, n)
@@ -116,16 +124,16 @@ final class Io private (
     })
 
   final def consume: Array[Byte] = advanceBuffer(
-    buffer.remaining match {
+    readbuffer.remaining match {
       case 0 ⇒ Io.emptyArray
       case n ⇒ readBytes(n)
     })
 
-  @inline final def length: Int = buffer.remaining
+  @inline final def length: Int = readbuffer.remaining
 
   final def take(n: Int): Io = {
     markLimit
-    buffer.limit(min(buffer.limit, buffer.position + n))
+    readbuffer.limit(min(readbuffer.limit, readbuffer.position + n))
     this
   }
 
@@ -134,38 +142,38 @@ final class Io private (
     take(n)
   }
 
-  @inline final def peek: Byte = buffer.get(buffer.position)
+  @inline final def peek: Byte = readbuffer.get(readbuffer.position)
 
   final def drop(n: Int): Io = {
-    buffer.position(min(buffer.limit, buffer.position + n))
+    readbuffer.position(min(readbuffer.limit, readbuffer.position + n))
     this
   }
 
   final def indexOf(b: Byte): Int = {
-    val p = buffer.position
-    val l = buffer.limit
+    val p = readbuffer.position
+    val l = readbuffer.limit
     var i = p
-    while (i < l && b != buffer.get(i)) i += 1
+    while (i < l && b != readbuffer.get(i)) i += 1
     if (i == l) -1 else i - p
   }
 
   final def span(p: Int ⇒ Boolean): (Int, Int) = {
-    val pos = buffer.position
-    val l = buffer.limit
+    val pos = readbuffer.position
+    val l = readbuffer.limit
     var i = pos
-    while (i < l && p(buffer.get(i))) i += 1
+    while (i < l && p(readbuffer.get(i))) i += 1
     (i - pos, l - i)
   }
 
-  @inline private[this] final def readBytes(n: Int): Array[Byte] = if (StringPool.arraySize >= n) { buffer.get(array, 0, n); array } else Array.fill(n)(buffer.get)
+  @inline private[this] final def readBytes(n: Int): Array[Byte] = if (StringPool.arraySize >= n) { readbuffer.get(array, 0, n); array } else Array.fill(n)(readbuffer.get)
 
-  @inline private[this] final def markLimit = limitmark = buffer.limit
+  @inline private[this] final def markLimit = limitmark = readbuffer.limit
 
-  @inline private[this] final def markPosition = positionmark = buffer.position
+  @inline private[this] final def markPosition = positionmark = readbuffer.position
 
   @inline private[this] final def advanceBuffer[A](a: A): A = {
-    buffer.limit(limitmark)
-    if (-1 < positionmark) { buffer.position(positionmark); positionmark = -1 }
+    readbuffer.limit(limitmark)
+    if (-1 < positionmark) { readbuffer.position(positionmark); positionmark = -1 }
     a
   }
 
@@ -194,9 +202,9 @@ object Io
 
   final private[aio] val emptyString = new String
 
-  final private[aio] val empty = new Io(null, emptyBuffer, null, null, null, null, null, false)
+  final private[aio] val empty = new Io(null, emptyBuffer, emptyBuffer, null, null, null, null, null, false)
 
-  final private[aio] def apply(iteratee: Iteratee[Io, _]): Io = new Io(null, emptyBuffer, iteratee, null, null, null, null, true)
+  final private[aio] def apply(iteratee: Iteratee[Io, _]): Io = new Io(null, emptyBuffer, defaultByteBuffer, iteratee, null, null, null, null, true)
 
   final private def warnOnce = onlyonce { warning("Chunked input found. Enlarge aio.default-buffer-size : " + defaultBufferSize) }
 
@@ -237,18 +245,15 @@ object Io
         if (0 > processed) {
           io.release
         } else {
-          (if (-1 < processed) {
-            io.buffer.flip
-            io.iteratee(Elem(io))
-          } else {
-            io.iteratee(Eof)
-          }) match {
+          io.readbuffer.flip
+          io.writebuffer.clear
+          if (0 == processed) io.iteratee(Eof) else io.iteratee(Elem(io)) match {
             case (cont @ Cont(_), Empty) ⇒
               read(io ++ cont ++ defaultByteBuffer)
             case (e @ Done(_), Elem(io)) ⇒
               process(io ++ e)
             case (e @ Error(_), Elem(io)) ⇒
-              io.buffer.clear
+              io.readbuffer.clear
               process(io ++ e)
             case (_, Eof) ⇒
               ignore
@@ -271,14 +276,31 @@ object Io
           case Done(renderable: RenderableRoot) ⇒
             renderable.renderHeader(io ++ renderable).transfer match {
               case Transfer(_, _, _) ⇒ TransferHandler.read(io)
-              case _ ⇒ write(io)
+              case _ ⇒ if (0 < io.readbuffer.remaining) {
+                io.renderable.renderFooter(io) ++ readiteratee
+                io.iteratee(Elem(io)) match {
+                  case (cont @ Cont(_), Empty) ⇒
+                    read(io ++ cont ++ defaultByteBuffer)
+                  case (e @ Done(_), Elem(io)) ⇒
+                    process(io ++ e)
+                  case (e @ Error(_), Elem(io)) ⇒
+                    io.readbuffer.clear
+                    process(io ++ e)
+                  case (_, Eof) ⇒
+                    ignore
+                  case e ⇒
+                    unhandled(e)
+                }
+              } else {
+                write(io)
+              }
             }
           case Error(e: InterruptedByTimeoutException) ⇒
             ignore
           case Error(e: IOException) ⇒
             io.error(e)
           case Error(e) ⇒
-            info("process " + e.toString)
+            info("process failed " + e.toString)
             io.error(e)
           case e ⇒
             unhandled(e)
@@ -296,7 +318,7 @@ object Io
       @inline final def completed(processed: Integer, io: Io) = {
         if (0 > processed) {
           io.release
-        } else if (0 == io.buffer.remaining || io.isError) {
+        } else if (0 == io.writebuffer.remaining || io.isError) {
           io.iteratee match {
             case Done(keepalive: Boolean) ⇒
               if (keepalive) {
@@ -313,7 +335,7 @@ object Io
               io.release
               ignore
             case Error(e) ⇒
-              info("writeloop " + e.toString)
+              info("write failed " + e.toString)
             case e ⇒
               unhandled(e)
           }
@@ -330,26 +352,26 @@ object Io
 
       extends Handler[Integer, Io] {
 
-      @inline def read(io: Io): Unit = if (0 < io.buffer.remaining) {
+      @inline def read(io: Io): Unit = if (0 < io.readbuffer.remaining) {
         write(io)
       } else {
-        io.buffer.clear
-        io.transfer.source.read(io.buffer, io, this)
+        io.readbuffer.clear
+        io.transfer.source.read(io.readbuffer, io, this)
       }
 
-      @inline def write(io: Io) = io.transfer.destination.write(io.buffer, io, TransferWriteHandler)
+      @inline def write(io: Io) = io.transfer.destination.write(io.readbuffer, io, TransferWriteHandler)
 
       @inline def completed(processed: Integer, io: Io) = {
-        io.buffer.flip
+        io.readbuffer.flip
         if (0 < processed) {
           if (io.transfer.encoder.isDefined) {
-            io.transfer.encoder.get.encode(io.buffer)
-            io.buffer.flip
+            io.transfer.encoder.get.encode(io.readbuffer)
+            io.readbuffer.flip
           }
           write(io)
         } else {
           if (io.transfer.encoder.isDefined) {
-            io.transfer.encoder.get.finish(io.buffer)
+            io.transfer.encoder.get.finish(io.readbuffer)
           }
           io.transfer.source match { case f: FileByteChannel ⇒ f.close case _ ⇒ }
           io.transfer.destination match { case f: FileByteChannel ⇒ f.close case _ ⇒ }
@@ -382,8 +404,8 @@ object Io
     }
 
     @inline def read(io: Io): Unit = {
-      io.buffer.clear
-      io.channel.read(io.buffer, io, ReadHandler)
+      io.readbuffer.clear
+      io.channel.read(io.readbuffer, io, ReadHandler)
     }
 
     @inline def process(io: Io): Unit = {
@@ -391,7 +413,8 @@ object Io
     }
 
     @inline def write(io: Io): Unit = {
-      io.channel.write(io.buffer, io, WriteHandler)
+      io.writebuffer.flip
+      io.channel.write(io.writebuffer, io, WriteHandler)
     }
 
     @inline def unhandled(e: Any) = error("unhandled " + e)

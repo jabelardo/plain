@@ -6,15 +6,15 @@ package math
 
 import java.io.PrintWriter
 
-sealed class Matrix(val m: Array[Double])
+final class Matrix(val m: Array[Double])
 
   extends Serializable {
 
-  override def toString = asString
+  final override def toString = asString
 
-  def write(writer: PrintWriter)(implicit prefix: String = "m") = writer.print(asString)
+  final def write(writer: PrintWriter)(implicit prefix: String = "m") = writer.print(asString)
 
-  def asString(implicit prefix: String = "m") = {
+  final def asString(implicit prefix: String = "m") = {
     val s = """"%s1":%.15g,"%s2":%.15g,"%s3":%.15g,"%s4":%.15g,"%s5":%.15g,"%s6":%.15g,"%s7":%.15g,"%s8":%.15g,"%s9":%.15g,"%s10":%.15g,"%s11":%.15g,"%s12":%.15g"""
     s.format(
       prefix, m(0),
@@ -31,7 +31,7 @@ sealed class Matrix(val m: Array[Double])
       prefix, m(11))
   }
 
-  def toMap(implicit prefix: String = "m") = List(
+  final def toMap(implicit prefix: String = "m") = List(
     (prefix + "1", m(0)),
     (prefix + "2", m(1)),
     (prefix + "3", m(2)),
@@ -49,7 +49,7 @@ sealed class Matrix(val m: Array[Double])
 
 object Matrix {
 
-  def apply(
+  final def apply(
     m1: Double,
     m2: Double,
     m3: Double,
@@ -63,7 +63,7 @@ object Matrix {
     m11: Double,
     m12: Double): Matrix = apply(Array[Double](m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12))
 
-  def apply(m: Array[Double]) = new Matrix(m)
+  final def apply(m: Array[Double]) = new Matrix(m)
 
 }
 

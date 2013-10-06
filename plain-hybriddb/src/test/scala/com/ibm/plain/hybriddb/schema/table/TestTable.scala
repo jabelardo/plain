@@ -18,6 +18,7 @@ import Tuples._
 import TypeOperators._
 
 import column._
+import json.Json
 
 object Test2 {
 
@@ -46,7 +47,7 @@ object Test2 {
   @Test def test4 = {
     val data = List(List(1001, "Dow", "John", "London", true, 21), List(1002, "Smith", "Mary", "München", false, 23), List(1003, "Jones", "Paul", "London", false, 24))
     val p = Table.fromSeq[Persons]("persons", data.length, data.view)
-    for (i ← 0 until p.length.toInt) println(i + " : " + p.row(i))
+    for (i ← 0 until p.length.toInt) println(i + " : " + Json.build(p.row(i)))
     assert(true)
   }
 
@@ -115,7 +116,9 @@ final class MyStringOrdering extends Ordering.StringOrdering
 
   extends Table {
 
-  val female = new FunctionColumn[Boolean](length, !male(_))
+  final val female = new FunctionColumn[Boolean](length, !male(_))
+
+  final val ageindays = new FunctionColumn[Int](length, 365 * age(_))
 
 }
 

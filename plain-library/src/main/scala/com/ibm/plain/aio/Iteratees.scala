@@ -56,6 +56,14 @@ object Iteratees {
     Cont(cont _)
   }
 
+  final def isEof: Iteratee[Io, Boolean] = {
+    def cont(input: Input[Io]): (Iteratee[Io, Boolean], Input[Io]) = input match {
+      case Elem(more) if 0 < more.readbuffer.remaining ⇒ (Done(false), Elem(more))
+      case _ ⇒ (Done(true), Eof)
+    }
+    Cont(cont _)
+  }
+
   final def peek(n: Int)(implicit cset: Charset): Iteratee[Io, String] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Elem(more) ⇒

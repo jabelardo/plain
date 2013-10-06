@@ -5,7 +5,9 @@ package plain
 import java.sql.Savepoint
 import javax.sql.DataSource
 
-import config.CheckedConfig
+import com.ibm.plain.jdbc.{ Connection, ConnectionFactory, DataSourceWrapper }
+
+import config.{ CheckedConfig, config2RichConfig }
 
 package object jdbc
 
@@ -38,11 +40,11 @@ package object jdbc
    * withConnection will always auto-commit after each sql statement, you will need to import scala.language.postfixOps to get rid of warnings
    * for methods like <<!!.
    */
-  final def withConnection(name: String)(body: Connection ⇒ Unit): Unit = connectionForName(name) match {
+  final def withConnection[A](name: String)(body: Connection ⇒ A): A = connectionForName(name) match {
     case Some(connection) ⇒
-      connection.setAutoCommit(true); body(connection)
+      connection.setAutoCommit(true); try body(connection) finally connection.close
     case _ ⇒
-      throw new UnsupportedOperationException("Could not create connection for : '" + name + "'")
+      throw new IllegalStateException("Could not create connection for : '" + name + "'")
   }
 
   /**
@@ -52,11 +54,11 @@ package object jdbc
    *
    * withTransaction will never commit or rollback automatically, it must be done inside 'body' to make things permanent.
    */
-  final def withTransaction(name: String)(body: Connection ⇒ Savepoint ⇒ Unit): Unit = connectionForName(name) match {
+  final def withTransaction[A](name: String)(body: Connection ⇒ Savepoint ⇒ A): A = connectionForName(name) match {
     case Some(connection) ⇒
-      connection.setAutoCommit(false); val savepoint = connection.setSavepoint; body(connection)(savepoint)
+      connection.setAutoCommit(false); val savepoint = connection.setSavepoint; try body(connection)(savepoint) finally connection.close
     case _ ⇒
-      throw new UnsupportedOperationException("Could not create connection for : '" + name + "'")
+      throw new IllegalStateException("Could not create connection for : '" + name + "'")
   }
 
   final val startupConnectionFactories: List[String] = getStringList("plain.jdbc.startup-connection-factories", List.empty)

@@ -13,7 +13,7 @@ trait HasContent {
 
   self: HasContext ⇒
 
-  override final def toString = { println("getContentType"); bytebuffer.flip; new String(bytebuffer.array, 0, bytebuffer.remaining) }
+  override final def toString = { bytebuffer.flip; new String(bytebuffer.array, 0, bytebuffer.remaining) }
 
   final def getContentLength: Int = unsupported
 

@@ -128,7 +128,7 @@ import collection.immutable.Sorting._
           println("s " + s)
         }._2
       }
-      println("average " + (t / m))
+      println("average1 " + (t / m))
       v = null
     }
     System.gc
@@ -139,20 +139,19 @@ import collection.immutable.Sorting._
         s(Random.nextInt(n / 100))
       }._2
     }
-    println("average " + (t / m))
+    println("average2 " + (t / m))
     assert(s(333) == 3.14)
     assert(s(n - 1) == 2.72)
     t = 0L
-    m = 1
+    m = 5
     for (i ← 1 to m) {
       for (j ← 0 until n) t += time.timeNanos { s(j) }._2
     }
-    println("average " + (t / n))
+    println("average3 " + (t / (n * m)))
     assert(true)
   }
 
   @Test def test6 = {
-    import math.Matrix
     val n = 1000000
     var t = 0L
     var m = 1
@@ -162,7 +161,7 @@ import collection.immutable.Sorting._
       println(v.length)
       v(333) = 3.14
       v(n - 1) = 2.72
-      val b = new FileCompressedColumnBuilder[Double, Ordering[Double]](v.length, "/tmp/matrix.bin", Some(Ordering.Double))
+      val b = new FileCompressedColumnBuilder[Double, Ordering[Double]](v.length, 12, 1000, "/tmp/matrix.bin", Some(Ordering.Double))
       for (i ← 1 to m) {
         t += time.timeNanos {
           for (j ← 0 until n) b.next(v(j))
@@ -170,7 +169,7 @@ import collection.immutable.Sorting._
           println("s " + s)
         }._2
       }
-      println("average " + (t / m))
+      println("average0 " + (t / m))
       v = null
     }
     System.gc
@@ -181,7 +180,7 @@ import collection.immutable.Sorting._
         s(Random.nextInt(n / 100))
       }._2
     }
-    println("average " + (t / m))
+    println("average1 " + (t / m))
     assert(s(333) == 3.14)
     assert(s(n - 1) == 2.72)
     t = 0L
@@ -189,13 +188,98 @@ import collection.immutable.Sorting._
     for (i ← 1 to m) {
       for (j ← 0 until n) t += time.timeNanos { s(j) }._2
     }
-    println("average " + (t / n))
+    println("average2 " + (t / (m * n)))
     t = 0L
     m = 100000
     for (i ← 1 to m) {
       t += time.timeNanos { s.between(0.7, 0.701); s.gt(0.5) }._2
     }
-    println("average " + (t / m))
+    println("average3 " + (t / m))
+    assert(true)
+  }
+
+  @Test def test7 = {
+    import math.Matrix
+    val n = 10000000
+    var t = 0L
+    var m = 1
+    var s: FileCompressedColumn[Double, Ordering[Double]] = null
+    if (true) {
+      val b = new FileCompressedColumnBuilder[Double, Ordering[Double]](n, 12, 1000, "/tmp/matrix.bin", Some(Ordering.Double))
+      for (i ← 1 to m) {
+        t += time.timeNanos {
+          for (j ← 0 until n) b.next(j match {
+            case 333 ⇒ 3.14
+            case j if n - 1 == j ⇒ 2.72
+            case j if 0 == (j + 1) % 1000000 ⇒
+              println(j + 1); Random.nextInt(3) match { case 0 ⇒ 0.0 case 1 ⇒ 1.0 case 2 ⇒ Random.nextDouble }
+            case _ ⇒ Random.nextInt(3) match { case 0 ⇒ 0.0 case 1 ⇒ 1.0 case 2 ⇒ Random.nextDouble }
+          })
+          s = b.result
+          println("s " + s)
+        }._2
+      }
+      println("average0 " + (t / m))
+    }
+    System.gc
+    t = 0L
+    m = 1000000
+    for (i ← 1 to m) {
+      t += time.timeNanos {
+        s(Random.nextInt(n / 100))
+      }._2
+    }
+    println("average1 " + (t / m))
+    println("333 " + s(333))
+    assert(s(333) == 3.14)
+    assert(s(n - 1) == 2.72)
+    t = 0L
+    m = 1
+    for (i ← 1 to m) {
+      for (j ← 0 until n) t += time.timeNanos { s(j) }._2
+    }
+    println("average2 " + (t / (m * n)))
+    assert(true)
+  }
+
+  @Test def test8 = {
+    val n = 50000000
+    var t = 0L
+    var m = 1
+    var s: ArrayColumn[Double] = null
+    if (true) {
+      var v = Array.fill(n) { Random.nextInt(3) match { case 0 ⇒ 0.0 case 1 ⇒ 1.0 case 2 ⇒ Random.nextDouble } }
+      println(v.length)
+      v(333) = 3.14
+      v(n - 1) = 2.72
+      val b = new ArrayColumnBuilder[Double](v.length)
+      for (i ← 1 to m) {
+        t += time.timeNanos {
+          for (j ← 0 until n) b.next(v(j))
+          s = b.result
+          println("s " + s)
+        }._2
+      }
+      println("average1 " + (t / m))
+      v = null
+    }
+    System.gc
+    t = 0L
+    m = 1000000
+    for (i ← 1 to m) {
+      t += time.timeNanos {
+        s(Random.nextInt(n / 100))
+      }._2
+    }
+    println("average2 " + (t / m))
+    assert(s(333) == 3.14)
+    assert(s(n - 1) == 2.72)
+    t = 0L
+    m = 5
+    for (i ← 1 to m) {
+      for (j ← 0 until n) t += time.timeNanos { s(j) }._2
+    }
+    println("average3 " + (t / (n * m)))
     assert(true)
   }
 

@@ -15,15 +15,17 @@ import com.sun.jersey.api.json.JSONJAXBContext
  */
 trait JsonMarshaled {
 
-  def toJson(out: OutputStream) = marshaller.marshallToJSON(this, out)
+  final def toJson(out: OutputStream) = marshaller.marshallToJSON(this, out)
 
-  def toJson(writer: Writer) = marshaller.marshallToJSON(this, writer)
+  final def toJson(writer: Writer) = marshaller.marshallToJSON(this, writer)
 
-  def toJson: String = {
+  final def toJson: String = {
     val writer = new StringWriter
     toJson(writer)
     writer.toString
   }
+
+  def asJson: Json = Json(toJson)
 
   private[this] def context = new JSONJAXBContext(jsonconfiguration, this.getClass)
 
@@ -36,11 +38,11 @@ trait JsonMarshaled {
  */
 object JsonMarshaled {
 
-  def apply[A](s: String)(implicit c: ClassTag[A]): A = unmarshaller(c.runtimeClass).unmarshalFromJSON(new StringReader(s), c.runtimeClass).asInstanceOf[A]
+  final def apply[A](s: String)(implicit c: ClassTag[A]): A = unmarshaller(c.runtimeClass).unmarshalFromJSON(new StringReader(s), c.runtimeClass).asInstanceOf[A]
 
-  def apply[A](in: InputStream)(implicit c: ClassTag[A]): A = unmarshaller(c.runtimeClass).unmarshalFromJSON(in, c.runtimeClass).asInstanceOf[A]
+  final def apply[A](in: InputStream)(implicit c: ClassTag[A]): A = unmarshaller(c.runtimeClass).unmarshalFromJSON(in, c.runtimeClass).asInstanceOf[A]
 
-  def apply[A](reader: Reader)(implicit c: ClassTag[A]): A = unmarshaller(c.runtimeClass).unmarshalFromJSON(reader, c.runtimeClass).asInstanceOf[A]
+  final def apply[A](reader: Reader)(implicit c: ClassTag[A]): A = unmarshaller(c.runtimeClass).unmarshalFromJSON(reader, c.runtimeClass).asInstanceOf[A]
 
   @inline private[this] def unmarshaller(expected: Class[_]) = new JSONJAXBContext(jsonconfiguration, expected).createJSONUnmarshaller
 

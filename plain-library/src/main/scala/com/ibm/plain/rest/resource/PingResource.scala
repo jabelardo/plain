@@ -12,9 +12,11 @@ final class PingResource
 
   extends Resource {
 
-  Get { "pong!" }
+  import PingResource._
 
-  Get { Json(Map("Hello" -> "world!")) }
+  Get { pong }
+
+  //  Get { Json(Map("Hello" -> "world!")) }
 
   //  Get { f: Form ⇒ json.Json(f) }
   //
@@ -41,12 +43,10 @@ final class PingResource
 
 }
 
-//object PingResource {
-//
-//  final val pong = {
-//    //     val s = new StringBuilder; (1 to 270).foreach(s.append("pong!").append(_).append("\n")); s.toString.getBytes
-//    "pong!".getBytes
-//  }
-//
-//}
-//
+object PingResource {
+
+  final val pong = "pong!".getBytes
+
+  // final val pong = { val s = new StringBuilder; for (i ← 1 to 400) s.append("pong!"); s.toString.getBytes }
+
+}

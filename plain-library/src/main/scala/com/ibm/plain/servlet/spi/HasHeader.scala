@@ -8,27 +8,28 @@ package spi
 
 import java.util.{ Collections, Enumeration }
 
+import scala.collection.mutable.HashMap
 import scala.collection.JavaConversions.{ asJavaCollection, seqAsJavaList }
 
 trait HasHeader {
 
   self: HasContext ⇒
 
-  final def getHeader(name: String): String = context.request.headers.get(name) match { case Some(value) ⇒ value case _ ⇒ null }
+  final def getHeader(name: String): String = map.get(name) match { case Some(value) ⇒ value case _ ⇒ null }
 
-  final def getHeaderNames: Enumeration[String] = Collections.enumeration[String](context.request.headers.keys)
+  final def getHeaderNames: Enumeration[String] = Collections.enumeration[String](map.keys)
 
-  final def getHeaders(name: String): Enumeration[String] = context.request.headers.get(name) match { case Some(value) ⇒ Collections.enumeration[String](List(value)) case _ ⇒ null }
+  final def getHeaders(name: String): Enumeration[String] = map.get(name) match { case Some(value) ⇒ Collections.enumeration[String](List(value)) case _ ⇒ null }
 
   final def getIntHeader(name: String): Int = unsupported
 
   final def getDateHeader(name: String): Long = unsupported
 
-  final def setHeader(name: String, value: String): Unit = unsupported // context.response.headers.put(name, value)
+  final def setHeader(name: String, value: String): Unit = { map.put(name, value); println("setHeader " + map) }
 
   final def setIntHeader(name: String, value: Int): Unit = unsupported
 
-  final def setDateHeader(name: String, value: Long): Unit = unsupported // context.response.headers.put(name, new java.util.Date(value).toString)
+  final def setDateHeader(name: String, value: Long): Unit = { map.put(name, new java.util.Date(value).toString); println("setDateHeader " + map) }
 
   final def addHeader(name: String, value: String): Unit = unsupported
 
@@ -36,7 +37,9 @@ trait HasHeader {
 
   final def addDateHeader(name: String, value: Long): Unit = unsupported
 
-  final def containsHeader(name: String): Boolean = context.request.headers.contains(name)
+  final def containsHeader(name: String): Boolean = map.contains(name)
+
+  private[this] final val map = { val m = new HashMap[String, String]; m ++= context.request.headers; m }
 
 }
 
