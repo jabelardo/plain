@@ -56,11 +56,21 @@ package object plain
   /**
    * low-level code shorteners
    */
-  def unsupported = throw new UnsupportedOperationException
+  def unsupported = throw unsupported_
 
-  def deprecated = throw new UnsupportedOperationException("Deprecated.")
+  def nyimpl = throw notyetimplemented_
+
+  def notyetimplemented = throw notyetimplemented_
+
+  def deprecated = throw deprecated_
 
   def ignore(b: ⇒ Any) = try b catch { case e: Throwable ⇒ }
+
+  private[this] val unsupported_ = new UnsupportedOperationException
+
+  private[this] val notyetimplemented_ = new UnsupportedOperationException("Not yet implemented.")
+
+  private[this] val deprecated_ = new UnsupportedOperationException("Deprecated.")
 
 }
 

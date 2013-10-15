@@ -34,13 +34,14 @@ object PlainBuild extends Build {
           commonsIo, 
           clHashMap, 
           lz4,
+          zip4j,
           fasterXml,
           jerseyJson,
     	  derbyjdbc,
 		  derbyclient,
 		  h2jdbc,
 		  mysqljdbc,
-		  servlet25,
+		  servlet31,
 		  disruptor,
 		  reflections
       ) ++ test(junit, junitItf)
