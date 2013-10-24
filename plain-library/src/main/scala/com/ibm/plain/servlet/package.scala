@@ -11,6 +11,4 @@ package object servlet
   import config._
   import config.settings._
 
-
-  
 }

@@ -237,6 +237,22 @@ object Io
 
     }
 
+    object Cache {
+
+      import java.util.concurrent.atomic._
+
+      final val elementlength = new AtomicInteger(0)
+
+      final val elementcached = new AtomicBoolean(false)
+
+      final val elementarray = new AtomicReference[Array[Byte]]
+
+      final val element = new AtomicReference[Iteratee[Io, Any]]
+
+    }
+
+    import Cache._
+
     object ReadHandler
 
       extends Handler[Integer, Io] {
@@ -246,19 +262,47 @@ object Io
           io.release
         } else {
           io.readbuffer.flip
+          if (!elementcached.get) elementlength.set(io.readbuffer.remaining)
           io.writebuffer.clear
-          if (0 == processed) io.iteratee(Eof) else io.iteratee(Elem(io)) match {
-            case (cont @ Cont(_), Empty) ⇒
-              read(io ++ cont ++ defaultByteBuffer)
-            case (e @ Done(_), Elem(io)) ⇒
-              process(io ++ e)
-            case (e @ Error(_), Elem(io)) ⇒
-              io.readbuffer.clear
-              process(io ++ e)
-            case (_, Eof) ⇒
-              ignore
-            case e ⇒
-              unhandled(e)
+          if (0 == processed)
+            io.iteratee(Eof)
+          else {
+            val usecache = if (elementcached.get) {
+              val peek = new Array[Byte](elementlength.get)
+              io.readbuffer.mark
+              try { io.readbuffer.get(peek) } catch { case _: Throwable ⇒ io.readbuffer.rewind }
+              if (java.util.Arrays.equals(peek, elementarray.get))
+                true
+              else {
+                io.readbuffer.rewind
+                elementcached.set(false)
+                elementlength.set(io.readbuffer.remaining)
+                false
+              }
+            } else {
+              io.readbuffer.mark
+              false
+            }
+            val elem = if (usecache) (element.get, Elem(io)) else io.iteratee(Elem(io))
+            elem match {
+              case (cont @ Cont(_), Empty) ⇒
+                read(io ++ cont ++ defaultByteBuffer)
+              case (e @ Done(_), Elem(io)) ⇒
+                if (elementcached.compareAndSet(false, true)) {
+                  elementarray.set(new Array[Byte](elementlength.addAndGet(-io.readbuffer.remaining)))
+                  io.readbuffer.rewind
+                  io.readbuffer.get(elementarray.get)
+                  element.set(e)
+                }
+                process(io ++ e)
+              case (e @ Error(_), Elem(io)) ⇒
+                io.readbuffer.clear
+                process(io ++ e)
+              case (_, Eof) ⇒
+                ignore
+              case e ⇒
+                unhandled(e)
+            }
           }
         }
       }
@@ -278,7 +322,24 @@ object Io
               case Transfer(_, _, _) ⇒ TransferHandler.read(io)
               case _ ⇒ if (0 < io.readbuffer.remaining) {
                 io.renderable.renderFooter(io) ++ readiteratee
-                io.iteratee(Elem(io)) match {
+                val usecache = if (elementcached.get) {
+                  val peek = new Array[Byte](elementlength.get)
+                  io.readbuffer.mark
+                  try { io.readbuffer.get(peek) } catch { case _: Throwable ⇒ io.readbuffer.rewind }
+                  if (java.util.Arrays.equals(peek, elementarray.get))
+                    true
+                  else {
+                    io.readbuffer.rewind
+                    elementcached.set(false)
+                    elementlength.set(io.readbuffer.remaining)
+                    false
+                  }
+                } else {
+                  io.readbuffer.mark
+                  false
+                }
+                val elem = if (usecache) (element.get, Elem(io)) else io.iteratee(Elem(io))
+                elem match {
                   case (cont @ Cont(_), Empty) ⇒
                     read(io ++ cont ++ defaultByteBuffer)
                   case (e @ Done(_), Elem(io)) ⇒

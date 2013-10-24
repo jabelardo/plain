@@ -31,17 +31,6 @@ package object concurrent
 
   final def ioexecutor = executor
 
-  //  {
-  //    val keepalive = 60L
-  //    val maxqueuesize = 1024
-  //    new ThreadPoolExecutor(
-  //      cores,
-  //      parallelism,
-  //      keepalive,
-  //      TimeUnit.SECONDS,
-  //      new ArrayBlockingQueue[Runnable](maxqueuesize))
-  //  }
-
   /**
    * Spawn a body: => Unit to an execution context and forget about it. Use this only if you have no need to handle errors during the execution of 'body'.
    */

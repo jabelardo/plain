@@ -60,37 +60,36 @@ object Json {
   type JArray = List[Json]
   type JObject = Map[String, Json]
 
-  def apply(s: String) = parse(s)
+  final def apply(s: String) = parse(s)
 
-  def apply(reader: Reader) = parse(reader)
+  final def apply(reader: Reader) = parse(reader)
 
-  def build(any: Any): String = {
-    @inline def quote(s: String) = {
-      "\"" + s.regexSub("""[\u0000-\u001f\u0080-\uffff/\"\\]""".r) { m ⇒
-        m.matched.charAt(0) match {
-          case '\r' ⇒ "\\r"
-          case '\n' ⇒ "\\n"
-          case '\t' ⇒ "\\t"
-          case '"' ⇒ "\\\""
-          case '\\' ⇒ "\\\\"
-          case '/' ⇒ "\\/"
-          case c ⇒ "\\u%04x" format c.asInstanceOf[Int]
-        }
-      } + "\""
-    }
-    def build0(a: Any): QuotedString = {
-      val result = a match {
-        case QuotedString(inner) ⇒ inner
-        case null ⇒ "null"
-        case v: Boolean ⇒ v.toString
-        case v: Number ⇒ v.toString
-        case list: Seq[_] ⇒ list.map(build0(_).inner).mkString("[", ",", "]")
-        case map: Map[_, _] ⇒ (for ((key, value) ← map.iterator) yield { quote(key.toString) + ":" + build0(value).inner }).mkString("{", ",", "}")
-        case json: Json ⇒ build0(json.any).toString
-        case v ⇒ quote(v.toString)
+  final def build(any: Any): String = {
+    @inline def ascii(s: String) = !s.exists { c ⇒ '\u0020' > c || '\u007f' < c }
+
+    def quote(s: String) = "\"" + (if (ascii(s)) s else s.regexSub("""[\u0000-\u001f\u0080-\uffff/\"\\]""".r) { m ⇒
+      m.matched.charAt(0) match {
+        case '\r' ⇒ "\\r"
+        case '\n' ⇒ "\\n"
+        case '\t' ⇒ "\\t"
+        case '"' ⇒ "\\\""
+        case '\\' ⇒ "\\\\"
+        case '/' ⇒ "\\/"
+        case c ⇒ "\\u%04x" format c.asInstanceOf[Int]
       }
-      QuotedString(result)
-    }
+    }) + "\""
+
+    def build0(a: Any): QuotedString = QuotedString(a match {
+      case QuotedString(inner) ⇒ inner
+      case null ⇒ "null"
+      case v: Boolean ⇒ v.toString
+      case v: Number ⇒ v.toString
+      case list: Seq[_] ⇒ list.map(build0(_).inner).mkString("[", ",", "]")
+      case map: Map[_, _] ⇒ (for ((key, value) ← map.iterator) yield { quote(key.toString) + ":" + build0(value).inner }).mkString("{", ",", "}")
+      case json: Json ⇒ build0(json.any).toString
+      case v ⇒ quote(v.toString)
+    })
+
     build0(any).toString
   }
 

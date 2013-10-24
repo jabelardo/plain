@@ -121,8 +121,6 @@ object Server
     case _ ⇒ Group.withThreadPool(concurrent.ioexecutor)
   }
 
-  debug("ThreadPool type = " + channelGroupThreadPoolType + ", cores = " + concurrent.cores + ", parallelism = " + concurrent.parallelism)
-
   /**
    * A per-server provided configuration, unspecified details will be inherited from defaultServerConfiguration.
    */
