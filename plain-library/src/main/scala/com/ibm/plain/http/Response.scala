@@ -96,7 +96,7 @@ final case class Response private (
   @inline private[this] final def renderKeepAlive(io: Io) = {
     val keepalive = null == request || request.keepalive
     io ++ keepalive
-    r(`Connection: `) + r(if (keepalive) `keep-alive` else `close`) + `\r\n` + ^
+    if (!keepalive) r(`Connection: `) + r(if (keepalive) `keep-alive` else `close`) + `\r\n` + ^
   }
 
   @inline private[this] final def renderContent: Unit = {
