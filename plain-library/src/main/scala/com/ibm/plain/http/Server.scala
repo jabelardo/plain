@@ -62,6 +62,7 @@ final case class Server(
         case _ ⇒
           startOne
       }
+      System.gc
     }
     if (1 < settings.portRange.size && !settings.loadBalancingEnable) warning(name + " : port-range > 1 with load-balancing.enable=off")
     if (settings.portRange.size >= Runtime.getRuntime.availableProcessors) warning("Your port-range size should be smaller than the number of cores available on this system.")

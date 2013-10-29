@@ -54,10 +54,8 @@ object ConnectionHelper {
   implicit final def rs2Array(rs: RichResultSet) = rs.nextArray.getOrElse(new Array[Byte](0))
 
   implicit final def resultSet2Rich(rs: ResultSet) = new RichResultSet(rs)
-  //  implicit final def rich2ResultSet(r: RichResultSet) = r.rs
 
   implicit final def ps2Rich(ps: PreparedStatement) = new RichPreparedStatement(ps)
-  //  implicit final def rich2PS(r: RichPreparedStatement) = r.ps
 
   implicit final def str2RichPrepared(s: String)(implicit conn: Connection): RichPreparedStatement = conn.prepareStatement(s, FETCH_FORWARD, TYPE_FORWARD_ONLY, CONCUR_READ_ONLY)
   implicit final def conn2Rich(conn: Connection) = new RichConnection(conn)
@@ -263,6 +261,7 @@ object ConnectionHelper {
     if (rs.next) {
       unsafeCons(f(new RichResultSet(rs)), makestream(f, rs))
     } else {
+      rs.getStatement.close
       rs.close
       Stream.empty
     }
