@@ -58,6 +58,7 @@ object ConnectionHelper {
   implicit final def ps2Rich(ps: PreparedStatement) = new RichPreparedStatement(ps)
 
   implicit final def str2RichPrepared(s: String)(implicit conn: Connection): RichPreparedStatement = conn.prepareStatement(s, FETCH_FORWARD, TYPE_FORWARD_ONLY, CONCUR_READ_ONLY)
+
   implicit final def conn2Rich(conn: Connection) = new RichConnection(conn)
 
   implicit final def st2Rich(s: Statement) = new RichStatement(s)
@@ -74,6 +75,19 @@ object ConnectionHelper {
      * Jdbc starts with 1 not with 0.
      */
     final def apply(i: Int) = { require(0 < i && i <= rs.getMetaData.getColumnCount); pos = i; this }
+
+    final def nextNBoolean: Boolean = { val ret = rs.getBoolean(pos); pos += 1; ret }
+    final def nextNByte: Byte = { val ret = rs.getByte(pos); pos += 1; ret }
+    final def nextNInt: Int = { val ret = rs.getInt(pos); pos += 1; ret }
+    final def nextNLong: Long = { val ret = rs.getLong(pos); pos += 1; ret }
+    final def nextNFloat: Float = { val ret = rs.getFloat(pos); pos += 1; ret }
+    final def nextNDouble: Double = { val ret = rs.getDouble(pos); pos += 1; ret }
+    final def nextNString: String = { val ret = rs.getString(pos); pos += 1; ret }
+    final def nextNDate: Date = { val ret = rs.getDate(pos); pos += 1; ret }
+    final def nextNTime: Time = { val ret = rs.getTime(pos); pos += 1; ret }
+    final def nextNTimestamp: Timestamp = { val ret = rs.getTimestamp(pos); pos += 1; ret }
+    final def nextNInputStream: InputStream = { val ret = rs.getBlob(pos); pos += 1; ret.getBinaryStream }
+    final def nextNArray: Array[Byte] = { val ret = rs.getBlob(pos); pos += 1; val r = ret.getBytes(1, ret.length.toInt); ret.free; r }
 
     final def nextBoolean: Option[Boolean] = { val ret = rs.getBoolean(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
     final def nextByte: Option[Byte] = { val ret = rs.getByte(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
@@ -148,11 +162,9 @@ object ConnectionHelper {
       case t ⇒ unsupported
     }
 
-    private[this] final var pos = 1
+    private[this] final def columncount = rs.getMetaData.getColumnCount
 
-    private[this] final val columncount = rs.getMetaData.getColumnCount
-
-    private[this] final val meta = {
+    private[this] final def meta = {
       val metadata = rs.getMetaData
       val width = 32
       val array = new Array[(String, Int, ResultSet ⇒ Int ⇒ Any)](columncount)
@@ -160,6 +172,8 @@ object ConnectionHelper {
       for (i ← 1 to columncount) array.update(i - 1, (metadata.getColumnName(i).toLowerCase, metadata.getColumnDisplaySize(i) match { case s if s > 127 ⇒ scala.math.max(width, metadata.getColumnName(i).length) case s ⇒ scala.math.max(s, metadata.getColumnName(i).length) }, getter(i)))
       array
     }
+
+    private[this] final var pos = 1
 
   }
 
