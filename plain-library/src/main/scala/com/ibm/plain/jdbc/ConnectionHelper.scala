@@ -55,14 +55,12 @@ object ConnectionHelper {
 
   implicit final def resultSet2Rich(rs: ResultSet) = new RichResultSet(rs)
 
-  implicit final def ps2Rich(ps: PreparedStatement) = new RichPreparedStatement(ps)
+  implicit final def str2RichPrepared(s: String)(implicit conn: Connection) = new RichPreparedStatement(conn.prepareStatement(s, TYPE_FORWARD_ONLY, CONCUR_READ_ONLY))
 
-  implicit final def str2RichPrepared(s: String)(implicit conn: Connection): RichPreparedStatement = conn.prepareStatement(s, FETCH_FORWARD, TYPE_FORWARD_ONLY, CONCUR_READ_ONLY)
+  //  implicit final def conn2Rich(conn: Connection) = new RichConnection(conn)
 
-  implicit final def conn2Rich(conn: Connection) = new RichConnection(conn)
-
-  implicit final def st2Rich(s: Statement) = new RichStatement(s)
-  implicit final def rich2St(rs: RichStatement) = rs.s
+  //  implicit final def st2Rich(s: Statement) = new RichStatement(s)
+  //  implicit final def rich2St(rs: RichStatement) = rs.s
 
   implicit final def conn2Statement(conn: Connection): Statement = conn.createStatement
 
@@ -180,7 +178,9 @@ object ConnectionHelper {
   /**
    *
    */
-  final class RichPreparedStatement(private[this] val ps: PreparedStatement) {
+  final class RichPreparedStatement(
+
+    private[this] val ps: PreparedStatement) {
 
     final def execute[A](f: RichResultSet ⇒ A): Stream[A] = {
       pos = 1
@@ -241,18 +241,18 @@ object ConnectionHelper {
   /**
    *
    */
-  final class RichConnection(val conn: Connection) extends AnyVal {
-    final def <<(sql: String) = new RichStatement(conn.createStatement) << sql
-    final def <<(sql: Seq[String]) = new RichStatement(conn.createStatement) << sql
-  }
+  //  final class RichConnection(val conn: Connection) extends AnyVal {
+  //    final def <<(sql: String) = new RichStatement(conn.createStatement) << sql
+  //    final def <<(sql: Seq[String]) = new RichStatement(conn.createStatement) << sql
+  //  }
 
   /**
    *
    */
-  final class RichStatement(val s: Statement) extends AnyVal {
-    final def <<(sql: String) = { s.execute(sql); this }
-    final def <<(sql: Seq[String]) = { for (x ← sql) s.execute(x); this }
-  }
+  //  final class RichStatement(val s: Statement) extends AnyVal {
+  //    final def <<(sql: String) = { s.execute(sql); this }
+  //    final def <<(sql: Seq[String]) = { for (x ← sql) s.execute(x); this }
+  //  }
 
   /**
    *

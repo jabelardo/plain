@@ -143,7 +143,7 @@ final class RequestIteratee private ()(implicit server: Server) {
       }
     }
 
-  final def readRequest: Iteratee[Io, Request] = for {
+  final val readRequest: Iteratee[Io, Request] = for {
     mpqv ← readRequestLine
     headers ← readHeaders
     entity ← readEntity(headers, mpqv._3)

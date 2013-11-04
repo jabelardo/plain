@@ -8,6 +8,7 @@ import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel, AsynchronousServerSocketChannel ⇒ ServerChannel, AsynchronousSocketChannel ⇒ SocketChannel, CompletionHandler ⇒ Handler, InterruptedByTimeoutException }
 import java.nio.charset.Charset
+import java.util.Arrays
 
 import scala.concurrent.duration.Duration
 import scala.math.min
@@ -30,7 +31,7 @@ final class Io private (
 
   var writebuffer: ByteBuffer,
 
-  var iteratee: Iteratee[Io, _],
+  var iteratee: Iteratee[Io, Any],
 
   var renderable: RenderableRoot,
 
@@ -40,7 +41,13 @@ final class Io private (
 
   var message: Message,
 
-  var keepalive: Boolean) {
+  var keepalive: Boolean,
+
+  var elementarray: Array[Byte],
+
+  var peekarray: Array[Byte],
+
+  var element: Iteratee[Io, Any]) {
 
   import Io._
 
@@ -49,14 +56,14 @@ final class Io private (
   /**
    * The trick method of the entire algorithm, it should be called only when the buffer is too small and on start with Io.empty.
    */
-  @inline final def ++(that: Io): Io = if (0 == this.length) {
+  @noinline final def ++(that: Io): Io = if (0 == this.length) {
     that
   } else if (0 == that.length) {
     this
   } else {
-    warnOnce
-    val b = ByteBuffer.allocate(this.length + that.length)
-    b.put(this.readBytes(this.readbuffer.remaining))
+    if (defaultBufferSize < this.length + that.length) warnOnce
+    val b = bestFitByteBuffer(this.length + that.length)
+    b.put(this.readBytes(this.readbuffer.remaining), 0, this.readbuffer.remaining)
     b.put(that.readbuffer)
     this.releaseReadBuffer
     that.releaseReadBuffer
@@ -64,7 +71,7 @@ final class Io private (
     that + b
   }
 
-  @inline final def ++(channel: Channel) = new Io(channel, readbuffer, writebuffer, iteratee, renderable, encoder, transfer, message, keepalive)
+  @inline final def ++(channel: Channel) = new Io(channel, readbuffer, writebuffer, iteratee, renderable, encoder, transfer, message, keepalive, elementarray, peekarray, element)
 
   @inline final def ++(iteratee: Iteratee[Io, _]) = { this.iteratee = iteratee; this }
 
@@ -78,8 +85,10 @@ final class Io private (
 
   @inline final def ++(keepalive: Boolean) = { if (this.keepalive) this.keepalive = keepalive; this }
 
+  @inline final def ++(elementarray: Array[Byte]) = { this.elementarray = elementarray; this.peekarray = new Array[Byte](elementarray.length); this }
+
   @inline final def ++(readbuffer: ByteBuffer) = if (0 < this.readbuffer.remaining) {
-    new Io(channel, readbuffer, writebuffer, iteratee, renderable, encoder, transfer, message, keepalive)
+    new Io(channel, readbuffer, writebuffer, iteratee, renderable, encoder, transfer, message, keepalive, elementarray, peekarray, element)
   } else {
     this + readbuffer
   }
@@ -202,9 +211,9 @@ object Io
 
   final private[aio] val emptyString = new String
 
-  final private[aio] val empty = new Io(null, emptyBuffer, emptyBuffer, null, null, null, null, null, false)
+  final private[aio] val empty = new Io(null, emptyBuffer, emptyBuffer, null, null, null, null, null, false, null, null, null)
 
-  final private[aio] def apply(iteratee: Iteratee[Io, _]): Io = new Io(null, emptyBuffer, defaultByteBuffer, iteratee, null, null, null, null, true)
+  final private[aio] def apply(iteratee: Iteratee[Io, _]): Io = new Io(null, emptyBuffer, defaultByteBuffer, iteratee, null, null, null, null, true, null, null, null)
 
   final private def warnOnce = onlyonce { warning("Chunked input found. Enlarge aio.default-buffer-size : " + defaultBufferSize) }
 
@@ -237,65 +246,50 @@ object Io
 
     }
 
-    object Cache {
-
-      import java.util.concurrent.atomic._
-
-      final val elementlength = new AtomicInteger(0)
-
-      final val elementcached = new AtomicBoolean(false)
-
-      final val elementarray = new AtomicReference[Array[Byte]]
-
-      final val element = new AtomicReference[Iteratee[Io, Any]]
-
-    }
-
-    import Cache._
-
     object ReadHandler
 
       extends Handler[Integer, Io] {
 
-      @inline final def completed(processed: Integer, io: Io) = {
+      @inline final def completed(processed: Integer, io: Io) = try {
         if (0 > processed) {
           io.release
         } else {
           io.readbuffer.flip
-          if (!elementcached.get) elementlength.set(io.readbuffer.remaining)
           io.writebuffer.clear
           if (0 == processed)
             io.iteratee(Eof)
           else {
-            val usecache = if (elementcached.get) {
-              val peek = new Array[Byte](elementlength.get)
+            val usecached = if (null == io.elementarray) {
               io.readbuffer.mark
-              try { io.readbuffer.get(peek) } catch { case _: Throwable ⇒ io.readbuffer.rewind }
-              if (java.util.Arrays.equals(peek, elementarray.get))
+              false
+            } else if (io.readbuffer.remaining > io.elementarray.length) {
+              io.readbuffer.mark
+              io.readbuffer.get(io.peekarray)
+              if (Arrays.equals(io.peekarray, io.elementarray)) {
                 true
-              else {
+              } else {
                 io.readbuffer.rewind
-                elementcached.set(false)
-                elementlength.set(io.readbuffer.remaining)
                 false
               }
             } else {
-              io.readbuffer.mark
               false
             }
-            val elem = if (usecache) (element.get, Elem(io)) else io.iteratee(Elem(io))
+            val elem = if (usecached) (io.element, Elem(io)) else io.iteratee(Elem(io))
             elem match {
               case (cont @ Cont(_), Empty) ⇒
                 read(io ++ cont ++ defaultByteBuffer)
               case (e @ Done(_), Elem(io)) ⇒
-                if (elementcached.compareAndSet(false, true)) {
-                  elementarray.set(new Array[Byte](elementlength.addAndGet(-io.readbuffer.remaining)))
+                if (null == io.elementarray) {
+                  var len = io.readbuffer.position
                   io.readbuffer.rewind
-                  io.readbuffer.get(elementarray.get)
-                  element.set(e)
+                  len -= io.readbuffer.position
+                  io ++ new Array[Byte](len)
+                  io.readbuffer.get(io.elementarray)
+                  io.element = e
                 }
                 process(io ++ e)
               case (e @ Error(_), Elem(io)) ⇒
+                logger.error("here " + e)
                 io.readbuffer.clear
                 process(io ++ e)
               case (_, Eof) ⇒
@@ -305,7 +299,7 @@ object Io
             }
           }
         }
-      }
+      } catch { case _: Throwable ⇒ io.release }
 
       @inline final def failed(e: Throwable, io: Io) = io.release
 
@@ -315,30 +309,26 @@ object Io
 
       extends Handler[Null, Io] {
 
-      @inline final def completed(processed: Null, io: Io) = {
+      @inline final def completed(processed: Null, io: Io) = try {
         io.iteratee match {
           case Done(renderable: RenderableRoot) ⇒
             renderable.renderHeader(io ++ renderable).transfer match {
               case Transfer(_, _, _) ⇒ TransferHandler.read(io)
               case _ ⇒ if (0 < io.readbuffer.remaining) {
                 io.renderable.renderFooter(io) ++ readiteratee
-                val usecache = if (elementcached.get) {
-                  val peek = new Array[Byte](elementlength.get)
+                val usecached = if (io.readbuffer.remaining > io.elementarray.length) {
                   io.readbuffer.mark
-                  try { io.readbuffer.get(peek) } catch { case _: Throwable ⇒ io.readbuffer.rewind }
-                  if (java.util.Arrays.equals(peek, elementarray.get))
+                  io.readbuffer.get(io.peekarray)
+                  if (Arrays.equals(io.peekarray, io.elementarray)) {
                     true
-                  else {
+                  } else {
                     io.readbuffer.rewind
-                    elementcached.set(false)
-                    elementlength.set(io.readbuffer.remaining)
                     false
                   }
                 } else {
-                  io.readbuffer.mark
                   false
                 }
-                val elem = if (usecache) (element.get, Elem(io)) else io.iteratee(Elem(io))
+                val elem = if (usecached) (io.element, Elem(io)) else io.iteratee(Elem(io))
                 elem match {
                   case (cont @ Cont(_), Empty) ⇒
                     read(io ++ cont ++ defaultByteBuffer)
@@ -361,12 +351,12 @@ object Io
           case Error(e: IOException) ⇒
             io.error(e)
           case Error(e) ⇒
-            info("process failed " + e.toString)
+            info("process failed " + e)
             io.error(e)
           case e ⇒
             unhandled(e)
         }
-      }
+      } catch { case _: Throwable ⇒ io.release }
 
       @inline final def failed(e: Throwable, io: Io) = completed(null, io)
 
@@ -396,7 +386,7 @@ object Io
               io.release
               ignore
             case Error(e) ⇒
-              info("write failed " + e.toString)
+              info("write failed " + e)
             case e ⇒
               unhandled(e)
           }

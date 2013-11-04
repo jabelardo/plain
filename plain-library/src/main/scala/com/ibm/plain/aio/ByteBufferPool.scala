@@ -4,7 +4,7 @@ package plain
 
 package aio
 
-import java.nio.{ ByteBuffer, ByteOrder }
+import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicBoolean
 
 import scala.annotation.tailrec
@@ -48,7 +48,7 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
       // require(!pool.exists(_ eq buffer), "buffer released twice " + pool.size)
       buffer.clear
       pool = buffer :: pool
-      // debug("current " + pool.size + ", buffer size " + buffersize + ", initial pool size " + initialpoolsize)
+      // info("release " + pool.size + ", buffer size " + buffersize + ", initial pool size " + initialpoolsize)
     } finally unlock
   } else {
     Thread.`yield`

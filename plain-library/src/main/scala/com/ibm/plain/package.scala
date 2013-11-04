@@ -41,6 +41,7 @@ package object plain
   def run(timeout: Duration)(body: ⇒ Unit): Unit = try {
     application.bootstrap
     if (0 < scheduleGcTimeout) concurrent.schedule(scheduleGcTimeout, scheduleGcTimeout) { sys.runtime.gc }
+    println(".")
     body
     application.awaitTermination(timeout)
   } catch {
