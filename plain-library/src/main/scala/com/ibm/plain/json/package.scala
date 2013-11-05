@@ -16,6 +16,8 @@ package object json
 
   final val formattedOutput = getBoolean("plain.json.formatted-output", false)
 
+  final val encodeOutput = getBoolean("plain.json.encode-output", true)
+
   final val jsonparser = Json
 
   final val unmarshalJson = JsonMarshaled

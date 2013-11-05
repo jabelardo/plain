@@ -229,10 +229,10 @@ object Io
 
       extends Handler[SocketChannel, Io] {
 
-      @inline final def completed(ch: SocketChannel, io: Io) = {
+      @inline final def completed(ch: SocketChannel, io: Io) = try {
         accept
         read(io ++ SocketChannelWithTimeout(ch) ++ defaultByteBuffer)
-      }
+      } catch { case _: Throwable ⇒ io.release }
 
       @inline final def failed(e: Throwable, io: Io) = {
         if (server.isOpen) {
@@ -366,7 +366,7 @@ object Io
 
       extends Handler[Integer, Io] {
 
-      @inline final def completed(processed: Integer, io: Io) = {
+      @inline final def completed(processed: Integer, io: Io) = try {
         if (0 > processed) {
           io.release
         } else if (0 == io.writebuffer.remaining || io.isError) {
@@ -393,7 +393,7 @@ object Io
         } else {
           write(io)
         }
-      }
+      } catch { case _: Throwable ⇒ io.release }
 
       @inline final def failed(e: Throwable, io: Io) = io.release
 

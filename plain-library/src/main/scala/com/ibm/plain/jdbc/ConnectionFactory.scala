@@ -103,14 +103,14 @@ final case class ConnectionFactory(
             setParameters(conn, connectionsettings)
             val connection = new Connection(conn, idle)
             connections.add(connection)
-            connection.activate
+            connection.active.set(true)
             Some(connection)
           case null ⇒
             elapsed += interval
             None
           case connection ⇒
             connection.lastaccessed.set(now)
-            connection.activate
+            connection.active.set(true)
             Some(connection)
         }
       }

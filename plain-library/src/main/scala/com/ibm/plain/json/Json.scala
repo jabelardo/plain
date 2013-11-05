@@ -65,7 +65,7 @@ object Json {
   final def apply(reader: Reader) = parse(reader)
 
   final def build(any: Any): String = {
-    @inline def ascii(s: String) = !s.exists { c ⇒ '\u0020' > c || '\u007f' < c }
+    @inline def ascii(s: String) = !(encodeOutput || s.exists { c ⇒ '\u0020' > c || '\u007f' < c })
 
     def quote(s: String) = "\"" + (if (ascii(s)) s else s.regexSub("""[\u0000-\u001f\u0080-\uffff/\"\\]""".r) { m ⇒
       m.matched.charAt(0) match {

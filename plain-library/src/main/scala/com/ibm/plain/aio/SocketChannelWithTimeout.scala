@@ -50,8 +50,11 @@ private object SocketChannelWithTimeout {
     }
     channel.setOption(SO_REUSEADDR, Boolean.box(true))
     channel.setOption(SO_KEEPALIVE, Boolean.box(false))
-    channel.setOption(SO_RCVBUF, Integer.valueOf(sendReceiveBufferSize))
-    channel.setOption(SO_SNDBUF, Integer.valueOf(sendReceiveBufferSize))
+    if (0 < sendReceiveBufferSize) {
+      channel.setOption(SO_RCVBUF, Integer.valueOf(sendReceiveBufferSize))
+      channel.setOption(SO_SNDBUF, Integer.valueOf(sendReceiveBufferSize))
+    }
+    channel
   }
 
 }
