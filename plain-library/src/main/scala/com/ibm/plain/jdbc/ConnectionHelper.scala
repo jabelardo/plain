@@ -176,22 +176,26 @@ object ConnectionHelper {
 
     private[this] val ps: PreparedStatement) {
 
-    final def execute[A](f: RichResultSet ⇒ A): Stream[A] = {
+    @inline final def execute[A](f: RichResultSet ⇒ A): Stream[A] = {
       pos = 1
       makestream(f, ps.executeQuery)
     }
 
-    final def execute: Boolean = { pos = 1; ps.execute }
+    @inline final def execute: Boolean = { pos = 1; ps.execute }
 
-    final def executeUpdate: Int = { pos = 1; ps.executeUpdate }
+    @inline final def executeUpdate: Int = { pos = 1; ps.executeUpdate }
 
-    final def !! = execute((rs: RichResultSet) ⇒ rs)
+    final def ! = execute((rs: RichResultSet) ⇒ rs)
 
-    final def <<![A](f: RichResultSet ⇒ A) = execute(f)
+    final def ![A](f: RichResultSet ⇒ A) = execute(f)
 
-    final def <<! = execute
+    final def !! = execute
 
-    final def <<!! = executeUpdate
+    final def +! = executeUpdate
+
+    final def ++ = ps.addBatch
+
+    final def ++! = { pos = 1; ps.executeBatch }
 
     final def <<?(n: Int): RichPreparedStatement = { repeat = n; this }
 
