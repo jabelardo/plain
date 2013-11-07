@@ -56,7 +56,7 @@ object ConnectionHelper {
   implicit final def resultSet2Rich(rs: ResultSet) = new RichResultSet(rs)
 
   implicit final def str2RichPrepared(s: String)(implicit conn: Connection) =
-    new RichPreparedStatement(conn.prepareStatement(s, Array(TYPE_FORWARD_ONLY, CONCUR_READ_ONLY)))
+    new RichPreparedStatement(conn.prepareStatement(s, Array(CONCUR_READ_ONLY)))
 
   /**
    * Methods like map, list, dump and row should be used for debugging and rapid prototyping, whenever performance or memory consumption is an issue they must be avoided.
@@ -202,7 +202,7 @@ object ConnectionHelper {
     final def <<(any: Option[Any]): RichPreparedStatement = {
       any match {
         case None ⇒
-          ps.setNull(pos, Types.NULL); inc
+          ps.setNull(pos, Types.NULL); pos += 1; this
         case Some(a) ⇒ (this << a)
       }
     }
@@ -227,8 +227,6 @@ object ConnectionHelper {
       }
       this <<? 1
     }
-
-    @inline private[this] final def inc = { pos += 1; this }
 
     private[this] final var pos = 1
 

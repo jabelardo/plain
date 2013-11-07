@@ -15,17 +15,21 @@ import scala.collection.mutable.HashMap
  */
 final class Connection private[jdbc] (
 
-  connection: JdbcConnection,
+  private[this] final val connection: JdbcConnection,
 
-  final var idle: BlockingDeque[Connection])
+  private[this] final val idle: BlockingDeque[Connection])
 
   extends ConnectionWrapper(connection) {
 
   override final def toString = super.toString + " active=" + active.get
 
   override final def prepareStatement(sql: String, options: Array[Int]): PreparedStatement = statementcache.get(sql) match {
-    case Some(stmt) ⇒ stmt
-    case _ ⇒ val stmt = super.prepareStatement(sql, options); statementcache.put(sql, stmt); stmt
+    case Some(stmt) ⇒
+      stmt
+    case _ ⇒
+      val stmt = super.prepareStatement(sql, options)
+      statementcache.put(sql, stmt)
+      stmt
   }
 
   override final def close: Unit = {
@@ -39,7 +43,7 @@ final class Connection private[jdbc] (
   }
 
   private[jdbc] final def doClose = {
-    idle = null
+    idle.remove(this)
     statementcache.values.foreach(stmt ⇒ ignore(stmt.close))
     super.close
   }

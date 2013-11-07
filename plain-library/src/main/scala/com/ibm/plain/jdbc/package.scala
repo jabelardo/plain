@@ -42,7 +42,7 @@ package object jdbc
    */
   final def withConnection[A](name: String)(body: Connection ⇒ A): A = connectionForName(name) match {
     case Some(connection) ⇒
-      connection.setAutoCommit(true); try body(connection) finally connection.close
+      try body(connection) finally connection.close
     case _ ⇒
       throw new IllegalStateException("Could not create connection for : '" + name + "'")
   }
@@ -56,7 +56,7 @@ package object jdbc
    */
   final def withTransaction[A](name: String)(body: Connection ⇒ Savepoint ⇒ A): A = connectionForName(name) match {
     case Some(connection) ⇒
-      connection.setAutoCommit(false); val savepoint = connection.setSavepoint; try body(connection)(savepoint) finally connection.close
+      val savepoint = connection.setSavepoint; try body(connection)(savepoint) finally { connection.releaseSavepoint(savepoint); connection.close }
     case _ ⇒
       throw new IllegalStateException("Could not create connection for : '" + name + "'")
   }

@@ -7,12 +7,13 @@ package jdbc
 import java.sql.{ Connection ⇒ JdbcConnection }
 import javax.sql.{ DataSource ⇒ JdbcDataSource }
 import java.util.Properties
-import java.util.concurrent.{ ConcurrentHashMap, LinkedBlockingDeque, TimeUnit }
+import java.util.concurrent.{ LinkedBlockingDeque, TimeUnit }
 import java.util.concurrent.atomic.{ AtomicInteger, AtomicLong }
 
 import scala.Array.canBuildFrom
 import scala.collection.JavaConversions.{ asScalaBuffer, asScalaSet }
 import scala.collection.mutable.ListBuffer
+import scala.collection.concurrent.TrieMap
 import scala.language.reflectiveCalls
 import scala.language.postfixOps
 
@@ -61,9 +62,9 @@ final case class ConnectionFactory(
           case peekonly ⇒ if (idletimeout < (now - peekonly.lastaccessed.get)) {
             idle.pollLast match {
               case null ⇒
-              case reallypoll if reallypoll == peekonly ⇒
-                connections.remove(reallypoll)
-                reallypoll.doClose
+              case connection if connection == peekonly ⇒
+                connections.remove(connection)
+                connection.doClose
             }
           }
         }
@@ -102,11 +103,15 @@ final case class ConnectionFactory(
             val conn = datasource.getConnection
             setParameters(conn, connectionsettings)
             val connection = new Connection(conn, idle)
-            connections.add(connection)
+            connections.put(connection, ())
             connection.active.set(true)
             Some(connection)
           case null ⇒
             elapsed += interval
+            None
+          case connection if !connection.isValid(interval.toInt) ⇒
+            connection.doClose
+            connections.remove(connection)
             None
           case connection ⇒
             connection.lastaccessed.set(now)
@@ -122,7 +127,7 @@ final case class ConnectionFactory(
       connection
     } catch {
       case e: Throwable ⇒
-        error("Datasource '" + name + "' cannot etablish connection: " + e)
+        error("Datasource '" + name + "' cannot establish connection: " + e)
         None
     }
   }
@@ -130,9 +135,7 @@ final case class ConnectionFactory(
   private[this] final def closeConnections = try {
     growtimeout.set(Long.MaxValue)
     idle.clear
-    connections.keySet.foreach { connection ⇒
-      connection.doClose
-    }
+    connections.keySet.foreach(_.doClose)
     connections.clear
   } catch {
     case e: Throwable ⇒ error(name + " : " + e)
@@ -175,24 +178,9 @@ final case class ConnectionFactory(
 
   private[this] val settings = config.settings.getConfig(configpath).withFallback(config.settings.getConfig("plain.jdbc.default-connection-factory"))
 
-  private[this] final val connections = new ConcurrentHashMap[Connection, Unit] {
-
-    final def add(connection: Connection) = put(connection, ())
-
-    override final def put(connection: Connection, o: Unit): Unit = {
-      super.put(connection, o)
-      if (size > peak.get) peak.set(size)
-    }
-
-    final def remove(connection: Connection): Unit = super.remove(connection)
-
-    private[this] final val peak = new AtomicInteger(0)
-
-  }
+  private[this] final val connections = new TrieMap[Connection, Unit]
 
   private[this] final val peakelapsed = new AtomicLong(0L)
-
-  private[this] final val idle = new LinkedBlockingDeque[Connection]
 
   private[this] final var connectioncleaner: Cancellable = null
 
@@ -211,6 +199,8 @@ final case class ConnectionFactory(
   private[this] final val poolmax = settings.getInt("max-pool-size", 8)
 
   require(poolmin <= poolmax, "min-pool-size is larger than max-pool-size (" + poolmin + ", " + poolmax + ")")
+
+  private[this] final val idle = new LinkedBlockingDeque[Connection](poolmax)
 
   private[this] final val connectionclass = Class.forName(config.settings.getString("plain.jdbc.drivers." + driver + ".connection-class", "java.sql.Connection"))
 
