@@ -6,18 +6,17 @@ package servlet
 
 import java.io.InputStream
 import java.net.URL
-import java.util.{ Enumeration, EventListener, Set ⇒ JSet, Map ⇒ JMap }
+import java.util.{ Enumeration, EventListener, Map ⇒ JMap, Set ⇒ JSet }
 
-import javax.servlet.{ ServletContext ⇒ JServletContext }
-import javax.servlet._
-import javax.servlet.descriptor._
-
-import scala.xml.XML
-import scala.language.postfixOps
+import scala.collection.JavaConversions.{ asJavaEnumeration, mapAsJavaMap }
 import scala.collection.concurrent.TrieMap
-import scala.collection.JavaConversions._
+import scala.language.postfixOps
 import scala.util.matching.Regex
+import scala.xml.XML
 
+import http.HttpServletWrapper
+import javax.servlet.{ Filter, FilterRegistration, RequestDispatcher, Servlet, ServletContext ⇒ JServletContext, ServletRegistration, SessionCookieConfig, SessionTrackingMode }
+import javax.servlet.descriptor.JspConfigDescriptor
 import logging.HasLogger
 
 final class ServletContext(
@@ -152,7 +151,7 @@ final class ServletContext(
   private[this] final val servlets = (webxml \ "servlet").map { servletxml ⇒
     val loadonstartup = if ((servletxml \ "load-on-startup").isEmpty) 0 else (servletxml \ "load-on-startup").text match { case "" ⇒ 0 case i ⇒ i.toInt }
     if (0 < loadonstartup) warning("load-on-startup " + loadonstartup + " ignored during startup phase.")
-    val servlet = new ServletWrapper(this, servletxml)
+    val servlet = new HttpServletWrapper(this, servletxml)
     if (0 <= loadonstartup) servlet.init(servlet)
     (servlet.getServletName, servlet)
   }.toMap

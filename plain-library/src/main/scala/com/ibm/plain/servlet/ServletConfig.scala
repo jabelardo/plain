@@ -15,13 +15,13 @@ trait ServletConfig
 
   extends JServletConfig {
 
-  final def getServletName = name
+  abstract override final def getServletName = name
 
-  final def getInitParameter(name: String): String = initparameters.get(name) match { case Some(value) ⇒ value case _ ⇒ null }
+  abstract override final def getInitParameter(name: String): String = initparameters.get(name) match { case Some(value) ⇒ value case _ ⇒ null }
 
-  final def getInitParameterNames: Enumeration[String] = initparameters.keySet.iterator
+  abstract override final def getInitParameterNames: Enumeration[String] = initparameters.keySet.iterator
 
-  final def getServletContext: JServletContext = servletcontext
+  abstract override final def getServletContext: JServletContext = servletcontext
 
   protected[this] val servletcontext: ServletContext
 

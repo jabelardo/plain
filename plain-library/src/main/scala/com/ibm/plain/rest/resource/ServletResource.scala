@@ -6,35 +6,39 @@ package rest
 
 package resource
 
-import scala.collection.JavaConversions._
+import com.ibm.plain.rest.{ BaseResource, Context }
 
 import aio.Io
-import http.Status._
-import servlet._
+import http.Response
+import http.Status.{ ClientError, Success }
+import servlet.ServletContainer
+import servlet.http.{ HttpServletRequest, HttpServletResponse }
 
 final class ServletResource
 
   extends BaseResource {
 
-  final def completed(context: Context) = {
-    info("completed")
-  }
+  final def completed(context: Context) = super.completed(context.response, context.io)
 
   final def failed(e: Throwable, context: Context) = {
     e.printStackTrace
+    super.failed(e, context.io ++ context.response.asInstanceOf[aio.Message])
   }
 
   final def process(io: Io) = unsupported
 
   final def handle(context: Context) = try {
-    info("handle " + context.request)
-    ServletContainer.getServletContext(context.request.path(1)) match {
+    val request = context.request
+    val response = Response(request, Success.`200`)
+    context ++ response
+    ServletContainer.getServletContext(request.path(1)) match {
       case Some(servletcontext) ⇒
-        info(servletcontext.getServletNames.toList.toString)
-        val servlet = servletcontext.getServlet(context.request.path(2))
-        info(servlet.getServletInfo)
-        servlet.service(null, null)
-        throw ServerError.`501`
+        val servlet = servletcontext.getServlet(request.path(2))
+        val httpservletrequest = HttpServletRequest(request)
+        val httpservletresponse = HttpServletResponse(response)
+        servlet.service(httpservletrequest, httpservletresponse)
+        response ++ httpservletresponse.getEntity
+        completed(context)
       case None ⇒ throw ClientError.`404`
     }
   } catch {
