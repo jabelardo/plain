@@ -33,12 +33,15 @@ final class ServletResource
     context ++ response
     ServletContainer.getServletContext(request.path(1)) match {
       case Some(servletcontext) ⇒
-        val servlet = servletcontext.getServlet(request.path(2))
-        val httpservletrequest = HttpServletRequest(request)
-        val httpservletresponse = HttpServletResponse(response)
-        servlet.service(httpservletrequest, httpservletresponse)
-        response ++ httpservletresponse.getEntity
-        completed(context)
+        servletcontext.getServlet(request.path(2)) match {
+          case null ⇒ throw ClientError.`404`
+          case servlet ⇒
+            val httpservletrequest = HttpServletRequest(request)
+            val httpservletresponse = HttpServletResponse(response)
+            servlet.service(httpservletrequest, httpservletresponse)
+            response ++ httpservletresponse.getEntity
+            completed(context)
+        }
       case None ⇒ throw ClientError.`404`
     }
   } catch {
