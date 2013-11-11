@@ -31,6 +31,8 @@ package object plain
 
     http.startupServers.foreach(path ⇒ appl.register(http.Server(path, Some(appl), None, None)))
 
+    appl.register(servlet.ServletContainer)
+
     appl
   }
 
@@ -41,7 +43,6 @@ package object plain
   def run(timeout: Duration)(body: ⇒ Unit): Unit = try {
     application.bootstrap
     if (0 < scheduleGcTimeout) concurrent.schedule(scheduleGcTimeout, scheduleGcTimeout) { sys.runtime.gc }
-    println(".")
     body
     application.awaitTermination(timeout)
   } catch {
@@ -57,21 +58,30 @@ package object plain
   /**
    * low-level code shorteners
    */
-  def unsupported = throw unsupported_
+  final def getCallingFunctionName(depth: Int): String = {
+    val mxBean = java.lang.management.ManagementFactory.getThreadMXBean
+    val threadInfo = mxBean.getThreadInfo(Thread.currentThread.getId, depth)
+    val elements = threadInfo.getStackTrace
+    elements(depth - 1).getMethodName
+  }
 
-  def nyimpl = throw notyetimplemented_
+  final def unsupported = throw new UnsupportedOperationException(getCallingFunctionName(6))
 
-  def notyetimplemented = throw notyetimplemented_
+  final def unsupported(b: Boolean) = throw unsupported_
 
-  def deprecated = throw deprecated_
+  final def nyi = throw notyetimplemented_
 
-  def ignore(b: ⇒ Any) = try b catch { case e: Throwable ⇒ }
+  final def notyetimplemented = throw notyetimplemented_
 
-  private[this] val unsupported_ = new UnsupportedOperationException
+  final def deprecated = throw deprecated_
 
-  private[this] val notyetimplemented_ = new UnsupportedOperationException("Not yet implemented.")
+  final def ignore(b: ⇒ Any) = try b catch { case e: Throwable ⇒ }
 
-  private[this] val deprecated_ = new UnsupportedOperationException("Deprecated.")
+  private[this] final val unsupported_ = new UnsupportedOperationException
+
+  private[this] final val notyetimplemented_ = new UnsupportedOperationException("Not yet implemented.")
+
+  private[this] final val deprecated_ = new UnsupportedOperationException("Deprecated.")
 
 }
 

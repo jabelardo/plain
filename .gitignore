@@ -6,6 +6,7 @@ logs/
 tmp/
 temp/
 *.class
+*.war
 */.cache
 *.cache
 */.classpath

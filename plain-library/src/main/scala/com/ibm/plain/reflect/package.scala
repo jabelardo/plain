@@ -2,16 +2,22 @@ package com.ibm
 
 package plain
 
-import java.lang.reflect.{ Method, Modifier }
-import scala.collection.JavaConversions._
-import scala.reflect.runtime.universe._
+import java.lang.management.ManagementFactory
+
+import scala.collection.JavaConversions.asScalaSet
+import scala.reflect.runtime.universe.runtimeMirror
+
 import org.reflections.Reflections
-import org.reflections.util._
-import org.reflections.scanners._
 
 /**
  * Some tools to ease the use the Java reflection api in Scala.
  */
+import java.lang.management.ManagementFactory
+
+import scala.collection.JavaConversions.asScalaSet
+import scala.reflect.runtime.universe.runtimeMirror
+
+import org.reflections.Reflections
 package object reflect {
 
   final val mirror = runtimeMirror(getClass.getClassLoader)

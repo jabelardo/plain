@@ -150,7 +150,7 @@ package object io
    * Create a temporary file somewhere in the default location. It will be deleted at JVM shutdown.
    */
   final def temporaryFile = {
-    val f = Files.createTempFile(temp, null, null).toFile
+    val f = Files.createTempFile(temp, null, null).toFile.getAbsoluteFile
     deleteOnExit(f)
     f
   }

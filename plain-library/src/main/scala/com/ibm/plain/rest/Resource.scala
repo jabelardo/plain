@@ -25,7 +25,7 @@ import Matching._
  */
 trait Resource
 
-  extends BaseUniform
+  extends BaseResource
 
   with DelayedInit
 

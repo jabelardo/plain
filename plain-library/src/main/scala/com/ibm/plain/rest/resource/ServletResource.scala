@@ -6,32 +6,39 @@ package rest
 
 package resource
 
-import javax.servlet.Servlet
+import scala.collection.JavaConversions._
+
+import aio.Io
+import http.Status._
+import servlet._
 
 final class ServletResource
 
-  extends Resource {
+  extends BaseResource {
 
-  final private def get = {
-    //    val servlet = Class.forName("com.vaadin.terminal.gwt.server.ApplicationServlet").newInstance.asInstanceOf[Servlet]
-    //    val servletconfig = ServletConfig(context)
-    //    servletconfig.setInitParameter("application", "com.vaadin.demo.sampler.SamplerApplication")
-    //    servletconfig.setInitParameter("widgetset", "com.vaadin.demo.sampler.gwt.SamplerWidgetSet")
-    //    servletconfig.setInitParameter("productionMode", "true")
-    //    servletconfig.setInitParameter("resourceCacheTime", "3600")
-    //    servlet.init(servletconfig)
-    //    val servletrequest = HttpServletRequest(context)
-    //    val servletresponse = HttpServletResponse(context)
-    //    servlet.service(servletrequest, servletresponse)
-    //    servletresponse.toString
-    ""
+  final def completed(context: Context) = {
+    info("completed")
   }
 
-  Get { get }
+  final def failed(e: Throwable, context: Context) = {
+    e.printStackTrace
+  }
 
-  Get { query: String ⇒ get }
+  final def process(io: Io) = unsupported
 
-  Post { f: String ⇒ println("POST " + f); get }
+  final def handle(context: Context) = try {
+    info("handle " + context.request)
+    ServletContainer.getServletContext(context.request.path(1)) match {
+      case Some(servletcontext) ⇒
+        info(servletcontext.getServletNames.toList.toString)
+        val servlet = servletcontext.getServlet(context.request.path(2))
+        info(servlet.getServletInfo)
+        servlet.service(null, null)
+        throw ServerError.`501`
+      case None ⇒ throw ClientError.`404`
+    }
+  } catch {
+    case e: Throwable ⇒ failed(e, context)
+  }
 
 }
-

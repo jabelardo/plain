@@ -38,14 +38,14 @@ final case class Segment(name: String, next: Element) extends Element
 
 final case class Variable(name: String, next: Element) extends Element
 
-final case class ResourceClass(resource: Class[_ <: Resource], config: Config, remainderallowed: Boolean) extends Element
+final case class ResourceClass(resource: Class[_ <: BaseResource], config: Config, remainderallowed: Boolean) extends Element
 
 /**
  *
  */
 final class Template private (
 
-  val resource: Class[_ <: Resource],
+  val resource: Class[_ <: BaseResource],
 
   val config: Config,
 
@@ -73,29 +73,29 @@ final class Template private (
 
   require(!root.isInstanceOf[Variable], "A path-template must not start with a variable : " + path)
 
-  require({ null != resource.newInstance.asInstanceOf[Resource] }, "Could not instantiate the given class. Did you misspell the absolute class name? (" + resource + ")")
+  require({ null != resource.newInstance.asInstanceOf[BaseResource] }, "Could not instantiate the given class. Did you misspell the absolute class name? (" + resource + ")")
 
 }
 
 object Template {
 
-  def apply(path: String, clazz: Class[_], config: Config) = new Template(clazz.asInstanceOf[Class[_ <: Resource]], config, path.replace("*", ""), path.endsWith("*"))
+  def apply(path: String, clazz: Class[_], config: Config) = new Template(clazz.asInstanceOf[Class[_ <: BaseResource]], config, path.replace("*", ""), path.endsWith("*"))
 
 }
 
 final case class Templates(
 
-  resource: Option[(Class[_ <: Resource], Config, Boolean)],
+  resource: Option[(Class[_ <: BaseResource], Config, Boolean)],
 
   branch: Option[Either[(String, Templates), Map[String, Templates]]]) {
 
-  final def get(path: Path): Option[(Class[_ <: Resource], Config, Variables, Path)] = {
+  final def get(path: Path): Option[(Class[_ <: BaseResource], Config, Variables, Path)] = {
 
     @inline @tailrec
     def get0(
       path: Path,
       variables: OpenHashMap[String, String],
-      templates: Templates): Option[(Class[_ <: Resource], Config, Variables, Path)] = {
+      templates: Templates): Option[(Class[_ <: BaseResource], Config, Variables, Path)] = {
 
       @inline def resource(tail: Path) = templates.resource match {
         case Some((resourceclass, config, remainderallowed)) if Nil == tail || remainderallowed ⇒ Some((resourceclass, config, variables, tail))

@@ -1,0 +1,179 @@
+package com.ibm
+
+package plain
+
+package servlet
+
+import java.io.InputStream
+import java.net.URL
+import java.util.{ Enumeration, EventListener, Set ⇒ JSet, Map ⇒ JMap }
+
+import javax.servlet.{ ServletContext ⇒ JServletContext }
+import javax.servlet._
+import javax.servlet.descriptor._
+
+import scala.xml.XML
+import scala.language.postfixOps
+import scala.collection.concurrent.TrieMap
+import scala.collection.JavaConversions._
+import scala.util.matching.Regex
+
+import logging.HasLogger
+
+final class ServletContext(
+
+  private[this] final val classloader: ClassLoader)
+
+  extends JServletContext
+
+  with HasLogger {
+
+  final def addFilter(filterName: String, filterClass: Class[_ <: Filter]) = unsupported
+
+  final def addFilter(filterName: String, filter: Filter) = unsupported
+
+  final def addFilter(filterName: String, className: String) = unsupported
+
+  final def addListener(listenerClass: Class[_ <: EventListener]) = unsupported
+
+  final def addListener(className: String) = unsupported
+
+  final def addListener[E <: EventListener](listener: E) = unsupported
+
+  final def addServlet(name: String, servletClass: Class[_ <: Servlet]): ServletRegistration.Dynamic = unsupported
+
+  final def addServlet(name: String, servlet: Servlet): ServletRegistration.Dynamic = unsupported
+
+  final def addServlet(name: String, className: String): ServletRegistration.Dynamic = unsupported
+
+  final def createFilter[E <: Filter](filterClass: Class[E]): E = unsupported
+
+  final def createListener[E <: EventListener](listenerClass: Class[E]): E = unsupported
+
+  final def createServlet[E <: Servlet](servletClass: Class[E]): E = unsupported
+
+  final def declareRoles(roles: String*) = unsupported
+
+  final def destroy = {
+    servlets.values.foreach(servlet ⇒ ignore(servlet.destroy))
+    servlets.clear
+  }
+
+  final def getApplicationName = applicationname
+
+  final def getAttribute(name: String): Object = attributes.getOrElse(name, null)
+
+  final def getAttributeNames: Enumeration[String] = attributes.keySet.toIterator
+
+  final def getClassLoader: ClassLoader = classloader
+
+  final def getContext(uripath: String): ServletContext = unsupported
+
+  final def getContextPath: String = unsupported
+
+  final def getDefaultSessionTrackingModes: JSet[SessionTrackingMode] = unsupported
+
+  final def getEffectiveMajorVersion: Int = effectiveversion(0)
+
+  final def getEffectiveMinorVersion: Int = effectiveversion(1)
+
+  final def getEffectiveSessionTrackingModes: JSet[SessionTrackingMode] = unsupported
+
+  final def getFilterRegistration(filterName: String): FilterRegistration = unsupported
+
+  final def getFilterRegistrations: JMap[String, _ <: FilterRegistration] = unsupported
+
+  final def getInitParameter(name: String): String = contextparameters.get(name) match { case Some(value) ⇒ value case _ ⇒ null }
+
+  final def getInitParameterNames: Enumeration[String] = contextparameters.keySet.toIterator
+
+  final def getJspConfigDescriptor: JspConfigDescriptor = unsupported
+
+  final def getMajorVersion: Int = 3
+
+  final def getMimeType(file: String): String = unsupported
+
+  final def getMinorVersion: Int = 1
+
+  final def getNamedDispatcher(name: String): RequestDispatcher = unsupported
+
+  final def getRealPath(path: String): String = unsupported
+
+  final def getRequestDispatcher(path: String): RequestDispatcher = unsupported
+
+  final def getResource(path: String): URL = unsupported
+
+  final def getResourceAsStream(path: String): InputStream = unsupported
+
+  final def getResourcePaths(path: String): JSet[String] = unsupported
+
+  final def getServerInfo: String = unsupported
+
+  final def getServlet(name: String): Servlet = servlets.getOrElse(name, null)
+
+  final def getServletContextName: String = (webxml \ "display-name").text match { case "" ⇒ applicationname case s ⇒ s }
+
+  final def getServletNames: Enumeration[String] = servlets.keySet.toIterator
+
+  final def getServletRegistration(name: String): ServletRegistration = unsupported
+
+  final def getServletRegistrations: JMap[String, _ <: ServletRegistration] = unsupported
+
+  final def getServlets: Enumeration[Servlet] = servlets.values.toIterator
+
+  final def getSessionCookieConfig: SessionCookieConfig = unsupported
+
+  final def getVirtualServerName: String = unsupported
+
+  final def log(e: Exception, msg: String) = log(msg, e)
+
+  final def log(msg: String) = info(msg)
+
+  final def log(msg: String, e: Throwable) = log(msg + " : " + e.getMessage)
+
+  final def removeAttribute(name: String) = attributes.remove(name)
+
+  final def setAttribute(name: String, value: Object) = attributes.put(name, value)
+
+  final def setInitParameter(name: String, value: String): Boolean = contextparameters.put(name, value) match { case None ⇒ false case _ ⇒ true }
+
+  final def setSessionTrackingModes(modes: JSet[SessionTrackingMode]) = unsupported
+
+  private[servlet] final val webxml = XML.load(classloader.getResourceAsStream("WEB-INF/web.xml"))
+
+  private[this] final val contextparameters = {
+    val m = new TrieMap[String, String]
+    m ++= ((webxml \ "context-param") map { p ⇒ (p \ "param-name" text, p \ "param-value" text) } toMap)
+    m
+  }
+
+  private[this] final val attributes = new TrieMap[String, Object]
+
+  private[this] final val servlets = (webxml \ "servlet").map { servletxml ⇒
+    val loadonstartup = if ((servletxml \ "load-on-startup").isEmpty) 0 else (servletxml \ "load-on-startup").text match { case "" ⇒ 0 case i ⇒ i.toInt }
+    if (0 < loadonstartup) warning("load-on-startup " + loadonstartup + " ignored during startup phase.")
+    val servlet = new ServletWrapper(this, servletxml)
+    if (0 <= loadonstartup) servlet.init(servlet)
+    (servlet.getServletName, servlet)
+  }.toMap
+
+  private[this] final val servletmappings: Map[Regex, Servlet] = {
+    def mappings(attribute: Boolean) = (webxml \ "servlet-mapping").map { mapping ⇒
+      def pattern(p: String) = (mapping \ ((if (attribute) "@" else "") + p)) match { case u if u.isEmpty ⇒ None case u ⇒ Some(u.text.r) }
+      (pattern("url-pattern").getOrElse(pattern("url-regexp").getOrElse(null)), servlets.getOrElse((mapping \ ((if (attribute) "@" else "") + "servlet-name")).text, null))
+    }.filter(_._1 != null).toMap
+
+    mappings(false) ++ mappings(true)
+  }
+
+  private[this] final val welcomefiles = (webxml \ "welcome-file-list" \ "welcome-file") map (_.text)
+
+  private[this] final val effectiveversion = (webxml \ "@version").text.split('.').toList match {
+    case List("") ⇒ List(3, 1)
+    case l ⇒ l.map(_.toInt)
+  }
+
+  private[this] final val applicationname = classloader.toString
+
+}
+

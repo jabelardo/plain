@@ -25,7 +25,7 @@ trait Uniform {
 /**
  * A basic implementation for Uniform for correct exception handling.
  */
-trait BaseUniform
+trait BaseResource
 
   extends HttpProcessor
 

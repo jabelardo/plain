@@ -6,8 +6,6 @@ package rest
 
 package resource
 
-import json.Json
-
 final class PingResource
 
   extends Resource {

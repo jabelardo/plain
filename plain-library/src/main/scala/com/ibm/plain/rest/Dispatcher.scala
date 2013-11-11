@@ -35,7 +35,7 @@ abstract class Dispatcher
         case Some(root) ⇒ root.get(request.path) match {
           case Some((clazz, config, variables, remainder)) ⇒
             clazz.newInstance match {
-              case resource: Resource ⇒
+              case resource: BaseResource ⇒
                 request.entity match {
                   case Some(ContentEntity(_, length)) if request.method.entityallowed ⇒
                   case Some(_) if !request.method.entityallowed ⇒ throw ServerError.`501`
@@ -61,7 +61,7 @@ abstract class Dispatcher
 
   protected[this] final var templates: Option[Templates] = None
 
-  private[this] final val resources = new TrieMap[String, Resource]
+  private[this] final val resources = new TrieMap[String, BaseResource]
 
 }
 

@@ -19,9 +19,15 @@ import org.apache.commons.io.{ FileUtils, FilenameUtils }
 
 import net.lingala.zip4j.core.ZipFile
 
-final class WarClassLoader private (urls: Array[URL], parent: ClassLoader)
+final class WarClassLoader private (
+
+  name: String,
+
+  urls: Array[URL], parent: ClassLoader)
 
   extends URLClassLoader(urls, parent) {
+
+  override final def toString = name
 
   override final def getResourceAsStream(name: String): InputStream = cache.get(name) match {
     case Some(array) ⇒ new ByteArrayInputStream(array)
@@ -60,8 +66,9 @@ object WarClassLoader {
   final def apply(source: String, parent: ClassLoader): URLClassLoader = apply(source, parent, temporaryDirectory.getAbsolutePath)
 
   final def apply(sourcepath: String, parent: ClassLoader, directory: String): URLClassLoader = {
-    val source = Paths.get(sourcepath).toFile
-    val target = Paths.get(directory).resolve(FilenameUtils.removeExtension(source.getName)).toFile
+    val source = Paths.get(sourcepath).toFile.getAbsoluteFile
+    var withoutextension = FilenameUtils.removeExtension(source.getName)
+    val target = Paths.get(directory).resolve(withoutextension).toFile.getAbsoluteFile
     if (source.lastModified > target.lastModified) {
       FileUtils.deleteDirectory(target)
       val zipfile = new ZipFile(sourcepath)
@@ -72,7 +79,7 @@ object WarClassLoader {
     urls += target
     urls += classesdir
     urls ++= target.toPath.resolve("WEB-INF/lib").toFile.listFiles
-    val loader = new WarClassLoader(urls.map(_.toPath.toUri.toURL).toArray, parent)
+    val loader = new WarClassLoader(withoutextension, urls.map(_.toPath.toUri.toURL).toArray, parent)
     FileUtils.listFiles(classesdir, Array("class"), true).map(c ⇒ classesdir.toPath.relativize(c.toPath).toString.replace("/", ".").replace(".class", "")).foreach(loader.loadClass(_, true))
     loader
   }
