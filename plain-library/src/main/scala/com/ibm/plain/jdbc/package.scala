@@ -34,11 +34,31 @@ package object jdbc
     case _ ⇒ None
   }
 
+  final def connectionFactoryForJndiLookupName(name: String): Option[ConnectionFactory] = bootstrap
+    .application
+    .getComponents(classOf[ConnectionFactory])
+    .find(_.asInstanceOf[ConnectionFactory].jndilookupyname == name) match {
+      case Some(connectionfactory: ConnectionFactory) ⇒ Some(connectionfactory)
+      case _ ⇒ None
+    }
+
+  final def connectionForJndiLookupName(name: String): Option[Connection] = connectionFactoryForJndiLookupName(name) match {
+    case Some(connectionfactory: ConnectionFactory) ⇒ connectionfactory.getConnection
+    case _ ⇒ None
+  }
+
+  final def dataSourceForJndiLookupName(name: String): Option[DataSource] = connectionFactoryForJndiLookupName(name) match {
+    case Some(connectionfactory: ConnectionFactory) ⇒ Some(new DataSourceWrapper(connectionfactory.dataSource, connectionfactory))
+    case _ ⇒ None
+  }
+
   /**
    * Example: withConnection("YOURDB") { implicit connection => "insert into test values (1, 'ONE')" <<!!; }
    *
-   * withConnection will always auto-commit after each sql statement, you will need to import scala.language.postfixOps to get rid of warnings
-   * for methods like <<!!.
+   * This will only work if getAutoCommit == true, use withTransaction instead.
+   *
+   * withConnection will commit only if auto-commit is set to true after each sql statement, you will need to import scala.language.postfixOps to get rid of warnings
+   * for methods like '!'.
    */
   final def withConnection[A](name: String)(body: Connection ⇒ A): A = connectionForName(name) match {
     case Some(connection) ⇒
@@ -56,7 +76,14 @@ package object jdbc
    */
   final def withTransaction[A](name: String)(body: Connection ⇒ Savepoint ⇒ A): A = connectionForName(name) match {
     case Some(connection) ⇒
-      val savepoint = connection.setSavepoint; try body(connection)(savepoint) finally { connection.releaseSavepoint(savepoint); connection.close }
+      val autocommit = connection.getAutoCommit
+      if (autocommit) connection.setAutoCommit(false)
+      val savepoint = connection.setSavepoint
+      try body(connection)(savepoint) finally {
+        if (autocommit) connection.setAutoCommit(true)
+        connection.releaseSavepoint(savepoint)
+        connection.close
+      }
     case _ ⇒
       throw new IllegalStateException("Could not create connection for : '" + name + "'")
   }

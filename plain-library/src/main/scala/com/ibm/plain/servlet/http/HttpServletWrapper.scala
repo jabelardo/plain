@@ -10,6 +10,7 @@ import javax.servlet.{ ServletConfig ⇒ JServletConfig, ServletRequest ⇒ JSer
 import javax.servlet.http.{ HttpServlet ⇒ JHttpServlet, HttpServletRequest ⇒ JHttpServletRequest, HttpServletResponse ⇒ JHttpServletResponse }
 
 import scala.xml.Node
+import reflect.Injector
 
 class HttpServletWrapper(
 
@@ -33,7 +34,7 @@ class HttpServletWrapper(
 
   override final def service(request: JServletRequest, response: JServletResponse) = httpservlet.service(request, response)
 
-  protected[this] final val httpservlet: JHttpServlet =
-    Class.forName((servletxml \ "servlet-class").text, true, servletcontext.getClassLoader).newInstance.asInstanceOf[JHttpServlet]
+  protected[this] final val httpservlet: JHttpServlet = Injector(
+    Class.forName((servletxml \ "servlet-class").text, true, servletcontext.getClassLoader).newInstance.asInstanceOf[JHttpServlet])
 
 }

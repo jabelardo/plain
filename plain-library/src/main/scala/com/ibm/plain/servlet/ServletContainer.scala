@@ -4,15 +4,17 @@ package plain
 
 package servlet
 
+import bootstrap.BaseComponent
+import logging.HasLogger
+
+import java.nio.file.Path
 import java.nio.file.Paths
 
 import scala.collection.concurrent.TrieMap
 import scala.collection.JavaConversions._
 
-import bootstrap.BaseComponent
-import logging.HasLogger
-import io.FileExtensionFilter
-import io.WarClassLoader._
+import _root_.com.ibm.plain.io.FileExtensionFilter
+import _root_.com.ibm.plain.io.WarClassLoader.setAsContextClassLoader
 
 abstract sealed class ServletContainer
 
@@ -25,11 +27,14 @@ abstract sealed class ServletContainer
   override def start = {
     webapplications = {
       val context = Thread.currentThread.getContextClassLoader
+      Class.forName("org.apache.jasper.compiler.JspRuntimeContext", true, context) // move to JSP
       try {
-        val apps = (webApplicationsDirectory.listFiles(FileExtensionFilter("war")) match {
-          case null ⇒ Array.empty
-          case files ⇒ files.map { f ⇒ webApplicationsDirectory.toPath.resolve(f.getName).toAbsolutePath }
-        }).toList
+        val apps: Array[Path] = if (webApplicationsDirectory.exists) {
+          webApplicationsDirectory.listFiles(FileExtensionFilter("war")) match {
+            case null ⇒ Array.empty
+            case files ⇒ files.map { f ⇒ webApplicationsDirectory.toPath.resolve(f.getName).toAbsolutePath }
+          }
+        } else Array.empty
         apps.map { app ⇒
           Thread.currentThread.setContextClassLoader(context)
           val servletcontext = new ServletContext(setAsContextClassLoader(app.toString, unpackWebApplicationsDirectory.getAbsolutePath))
@@ -37,8 +42,7 @@ abstract sealed class ServletContainer
         }.toMap
       } finally Thread.currentThread.setContextClassLoader(context)
     }
-    debug(webapplications.toString)
-    debug(name + " has started.")
+    debug(name + " has started. (" + webapplications.keySet.mkString(", ") + ")")
     this
   }
 

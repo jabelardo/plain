@@ -7,19 +7,21 @@ package servlet
 package http
 
 import java.io.{ ByteArrayOutputStream, OutputStreamWriter, PrintWriter }
+import java.util.{ Collection, Locale }
 
 import io.ServletOutputStream
-import javax.servlet.{ ServletOutputStream ⇒ JServletOutputStream }
-import javax.servlet.http.{ HttpServletResponse ⇒ JHttpServletResponse }
+import javax.{ servlet ⇒ js }
 import plain.http.{ ContentType, Entity }
 import plain.http.Entity.ArrayEntity
 import plain.http.Response
 
 final case class HttpServletResponse(
 
-  response: Response)
+  private final val response: Response,
 
-  extends JHttpServletResponse {
+  private final val servletcontext: ServletContext)
+
+  extends js.http.HttpServletResponse {
 
   final def addCookie(x$1: javax.servlet.http.Cookie) = unsupported
 
@@ -41,9 +43,9 @@ final case class HttpServletResponse(
 
   final def getHeader(x$1: String): String = unsupported
 
-  final def getHeaderNames: java.util.Collection[String] = unsupported
+  final def getHeaderNames: Collection[String] = unsupported
 
-  final def getHeaders(x$1: String): java.util.Collection[String] = unsupported
+  final def getHeaders(x$1: String): Collection[String] = unsupported
 
   final def getStatus: Int = unsupported
 
@@ -66,17 +68,17 @@ final case class HttpServletResponse(
 
   final def setStatus(x$1: Int) = unsupported
 
-  final def flushBuffer = unsupported
+  final def flushBuffer = if (usewriter) printwriter.flush else if (useoutputstream) outputstream.flush
 
-  final def getBufferSize: Int = unsupported
+  final def getBufferSize = buffersize
 
   final def getCharacterEncoding: String = unsupported
 
   final def getContentType: String = unsupported
 
-  final def getLocale: java.util.Locale = unsupported
+  final def getLocale: Locale = unsupported
 
-  final def getOutputStream: JServletOutputStream = { if (usewriter) throw new IllegalStateException; useoutputstream = true; new ServletOutputStream(outputstream) }
+  final def getOutputStream: js.ServletOutputStream = { if (usewriter) throw new IllegalStateException; useoutputstream = true; new ServletOutputStream(outputstream) }
 
   final def getWriter: PrintWriter = { if (useoutputstream) throw new IllegalStateException; usewriter = true; printwriter }
 
@@ -84,9 +86,16 @@ final case class HttpServletResponse(
 
   final def reset = { usewriter = false; useoutputstream = false }
 
-  final def resetBuffer = unsupported
+  final def resetBuffer = {
+    setBufferSize(defaultbuffersize)
+    reset
+  }
 
-  final def setBufferSize(x$1: Int) = unsupported
+  final def setBufferSize(buffersize: Int) = {
+    this.buffersize = buffersize
+    outputstream = new ByteArrayOutputStream(buffersize)
+    printwriter = new PrintWriter(new OutputStreamWriter(outputstream))
+  }
 
   final def setCharacterEncoding(x$1: String) = unsupported
 
@@ -98,18 +107,21 @@ final case class HttpServletResponse(
 
   final def setLocale(x$1: java.util.Locale) = unsupported
 
-  final def getEntity: Entity = { if (usewriter) printwriter.flush; if (useoutputstream) outputstream.flush; ArrayEntity(outputstream.toByteArray, contenttype) }
+  final def getEntity: Entity = { flushBuffer; ArrayEntity(outputstream.toByteArray, contenttype) }
 
-  private[this] final var contenttype: ContentType = null
+  private[this] final val defaultbuffersize = 128
 
-  private[this] final val outputstream = new ByteArrayOutputStream(1024)
+  private[this] final var buffersize = defaultbuffersize
 
-  private[this] final val printwriter = new PrintWriter(new OutputStreamWriter(outputstream))
+  private[this] final var outputstream = new ByteArrayOutputStream(defaultbuffersize)
+
+  private[this] final var printwriter = new PrintWriter(new OutputStreamWriter(outputstream))
 
   private[this] final var usewriter = false
 
   private[this] final var useoutputstream = false
 
-}
+  private[this] final var contenttype: ContentType = null
 
+}
 

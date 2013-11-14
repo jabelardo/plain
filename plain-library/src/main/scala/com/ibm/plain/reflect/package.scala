@@ -18,6 +18,7 @@ import scala.collection.JavaConversions.asScalaSet
 import scala.reflect.runtime.universe.runtimeMirror
 
 import org.reflections.Reflections
+
 package object reflect {
 
   final val mirror = runtimeMirror(getClass.getClassLoader)

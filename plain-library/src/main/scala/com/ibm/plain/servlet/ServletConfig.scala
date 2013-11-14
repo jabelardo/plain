@@ -19,7 +19,7 @@ trait ServletConfig
 
   abstract override final def getInitParameter(name: String): String = initparameters.get(name) match { case Some(value) ⇒ value case _ ⇒ null }
 
-  abstract override final def getInitParameterNames: Enumeration[String] = initparameters.keySet.iterator
+  abstract override final def getInitParameterNames: Enumeration[String] = initparameters.keysIterator
 
   abstract override final def getServletContext: JServletContext = servletcontext
 

@@ -9,214 +9,211 @@ package http
 import java.io.{ BufferedReader, PrintWriter }
 import java.util.{ Enumeration, Locale, Map ⇒ JMap }
 
-import javax.servlet.{ AsyncContext, DispatcherType, RequestDispatcher, ServletContext, ServletInputStream, ServletOutputStream, ServletRequest, ServletResponse }
-import javax.servlet.http.{ Cookie, HttpServletRequest ⇒ JHttpServletRequest }
+import scala.collection.JavaConversions.{ asJavaEnumeration, mapAsJavaMap, mapAsScalaMap }
 
+import javax.{ servlet ⇒ js }
 import plain.http.Request
 
 final case class HttpServletRequest(
 
-  request: Request)
+  private final val request: Request,
 
-  extends JHttpServletRequest {
+  private final val servletcontext: ServletContext)
 
-  def authenticate(x$1: javax.servlet.http.HttpServletResponse): Boolean = unsupported
+  extends js.http.HttpServletRequest
 
-  def changeSessionId: String = unsupported
+  with helper.HasAttributes {
 
-  def getAuthType: String = unsupported
+  final def authenticate(x$1: javax.servlet.http.HttpServletResponse): Boolean = unsupported
 
-  def getContextPath: String = unsupported
+  final def changeSessionId: String = unsupported
 
-  def getCookies: Array[javax.servlet.http.Cookie] = unsupported
+  final def getAuthType: String = unsupported
 
-  def getDateHeader(x$1: String): Long = unsupported
+  final def getContextPath: String = unsupported
 
-  def getIntHeader(x$1: String): Int = unsupported
+  final def getCookies: Array[javax.servlet.http.Cookie] = unsupported
 
-  def getMethod: String = request.method.toString
+  final def getDateHeader(x$1: String): Long = unsupported
 
-  def getPart(x$1: String): javax.servlet.http.Part = unsupported
+  final def getIntHeader(x$1: String): Int = unsupported
 
-  def getParts: java.util.Collection[javax.servlet.http.Part] = unsupported
+  final def getMethod: String = request.method.toString
 
-  def getPathInfo: String = unsupported
+  final def getPart(x$1: String): javax.servlet.http.Part = unsupported
 
-  def getPathTranslated: String = unsupported
+  final def getParts: java.util.Collection[javax.servlet.http.Part] = unsupported
 
-  def getQueryString: String = unsupported
+  final def getPathInfo: String = null // unsupported
 
-  def getRemoteUser: String = unsupported
+  final def getPathTranslated: String = unsupported
 
-  def getRequestURI: String = unsupported
+  final def getQueryString: String = request.query match { case Some(query) ⇒ query case _ ⇒ null }
 
-  def getRequestURL: StringBuffer = unsupported
+  final def getRemoteUser: String = unsupported
 
-  def getRequestedSessionId: String = unsupported
+  final def getRequestURI: String = "/Users/guido/Development/forks/FrameworkBenchmarks-1/plain/web-apps/servlet/WEB-INF/jsp/hello.jsp"
 
-  def getServletPath: String = unsupported
+  final def getRequestURL: StringBuffer = unsupported
 
-  def getSession: javax.servlet.http.HttpSession = unsupported
+  final def getRequestedSessionId: String = unsupported
 
-  def getSession(x$1: Boolean): javax.servlet.http.HttpSession = unsupported
+  final def getServletPath: String = { println(request.path.toString); request.path.mkString("/") }
 
-  def getUserPrincipal: java.security.Principal = unsupported
+  final def getSession: javax.servlet.http.HttpSession = unsupported
 
-  def isRequestedSessionIdFromCookie: Boolean = unsupported
+  final def getSession(x$1: Boolean): javax.servlet.http.HttpSession = unsupported
 
-  def isRequestedSessionIdFromURL: Boolean = unsupported
+  final def getUserPrincipal: java.security.Principal = unsupported
 
-  def isRequestedSessionIdFromUrl: Boolean = unsupported
+  final def isRequestedSessionIdFromCookie: Boolean = unsupported
 
-  def isRequestedSessionIdValid: Boolean = unsupported
+  final def isRequestedSessionIdFromURL: Boolean = unsupported
 
-  def isUserInRole(x$1: String): Boolean = unsupported
+  final def isRequestedSessionIdFromUrl: Boolean = unsupported
 
-  def login(x$1: String, x$2: String) = unsupported
+  final def isRequestedSessionIdValid: Boolean = unsupported
 
-  def logout = unsupported
+  final def isUserInRole(x$1: String): Boolean = unsupported
 
-  def upgrade[T <: javax.servlet.http.HttpUpgradeHandler](x$1: Class[T]): T = unsupported
+  final def login(x$1: String, x$2: String) = unsupported
 
-  def getAttribute(arg0: String): Object = { null }
+  final def logout = unsupported
 
-  def getAttributeNames: Enumeration[String] = { null }
+  final def upgrade[T <: javax.servlet.http.HttpUpgradeHandler](x$1: Class[T]): T = unsupported
 
-  def getCharacterEncoding: String = { null }
+  final def getCharacterEncoding: String = unsupported
 
-  def setCharacterEncoding(arg0: String) = {}
+  final def setCharacterEncoding(arg0: String) = unsupported
 
-  def getContentLength: Int = { 0 }
+  final def getContentLength: Int = unsupported
 
-  def getContentLengthLong: Long = { 0L }
+  final def getContentLengthLong: Long = { 0L }
 
-  def getContentType: String = { null }
+  final def getContentType: String = unsupported
 
-  def getInputStream: ServletInputStream = { null }
+  final def getInputStream: js.ServletInputStream = unsupported
 
-  def getParameter(arg0: String): String = { null }
+  final def getParameter(name: String): String = getParameterMap.get(name) match { case null ⇒ null case values ⇒ values.head }
 
-  def getParameterNames: Enumeration[String] = { null }
+  final def getParameterNames: Enumeration[String] = getParameterMap.keysIterator
 
-  def getParameterValues(arg0: String): Array[String] = { null }
+  final def getParameterValues(name: String): Array[String] = getParameterMap.get(name)
 
-  def getParameterMap: JMap[String, Array[String]] = { null }
+  final lazy val getParameterMap: JMap[String, Array[String]] =
+    ignoreOrElse(rest.Matching.default.decodeForm(request.entity) map { case (name, values) ⇒ (name, values.toArray) }, new java.util.HashMap[String, Array[String]])
 
-  def getProtocol: String = { null }
+  final def getProtocol: String = unsupported
 
-  def getScheme: String = { null }
+  final def getScheme: String = unsupported
 
-  def getServerName: String = { null }
+  final def getServerName: String = unsupported
 
-  def getServerPort: Int = { 0 }
+  final def getServerPort: Int = unsupported
 
-  def getReader: BufferedReader = { null }
+  final def getReader: BufferedReader = unsupported
 
-  def getRemoteAddr: String = { null }
+  final def getRemoteAddr: String = unsupported
 
-  def getRemoteHost: String = { null }
+  final def getRemoteHost: String = unsupported
 
-  def setAttribute(arg0: String, arg1: Object) = {}
+  final def getLocale: Locale = unsupported
 
-  def removeAttribute(arg0: String) = {}
+  final def getLocales: Enumeration[Locale] = unsupported
 
-  def getLocale: Locale = { null }
+  final def isSecure: Boolean = unsupported
 
-  def getLocales: Enumeration[Locale] = { null }
+  final def getRequestDispatcher(path: String): js.RequestDispatcher = RequestDispatcher(path)
 
-  def isSecure: Boolean = { false }
+  final def getRealPath(arg0: String): String = unsupported
 
-  def getRequestDispatcher(arg0: String): RequestDispatcher = { null }
+  final def getRemotePort: Int = unsupported
 
-  def getRealPath(arg0: String): String = { null }
+  final def getLocalName: String = unsupported
 
-  def getRemotePort: Int = { 0 }
+  final def getLocalAddr: String = unsupported
 
-  def getLocalName: String = { null }
+  final def getLocalPort: Int = unsupported
 
-  def getLocalAddr: String = { null }
+  final def getServletContext: ServletContext = servletcontext
 
-  def getLocalPort: Int = { 0 }
+  final def startAsync: js.AsyncContext = unsupported
 
-  def getServletContext: ServletContext = { null }
+  final def startAsync(arg0: js.ServletRequest, arg1: js.ServletResponse): js.AsyncContext = unsupported
 
-  def startAsync: AsyncContext = { null }
+  final def isAsyncStarted: Boolean = unsupported
 
-  def startAsync(arg0: ServletRequest, arg1: ServletResponse): AsyncContext = { null }
+  final def isAsyncSupported: Boolean = unsupported
 
-  def isAsyncStarted: Boolean = { false }
+  final def getAsyncContext: js.AsyncContext = unsupported
 
-  def isAsyncSupported: Boolean = { false }
+  final def getDispatcherType: js.DispatcherType = unsupported
 
-  def getAsyncContext: AsyncContext = { null }
+  final def addCookie(cookie: js.http.Cookie) = unsupported
 
-  def getDispatcherType: DispatcherType = { null }
+  final def containsHeader(arg0: String): Boolean = unsupported
 
-  def addCookie(arg0: Cookie) = {}
+  final def encodeURL(arg0: String): String = unsupported
 
-  def containsHeader(arg0: String): Boolean = { false }
+  final def encodeRedirectURL(arg0: String): String = unsupported
 
-  def encodeURL(arg0: String): String = { null }
+  final def encodeUrl(arg0: String): String = unsupported
 
-  def encodeRedirectURL(arg0: String): String = { null }
+  final def encodeRedirectUrl(arg0: String): String = unsupported
 
-  def encodeUrl(arg0: String): String = { null }
+  final def sendError(arg0: Int, arg1: String) = unsupported
 
-  def encodeRedirectUrl(arg0: String): String = { null }
+  final def sendError(arg0: Int) = unsupported
 
-  def sendError(arg0: Int, arg1: String) = {}
+  final def sendRedirect(arg0: String) = unsupported
 
-  def sendError(arg0: Int) = {}
+  final def setDateHeader(arg0: String, arg1: Long) = unsupported
 
-  def sendRedirect(arg0: String) = {}
+  final def addDateHeader(arg0: String, arg1: Long) = unsupported
 
-  def setDateHeader(arg0: String, arg1: Long) = {}
+  final def setHeader(name: String, value: String) = unsupported
 
-  def addDateHeader(arg0: String, arg1: Long) = {}
+  final def addHeader(arg0: String, arg1: String) = unsupported
 
-  def setHeader(name: String, value: String) = {}
+  final def setIntHeader(arg0: String, arg1: Int) = unsupported
 
-  def addHeader(arg0: String, arg1: String) = {}
+  final def addIntHeader(arg0: String, arg1: Int) = unsupported
 
-  def setIntHeader(arg0: String, arg1: Int) = {}
+  final def setStatus(arg0: Int) = unsupported
 
-  def addIntHeader(arg0: String, arg1: Int) = {}
+  final def setStatus(arg0: Int, arg1: String) = unsupported
 
-  def setStatus(arg0: Int) = {}
+  final def getStatus: Int = unsupported
 
-  def setStatus(arg0: Int, arg1: String) = {}
+  final def getHeader(arg0: String): String = unsupported
 
-  def getStatus: Int = { 0 }
+  final def getHeaders(arg0: String): Enumeration[String] = unsupported
 
-  def getHeader(arg0: String): String = { null }
+  final def getHeaderNames: Enumeration[String] = unsupported
 
-  def getHeaders(arg0: String): Enumeration[String] = { null }
+  final def getOutputStream: js.ServletOutputStream = unsupported
 
-  def getHeaderNames: Enumeration[String] = { null }
+  final def getWriter: PrintWriter = unsupported
 
-  def getOutputStream: ServletOutputStream = { null }
+  final def setContentLength(arg0: Int) = unsupported
 
-  def getWriter: PrintWriter = { null }
+  final def setContentLengthLong(arg0: Long) = unsupported
 
-  def setContentLength(arg0: Int) = {}
+  final def setContentType(arg0: String) = unsupported
 
-  def setContentLengthLong(arg0: Long) = {}
+  final def setBufferSize(arg0: Int) = unsupported
 
-  def setContentType(arg0: String) = {}
+  final def getBufferSize: Int = unsupported
 
-  def setBufferSize(arg0: Int) = {}
+  final def flushBuffer = unsupported
 
-  def getBufferSize: Int = { 0 }
+  final def resetBuffer = unsupported
 
-  def flushBuffer = {}
+  final def isCommitted: Boolean = unsupported
 
-  def resetBuffer = {}
+  final def reset = unsupported
 
-  def isCommitted: Boolean = { false }
-
-  def reset = {}
-
-  def setLocale(arg0: java.util.Locale) = {}
+  final def setLocale(arg0: java.util.Locale) = unsupported
 
 }
 

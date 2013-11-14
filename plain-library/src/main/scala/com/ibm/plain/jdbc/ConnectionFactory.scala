@@ -188,6 +188,8 @@ final case class ConnectionFactory(
 
   private[jdbc] final val displayname = settings.getString("name", "default")
 
+  private[jdbc] final val jndilookupyname = settings.getString("jndi-lookup-name", "jdbc/default")
+
   private[this] final val growtimeout = new AtomicLong(settings.getMilliseconds("pool-grow-timeout", 200))
 
   private[this] final val idletimeout = settings.getMilliseconds("pool-idle-timeout", 300000)

@@ -23,7 +23,7 @@ import http.MimeType._
 import http.Entity
 import http.Entity._
 
-private final class Matching {
+final class Matching {
 
   import Matching._
 
@@ -177,7 +177,7 @@ private final class Matching {
 /**
  *
  */
-private object Matching {
+object Matching {
 
   type Decoder[A] = Option[Entity] ⇒ A
 
@@ -190,5 +190,7 @@ private object Matching {
   type TypeEncoders = Map[Type, Encoder]
 
   type PriorityList = Array[(MimeType, List[Type])]
+
+  final lazy val default = new Matching
 
 }
