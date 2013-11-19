@@ -59,7 +59,7 @@ final case class HttpServletResponse(
 
   final def setHeader(name: String, value: String) = name match {
     case "Content-Type" ⇒ contenttype = ContentType(value)
-    case _ ⇒ println(name + " : " + value); unsupported
+    case _ ⇒ servletcontext.log("setHeader not implemented: " + name + " : " + value); unsupported
   }
 
   final def setIntHeader(x$1: String, x$2: Int) = unsupported
@@ -72,7 +72,7 @@ final case class HttpServletResponse(
 
   final def getBufferSize = buffersize
 
-  final def getCharacterEncoding: String = unsupported
+  final def getCharacterEncoding: String = text.`UTF-8`.toString
 
   final def getContentType: String = unsupported
 
@@ -94,16 +94,16 @@ final case class HttpServletResponse(
   final def setBufferSize(buffersize: Int) = {
     this.buffersize = buffersize
     outputstream = new ByteArrayOutputStream(buffersize)
-    printwriter = new PrintWriter(new OutputStreamWriter(outputstream))
+    printwriter = new PrintWriter(new OutputStreamWriter(outputstream, getCharacterEncoding))
   }
 
   final def setCharacterEncoding(x$1: String) = unsupported
 
-  final def setContentLength(x$1: Int) = unsupported
+  final def setContentLength(length: Int) = setHeader("Content-Length", length.toString)
 
-  final def setContentLengthLong(x$1: Long) = unsupported
+  final def setContentLengthLong(length: Long) = setHeader("Content-Type", length.toString)
 
-  final def setContentType(x$1: String) = unsupported
+  final def setContentType(contenttype: String) = setHeader("Content-Type", contenttype)
 
   final def setLocale(x$1: java.util.Locale) = unsupported
 

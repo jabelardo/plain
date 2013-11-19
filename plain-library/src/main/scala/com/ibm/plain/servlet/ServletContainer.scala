@@ -4,17 +4,16 @@ package plain
 
 package servlet
 
-import bootstrap.BaseComponent
-import logging.HasLogger
-
 import java.nio.file.Path
-import java.nio.file.Paths
 
 import scala.collection.concurrent.TrieMap
-import scala.collection.JavaConversions._
 
-import _root_.com.ibm.plain.io.FileExtensionFilter
-import _root_.com.ibm.plain.io.WarClassLoader.setAsContextClassLoader
+import com.ibm.plain.bootstrap.BaseComponent
+import com.ibm.plain.io.FileExtensionFilter
+import com.ibm.plain.io.WarClassLoader.setAsContextClassLoader
+
+import bootstrap.BaseComponent
+import logging.HasLogger
 
 abstract sealed class ServletContainer
 
@@ -22,12 +21,12 @@ abstract sealed class ServletContainer
 
   with HasLogger {
 
-  override def isStopped = null == webapplications
+  override def isStopped = 0 == webapplications.size
 
   override def start = {
-    webapplications = {
+    webapplications ++= {
       val context = Thread.currentThread.getContextClassLoader
-      Class.forName("org.apache.jasper.compiler.JspRuntimeContext", true, context) // move to JSP
+      Class.forName("org.apache.jasper.compiler.JspRuntimeContext", true, context)
       try {
         val apps: Array[Path] = if (webApplicationsDirectory.exists) {
           webApplicationsDirectory.listFiles(FileExtensionFilter("war")) match {
@@ -48,13 +47,13 @@ abstract sealed class ServletContainer
 
   override def stop = try {
     webapplications.values.foreach(ctx ⇒ ignore(ctx.destroy))
-    webapplications = null
+    webapplications.clear
     this
   }
 
   final def getServletContext(path: String): Option[ServletContext] = if (isStarted) webapplications.get(path) else None
 
-  private[this] final var webapplications: Map[String, ServletContext] = null
+  private[this] final val webapplications = new TrieMap[String, ServletContext]
 
 }
 

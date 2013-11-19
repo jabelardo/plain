@@ -30,7 +30,7 @@ final case class HttpServletRequest(
 
   final def getAuthType: String = unsupported
 
-  final def getContextPath: String = unsupported
+  final def getContextPath: String = "/" + request.path.take(2).mkString("/")
 
   final def getCookies: Array[javax.servlet.http.Cookie] = unsupported
 
@@ -44,7 +44,7 @@ final case class HttpServletRequest(
 
   final def getParts: java.util.Collection[javax.servlet.http.Part] = unsupported
 
-  final def getPathInfo: String = null // unsupported
+  final def getPathInfo: String = null
 
   final def getPathTranslated: String = unsupported
 
@@ -52,13 +52,13 @@ final case class HttpServletRequest(
 
   final def getRemoteUser: String = unsupported
 
-  final def getRequestURI: String = "/Users/guido/Development/forks/FrameworkBenchmarks-1/plain/web-apps/servlet/WEB-INF/jsp/hello.jsp"
+  final def getRequestURI: String = "/" + request.path.mkString("/")
 
   final def getRequestURL: StringBuffer = unsupported
 
   final def getRequestedSessionId: String = unsupported
 
-  final def getServletPath: String = { println(request.path.toString); request.path.mkString("/") }
+  final def getServletPath: String = "/" + request.path.drop(2).mkString("/")
 
   final def getSession: javax.servlet.http.HttpSession = unsupported
 
@@ -88,7 +88,7 @@ final case class HttpServletRequest(
 
   final def getContentLength: Int = unsupported
 
-  final def getContentLengthLong: Long = { 0L }
+  final def getContentLengthLong: Long = unsupported
 
   final def getContentType: String = unsupported
 
@@ -100,8 +100,10 @@ final case class HttpServletRequest(
 
   final def getParameterValues(name: String): Array[String] = getParameterMap.get(name)
 
-  final lazy val getParameterMap: JMap[String, Array[String]] =
-    ignoreOrElse(rest.Matching.default.decodeForm(request.entity) map { case (name, values) ⇒ (name, values.toArray) }, new java.util.HashMap[String, Array[String]])
+  final lazy val getParameterMap: JMap[String, Array[String]] = ignoreOrElse(
+    rest.Matching.default.decodeForm(request.entity) map {
+      case (name, values) ⇒ (name, values.toArray)
+    }, new java.util.HashMap[String, Array[String]])
 
   final def getProtocol: String = unsupported
 
@@ -123,9 +125,9 @@ final case class HttpServletRequest(
 
   final def isSecure: Boolean = unsupported
 
-  final def getRequestDispatcher(path: String): js.RequestDispatcher = RequestDispatcher(path)
+  final def getRequestDispatcher(path: String): js.RequestDispatcher = RequestDispatcher(path, servletcontext)
 
-  final def getRealPath(arg0: String): String = unsupported
+  final def getRealPath(path: String): String = servletcontext.getRealPath(path)
 
   final def getRemotePort: Int = unsupported
 
@@ -214,6 +216,8 @@ final case class HttpServletRequest(
   final def reset = unsupported
 
   final def setLocale(arg0: java.util.Locale) = unsupported
+
+  final def log(msg: String) = servletcontext.log(msg)
 
 }
 

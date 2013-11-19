@@ -13,7 +13,12 @@ import scala.collection.concurrent.TrieMap
 
 trait HasAttributes {
 
-  final def getAttribute(name: String): Object = attributes.getOrElse(name, null)
+  def log(msg: String)
+
+  final def getAttribute(name: String): Object = attributes.get(name) match {
+    case Some(attr) ⇒ attr
+    case _ ⇒ null
+  }
 
   final def getAttributeNames: Enumeration[String] = attributes.keysIterator
 

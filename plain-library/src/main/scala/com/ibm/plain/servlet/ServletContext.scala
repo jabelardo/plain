@@ -4,11 +4,14 @@ package plain
 
 package servlet
 
-import java.io.InputStream
-import java.net.URL
+import java.io.{ File, InputStream }
+import java.net.{ URL, URLClassLoader }
 import java.util.{ Enumeration, EventListener, Map ⇒ JMap, Set ⇒ JSet }
 
-import scala.collection.JavaConversions.{ asJavaEnumeration, mapAsJavaMap }
+import org.apache.jasper.Constants
+import org.apache.jasper.servlet.JspServlet
+
+import scala.collection.JavaConversions.{ asJavaEnumeration, enumerationAsScalaIterator, mapAsJavaMap, seqAsJavaList }
 import scala.collection.concurrent.TrieMap
 import scala.language.postfixOps
 import scala.util.matching.Regex
@@ -17,10 +20,11 @@ import scala.xml.XML
 import http.HttpServletWrapper
 import javax.{ servlet ⇒ js }
 import logging.HasLogger
+import plain.io.{ classPathFromClassLoader, temporaryDirectory }
 
 final class ServletContext(
 
-  private[this] final val classloader: ClassLoader)
+  private[this] final val classloader: URLClassLoader)
 
   extends js.ServletContext
 
@@ -83,7 +87,7 @@ final class ServletContext(
 
   final def getInitParameterNames: Enumeration[String] = contextparameters.keysIterator
 
-  final def getJspConfigDescriptor: js.descriptor.JspConfigDescriptor = { info("getJspConfigDescriptor"); null }
+  final def getJspConfigDescriptor: js.descriptor.JspConfigDescriptor = null
 
   final def getMajorVersion: Int = 3
 
@@ -93,22 +97,18 @@ final class ServletContext(
 
   final def getNamedDispatcher(name: String): js.RequestDispatcher = unsupported
 
-  final def getRealPath(path: String): String = { info("getRealPath " + path); "WEB-INF/jsp/fortunes.jsp" }
+  final def getRealPath(path: String): String = getResource(path) match {
+    case null ⇒ null
+    case url ⇒ ignoreOrElse(new File(url.toURI).getAbsolutePath, null)
+  }
 
   final def getRequestDispatcher(path: String): js.RequestDispatcher = unsupported
 
-  final def getResource(path: String): URL = {
-    info("getResource " + path);
-    val url = classloader.getResource("META-INF/fortunes.jsp")
-    info(url.toString)
-    val conn = url.openConnection
-    info(conn.getContentLength.toString)
-    url
-  }
+  final def getResource(path: String): URL = classloader.getResource(if (path.startsWith("/")) path.drop(1) else path)
 
-  final def getResourceAsStream(path: String): InputStream = unsupported
+  final def getResourceAsStream(path: String): InputStream = classloader.getResourceAsStream(if (path.startsWith("/")) path.drop(1) else path)
 
-  final def getResourcePaths(path: String): JSet[String] = unsupported
+  final def getResourcePaths(path: String): JSet[String] = new java.util.HashSet[String](classloader.getResources(path).map(_.toString).toList)
 
   final def getServerInfo: String = unsupported
 
@@ -138,7 +138,36 @@ final class ServletContext(
 
   final def setSessionTrackingModes(modes: JSet[js.SessionTrackingMode]) = unsupported
 
+  private[servlet] final def getJspServlet = jspservlet
+
   private[servlet] final val webxml = XML.load(classloader.getResourceAsStream("WEB-INF/web.xml"))
+
+  private[this] final val init: Unit = {
+    setAttribute("com.sun.faces.useMyFaces", Boolean.box(false))
+    setAttribute("org.glassfish.jsp.isStandaloneWebapp", Boolean.box(true))
+    setAttribute(js.ServletContext.TEMPDIR, temporaryDirectory)
+    setAttribute(Constants.SERVLET_CLASSPATH, classPathFromClassLoader(classloader))
+    setAttribute(Constants.JSP_RESOURCE_INJECTOR_CONTEXT_ATTRIBUTE, new org.glassfish.jsp.api.ResourceInjector {
+
+      final def createTagHandlerInstance[T <: javax.servlet.jsp.tagext.JspTag](tagclass: Class[T]): T = tagclass.newInstance
+
+      final def preDestroy(tag: javax.servlet.jsp.tagext.JspTag) = ()
+
+      private[this] final val cache = new TrieMap[String, javax.servlet.jsp.tagext.JspTag]
+
+    })
+  }
+
+  private[this] final val welcomefiles = (webxml \ "welcome-file-list" \ "welcome-file") map (_.text)
+
+  private[this] final val effectiveversion = try {
+    (webxml \ "@version").text.split('.').toList match {
+      case List("") ⇒ List(3, 1)
+      case l ⇒ l.map(_.toInt)
+    }
+  } catch { case _: Throwable ⇒ List(3, 1) }
+
+  private[this] final val applicationname = classloader.toString
 
   private[this] final val contextparameters = {
     val m = new TrieMap[String, String]
@@ -150,7 +179,7 @@ final class ServletContext(
     val loadonstartup = if ((servletxml \ "load-on-startup").isEmpty) 0 else (servletxml \ "load-on-startup").text match { case "" ⇒ 0 case i ⇒ i.toInt }
     if (0 < loadonstartup) warning("load-on-startup " + loadonstartup + " ignored during bootstrapping.")
     val servlet = new HttpServletWrapper(this, servletxml)
-    if (0 <= loadonstartup) servlet.init(servlet)
+    servlet.init(servlet)
     (servlet.getServletName, servlet)
   }.toMap
 
@@ -163,14 +192,31 @@ final class ServletContext(
     mappings(false) ++ mappings(true)
   }
 
-  private[this] final val welcomefiles = (webxml \ "welcome-file-list" \ "welcome-file") map (_.text)
-
-  private[this] final val effectiveversion = (webxml \ "@version").text.split('.').toList match {
-    case List("") ⇒ List(3, 1)
-    case l ⇒ l.map(_.toInt)
+  private[this] final val jspservlet: js.Servlet = {
+    val config =
+      <servlet>
+        <servlet-name>JSP</servlet-name>
+        <init-param>
+          <param-name>fork</param-name>
+          <param-value>false</param-value>
+        </init-param>
+        <init-param>
+          <param-name>xpoweredBy</param-name>
+          <param-value>false</param-value>
+        </init-param>
+        <init-param>
+          <param-name>enablePooling</param-name>
+          <param-value>true</param-value>
+        </init-param>
+        <init-param>
+          <param-name>javaEncoding</param-name>
+          <param-value>UTF8</param-value>
+        </init-param>
+      </servlet>
+    val jsp = new JspServlet
+    jsp.init(new ManualServletConfig(config, this))
+    jsp
   }
-
-  private[this] final val applicationname = classloader.toString
 
 }
 

@@ -5,7 +5,7 @@ package plain
 package servlet
 
 import java.util.Enumeration
-import javax.servlet.{ ServletConfig ⇒ JServletConfig, ServletContext ⇒ JServletContext }
+import javax.{ servlet ⇒ js }
 
 import scala.xml.Node
 import scala.language.postfixOps
@@ -13,7 +13,7 @@ import scala.collection.JavaConversions._
 
 trait ServletConfig
 
-  extends JServletConfig {
+  extends js.ServletConfig {
 
   abstract override final def getServletName = name
 
@@ -21,7 +21,7 @@ trait ServletConfig
 
   abstract override final def getInitParameterNames: Enumeration[String] = initparameters.keysIterator
 
-  abstract override final def getServletContext: JServletContext = servletcontext
+  abstract override final def getServletContext: js.ServletContext = servletcontext
 
   protected[this] val servletcontext: ServletContext
 
@@ -32,3 +32,26 @@ trait ServletConfig
   protected[this] final val name = (servletxml \ "servlet-name").text
 
 }
+
+final class ManualServletConfig(
+
+  protected[this] final val servletxml: Node,
+
+  protected[this] final val servletcontext: ServletContext)
+
+  extends js.ServletConfig {
+
+  final def getServletName = name
+
+  final def getInitParameter(name: String): String = initparameters.get(name) match { case Some(value) ⇒ value case _ ⇒ null }
+
+  final def getInitParameterNames: Enumeration[String] = initparameters.keysIterator
+
+  final def getServletContext: js.ServletContext = servletcontext
+
+  protected[this] final val initparameters = (servletxml \ "init-param") map { p ⇒ (p \ "param-name" text, p \ "param-value" text) } toMap
+
+  protected[this] final val name = (servletxml \ "servlet-name").text
+
+}
+

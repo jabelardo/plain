@@ -2,18 +2,20 @@ package com.ibm
 
 package plain
 
-import java.io.{ File, IOException, InputStream, OutputStream, Reader, Writer, BufferedOutputStream }
+import java.io.{ BufferedOutputStream, File, IOException, InputStream, OutputStream, Reader, Writer }
+import java.net.URLClassLoader
 import java.nio.ByteBuffer
 import java.nio.channels.{ FileChannel, ReadableByteChannel, WritableByteChannel }
 import java.nio.channels.Channels.newChannel
 import java.nio.file.{ Files, Paths }
-import java.util.zip.{ GZIPInputStream, GZIPOutputStream }
+import java.util.zip.GZIPInputStream
+
 import org.apache.commons.io.FileUtils
+
+import com.ibm.plain.io.{ ByteBufferInputStream, ByteBufferOutputStream, GZIPOutputStream, Io, NullOutputStream }
+
 import concurrent.spawn
-import config.config2RichConfig
-import config.settings.{ getInt, getMilliseconds }
-import config.CheckedConfig
-import io.Io
+import config.{ CheckedConfig, config2RichConfig }
 import logging.createLogger
 
 package object io
@@ -120,6 +122,28 @@ package object io
     copyBytesIo(in, out)
     out.close
     buffer
+  }
+
+  /**
+   * Create classpath from a given ClassLoader
+   */
+  final def classPathFromClassLoader(classloader: URLClassLoader): String = {
+    val b = new StringBuilder
+    val sep = java.io.File.pathSeparator
+    var cl = classloader
+    while (null != cl) {
+      cl.getURLs.foreach { url ⇒
+        if (0 < b.length) b.append(sep)
+        url.toString match {
+          case u if u.startsWith("file:") ⇒ ignore(b.append(new File(url.toURI).getCanonicalPath))
+          case u if u.startsWith("jndi:") ⇒ b.append(u.drop(5))
+          case u ⇒ b.append(u)
+        }
+      }
+      cl = ignoreOrElse(cl.getParent.asInstanceOf[URLClassLoader], null)
+    }
+    println(b.toString.split(":").mkString("\n"))
+    b.toString
   }
 
   /**

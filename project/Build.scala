@@ -38,7 +38,8 @@ object PlainBuild extends Build {
         h2jdbc,
         mysqljdbc,
         servlet31,
-        jsp231,
+        jsp,
+	jspimpl,
         jasper,
         disruptor,
         reflections) ++ test(junit, junitItf))
