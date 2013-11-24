@@ -11,7 +11,7 @@ import java.util.{ Collection, Locale }
 
 import io.ServletOutputStream
 import javax.{ servlet ⇒ js }
-import plain.http.{ ContentType, Entity }
+import plain.http.{ ContentType, Entity, MimeType }
 import plain.http.Entity.ArrayEntity
 import plain.http.Response
 
@@ -72,9 +72,9 @@ final case class HttpServletResponse(
 
   final def getBufferSize = buffersize
 
-  final def getCharacterEncoding: String = text.`UTF-8`.toString
+  final def getCharacterEncoding: String = contentencoding.toString
 
-  final def getContentType: String = unsupported
+  final def getContentType: String = contenttype.toString
 
   final def getLocale: Locale = unsupported
 
@@ -113,15 +113,21 @@ final case class HttpServletResponse(
 
   private[this] final var buffersize = defaultbuffersize
 
-  private[this] final var outputstream = new ByteArrayOutputStream(defaultbuffersize)
+  private[this] final var outputstream: ByteArrayOutputStream = null
 
-  private[this] final var printwriter = new PrintWriter(new OutputStreamWriter(outputstream))
+  private[this] final var printwriter: PrintWriter = null
 
   private[this] final var usewriter = false
 
   private[this] final var useoutputstream = false
 
-  private[this] final var contenttype: ContentType = null
+  private[this] final var contenttype = ContentType(MimeType.`text/plain`)
+
+  private[this] final var contentencoding = text.`UTF-8`
+
+  private[this] final val init = {
+    setBufferSize(defaultbuffersize)
+  }
 
 }
 

@@ -7,12 +7,12 @@ package servlet
 import java.nio.file.Path
 
 import scala.collection.concurrent.TrieMap
+import scala.collection.JavaConversions._
+import scala.io.Source.fromInputStream
 
 import com.ibm.plain.bootstrap.BaseComponent
-import com.ibm.plain.io.FileExtensionFilter
-import com.ibm.plain.io.WarClassLoader.setAsContextClassLoader
+import com.ibm.plain.io.{ FileExtensionFilter, WarClassLoader }
 
-import bootstrap.BaseComponent
 import logging.HasLogger
 
 abstract sealed class ServletContainer
@@ -26,7 +26,6 @@ abstract sealed class ServletContainer
   override def start = {
     webapplications ++= {
       val context = Thread.currentThread.getContextClassLoader
-      Class.forName("org.apache.jasper.compiler.JspRuntimeContext", true, context)
       try {
         val apps: Array[Path] = if (webApplicationsDirectory.exists) {
           webApplicationsDirectory.listFiles(FileExtensionFilter("war")) match {
@@ -35,9 +34,12 @@ abstract sealed class ServletContainer
           }
         } else Array.empty
         apps.map { app ⇒
-          Thread.currentThread.setContextClassLoader(context)
-          val servletcontext = new ServletContext(setAsContextClassLoader(app.toString, unpackWebApplicationsDirectory.getAbsolutePath))
-          (servletcontext.getApplicationName, servletcontext)
+          try {
+            val classloader = WarClassLoader(app.toString, Thread.currentThread.getContextClassLoader, unpackWebApplicationsDirectory.getAbsolutePath)
+            Thread.currentThread.setContextClassLoader(classloader)
+            val servletcontext = new ServletContext(classloader)
+            (servletcontext.getApplicationName, servletcontext)
+          } finally Thread.currentThread.setContextClassLoader(context)
         }.toMap
       } finally Thread.currentThread.setContextClassLoader(context)
     }

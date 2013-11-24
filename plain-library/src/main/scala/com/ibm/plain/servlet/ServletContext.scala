@@ -8,9 +8,6 @@ import java.io.{ File, InputStream }
 import java.net.{ URL, URLClassLoader }
 import java.util.{ Enumeration, EventListener, Map ⇒ JMap, Set ⇒ JSet }
 
-import org.apache.jasper.Constants
-import org.apache.jasper.servlet.JspServlet
-
 import scala.collection.JavaConversions.{ asJavaEnumeration, enumerationAsScalaIterator, mapAsJavaMap, seqAsJavaList }
 import scala.collection.concurrent.TrieMap
 import scala.language.postfixOps
@@ -61,6 +58,7 @@ final class ServletContext(
   final def destroy = {
     servlets.values.foreach(servlet ⇒ ignore(servlet.destroy))
     servlets.clear
+    classloader.close
   }
 
   final def getApplicationName = applicationname
@@ -89,11 +87,11 @@ final class ServletContext(
 
   final def getJspConfigDescriptor: js.descriptor.JspConfigDescriptor = null
 
-  final def getMajorVersion: Int = 3
+  final def getMajorVersion: Int = version(0)
 
   final def getMimeType(file: String): String = unsupported
 
-  final def getMinorVersion: Int = 1
+  final def getMinorVersion: Int = version(1)
 
   final def getNamedDispatcher(name: String): js.RequestDispatcher = unsupported
 
@@ -142,30 +140,29 @@ final class ServletContext(
 
   private[servlet] final val webxml = XML.load(classloader.getResourceAsStream("WEB-INF/web.xml"))
 
+  protected[this] final val attributes = new TrieMap[String, Object]
+
+  private[this] final val version = List(3, 1)
+
   private[this] final val init: Unit = {
-    setAttribute("com.sun.faces.useMyFaces", Boolean.box(false))
-    setAttribute("org.glassfish.jsp.isStandaloneWebapp", Boolean.box(true))
-    setAttribute(js.ServletContext.TEMPDIR, temporaryDirectory)
-    setAttribute(Constants.SERVLET_CLASSPATH, classPathFromClassLoader(classloader))
-    setAttribute(Constants.JSP_RESOURCE_INJECTOR_CONTEXT_ATTRIBUTE, new org.glassfish.jsp.api.ResourceInjector {
-
+    setAttribute(org.apache.jasper.Constants.SERVLET_CLASSPATH, classPathFromClassLoader(classloader))
+    setAttribute(org.apache.jasper.Constants.JSP_RESOURCE_INJECTOR_CONTEXT_ATTRIBUTE, new org.glassfish.jsp.api.ResourceInjector {
       final def createTagHandlerInstance[T <: javax.servlet.jsp.tagext.JspTag](tagclass: Class[T]): T = tagclass.newInstance
-
       final def preDestroy(tag: javax.servlet.jsp.tagext.JspTag) = ()
-
-      private[this] final val cache = new TrieMap[String, javax.servlet.jsp.tagext.JspTag]
-
     })
+    setAttribute("com.sun.faces.useMyFaces", Boolean.box(false))
+    setAttribute("org.glassfish.jsp.isStandaloneWebapp", Boolean.box(false))
+    setAttribute(js.ServletContext.TEMPDIR, temporaryDirectory)
   }
 
   private[this] final val welcomefiles = (webxml \ "welcome-file-list" \ "welcome-file") map (_.text)
 
   private[this] final val effectiveversion = try {
     (webxml \ "@version").text.split('.').toList match {
-      case List("") ⇒ List(3, 1)
+      case List("") ⇒ version
       case l ⇒ l.map(_.toInt)
     }
-  } catch { case _: Throwable ⇒ List(3, 1) }
+  } catch { case _: Throwable ⇒ version }
 
   private[this] final val applicationname = classloader.toString
 
@@ -193,6 +190,12 @@ final class ServletContext(
   }
 
   private[this] final val jspservlet: js.Servlet = {
+    val systemUris = classOf[org.apache.jasper.runtime.TldScanner].getDeclaredField("systemUris")
+    systemUris.setAccessible(true)
+    systemUris.get(null).asInstanceOf[java.util.Set[_]].clear
+    systemUris.setAccessible(false)
+    Class.forName("org.apache.jasper.compiler.JspRuntimeContext", true, classloader)
+    val jsp = new org.apache.jasper.servlet.JspServlet // Class.forName("org.apache.jasper.servlet.JspServlet", true, classloader).newInstance.asInstanceOf[org.apache.jasper.servlet.JspServlet]
     val config =
       <servlet>
         <servlet-name>JSP</servlet-name>
@@ -205,16 +208,15 @@ final class ServletContext(
           <param-value>false</param-value>
         </init-param>
         <init-param>
-          <param-name>enablePooling</param-name>
-          <param-value>true</param-value>
+          <param-name>validating</param-name>
+          <param-value>false</param-value>
         </init-param>
         <init-param>
-          <param-name>javaEncoding</param-name>
-          <param-value>UTF8</param-value>
+          <param-name>enableTldValidation</param-name>
+          <param-value>false</param-value>
         </init-param>
       </servlet>
-    val jsp = new JspServlet
-    jsp.init(new ManualServletConfig(config, this))
+    jsp.init(new SimpleServletConfig(config, this))
     jsp
   }
 

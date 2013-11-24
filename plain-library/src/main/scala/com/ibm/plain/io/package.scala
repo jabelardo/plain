@@ -142,7 +142,6 @@ package object io
       }
       cl = ignoreOrElse(cl.getParent.asInstanceOf[URLClassLoader], null)
     }
-    println(b.toString.split(":").mkString("\n"))
     b.toString
   }
 

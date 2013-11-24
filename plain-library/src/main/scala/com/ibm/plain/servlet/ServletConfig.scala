@@ -33,7 +33,7 @@ trait ServletConfig
 
 }
 
-final class ManualServletConfig(
+final class SimpleServletConfig(
 
   protected[this] final val servletxml: Node,
 

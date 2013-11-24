@@ -46,9 +46,7 @@ object Dependencies {
   val h2jdbc = "com.h2database" % "h2" % "1.3.173"
   val mysqljdbc = "mysql" % "mysql-connector-java" % "5.1.26"
   val servlet31 = "javax.servlet" % "javax.servlet-api" % "3.1.0"
-  val jsp = "javax.servlet.jsp" % "javax.servlet.jsp-api" % "2.3.1"
-  val jspimpl = "org.glassfish.web" % "javax.servlet.jsp" % "2.3.2"
-  val jasper = "org.apache.tomcat" % "tomcat-jasper" % "8.0.0-RC5"
+  val jsp23 = "org.glassfish.web" % "javax.servlet.jsp" % "2.3.1"
   val disruptor = "com.lmax" % "disruptor" % "3.2.0"
 
   // Commercial JDBC drivers must be provided at runtime, sorry. Here we list what we have tested.

@@ -4,11 +4,11 @@ package plain
 
 package io
 
-import java.io.{ File, InputStream }
+import java.io.{ File, InputStream, ByteArrayOutputStream ⇒ JByteArrayOutputStream }
 import java.net.{ URL, URLClassLoader }
 import java.nio.file.Paths
 
-import scala.collection.JavaConversions.collectionAsScalaIterable
+import scala.collection.JavaConversions.{ collectionAsScalaIterable, enumerationAsScalaIterator }
 import scala.collection.concurrent.TrieMap
 import scala.collection.mutable.ListBuffer
 import scala.io.Source.fromInputStream
@@ -17,15 +17,20 @@ import scala.xml.XML
 
 import org.apache.commons.io.{ FileUtils, FilenameUtils }
 
+import net.lingala.zip4j.model.FileHeader
 import net.lingala.zip4j.core.ZipFile
 
 final class WarClassLoader private (
 
   name: String,
 
-  urls: Array[URL], parent: ClassLoader)
+  urls: Array[URL],
 
-  extends URLClassLoader(urls, parent) {
+  parent: ClassLoader,
+
+  unpackdirectory: File)
+
+  extends URLClassLoader(urls, if (null == parent) ClassLoader.getSystemClassLoader else parent) {
 
   override final def toString = name
 
@@ -34,10 +39,9 @@ final class WarClassLoader private (
     case _ ⇒ super.getResourceAsStream(name) match {
       case null ⇒ null
       case in ⇒ try {
-        val file = new File(getResource(name).toURI)
-        val array = new Array[Byte](file.length.toInt)
-        val out = new ByteArrayOutputStream(array)
+        val out = new JByteArrayOutputStream(1024)
         copyBytesIo(in, out)
+        val array = out.toByteArray
         cache.put(name, array)
         new ByteArrayInputStream(array)
       } catch {
@@ -63,24 +67,31 @@ object WarClassLoader {
     loader
   }
 
+  final def apply(source: String): URLClassLoader = apply(source, Thread.currentThread.getContextClassLoader)
+
   final def apply(source: String, parent: ClassLoader): URLClassLoader = apply(source, parent, temporaryDirectory.getAbsolutePath)
 
-  final def apply(sourcepath: String, parent: ClassLoader, directory: String): URLClassLoader = {
-    val source = Paths.get(sourcepath).toFile.getAbsoluteFile
-    var withoutextension = FilenameUtils.removeExtension(source.getName)
-    val target = Paths.get(directory).resolve(withoutextension).toFile.getAbsoluteFile
-    if (source.lastModified > target.lastModified) {
+  final def apply(source: String, parent: ClassLoader, directory: String): URLClassLoader = {
+    val sourcepath = Paths.get(source).toFile.getAbsoluteFile
+    val sourcewithoutextension = FilenameUtils.removeExtension(sourcepath.getName)
+    val target = Paths.get(directory).resolve(sourcewithoutextension).toFile.getAbsoluteFile
+    if (sourcepath.lastModified > target.lastModified) {
       FileUtils.deleteDirectory(target)
       val zipfile = new ZipFile(sourcepath)
       zipfile.extractAll(target.getAbsolutePath)
     }
     val urls = new ListBuffer[File]
     val classesdir = target.toPath.resolve("WEB-INF/classes").toFile
-    urls += target
+    val metainfdir = target.toPath.resolve("META-INF").toFile
+    val webinfdir = target.toPath.resolve("WEB-INF").toFile
     urls += classesdir
+    urls += metainfdir
+    urls += webinfdir
     urls ++= target.toPath.resolve("WEB-INF/lib").toFile.listFiles
-    val loader = new WarClassLoader(withoutextension, urls.map(_.toPath.toUri.toURL).toArray, parent)
-    FileUtils.listFiles(classesdir, Array("class"), true).map(c ⇒ classesdir.toPath.relativize(c.toPath).toString.replace("/", ".").replace(".class", "")).foreach(loader.loadClass(_, true))
+    urls += target
+    val loader = new WarClassLoader(sourcewithoutextension, urls.map(_.toPath.toUri.normalize.toURL).toArray, parent, target)
+    FileUtils.listFiles(classesdir, Array("class"), true).map(c ⇒
+      classesdir.toPath.relativize(c.toPath).toString.replace("/", ".").replace(".class", "")).foreach(c ⇒ ignore(loader.loadClass(c, true)))
     loader
   }
 

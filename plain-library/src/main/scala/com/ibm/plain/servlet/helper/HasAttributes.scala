@@ -9,7 +9,7 @@ package helper
 import java.util.Enumeration
 
 import scala.collection.JavaConversions.asJavaEnumeration
-import scala.collection.concurrent.TrieMap
+import scala.collection.mutable.Map
 
 trait HasAttributes {
 
@@ -26,6 +26,6 @@ trait HasAttributes {
 
   final def setAttribute(name: String, value: Object): Unit = attributes.put(name, value)
 
-  private[this] final val attributes = new TrieMap[String, Object]
+  protected val attributes: Map[String, Object]
 
 }

@@ -9,6 +9,7 @@ package http
 import java.io.{ BufferedReader, PrintWriter }
 import java.util.{ Enumeration, Locale, Map ⇒ JMap }
 
+import scala.collection.mutable.HashMap
 import scala.collection.JavaConversions.{ asJavaEnumeration, mapAsJavaMap, mapAsScalaMap }
 
 import javax.{ servlet ⇒ js }
@@ -218,6 +219,8 @@ final case class HttpServletRequest(
   final def setLocale(arg0: java.util.Locale) = unsupported
 
   final def log(msg: String) = servletcontext.log(msg)
+
+  protected[this] final val attributes = new HashMap[String, Object]
 
 }
 

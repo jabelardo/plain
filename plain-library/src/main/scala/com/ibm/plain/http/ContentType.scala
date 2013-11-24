@@ -28,6 +28,8 @@ final case class ContentType private (
 
   import ContentType._
 
+  override final def toString = new String(text)
+
   @inline final def charsetOrDefault = charset match { case Some(charset) ⇒ charset case None ⇒ defaultCharacterSet }
 
   @inline final def render(implicit buffer: ByteBuffer) = r(text) + ^
