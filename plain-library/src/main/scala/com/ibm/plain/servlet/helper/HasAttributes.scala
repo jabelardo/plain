@@ -13,8 +13,6 @@ import scala.collection.mutable.Map
 
 trait HasAttributes {
 
-  def log(msg: String)
-
   final def getAttribute(name: String): Object = attributes.get(name) match {
     case Some(attr) ⇒ attr
     case _ ⇒ null

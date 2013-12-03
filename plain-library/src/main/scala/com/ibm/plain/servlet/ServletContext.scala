@@ -147,8 +147,8 @@ final class ServletContext(
   private[this] final val init: Unit = {
     setAttribute(org.apache.jasper.Constants.SERVLET_CLASSPATH, classPathFromClassLoader(classloader))
     setAttribute(org.apache.jasper.Constants.JSP_RESOURCE_INJECTOR_CONTEXT_ATTRIBUTE, new org.glassfish.jsp.api.ResourceInjector {
-      final def createTagHandlerInstance[T <: javax.servlet.jsp.tagext.JspTag](tagclass: Class[T]): T = tagclass.newInstance
-      final def preDestroy(tag: javax.servlet.jsp.tagext.JspTag) = ()
+      final def createTagHandlerInstance[T <: js.jsp.tagext.JspTag](tagclass: Class[T]): T = tagclass.newInstance
+      final def preDestroy(tag: js.jsp.tagext.JspTag) = ()
     })
     setAttribute("com.sun.faces.useMyFaces", Boolean.box(false))
     setAttribute("org.glassfish.jsp.isStandaloneWebapp", Boolean.box(false))
@@ -195,7 +195,7 @@ final class ServletContext(
     systemUris.get(null).asInstanceOf[java.util.Set[_]].clear
     systemUris.setAccessible(false)
     Class.forName("org.apache.jasper.compiler.JspRuntimeContext", true, classloader)
-    val jsp = new org.apache.jasper.servlet.JspServlet // Class.forName("org.apache.jasper.servlet.JspServlet", true, classloader).newInstance.asInstanceOf[org.apache.jasper.servlet.JspServlet]
+    val jsp = new org.apache.jasper.servlet.JspServlet
     val config =
       <servlet>
         <servlet-name>JSP</servlet-name>
@@ -205,14 +205,6 @@ final class ServletContext(
         </init-param>
         <init-param>
           <param-name>xpoweredBy</param-name>
-          <param-value>false</param-value>
-        </init-param>
-        <init-param>
-          <param-name>validating</param-name>
-          <param-value>false</param-value>
-        </init-param>
-        <init-param>
-          <param-name>enableTldValidation</param-name>
           <param-value>false</param-value>
         </init-param>
       </servlet>

@@ -6,8 +6,7 @@ package servlet
 
 package http
 
-import javax.servlet.{ ServletConfig ⇒ JServletConfig, ServletRequest ⇒ JServletRequest, ServletResponse ⇒ JServletResponse }
-import javax.servlet.http.{ HttpServlet ⇒ JHttpServlet, HttpServletRequest ⇒ JHttpServletRequest, HttpServletResponse ⇒ JHttpServletResponse }
+import javax.{ servlet ⇒ js }
 
 import scala.xml.Node
 import reflect.Injector
@@ -18,7 +17,7 @@ class HttpServletWrapper(
 
   protected[this] final val servletxml: Node)
 
-  extends JHttpServlet
+  extends js.http.HttpServlet
 
   with ServletConfig {
 
@@ -26,15 +25,15 @@ class HttpServletWrapper(
 
   override final def destroy = httpservlet.destroy
 
-  override final def getServletConfig: JServletConfig = this
+  override final def getServletConfig: js.ServletConfig = this
 
   override final def getServletInfo: String = getServletName
 
-  override final def init(servletconfig: JServletConfig) = httpservlet.init(servletconfig)
+  override final def init(servletconfig: js.ServletConfig) = httpservlet.init(servletconfig)
 
-  override final def service(request: JServletRequest, response: JServletResponse) = httpservlet.service(request, response)
+  override final def service(request: js.ServletRequest, response: js.ServletResponse) = httpservlet.service(request, response)
 
-  protected[this] final val httpservlet: JHttpServlet = Injector(
-    Class.forName((servletxml \ "servlet-class").text, true, servletcontext.getClassLoader).newInstance.asInstanceOf[JHttpServlet])
+  protected[this] final val httpservlet: js.http.HttpServlet = Injector(Class.forName(
+    (servletxml \ "servlet-class").text, true, servletcontext.getClassLoader).newInstance.asInstanceOf[js.http.HttpServlet])
 
 }

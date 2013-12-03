@@ -9,8 +9,10 @@ package http
 import java.io.{ BufferedReader, PrintWriter }
 import java.util.{ Enumeration, Locale, Map ⇒ JMap }
 
-import scala.collection.mutable.HashMap
 import scala.collection.JavaConversions.{ asJavaEnumeration, mapAsJavaMap, mapAsScalaMap }
+import scala.collection.mutable.HashMap
+
+import com.ibm.plain.servlet.ServletContext
 
 import javax.{ servlet ⇒ js }
 import plain.http.Request
@@ -25,7 +27,7 @@ final case class HttpServletRequest(
 
   with helper.HasAttributes {
 
-  final def authenticate(x$1: javax.servlet.http.HttpServletResponse): Boolean = unsupported
+  final def authenticate(x$1: js.http.HttpServletResponse): Boolean = unsupported
 
   final def changeSessionId: String = unsupported
 
@@ -33,7 +35,7 @@ final case class HttpServletRequest(
 
   final def getContextPath: String = "/" + request.path.take(2).mkString("/")
 
-  final def getCookies: Array[javax.servlet.http.Cookie] = unsupported
+  final def getCookies: Array[js.http.Cookie] = unsupported
 
   final def getDateHeader(x$1: String): Long = unsupported
 
@@ -41,9 +43,9 @@ final case class HttpServletRequest(
 
   final def getMethod: String = request.method.toString
 
-  final def getPart(x$1: String): javax.servlet.http.Part = unsupported
+  final def getPart(x$1: String): js.http.Part = unsupported
 
-  final def getParts: java.util.Collection[javax.servlet.http.Part] = unsupported
+  final def getParts: java.util.Collection[js.http.Part] = unsupported
 
   final def getPathInfo: String = null
 
@@ -61,9 +63,9 @@ final case class HttpServletRequest(
 
   final def getServletPath: String = "/" + request.path.drop(2).mkString("/")
 
-  final def getSession: javax.servlet.http.HttpSession = unsupported
+  final def getSession: js.http.HttpSession = new HttpSession("1", servletcontext)
 
-  final def getSession(x$1: Boolean): javax.servlet.http.HttpSession = unsupported
+  final def getSession(create: Boolean): js.http.HttpSession = { println("getSession " + create); getSession }
 
   final def getUserPrincipal: java.security.Principal = unsupported
 
@@ -81,7 +83,7 @@ final case class HttpServletRequest(
 
   final def logout = unsupported
 
-  final def upgrade[T <: javax.servlet.http.HttpUpgradeHandler](x$1: Class[T]): T = unsupported
+  final def upgrade[T <: js.http.HttpUpgradeHandler](x$1: Class[T]): T = unsupported
 
   final def getCharacterEncoding: String = unsupported
 
@@ -110,21 +112,21 @@ final case class HttpServletRequest(
 
   final def getScheme: String = unsupported
 
-  final def getServerName: String = unsupported
+  final def getServerName: String = "127.0.0.1"
 
-  final def getServerPort: Int = unsupported
+  final def getServerPort: Int = 9080
 
   final def getReader: BufferedReader = unsupported
 
-  final def getRemoteAddr: String = unsupported
+  final def getRemoteAddr: String = "1.2.3.4"
 
   final def getRemoteHost: String = unsupported
 
-  final def getLocale: Locale = unsupported
+  final def getLocale: Locale = Locale.getDefault
 
-  final def getLocales: Enumeration[Locale] = unsupported
+  final def getLocales: Enumeration[Locale] = List(getLocale).toIterator
 
-  final def isSecure: Boolean = unsupported
+  final def isSecure: Boolean = false
 
   final def getRequestDispatcher(path: String): js.RequestDispatcher = RequestDispatcher(path, servletcontext)
 
@@ -188,7 +190,11 @@ final case class HttpServletRequest(
 
   final def getStatus: Int = unsupported
 
-  final def getHeader(arg0: String): String = unsupported
+  final def getHeader(name: String): String = request.headers.get(name) match {
+    case Some(value) ⇒
+      println("found " + name + "=" + value); value
+    case _ ⇒ println("not found : " + name); null
+  }
 
   final def getHeaders(arg0: String): Enumeration[String] = unsupported
 

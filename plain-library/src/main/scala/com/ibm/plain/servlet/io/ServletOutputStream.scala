@@ -8,13 +8,13 @@ package io
 
 import java.io.OutputStream
 
-import javax.servlet.{ ServletOutputStream ⇒ JServletOutputStream, WriteListener }
+import javax.{ servlet ⇒ js }
 
 final class ServletOutputStream(
 
   private[this] final val out: OutputStream)
 
-  extends JServletOutputStream {
+  extends js.ServletOutputStream {
 
   final def write(i: Int) = out.write(i)
 
@@ -24,6 +24,6 @@ final class ServletOutputStream(
 
   final def isReady = unsupported
 
-  final def setWriteListener(listener: WriteListener) = unsupported
+  final def setWriteListener(listener: js.WriteListener) = unsupported
 
 }

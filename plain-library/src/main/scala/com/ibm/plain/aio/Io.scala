@@ -289,7 +289,6 @@ object Io
                 }
                 process(io ++ e)
               case (e @ Error(_), Elem(io)) ⇒
-                logger.error("here " + e)
                 io.readbuffer.clear
                 process(io ++ e)
               case (_, Eof) ⇒

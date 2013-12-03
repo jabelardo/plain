@@ -23,7 +23,7 @@ final case class HttpServletResponse(
 
   extends js.http.HttpServletResponse {
 
-  final def addCookie(x$1: javax.servlet.http.Cookie) = unsupported
+  final def addCookie(x$1: js.http.Cookie) = unsupported
 
   final def addDateHeader(x$1: String, x$2: Long) = unsupported
 
@@ -55,10 +55,13 @@ final case class HttpServletResponse(
 
   final def sendRedirect(x$1: String) = unsupported
 
-  final def setDateHeader(x$1: String, x$2: Long) = unsupported
+  final def setDateHeader(name: String, value: Long) = setHeader(name, value.toString)
 
   final def setHeader(name: String, value: String) = name match {
     case "Content-Type" ⇒ contenttype = ContentType(value)
+    case "Cache-Control" ⇒ servletcontext.log("Cache-Control: " + value + " ignored")
+    case "Pragma" ⇒ servletcontext.log("Pragma: " + value + " ignored")
+    case "Expires" ⇒ servletcontext.log("Expires: " + value + " ignored")
     case _ ⇒ servletcontext.log("setHeader not implemented: " + name + " : " + value); unsupported
   }
 

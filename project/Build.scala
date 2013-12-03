@@ -38,8 +38,8 @@ object PlainBuild extends Build {
         h2jdbc,
         mysqljdbc,
         servlet31,
-	jsp23,
-	disruptor,
+        jsp23,
+        disruptor,
         reflections) ++ test(junit, junitItf))
 
   lazy val hybriddb = Project(
