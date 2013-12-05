@@ -22,7 +22,16 @@ object StringPool {
     }
   }
 
-  private[this] final val strings = {
+  final val arraySize = 256
+
+  @inline private[this] final def hash(array: Array[Byte], length: Int): Int = {
+    var h = 1
+    var i = 0
+    while (i < length) { h = h * 31 + array(i); i += 1 }
+    h
+  }
+
+  private[this] final val strings: Map[Int, String] = {
     val map = new OpenHashMap[Int, String]
     val buf = ByteBuffer.wrap(new Array[Byte](arraySize))
 
@@ -72,17 +81,8 @@ object StringPool {
     add("127.0.0.1")
     add("localhost")
 
-    map
+    map.toMap
   }
-
-  @inline private[this] final def hash(array: Array[Byte], length: Int): Int = {
-    var h = 1
-    var i = 0
-    while (i < length) { h = h * 31 + array(i); i += 1 }
-    h
-  }
-
-  final val arraySize = 256
 
 }
 

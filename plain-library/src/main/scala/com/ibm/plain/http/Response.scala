@@ -99,12 +99,6 @@ final case class Response private (
     if (!keepalive) r(`Connection: `) + r(if (keepalive) `keep-alive` else `close`) + `\r\n` + ^
   }
 
-  //  @inline private[this] final def renderHeaders = headers.foreach {
-  //    case (name, value) ⇒
-  //      println(name + ": " + value)
-  //      r(name.getBytes(`UTF-8`)) + r(": ".getBytes) + r(value.getBytes(`UTF-8`)) + `\r\n` + ^
-  //  }
-
   @inline private[this] final def renderContent: Unit = {
     encoding = entity match {
       case Some(entity) if tooTinyToCareSize < entity.length || -1 == entity.length ⇒ request.transferEncoding

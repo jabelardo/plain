@@ -1,7 +1,5 @@
 package com.ibm
 
-import com.lmax.disruptor.util.Util.getUnsafe
-
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.TimeUnit
 
@@ -12,8 +10,6 @@ package object plain
   import config._
   import config.settings._
   import concurrent.scheduleGcTimeout
-
-  require(8 == getUnsafe.addressSize, "Sorry, but PLAIN only runs on a 64bit platform.")
 
   /**
    * This is the central point for registering Components to the application in the correct order.

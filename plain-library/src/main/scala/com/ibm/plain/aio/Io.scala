@@ -225,7 +225,7 @@ object Io
 
   final def loop[E, A <: RenderableRoot](server: ServerChannel, readiteratee: Iteratee[Io, _], processor: Processor[A]): Unit = {
 
-    object AcceptHandler
+    final object AcceptHandler
 
       extends Handler[SocketChannel, Io] {
 
@@ -246,7 +246,7 @@ object Io
 
     }
 
-    object ReadHandler
+    final object ReadHandler
 
       extends Handler[Integer, Io] {
 
@@ -304,7 +304,7 @@ object Io
 
     }
 
-    object ProcessHandler
+    final object ProcessHandler
 
       extends Handler[Null, Io] {
 
@@ -361,7 +361,7 @@ object Io
 
     }
 
-    object WriteHandler
+    final object WriteHandler
 
       extends Handler[Integer, Io] {
 
@@ -398,7 +398,7 @@ object Io
 
     }
 
-    object TransferHandler
+    final object TransferHandler
 
       extends Handler[Integer, Io] {
 
@@ -435,7 +435,7 @@ object Io
         WriteHandler.failed(e, io)
       }
 
-      object TransferWriteHandler extends Handler[Integer, Io] {
+      final object TransferWriteHandler extends Handler[Integer, Io] {
 
         @inline def completed(processed: Integer, io: Io) = read(io)
 

@@ -20,6 +20,7 @@ object PlainBuild extends Build {
     .settings(libraryDependencies ++=
       compile(
         scalareflect,
+        reflections,
         config,
         logback,
         janino,
@@ -38,9 +39,7 @@ object PlainBuild extends Build {
         h2jdbc,
         mysqljdbc,
         servlet31,
-        jsp23,
-        disruptor,
-        reflections) ++ test(junit, junitItf))
+        jsp23) ++ test(junit, junitItf))
 
   lazy val hybriddb = Project(
     id = "plain-hybriddb",
