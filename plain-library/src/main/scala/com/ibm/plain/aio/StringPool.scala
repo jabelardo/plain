@@ -15,9 +15,9 @@ import scala.collection.mutable.OpenHashMap
  */
 object StringPool {
 
-  @inline final def get(array: Array[Byte], length: Int)(implicit cset: Charset): String = {
+  final def get(array: Array[Byte], length: Int)(implicit cset: Charset): String = {
     strings.get(hash(array, length)) match {
-      case Some(s) ⇒ s
+      case Some(s) if length <= maxLength ⇒ s
       case _ ⇒ new String(array, 0, length, cset)
     }
   }
@@ -31,7 +31,7 @@ object StringPool {
     h
   }
 
-  private[this] final val strings: Map[Int, String] = {
+  private[this] final val strings: scala.collection.Map[Int, String] = {
     val map = new OpenHashMap[Int, String]
     val buf = ByteBuffer.wrap(new Array[Byte](arraySize))
 
@@ -81,8 +81,10 @@ object StringPool {
     add("127.0.0.1")
     add("localhost")
 
-    map.toMap
+    map
   }
+
+  final val maxLength = strings.values.maxBy(_.length).length
 
 }
 

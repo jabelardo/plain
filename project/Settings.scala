@@ -20,7 +20,7 @@ object Settings {
     organization := "com.ibm.plain",
     version := "1.0.1-SNAPSHOT",
     scalaVersion := "2.10.3",
-    logLevel := Level.Info,
+    logLevel := Level.Warn,
     exportJars := true,
     mainClass in Compile := Some("com.ibm.plain.bootstrap.Main"))
 
@@ -34,7 +34,7 @@ object Settings {
 
   lazy val sampleSettingsResourceOnly = sampleSettings ++ eclipseResourceOnly
 
-  lazy val defaultSettings = baseSettings ++ cpsPluginSettings ++ eclipseSettings ++ formatSettings ++ lsSettings ++ Seq(
+  lazy val defaultSettings = baseSettings ++ eclipseSettings ++ formatSettings ++ lsSettings ++ Seq(
 
     scalacOptions in Compile ++= Seq(
       "-g:vars",
@@ -60,10 +60,6 @@ object Settings {
     homepage in lsync := Some(url("http://www.ibm.com")),
     lsTags in lsync := Seq("plm", "inmemory"),
     lsDocsUrl in lsync := Some(url("http://www.ibm.com")))
-
-  lazy val cpsPluginSettings = Seq(
-    libraryDependencies <+= scalaVersion { v ⇒ compilerPlugin("org.scala-lang.plugins" % "continuations" % v) },
-    scalacOptions += "-P:continuations:enable")
 
   lazy val eclipseSettings = Seq(
     EclipseKeys.createSrc := EclipseCreateSrc.Default + EclipseCreateSrc.Resource)

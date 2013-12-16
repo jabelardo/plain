@@ -13,11 +13,9 @@ import java.util.Arrays
 import scala.concurrent.duration.Duration
 import scala.math.min
 
-import com.ibm.plain.aio.Iteratee.Error
-
+import concurrent.OnlyOnce
 import Input.{ Elem, Empty, Eof }
 import Iteratee.{ Cont, Done, Error }
-import concurrent.{ OnlyOnce, scheduleOnce }
 import logging.HasLogger
 
 /**
@@ -123,10 +121,13 @@ final class Io private (
     releaseReadBuffer
   }
 
-  final def decode(implicit cset: Charset): String = advanceBuffer(
+  final def decode(implicit cset: Charset, lowercase: Boolean): String = advanceBuffer(
     readbuffer.remaining match {
       case 0 ⇒ Io.emptyString
       case n ⇒ readBytes(n) match {
+        case a if (a eq array) && lowercase ⇒
+          for (i ← 0 until a.length) { val e = a(i); if ('A' <= e && e <= 'Z') a.update(i, (e + 32).toByte) }
+          StringPool.get(a, n)
         case a if a eq array ⇒ StringPool.get(a, n)
         case a ⇒ new String(a, 0, n, cset)
       }
@@ -174,7 +175,7 @@ final class Io private (
     (i - pos, l - i)
   }
 
-  @inline private[this] final def readBytes(n: Int): Array[Byte] = if (StringPool.arraySize >= n) { readbuffer.get(array, 0, n); array } else Array.fill(n)(readbuffer.get)
+  @inline private[this] final def readBytes(n: Int): Array[Byte] = if (n <= StringPool.arraySize) { readbuffer.get(array, 0, n); array } else Array.fill(n)(readbuffer.get)
 
   @inline private[this] final def markLimit = limitmark = readbuffer.limit
 
@@ -262,13 +263,14 @@ object Io
             val usecached = if (null == io.elementarray) {
               io.readbuffer.mark
               false
-            } else if (io.readbuffer.remaining > io.elementarray.length) {
+            } else if (io.readbuffer.remaining >= io.elementarray.length) {
               io.readbuffer.mark
               io.readbuffer.get(io.peekarray)
               if (Arrays.equals(io.peekarray, io.elementarray)) {
                 true
               } else {
                 io.readbuffer.rewind
+                io.elementarray = null
                 false
               }
             } else {
@@ -315,13 +317,14 @@ object Io
               case Transfer(_, _, _) ⇒ TransferHandler.read(io)
               case _ ⇒ if (0 < io.readbuffer.remaining) {
                 io.renderable.renderFooter(io) ++ readiteratee
-                val usecached = if (io.readbuffer.remaining > io.elementarray.length) {
+                val usecached = if (io.readbuffer.remaining >= io.elementarray.length) {
                   io.readbuffer.mark
                   io.readbuffer.get(io.peekarray)
                   if (Arrays.equals(io.peekarray, io.elementarray)) {
                     true
                   } else {
                     io.readbuffer.rewind
+                    io.elementarray = null
                     false
                   }
                 } else {

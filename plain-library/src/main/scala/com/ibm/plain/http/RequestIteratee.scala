@@ -29,12 +29,14 @@ final class RequestIteratee private ()(implicit server: Server) {
 
   private[this] implicit final val ascii = `US-ASCII`
 
+  private[this] implicit final val lowercase = false
+
   private[this] final val readRequestLine = {
 
     val readRequestUri: Iteratee[Io, (Path, Option[String])] = {
 
       def readUriSegment(allowed: Set[Int], nodecoding: Boolean): Iteratee[Io, String] = for {
-        segment ← takeWhile(allowed)(defaultCharacterSet)
+        segment ← takeWhile(allowed)(defaultCharacterSet, false)
       } yield if (nodecoding) segment else utf8codec.decode(segment)
 
       val readPathSegment = readUriSegment(path, disableUrlDecoding)
@@ -95,24 +97,24 @@ final class RequestIteratee private ()(implicit server: Server) {
       def cont(lines: String): Iteratee[Io, String] = peek flatMap {
         case ` ` | `\t` ⇒ for {
           _ ← drop(1)
-          line ← takeUntilCrLf(defaultCharacterSet)
+          line ← takeUntilCrLf(defaultCharacterSet, false)
           morelines ← cont(lines + line)
         } yield morelines
         case _ ⇒ Done(lines)
       }
 
       for {
-        name ← takeWhile(token)(defaultCharacterSet)
+        name ← takeWhile(token)(defaultCharacterSet, true)
         _ ← takeUntil(`:`)
         _ ← takeWhile(whitespace)
         value ← for {
-          line ← takeUntilCrLf(defaultCharacterSet)
+          line ← takeUntilCrLf(defaultCharacterSet, false)
           morelines ← cont(line)
         } yield morelines
-      } yield (name.toLowerCase, value)
+      } yield (name, value)
     }
 
-    def cont(headers: List[(String, String)]): Iteratee[Io, Headers] = peek flatMap {
+    @inline def cont(headers: List[(String, String)]): Iteratee[Io, Headers] = peek flatMap {
       case `\r` ⇒ for {
         _ ← drop(2)
         done ← Done(headers.toMap)
@@ -126,20 +128,20 @@ final class RequestIteratee private ()(implicit server: Server) {
     cont(Nil)
   }
 
-  private[this] final def readEntity(headers: Headers, query: Option[String]): Iteratee[Io, Option[Entity]] =
+  @inline private[this] final def readEntity(headers: Headers, query: Option[String]): Iteratee[Io, Option[Entity]] =
     `Content-Type`(headers) match {
       case Some(contenttype) ⇒ `Transfer-Encoding`(headers) match {
         case Some(value) ⇒ Done(Some(TransferEncodedEntity(value, contenttype)))
-        case notransfer ⇒ `Content-Length`(headers) match {
+        case None ⇒ `Content-Length`(headers) match {
           case Some(length) if length <= maxEntityBufferSize ⇒
             (for (array ← takeBytes(length.toInt)) yield Some(ArrayEntity(array, contenttype)))
           case Some(length) ⇒ Done(Some(ContentEntity(contenttype, length)))
-          case nolength ⇒ Done(None)
+          case None ⇒ Done(None)
         }
       }
-      case _ ⇒ query match {
+      case None ⇒ query match {
         case Some(s) ⇒ Done(Some(ArrayEntity(s.getBytes(defaultCharacterSet), `text/plain`)))
-        case _ ⇒ Done(None)
+        case None ⇒ Done(None)
       }
     }
 

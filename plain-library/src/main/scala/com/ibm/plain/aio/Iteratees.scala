@@ -17,7 +17,7 @@ import Iteratee.{ Cont, Done, Error }
  */
 object Iteratees {
 
-  final def take(n: Int)(implicit cset: Charset): Iteratee[Io, String] = {
+  final def take(n: Int)(implicit cset: Charset, lowercase: Boolean): Iteratee[Io, String] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
@@ -64,7 +64,7 @@ object Iteratees {
     Cont(cont _)
   }
 
-  final def peek(n: Int)(implicit cset: Charset): Iteratee[Io, String] = {
+  final def peek(n: Int)(implicit cset: Charset, lowercase: Boolean): Iteratee[Io, String] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
@@ -79,7 +79,7 @@ object Iteratees {
     Cont(cont(Io.empty) _)
   }
 
-  final def takeWhile(p: Int ⇒ Boolean)(implicit cset: Charset): Iteratee[Io, String] = {
+  final def takeWhile(p: Int ⇒ Boolean)(implicit cset: Charset, lowercase: Boolean): Iteratee[Io, String] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
@@ -95,9 +95,9 @@ object Iteratees {
     Cont(cont(Io.empty) _)
   }
 
-  final def takeUntil(p: Int ⇒ Boolean)(implicit cset: Charset): Iteratee[Io, String] = takeWhile(b ⇒ !p(b))(cset)
+  final def takeUntil(p: Int ⇒ Boolean)(implicit cset: Charset, lowercase: Boolean): Iteratee[Io, String] = takeWhile(b ⇒ !p(b))(cset, lowercase)
 
-  final def takeUntil(delimiter: Byte)(implicit cset: Charset): Iteratee[Io, String] = {
+  final def takeUntil(delimiter: Byte)(implicit cset: Charset, lowercase: Boolean): Iteratee[Io, String] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
@@ -113,7 +113,7 @@ object Iteratees {
     Cont(cont(Io.empty) _)
   }
 
-  final def takeUntilCrLf(implicit cset: Charset): Iteratee[Io, String] = {
+  final def takeUntilCrLf(implicit cset: Charset, lowercase: Boolean): Iteratee[Io, String] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
