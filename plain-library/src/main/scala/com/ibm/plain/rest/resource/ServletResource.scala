@@ -8,6 +8,7 @@ package resource
 
 import com.ibm.plain.rest.{ BaseResource, Context }
 
+import io.{ ByteArrayOutputStream, PrintWriter }
 import aio.Io
 import http.Response
 import http.Status.{ ClientError, Success }
@@ -31,6 +32,7 @@ final class ServletResource
     val request = context.request
     val response = Response(request, Success.`200`)
     context ++ response
+    if (null == context.io.printwriter) context.io ++ PrintWriter(ByteArrayOutputStream(1024)) else context.io.printwriter.getOutputStream.reset
     ServletContainer.getServletContext(request.path(1)) match {
       case Some(servletcontext) ⇒
         val classloader = Thread.currentThread.getContextClassLoader
@@ -39,8 +41,8 @@ final class ServletResource
           servletcontext.getServlet(request.path(2)) match {
             case null ⇒ throw ClientError.`404`
             case servlet ⇒
-              val httpservletrequest = HttpServletRequest(request, servletcontext)
-              val httpservletresponse = HttpServletResponse(response, servletcontext)
+              val httpservletrequest = new HttpServletRequest(request, servletcontext)
+              val httpservletresponse = new HttpServletResponse(response, servletcontext, context.io.printwriter)
               servlet.service(httpservletrequest, httpservletresponse)
               response ++ httpservletresponse.getEntity
               completed(context)
@@ -51,5 +53,11 @@ final class ServletResource
   } catch {
     case e: Throwable ⇒ failed(e, context)
   }
+
+}
+
+object ServletResource {
+
+  // final val entity = http.Entity.ArrayEntity("Hello, World!".getBytes(text.`UTF-8`), http.ContentType(http.MimeType.`text/plain`, text.`UTF-8`))
 
 }

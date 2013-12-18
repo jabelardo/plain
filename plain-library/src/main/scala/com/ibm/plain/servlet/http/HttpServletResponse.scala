@@ -6,20 +6,21 @@ package servlet
 
 package http
 
-import java.io.{ ByteArrayOutputStream, OutputStreamWriter, PrintWriter }
 import java.util.{ Collection, Locale }
-
-import io.ServletOutputStream
 import javax.{ servlet ⇒ js }
-import plain.http.{ ContentType, Entity, MimeType }
+import io.ServletOutputStream
+import plain.http.{ ContentType, Entity, MimeType, Status }
 import plain.http.Entity.ArrayEntity
 import plain.http.Response
+import plain.io.{ ByteArrayOutputStream, PrintWriter }
 
-final case class HttpServletResponse(
+final class HttpServletResponse(
 
   private final val response: Response,
 
-  private final val servletcontext: ServletContext)
+  private final val servletcontext: ServletContext,
+
+  private final val printwriter: PrintWriter)
 
   extends js.http.HttpServletResponse {
 
@@ -47,7 +48,7 @@ final case class HttpServletResponse(
 
   final def getHeaders(x$1: String): Collection[String] = unsupported
 
-  final def getStatus: Int = unsupported
+  final def getStatus: Int = response.status.code.toInt
 
   final def sendError(x$1: Int) = unsupported
 
@@ -69,11 +70,11 @@ final case class HttpServletResponse(
 
   final def setStatus(x$1: Int, x$2: String) = unsupported
 
-  final def setStatus(x$1: Int) = unsupported
+  final def setStatus(status: Int) = response ++ Status(status)
 
-  final def flushBuffer = if (usewriter) printwriter.flush else if (useoutputstream) outputstream.flush
+  final def flushBuffer = ()
 
-  final def getBufferSize = buffersize
+  final def getBufferSize = outputstream.getCapactiy
 
   final def getCharacterEncoding: String = contentencoding.toString
 
@@ -90,15 +91,11 @@ final case class HttpServletResponse(
   final def reset = { usewriter = false; useoutputstream = false }
 
   final def resetBuffer = {
-    setBufferSize(defaultbuffersize)
+    outputstream.reset
     reset
   }
 
-  final def setBufferSize(buffersize: Int) = {
-    this.buffersize = buffersize
-    outputstream = new ByteArrayOutputStream(buffersize)
-    printwriter = new PrintWriter(new OutputStreamWriter(outputstream, getCharacterEncoding))
-  }
+  final def setBufferSize(buffersize: Int) = outputstream.setCapacity(buffersize)
 
   final def setCharacterEncoding(x$1: String) = unsupported
 
@@ -110,15 +107,7 @@ final case class HttpServletResponse(
 
   final def setLocale(x$1: java.util.Locale) = unsupported
 
-  final def getEntity: Entity = { flushBuffer; ArrayEntity(outputstream.toByteArray, contenttype) }
-
-  private[this] final val defaultbuffersize = 128
-
-  private[this] final var buffersize = defaultbuffersize
-
-  private[this] final var outputstream: ByteArrayOutputStream = null
-
-  private[this] final var printwriter: PrintWriter = null
+  final def getEntity: Entity = ArrayEntity(outputstream.toByteArray, contenttype)
 
   private[this] final var usewriter = false
 
@@ -128,9 +117,7 @@ final case class HttpServletResponse(
 
   private[this] final var contentencoding = text.`UTF-8`
 
-  private[this] final val init = {
-    setBufferSize(defaultbuffersize)
-  }
+  private[this] final val outputstream = printwriter.getOutputStream
 
 }
 

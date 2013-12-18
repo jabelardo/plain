@@ -69,7 +69,7 @@ final case class Response private (
         encode
       case Some(entity: ArrayEntity) ⇒
         markbuffer = writebuffer
-        writebuffer = ByteBuffer.wrap(entity.array)
+        writebuffer = ByteBuffer.wrap(entity.array, 0, entity.length.toInt)
         encode
       case _ ⇒ unsupported
     }

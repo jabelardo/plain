@@ -17,7 +17,7 @@ import com.ibm.plain.servlet.ServletContext
 import javax.{ servlet ⇒ js }
 import plain.http.Request
 
-final case class HttpServletRequest(
+final class HttpServletRequest(
 
   private final val request: Request,
 
@@ -191,8 +191,7 @@ final case class HttpServletRequest(
   final def getStatus: Int = unsupported
 
   final def getHeader(name: String): String = request.headers.get(name) match {
-    case Some(value) ⇒
-      println("found " + name + "=" + value); value
+    case Some(value) ⇒ value
     case _ ⇒ println("not found : " + name); null
   }
 

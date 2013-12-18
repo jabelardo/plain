@@ -36,6 +36,15 @@ sealed abstract class Status
  */
 object Status {
 
+  import Success._
+  import ServerError._
+
+  final def apply(code: Int): Status = code match {
+    case 200 ⇒ `200`
+    // TODO all
+    case _ ⇒ `501`
+  }
+
   sealed abstract class BaseStatus(rsn: String) extends Status {
 
     final val code = reflect.simpleName(getClass.getName)

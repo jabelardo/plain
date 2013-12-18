@@ -13,6 +13,7 @@ import java.util.Arrays
 import scala.concurrent.duration.Duration
 import scala.math.min
 
+import io.PrintWriter
 import concurrent.OnlyOnce
 import Input.{ Elem, Empty, Eof }
 import Iteratee.{ Cont, Done, Error }
@@ -45,7 +46,9 @@ final class Io private (
 
   var peekarray: Array[Byte],
 
-  var element: Iteratee[Io, Any]) {
+  var element: Iteratee[Io, Any],
+
+  var printwriter: PrintWriter) {
 
   import Io._
 
@@ -69,7 +72,7 @@ final class Io private (
     that + b
   }
 
-  @inline final def ++(channel: Channel) = new Io(channel, readbuffer, writebuffer, iteratee, renderable, encoder, transfer, message, keepalive, elementarray, peekarray, element)
+  @inline final def ++(channel: Channel) = new Io(channel, readbuffer, writebuffer, iteratee, renderable, encoder, transfer, message, keepalive, elementarray, peekarray, element, printwriter)
 
   @inline final def ++(iteratee: Iteratee[Io, _]) = { this.iteratee = iteratee; this }
 
@@ -83,10 +86,12 @@ final class Io private (
 
   @inline final def ++(keepalive: Boolean) = { if (this.keepalive) this.keepalive = keepalive; this }
 
+  @inline final def ++(printwriter: PrintWriter) = { this.printwriter = printwriter; this }
+
   @inline final def ++(elementarray: Array[Byte]) = { this.elementarray = elementarray; this.peekarray = new Array[Byte](elementarray.length); this }
 
   @inline final def ++(readbuffer: ByteBuffer) = if (0 < this.readbuffer.remaining) {
-    new Io(channel, readbuffer, writebuffer, iteratee, renderable, encoder, transfer, message, keepalive, elementarray, peekarray, element)
+    new Io(channel, readbuffer, writebuffer, iteratee, renderable, encoder, transfer, message, keepalive, elementarray, peekarray, element, printwriter)
   } else {
     this + readbuffer
   }
@@ -125,10 +130,7 @@ final class Io private (
     readbuffer.remaining match {
       case 0 ⇒ Io.emptyString
       case n ⇒ readBytes(n) match {
-        case a if (a eq array) && lowercase ⇒
-          for (i ← 0 until a.length) { val e = a(i); if ('A' <= e && e <= 'Z') a.update(i, (e + 32).toByte) }
-          StringPool.get(a, n)
-        case a if a eq array ⇒ StringPool.get(a, n)
+        case a if a eq array ⇒ StringPool.get(if (lowercase) toLowerCase(a) else a, n)
         case a ⇒ new String(a, 0, n, cset)
       }
     })
@@ -187,6 +189,11 @@ final class Io private (
     a
   }
 
+  @inline private[this] final def toLowerCase(a: Array[Byte]): Array[Byte] = {
+    for (i ← 0 until a.length) { val e = a(i); if ('A' <= e && e <= 'Z') a.update(i, (e + 32).toByte) }
+    a
+  }
+
   private[this] final var limitmark = -1
 
   private[this] final var positionmark = -1
@@ -212,9 +219,9 @@ object Io
 
   final private[aio] val emptyString = new String
 
-  final private[aio] val empty = new Io(null, emptyBuffer, emptyBuffer, null, null, null, null, null, false, null, null, null)
+  final private[aio] val empty = new Io(null, emptyBuffer, emptyBuffer, null, null, null, null, null, false, null, null, null, null)
 
-  final private[aio] def apply(iteratee: Iteratee[Io, _]): Io = new Io(null, emptyBuffer, defaultByteBuffer, iteratee, null, null, null, null, true, null, null, null)
+  final private[aio] def apply(iteratee: Iteratee[Io, _]): Io = new Io(null, emptyBuffer, defaultByteBuffer, iteratee, null, null, null, null, true, null, null, null, null)
 
   final private def warnOnce = onlyonce { warning("Chunked input found. Enlarge aio.default-buffer-size : " + defaultBufferSize) }
 

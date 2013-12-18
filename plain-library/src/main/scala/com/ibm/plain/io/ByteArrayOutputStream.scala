@@ -5,64 +5,56 @@ package plain
 package io
 
 import java.io.OutputStream
+import java.util.Arrays.copyOf
 
 /**
- * Like java.io.ByteArrayOutputStream, but with an external bytearray. For performance reasons it does no testing of array bounds. Check capacity to protect against overflow.
+ * Non-thread-safe version of java.io.ByteArrayOutputStream
  */
 
 final class ByteArrayOutputStream private (
 
-  private[this] final val array: Array[Byte],
-
-  private[this] final val offset: Int,
-
-  private[this] final val length: Int)
+  private[this] final var capacity: Int)
 
   extends OutputStream {
 
-  def this(arr: Array[Byte]) = this(arr, 0, arr.length)
+  override final def close = capacity = position
 
-  override final def write(i: Int) = {
-    array.update(position, i.toByte)
-    position += 1
-  }
-
-  override final def write(a: Array[Byte]) = write(a, 0, a.length)
+  override final def flush = ()
 
   override final def write(a: Array[Byte], offset: Int, length: Int) = {
+    ensureCapacity(length)
     Array.copy(a, offset, array, position, length)
     position += length
   }
 
-  override final def flush = {}
+  override final def write(a: Array[Byte]) = write(a, 0, a.length)
 
-  final def getPosition = position
-
-  final def reset = { position = offset }
-
-  /**
-   * Use this method to check if the internal capacity fits the next write.
-   */
-  final def capacity = lastposition - position
-
-  /**
-   * Returns a ByteArrayInputStream using the same external bytearray. Be careful when mixing reading from this with writing to this instance.
-   */
-  final def getInputStream = new ByteArrayInputStream(array, offset, position - offset)
-
-  final def toByteArray = {
-    val a = new Array[Byte](position)
-    Array.copy(array, 0, a, 0, position)
-    a
+  override final def write(i: Int) = {
+    ensureCapacity(1)
+    array.update(position, i.toByte)
+    position += 1
   }
 
-  private[this] var position = offset
+  final def setCapacity(cap: Int) = ensureCapacity(cap - position)
 
-  private[this] var lastposition = offset + length
+  final def getCapactiy = capacity
 
-  override final def toString = getClass.getName + " a.len " + array.length + ", ofs " + offset + ", len " + length + ", pos " + position + ", lpos" + lastposition
+  final def size = position
 
-  final override def close = lastposition = position
+  final def reset = { position = 0; capacity = array.length }
+
+  final def toByteArray = copyOf(array, position)
+
+  @inline private[this] def ensureCapacity(cap: Int) = {
+    if (cap > capacity - position) {
+      capacity <<= 1
+      array = copyOf(array, capacity)
+    }
+  }
+
+  private[this] final var array = new Array[Byte](capacity)
+
+  private[this] final var position = 0
 
 }
 
@@ -71,8 +63,6 @@ final class ByteArrayOutputStream private (
  */
 object ByteArrayOutputStream {
 
-  final def apply(array: Array[Byte], offset: Int, length: Int) = new ByteArrayOutputStream(array, offset, length)
-
-  final def apply(array: Array[Byte]) = new ByteArrayOutputStream(array, 0, array.length)
+  final def apply(capacity: Int) = new ByteArrayOutputStream(capacity)
 
 }

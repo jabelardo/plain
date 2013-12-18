@@ -6,10 +6,6 @@ package servlet
 
 import java.nio.file.Path
 
-import scala.collection.concurrent.TrieMap
-import scala.collection.JavaConversions._
-import scala.io.Source.fromInputStream
-
 import com.ibm.plain.bootstrap.BaseComponent
 import com.ibm.plain.io.{ FileExtensionFilter, WarClassLoader }
 
@@ -21,10 +17,10 @@ abstract sealed class ServletContainer
 
   with HasLogger {
 
-  override def isStopped = 0 == webapplications.size
+  override def isStopped = null == webapplications || 0 == webapplications.size
 
   override def start = {
-    webapplications ++= {
+    webapplications = {
       val context = Thread.currentThread.getContextClassLoader
       try {
         val apps: Array[Path] = if (webApplicationsDirectory.exists) {
@@ -49,13 +45,13 @@ abstract sealed class ServletContainer
 
   override def stop = try {
     webapplications.values.foreach(ctx ⇒ ignore(ctx.destroy))
-    webapplications.clear
+    webapplications = null
     this
   }
 
   final def getServletContext(path: String): Option[ServletContext] = if (isStarted) webapplications.get(path) else None
 
-  private[this] final val webapplications = new TrieMap[String, ServletContext]
+  private[this] final var webapplications: Map[String, ServletContext] = null
 
 }
 
