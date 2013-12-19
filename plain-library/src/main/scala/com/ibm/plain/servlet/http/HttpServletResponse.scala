@@ -74,7 +74,7 @@ final class HttpServletResponse(
 
   final def flushBuffer = ()
 
-  final def getBufferSize = outputstream.getCapactiy
+  final def getBufferSize = printwriter.outputstream.getCapactiy
 
   final def getCharacterEncoding: String = contentencoding.toString
 
@@ -82,7 +82,7 @@ final class HttpServletResponse(
 
   final def getLocale: Locale = unsupported
 
-  final def getOutputStream: js.ServletOutputStream = { if (usewriter) throw new IllegalStateException; useoutputstream = true; new ServletOutputStream(outputstream) }
+  final def getOutputStream: js.ServletOutputStream = { if (usewriter) throw new IllegalStateException; useoutputstream = true; new ServletOutputStream(printwriter.outputstream) }
 
   final def getWriter: PrintWriter = { if (useoutputstream) throw new IllegalStateException; usewriter = true; printwriter }
 
@@ -91,11 +91,11 @@ final class HttpServletResponse(
   final def reset = { usewriter = false; useoutputstream = false }
 
   final def resetBuffer = {
-    outputstream.reset
+    printwriter.outputstream.reset
     reset
   }
 
-  final def setBufferSize(buffersize: Int) = outputstream.setCapacity(buffersize)
+  final def setBufferSize(buffersize: Int) = printwriter.outputstream.setCapacity(buffersize)
 
   final def setCharacterEncoding(x$1: String) = unsupported
 
@@ -107,7 +107,7 @@ final class HttpServletResponse(
 
   final def setLocale(x$1: java.util.Locale) = unsupported
 
-  final def getEntity: Entity = ArrayEntity(outputstream.toByteArray, contenttype)
+  final def getEntity: Entity = ArrayEntity(printwriter.outputstream.toByteArray, contenttype)
 
   private[this] final var usewriter = false
 
@@ -116,8 +116,6 @@ final class HttpServletResponse(
   private[this] final var contenttype = ContentType(MimeType.`text/plain`)
 
   private[this] final var contentencoding = text.`UTF-8`
-
-  private[this] final val outputstream = printwriter.getOutputStream
 
 }
 

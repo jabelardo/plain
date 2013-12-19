@@ -6,13 +6,13 @@ package servlet
 
 package io
 
-import java.io.OutputStream
+import plain.io.ByteArrayOutputStream
 
 import javax.{ servlet ⇒ js }
 
 final class ServletOutputStream(
 
-  private[this] final val out: OutputStream)
+  private[this] final val out: ByteArrayOutputStream)
 
   extends js.ServletOutputStream {
 

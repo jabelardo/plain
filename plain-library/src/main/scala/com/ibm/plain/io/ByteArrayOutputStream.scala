@@ -22,7 +22,7 @@ final class ByteArrayOutputStream private (
   override final def flush = ()
 
   override final def write(a: Array[Byte], offset: Int, length: Int) = {
-    ensureCapacity(length)
+    ensureCapacity(position + length)
     Array.copy(a, offset, array, position, length)
     position += length
   }
@@ -30,12 +30,12 @@ final class ByteArrayOutputStream private (
   override final def write(a: Array[Byte]) = write(a, 0, a.length)
 
   override final def write(i: Int) = {
-    ensureCapacity(1)
+    ensureCapacity(position + 1)
     array.update(position, i.toByte)
     position += 1
   }
 
-  final def setCapacity(cap: Int) = ensureCapacity(cap - position)
+  final def setCapacity(c: Int) = ensureCapacity(c - position)
 
   final def getCapactiy = capacity
 
@@ -45,9 +45,9 @@ final class ByteArrayOutputStream private (
 
   final def toByteArray = copyOf(array, position)
 
-  @inline private[this] def ensureCapacity(cap: Int) = {
-    if (cap > capacity - position) {
-      capacity <<= 1
+  @inline private[this] def ensureCapacity(c: Int) = {
+    if (c > capacity) {
+      while (capacity < c) capacity <<= 1
       array = copyOf(array, capacity)
     }
   }

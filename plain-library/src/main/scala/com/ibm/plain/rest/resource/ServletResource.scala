@@ -32,7 +32,7 @@ final class ServletResource
     val request = context.request
     val response = Response(request, Success.`200`)
     context ++ response
-    if (null == context.io.printwriter) context.io ++ PrintWriter(ByteArrayOutputStream(1024)) else context.io.printwriter.getOutputStream.reset
+    if (null == context.io.printwriter) context.io ++ PrintWriter(ByteArrayOutputStream(1024)) else context.io.printwriter.outputstream.reset
     ServletContainer.getServletContext(request.path(1)) match {
       case Some(servletcontext) ⇒
         val classloader = Thread.currentThread.getContextClassLoader
