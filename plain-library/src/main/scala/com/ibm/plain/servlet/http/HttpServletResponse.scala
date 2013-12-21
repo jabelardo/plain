@@ -13,6 +13,7 @@ import plain.http.{ ContentType, Entity, MimeType, Status }
 import plain.http.Entity.ArrayEntity
 import plain.http.Response
 import plain.io.{ ByteArrayOutputStream, PrintWriter }
+import java.nio.charset.Charset
 
 final class HttpServletResponse(
 
@@ -72,11 +73,11 @@ final class HttpServletResponse(
 
   final def setStatus(status: Int) = response ++ Status(status)
 
-  final def flushBuffer = ()
+  final def flushBuffer = printwriter.flush
 
   final def getBufferSize = printwriter.outputstream.getCapactiy
 
-  final def getCharacterEncoding: String = contentencoding.toString
+  final def getCharacterEncoding: String = characterencoding.toString
 
   final def getContentType: String = contenttype.toString
 
@@ -97,7 +98,10 @@ final class HttpServletResponse(
 
   final def setBufferSize(buffersize: Int) = printwriter.outputstream.setCapacity(buffersize)
 
-  final def setCharacterEncoding(x$1: String) = unsupported
+  final def setCharacterEncoding(encoding: String) = {
+    characterencoding = Charset.forName(encoding)
+    printwriter.setCharacterSet(characterencoding)
+  }
 
   final def setContentLength(length: Int) = setHeader("Content-Length", length.toString)
 
@@ -115,7 +119,7 @@ final class HttpServletResponse(
 
   private[this] final var contenttype = ContentType(MimeType.`text/plain`)
 
-  private[this] final var contentencoding = text.`UTF-8`
+  private[this] final var characterencoding = text.`UTF-8`
 
 }
 

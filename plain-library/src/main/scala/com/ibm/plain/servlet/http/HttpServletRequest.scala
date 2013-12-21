@@ -128,7 +128,7 @@ final class HttpServletRequest(
 
   final def isSecure: Boolean = false
 
-  final def getRequestDispatcher(path: String): js.RequestDispatcher = RequestDispatcher(path, servletcontext)
+  final def getRequestDispatcher(path: String): js.RequestDispatcher = new RequestDispatcher(path, servletcontext)
 
   final def getRealPath(path: String): String = servletcontext.getRealPath(path)
 

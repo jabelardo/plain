@@ -8,7 +8,7 @@ import javax.{ servlet ⇒ js }
 import plain.io.{ ByteArrayOutputStream, PrintWriter }
 import plain.http.Status.ClientError.`404`
 
-final case class RequestDispatcher(
+final class RequestDispatcher(
 
   private final val path: String,
 

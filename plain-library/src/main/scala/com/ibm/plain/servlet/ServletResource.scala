@@ -2,18 +2,15 @@ package com.ibm
 
 package plain
 
-package rest
-
-package resource
+package servlet
 
 import com.ibm.plain.rest.{ BaseResource, Context }
 
-import io.{ ByteArrayOutputStream, PrintWriter }
 import aio.Io
-import http.Response
-import http.Status.{ ClientError, Success }
-import servlet.ServletContainer
-import servlet.http.{ HttpServletRequest, HttpServletResponse }
+import http.{ HttpServletRequest, HttpServletResponse }
+import plain.http.Response
+import plain.http.Status.{ ClientError, Success }
+import plain.io.{ ByteArrayOutputStream, PrintWriter }
 
 final class ServletResource
 
@@ -47,17 +44,12 @@ final class ServletResource
               response ++ httpservletresponse.getEntity
               completed(context)
           }
-        } finally Thread.currentThread.setContextClassLoader(classloader)
+        } finally
+          Thread.currentThread.setContextClassLoader(classloader)
       case None ⇒ throw ClientError.`404`
     }
   } catch {
     case e: Throwable ⇒ failed(e, context)
   }
-
-}
-
-object ServletResource {
-
-  // final val entity = http.Entity.ArrayEntity("Hello, World!".getBytes(text.`UTF-8`), http.ContentType(http.MimeType.`text/plain`, text.`UTF-8`))
 
 }
