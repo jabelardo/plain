@@ -21,13 +21,13 @@ final class ByteArrayOutputStream private (
 
   override final def flush = ()
 
+  override final def write(a: Array[Byte]) = write(a, 0, a.length)
+
   override final def write(a: Array[Byte], offset: Int, length: Int) = {
     ensureCapacity(position + length)
     Array.copy(a, offset, array, position, length)
     position += length
   }
-
-  override final def write(a: Array[Byte]) = write(a, 0, a.length)
 
   override final def write(i: Int) = {
     ensureCapacity(position + 1)

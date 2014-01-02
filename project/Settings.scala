@@ -48,7 +48,7 @@ object Settings {
       "-Yinline",
       "-Yinline-handlers",
       "-Yinline-warnings",
-      "-Ywarn-adapted-args"),
+      "-Yno-adapted-args"),
 
     javacOptions in Compile ++= Seq(
       "-source", "1.7",

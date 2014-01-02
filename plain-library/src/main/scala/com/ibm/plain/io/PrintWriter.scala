@@ -4,24 +4,26 @@ package plain
 
 package io
 
-import java.{ io ⇒ io }
+import java.{ io ⇒ j }
 import java.util.Locale
 import java.nio.charset.Charset
 
 /**
  * Non-thread-safe version of java.io.PrintWriter.
  */
-final class PrintWriter private (val outputstream: ByteArrayOutputStream)
+final class PrintWriter private (
 
-  extends io.PrintWriter(PrintWriter.dummy) {
+  final val outputstream: ByteArrayOutputStream)
+
+  extends j.PrintWriter(PrintWriter.dummy) {
 
   final def setCharacterSet(cset: Charset) = characterset = cset
 
-  override final def append(c: Char): io.PrintWriter = { print(c); this }
+  override final def append(c: Char): j.PrintWriter = { print(c); this }
 
-  override final def append(cs: CharSequence): io.PrintWriter = { write((if (null == cs) "null" else cs).toString); this }
+  override final def append(cs: CharSequence): j.PrintWriter = { write((if (null == cs) "null" else cs).toString); this }
 
-  override final def append(cs: CharSequence, start: Int, end: Int): io.PrintWriter = { write((if (null == cs) "null" else cs.subSequence(start, end)).toString); this }
+  override final def append(cs: CharSequence, start: Int, end: Int): j.PrintWriter = { write((if (null == cs) "null" else cs.subSequence(start, end)).toString); this }
 
   override final def checkError: Boolean = error
 
@@ -31,9 +33,9 @@ final class PrintWriter private (val outputstream: ByteArrayOutputStream)
 
   override final def flush = try { outputstream.flush } catch { case e: Throwable ⇒ error = true }
 
-  override final def format(locale: Locale, formats: String, args: Object*): io.PrintWriter = { write(String.format(locale, formats, args)); this }
+  override final def format(locale: Locale, formats: String, args: Object*): j.PrintWriter = { write(String.format(locale, formats, args)); this }
 
-  override final def format(formats: String, args: Object*): io.PrintWriter = { write(String.format(formats, args)); this }
+  override final def format(formats: String, args: Object*): j.PrintWriter = { write(String.format(formats, args)); this }
 
   override final def print(b: Boolean) = write(b.toString)
 
@@ -53,9 +55,9 @@ final class PrintWriter private (val outputstream: ByteArrayOutputStream)
 
   override final def print(s: String) = write(s)
 
-  override final def printf(locale: Locale, formats: String, args: Object*): io.PrintWriter = format(locale, formats, args)
+  override final def printf(locale: Locale, formats: String, args: Object*): j.PrintWriter = format(locale, formats, args)
 
-  override final def printf(formats: String, args: Object*): io.PrintWriter = format(formats, args)
+  override final def printf(formats: String, args: Object*): j.PrintWriter = format(formats, args)
 
   @inline override final def println = write("\n")
 
@@ -99,6 +101,6 @@ object PrintWriter {
 
   final def apply(outputstream: ByteArrayOutputStream) = new PrintWriter(outputstream)
 
-  private final val dummy = new io.PipedWriter
+  private final val dummy = new j.PipedWriter
 
 }

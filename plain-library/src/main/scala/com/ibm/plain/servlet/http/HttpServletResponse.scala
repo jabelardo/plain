@@ -6,22 +6,24 @@ package servlet
 
 package http
 
-import java.util.{ Collection, Locale }
-import javax.{ servlet ⇒ js }
-import io.ServletOutputStream
-import plain.http.{ ContentType, Entity, MimeType, Status }
-import plain.http.Entity.ArrayEntity
-import plain.http.Response
-import plain.io.{ ByteArrayOutputStream, PrintWriter }
 import java.nio.charset.Charset
+import java.util.{ Collection, Locale }
+
+import javax.{ servlet ⇒ js }
+
+import com.ibm.plain.servlet.ServletOutputStream
+import plain.http.{ ContentType, Entity }
+import plain.http.{ MimeType, Response, Status }
+import plain.http.Entity.ArrayEntity
+import plain.io.PrintWriter
 
 final class HttpServletResponse(
 
-  private final val response: Response,
+  private[this] final val response: Response,
 
-  private final val servletcontext: ServletContext,
+  private[this] final val servletcontext: ServletContext,
 
-  private final val printwriter: PrintWriter)
+  private[this] final val printwriter: PrintWriter)
 
   extends js.http.HttpServletResponse {
 

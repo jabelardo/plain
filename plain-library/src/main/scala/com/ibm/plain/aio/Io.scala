@@ -107,7 +107,7 @@ final class Io private (
     readbuffer = emptyBuffer
   }
 
-  @inline private[this] final def releaseWriteBuffer = if (writebuffer ne emptyBuffer) {
+  @inline private final def releaseWriteBuffer = if (writebuffer ne emptyBuffer) {
     releaseByteBuffer(writebuffer)
     writebuffer = emptyBuffer
   }
@@ -419,20 +419,20 @@ object Io
         io.transfer.source.read(io.readbuffer, io, this)
       }
 
-      @inline def write(io: Io) = io.transfer.destination.write(io.readbuffer, io, TransferWriteHandler)
+      @inline def write(io: Io) =
+        io.transfer.destination.write(io.readbuffer, io, TransferWriteHandler)
 
       @inline def completed(processed: Integer, io: Io) = {
+        val encoder = io.transfer.encoder.getOrElse(null)
         io.readbuffer.flip
         if (0 < processed) {
-          if (io.transfer.encoder.isDefined) {
-            io.transfer.encoder.get.encode(io.readbuffer)
+          if (null != encoder) {
+            encoder.encode(io.readbuffer)
             io.readbuffer.flip
           }
           write(io)
         } else {
-          if (io.transfer.encoder.isDefined) {
-            io.transfer.encoder.get.finish(io.readbuffer)
-          }
+          if (null != encoder) encoder.finish(io.readbuffer)
           io.transfer.source match { case f: FileByteChannel ⇒ f.close case _ ⇒ }
           io.transfer.destination match { case f: FileByteChannel ⇒ f.close case _ ⇒ }
           io.transfer = null
@@ -445,7 +445,9 @@ object Io
         WriteHandler.failed(e, io)
       }
 
-      final object TransferWriteHandler extends Handler[Integer, Io] {
+      private[this] final object TransferWriteHandler
+
+        extends Handler[Integer, Io] {
 
         @inline def completed(processed: Integer, io: Io) = read(io)
 

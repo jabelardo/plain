@@ -4,13 +4,12 @@ package plain
 
 package servlet
 
-import com.ibm.plain.rest.{ BaseResource, Context }
-
 import aio.Io
 import http.{ HttpServletRequest, HttpServletResponse }
+import io.{ ByteArrayOutputStream, PrintWriter }
+import rest.{ BaseResource, Context }
 import plain.http.Response
 import plain.http.Status.{ ClientError, Success }
-import plain.io.{ ByteArrayOutputStream, PrintWriter }
 
 final class ServletResource
 
@@ -29,7 +28,11 @@ final class ServletResource
     val request = context.request
     val response = Response(request, Success.`200`)
     context ++ response
-    if (null == context.io.printwriter) context.io ++ PrintWriter(ByteArrayOutputStream(1024)) else context.io.printwriter.outputstream.reset
+    import context.io._
+    if (null == printwriter)
+      context.io ++ PrintWriter(ByteArrayOutputStream(io.defaultBufferSize))
+    else
+      printwriter.outputstream.reset
     ServletContainer.getServletContext(request.path(1)) match {
       case Some(servletcontext) ⇒
         val classloader = Thread.currentThread.getContextClassLoader
@@ -39,7 +42,7 @@ final class ServletResource
             case null ⇒ throw ClientError.`404`
             case servlet ⇒
               val httpservletrequest = new HttpServletRequest(request, servletcontext)
-              val httpservletresponse = new HttpServletResponse(response, servletcontext, context.io.printwriter)
+              val httpservletresponse = new HttpServletResponse(response, servletcontext, printwriter)
               servlet.service(httpservletrequest, httpservletresponse)
               response ++ httpservletresponse.getEntity
               completed(context)

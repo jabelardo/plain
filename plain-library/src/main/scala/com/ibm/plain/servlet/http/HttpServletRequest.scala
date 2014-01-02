@@ -19,9 +19,9 @@ import plain.http.Request
 
 final class HttpServletRequest(
 
-  private final val request: Request,
+  private[this] final val request: Request,
 
-  private final val servletcontext: ServletContext)
+  private[this] final val servletcontext: ServletContext)
 
   extends js.http.HttpServletRequest
 
