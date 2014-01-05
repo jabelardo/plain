@@ -5,6 +5,8 @@ package plain
 import java.sql.Savepoint
 import javax.sql.DataSource
 
+import scala.collection.concurrent.TrieMap
+
 import com.ibm.plain.jdbc.{ Connection, ConnectionFactory, DataSourceWrapper }
 
 import config.{ CheckedConfig, config2RichConfig }
@@ -16,13 +18,18 @@ package object jdbc
   import config._
   import config.settings._
 
-  final def connectionFactoryForName(name: String): Option[ConnectionFactory] = bootstrap
-    .application
-    .getComponents(classOf[ConnectionFactory])
-    .find(_.asInstanceOf[ConnectionFactory].displayname == name) match {
-      case Some(connectionfactory: ConnectionFactory) ⇒ Some(connectionfactory)
-      case _ ⇒ None
-    }
+  final def connectionFactoryForName(name: String): Option[ConnectionFactory] = connectionfactoriescache.get(name) match {
+    case e @ Some(_) ⇒ e
+    case None ⇒ bootstrap
+      .application
+      .getComponents(classOf[ConnectionFactory])
+      .find(_.asInstanceOf[ConnectionFactory].displayname == name) match {
+        case Some(connectionfactory: ConnectionFactory) ⇒
+          connectionfactoriescache.put(name, connectionfactory)
+          Some(connectionfactory)
+        case _ ⇒ None
+      }
+  }
 
   final def connectionForName(name: String): Option[Connection] = connectionFactoryForName(name) match {
     case Some(connectionfactory: ConnectionFactory) ⇒ connectionfactory.getConnection
@@ -34,13 +41,16 @@ package object jdbc
     case _ ⇒ None
   }
 
-  final def connectionFactoryForJndiLookupName(name: String): Option[ConnectionFactory] = bootstrap
-    .application
-    .getComponents(classOf[ConnectionFactory])
-    .find(_.asInstanceOf[ConnectionFactory].jndilookupyname == name) match {
-      case Some(connectionfactory: ConnectionFactory) ⇒ Some(connectionfactory)
-      case _ ⇒ None
-    }
+  final def connectionFactoryForJndiLookupName(name: String): Option[ConnectionFactory] = connectionfactoriescache.get(name) match {
+    case e @ Some(_) ⇒ e
+    case None ⇒ bootstrap
+      .application
+      .getComponents(classOf[ConnectionFactory])
+      .find(_.asInstanceOf[ConnectionFactory].jndilookupyname == name) match {
+        case Some(connectionfactory: ConnectionFactory) ⇒ Some(connectionfactory)
+        case _ ⇒ None
+      }
+  }
 
   final def connectionForJndiLookupName(name: String): Option[Connection] = connectionFactoryForJndiLookupName(name) match {
     case Some(connectionfactory: ConnectionFactory) ⇒ connectionfactory.getConnection
@@ -89,5 +99,7 @@ package object jdbc
   }
 
   final val startupConnectionFactories: List[String] = getStringList("plain.jdbc.startup-connection-factories", List.empty)
+
+  private[this] final val connectionfactoriescache = new TrieMap[String, ConnectionFactory]
 
 }

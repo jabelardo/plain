@@ -39,20 +39,25 @@ final class ByteArrayOutputStream private (
 
   final def getCapactiy = capacity
 
-  final def size = position
+  final def length = position
 
   final def reset = { position = 0; capacity = array.length }
 
   final def toByteArray = copyOf(array, position)
 
-  @inline private[this] def ensureCapacity(c: Int) = {
+  final def getArray = array
+
+  @inline private[this] final def ensureCapacity(c: Int) = {
     if (c > capacity) {
       while (capacity < c) capacity <<= 1
       array = copyOf(array, capacity)
     }
   }
 
-  private[this] final var array = new Array[Byte](capacity)
+  private[this] final var array = {
+    if (!math.isPowerOfTwo(capacity)) capacity = math.nextPowerOfTwo(capacity)
+    new Array[Byte](capacity)
+  }
 
   private[this] final var position = 0
 

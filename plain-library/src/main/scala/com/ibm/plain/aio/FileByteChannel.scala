@@ -5,7 +5,7 @@ package plain
 package aio
 
 import java.nio.ByteBuffer
-import java.nio.channels.{ AsynchronousByteChannel, AsynchronousFileChannel, CompletionHandler }
+import java.nio.channels.{ AsynchronousByteChannel, AsynchronousFileChannel, CompletionHandler ⇒ Handler }
 import java.nio.file.{ Path, Paths }
 import java.nio.file.StandardOpenOption.{ CREATE, READ, TRUNCATE_EXISTING, WRITE }
 
@@ -21,20 +21,18 @@ final class FileByteChannel private (
 
   extends AsynchronousByteChannel {
 
-  type Integer = java.lang.Integer
-
-  override protected def finalize = if (filechannel.isOpen) filechannel.close
+  private final type Integer = java.lang.Integer
 
   final def close = filechannel.close
 
   final def isOpen = filechannel.isOpen
 
-  final def read[A](buffer: ByteBuffer, attachment: A, handler: CompletionHandler[Integer, _ >: A]) = {
-    filechannel.read(buffer, position, attachment, new InnerCompletionHandler[A](handler))
+  final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[Integer, _ >: A]) = {
+    filechannel.read(buffer, position, attachment, InnerCompletionHandler(handler))
   }
 
-  final def write[A](buffer: ByteBuffer, attachment: A, handler: CompletionHandler[Integer, _ >: A]) = {
-    filechannel.write(buffer, position, attachment, new InnerCompletionHandler[A](handler))
+  final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[Integer, _ >: A]) = {
+    filechannel.write(buffer, position, attachment, InnerCompletionHandler(handler))
   }
 
   /**
@@ -44,11 +42,13 @@ final class FileByteChannel private (
 
   final def write(buffer: ByteBuffer): java.util.concurrent.Future[Integer] = throw FutureNotSupported
 
-  private[this] final class InnerCompletionHandler[A](
+  override protected final def finalize = if (filechannel.isOpen) filechannel.close
 
-    outerhandler: CompletionHandler[Integer, _ >: A])
+  private[this] final class InnerCompletionHandler[A] private (
 
-    extends CompletionHandler[Integer, A] {
+    outerhandler: Handler[Integer, _ >: A])
+
+    extends Handler[Integer, A] {
 
     @inline def completed(processed: Integer, attachment: A) = {
       position += processed
@@ -59,40 +59,46 @@ final class FileByteChannel private (
 
   }
 
-  private[this] var position = 0L
+  private[this] final object InnerCompletionHandler {
+
+    final def apply[A](handler: Handler[Integer, _ >: A]): Handler[Integer, _ >: A] = new InnerCompletionHandler[A](handler)
+
+  }
+
+  private[this] final var position = 0L
 
 }
 
 /**
  *
  */
-object FileByteChannel {
+final object FileByteChannel {
 
   implicit def asynchronousFileChannel2FileByteChannel(channel: AsynchronousFileChannel) = wrap(channel)
 
-  def wrap(filechannel: AsynchronousFileChannel): AsynchronousByteChannel = new FileByteChannel(filechannel)
+  final def wrap(filechannel: AsynchronousFileChannel): AsynchronousByteChannel = new FileByteChannel(filechannel)
 
-  def apply(filechannel: AsynchronousFileChannel): AsynchronousByteChannel = wrap(filechannel)
+  final def apply(filechannel: AsynchronousFileChannel): AsynchronousByteChannel = wrap(filechannel)
 
-  def forReading(path: Path): AsynchronousByteChannel = AsynchronousFileChannel.open(path, Set(READ), concurrent.ioexecutor)
+  final def forReading(path: Path): AsynchronousByteChannel = AsynchronousFileChannel.open(path, Set(READ), concurrent.ioexecutor)
 
-  def forWriting(path: Path): AsynchronousByteChannel = AsynchronousFileChannel.open(path, Set(CREATE, TRUNCATE_EXISTING, WRITE), concurrent.ioexecutor)
+  final def forWriting(path: Path): AsynchronousByteChannel = AsynchronousFileChannel.open(path, Set(CREATE, TRUNCATE_EXISTING, WRITE), concurrent.ioexecutor)
 
   /**
    * This is very fast and should, therefore, be preferred, it also fails if there is not enough space in the file system.
    */
-  def forWriting(path: Path, length: Long): AsynchronousByteChannel = {
+  final def forWriting(path: Path, length: Long): AsynchronousByteChannel = {
     val f = new java.io.RandomAccessFile(path.toString, "rw")
     f.setLength(length)
     f.close
     AsynchronousFileChannel.open(path, Set(WRITE), concurrent.ioexecutor)
   }
 
-  def forReading(path: String): AsynchronousByteChannel = forReading(Paths.get(path))
+  final def forReading(path: String): AsynchronousByteChannel = forReading(Paths.get(path))
 
-  def forWriting(path: String): AsynchronousByteChannel = forWriting(Paths.get(path))
+  final def forWriting(path: String): AsynchronousByteChannel = forWriting(Paths.get(path))
 
-  def forWriting(path: String, length: Long): AsynchronousByteChannel = forWriting(Paths.get(path), length)
+  final def forWriting(path: String, length: Long): AsynchronousByteChannel = forWriting(Paths.get(path), length)
 
 }
 

@@ -113,7 +113,7 @@ final class HttpServletResponse(
 
   final def setLocale(x$1: java.util.Locale) = unsupported
 
-  final def getEntity: Entity = ArrayEntity(printwriter.outputstream.toByteArray, contenttype)
+  final def getEntity: Entity = ArrayEntity(printwriter.outputstream.getArray, 0, printwriter.outputstream.length, contenttype)
 
   private[this] final var usewriter = false
 

@@ -16,7 +16,7 @@ import Status.ClientError.`415`
 /**
  *
  */
-abstract class MimeType
+abstract sealed class MimeType
 
   extends Renderable {
 
@@ -27,6 +27,8 @@ abstract class MimeType
   def extensions: Set[String]
 
   def text: Array[Byte]
+
+  def encodable: Boolean
 
   @inline final def render(implicit buffer: ByteBuffer) = r(text) + ^
 
@@ -114,13 +116,15 @@ object MimeType {
     case "video/x-m4v" ⇒ `video/x-m4v`
     case "video/x-msvideo" ⇒ `video/x-msvideo`
 
-    case other ⇒ `User-defined`(other)
+    case other ⇒ `User-defined`(other, true)
   }
 
   /**
    *
    */
-  abstract class PredefinedMimeType(ext: Seq[String] = Seq.empty) extends MimeType {
+  abstract sealed class PredefinedMimeType( final val encodable: Boolean, ext: Seq[String] = Seq.empty) extends MimeType {
+
+    final def this(ext: Seq[String] = Seq.empty) = this(true, ext)
 
     final val name = toString
 
@@ -132,55 +136,55 @@ object MimeType {
 
   }
 
-  abstract class `audio/*`(ext: String*) extends PredefinedMimeType(ext)
-  abstract class `application/*`(ext: String*) extends PredefinedMimeType(ext)
-  abstract class `image/*`(ext: String*) extends PredefinedMimeType(ext)
+  abstract class `audio/*`(ext: String*) extends PredefinedMimeType(false, ext)
+  abstract class `application/*`(encodable: Boolean, ext: String*) extends PredefinedMimeType(encodable, ext)
+  abstract class `image/*`(ext: String*) extends PredefinedMimeType(false, ext)
   abstract class `message/*`(ext: String*) extends PredefinedMimeType(ext)
   abstract class `multipart/*`(ext: String*) extends PredefinedMimeType(ext)
   abstract class `text/*`(ext: String*) extends PredefinedMimeType(ext)
-  abstract class `video/*`(ext: String*) extends PredefinedMimeType(ext)
+  abstract class `video/*`(ext: String*) extends PredefinedMimeType(false, ext)
 
   case object `*/*` extends PredefinedMimeType
 
-  case object `application/atom+xml` extends `application/*`("xml")
-  case object `application/vnd.catiav5-cgr` extends `application/*`("cgr")
-  case object `application/vnd.catiav5-3dxml` extends `application/*`("3dxml")
-  case object `application/vnd.catiav5-drawing` extends `application/*`("catdrawing")
-  case object `application/vnd.catiav5-model` extends `application/*`("model")
-  case object `application/vnd.catiav5-part` extends `application/*`("catpart")
-  case object `application/vnd.catiav5-product` extends `application/*`("catproduct")
-  case object `application/vnd.catiav5-material` extends `application/*`("catmaterial")
-  case object `application/vnd.catiav5-catalog` extends `application/*`("catcatalog")
-  case object `application/vnd.catiav5-analysis` extends `application/*`("catanalysis")
-  case object `application/vnd.catiav5-process` extends `application/*`("catcatalog")
-  case object `application/vnd.siemens-plm-jt` extends `application/*`("jt")
-  case object `application/vnd.siemens-plm-plmxml` extends `application/*`("plmxml")
-  case object `application/vnd.siemens-plm-vfz` extends `application/*`("vfz")
-  case object `application/gzip` extends `application/*`("gz", "gzip")
-  case object `application/javascript` extends `application/*`("js")
-  case object `application/java-archive` extends `application/*`("jar")
-  case object `application/json` extends `application/*`("json")
-  case object `application/vnd.msexcel` extends `application/*`("xls")
-  case object `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` extends `application/*`("xlsx")
-  case object `application/vnd.mspowerpoint` extends `application/*`("ppt")
-  case object `application/vnd.openxmlformats-officedocument.presentationml.presentation` extends `application/*`("pptx")
-  case object `application/vnd.msword` extends `application/*`("doc")
-  case object `application/vnd.openxmlformats-officedocument.wordprocessingml.document` extends `application/*`("docx")
-  case object `application/octet-stream` extends `application/*`("bin", "class", "exe", "com", "dll", "lib", "a", "o")
-  case object `application/pdf` extends `application/*`("pdf")
-  case object `application/postscript` extends `application/*`("ps", "ai")
-  case object `application/soap+xml` extends `application/*`("xml")
-  case object `application/tar` extends `application/*`("tar")
-  case object `application/xhtml+xml` extends `application/*`("xml")
-  case object `application/xml` extends `application/*`("xml")
-  case object `application/xml+dtd` extends `application/*`("xml", "dtd")
-  case object `application/x-7z-compressed` extends `application/*`("7z")
-  case object `application/x-tgz` extends `application/*`("tgz")
-  case object `application/x-javascript` extends `application/*`("js")
-  case object `application/x-shockwave-flash` extends `application/*`("swf")
-  case object `application/x-www-form-urlencoded` extends `application/*`
-  case object `application/x-scala-unit` extends `application/*`
-  case object `application/zip` extends `application/*`("zip")
+  case object `application/atom+xml` extends `application/*`(true, "xml")
+  case object `application/vnd.catiav5-cgr` extends `application/*`(true, "cgr")
+  case object `application/vnd.catiav5-3dxml` extends `application/*`(true, "3dxml")
+  case object `application/vnd.catiav5-drawing` extends `application/*`(true, "catdrawing")
+  case object `application/vnd.catiav5-model` extends `application/*`(true, "model")
+  case object `application/vnd.catiav5-part` extends `application/*`(true, "catpart")
+  case object `application/vnd.catiav5-product` extends `application/*`(true, "catproduct")
+  case object `application/vnd.catiav5-material` extends `application/*`(true, "catmaterial")
+  case object `application/vnd.catiav5-catalog` extends `application/*`(true, "catcatalog")
+  case object `application/vnd.catiav5-analysis` extends `application/*`(true, "catanalysis")
+  case object `application/vnd.catiav5-process` extends `application/*`(true, "catcatalog")
+  case object `application/vnd.siemens-plm-jt` extends `application/*`(true, "jt")
+  case object `application/vnd.siemens-plm-plmxml` extends `application/*`(true, "plmxml")
+  case object `application/vnd.siemens-plm-vfz` extends `application/*`(false, "vfz")
+  case object `application/gzip` extends `application/*`(false, "gz", "gzip")
+  case object `application/javascript` extends `application/*`(true, "js")
+  case object `application/java-archive` extends `application/*`(false, "jar")
+  case object `application/json` extends `application/*`(true, "json")
+  case object `application/vnd.msexcel` extends `application/*`(true, "xls")
+  case object `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` extends `application/*`(false, "xlsx")
+  case object `application/vnd.mspowerpoint` extends `application/*`(true, "ppt")
+  case object `application/vnd.openxmlformats-officedocument.presentationml.presentation` extends `application/*`(false, "pptx")
+  case object `application/vnd.msword` extends `application/*`(true, "doc")
+  case object `application/vnd.openxmlformats-officedocument.wordprocessingml.document` extends `application/*`(false, "docx")
+  case object `application/octet-stream` extends `application/*`(true, "bin", "class", "exe", "com", "dll", "lib", "a", "o")
+  case object `application/pdf` extends `application/*`(false, "pdf")
+  case object `application/postscript` extends `application/*`(true, "ps", "ai")
+  case object `application/soap+xml` extends `application/*`(true, "xml")
+  case object `application/tar` extends `application/*`(true, "tar")
+  case object `application/xhtml+xml` extends `application/*`(true, "xml")
+  case object `application/xml` extends `application/*`(true, "xml")
+  case object `application/xml+dtd` extends `application/*`(true, "xml", "dtd")
+  case object `application/x-7z-compressed` extends `application/*`(false, "7z")
+  case object `application/x-tgz` extends `application/*`(false, "tgz")
+  case object `application/x-javascript` extends `application/*`(true, "js")
+  case object `application/x-shockwave-flash` extends `application/*`(false, "swf")
+  case object `application/x-www-form-urlencoded` extends `application/*`(true)
+  case object `application/x-scala-unit` extends `application/*`(false)
+  case object `application/zip` extends `application/*`(false, "zip")
 
   case object `audio/basic` extends `audio/*`("au", "snd")
   case object `audio/mpeg` extends `audio/*`("mpeg", "mpg", "mp2", "mp3", "mpe", "mpga")
@@ -219,7 +223,7 @@ object MimeType {
   /**
    * Non-predefined mime type.
    */
-  class `User-defined` private (val name: String)
+  class `User-defined` private (val name: String, val encodable: Boolean)
 
     extends MimeType {
 
@@ -235,7 +239,7 @@ object MimeType {
 
   object `User-defined` {
 
-    def apply(name: String) = new `User-defined`(name.toLowerCase)
+    def apply(name: String, encodable: Boolean) = new `User-defined`(name.toLowerCase, encodable)
 
   }
 

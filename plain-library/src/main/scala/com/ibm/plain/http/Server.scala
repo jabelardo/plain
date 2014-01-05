@@ -156,7 +156,7 @@ object Server
 
     final val portRange = getIntList("port-range", List.empty)
 
-    final val backlog = getInt("backlog")
+    final val backlog = getBytes("backlog").toInt
 
     final val loadBalancingEnable = getBoolean("load-balancing.enable")
 

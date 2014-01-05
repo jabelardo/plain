@@ -9,8 +9,6 @@ package resource
 import java.nio.file.{ Path, Paths }
 import java.nio.file.Files.{ exists, isDirectory, isRegularFile, size }
 
-import scala.reflect.runtime.universe
-
 import org.apache.commons.io.FilenameUtils.getExtension
 
 import aio.FileByteChannel.forReading
@@ -33,10 +31,12 @@ class DirectoryResource
   private[this] final def get = {
 
     def entity(file: Path) = {
+      val contenttype = ContentType(forExtension(getExtension(file.toString)).getOrElse(`application/octet-stream`))
       AsynchronousByteChannelEntity(
         forReading(file),
-        ContentType(forExtension(getExtension(file.toString)).getOrElse(`application/octet-stream`)),
-        size(file))
+        contenttype,
+        size(file),
+        contenttype.mimetype.encodable)
     }
 
     Paths.get(context.config.getString("root")).toAbsolutePath.resolve(context.remainder.mkString("/")) match {

@@ -221,7 +221,8 @@ object Io
 
   final private[aio] val empty = new Io(null, emptyBuffer, emptyBuffer, null, null, null, null, null, false, null, null, null, null)
 
-  final private[aio] def apply(iteratee: Iteratee[Io, _]): Io = new Io(null, emptyBuffer, defaultByteBuffer, iteratee, null, null, null, null, true, null, null, null, null)
+  final private[aio] def apply(iteratee: Iteratee[Io, _]): Io =
+    new Io(null, emptyBuffer, defaultByteBuffer, iteratee, null, null, null, null, true, null, null, null, null)
 
   final private def warnOnce = onlyonce { warning("Chunked input found. Enlarge aio.default-buffer-size : " + defaultBufferSize) }
 
@@ -412,15 +413,16 @@ object Io
 
       extends Handler[Integer, Io] {
 
-      @inline def read(io: Io): Unit = if (0 < io.readbuffer.remaining) {
-        write(io)
-      } else {
+      @inline def read(io: Io) = {
         io.readbuffer.clear
         io.transfer.source.read(io.readbuffer, io, this)
       }
 
       @inline def write(io: Io) =
         io.transfer.destination.write(io.readbuffer, io, TransferWriteHandler)
+
+      @inline def writeAndClose(io: Io) =
+        io.transfer.destination.write(io.readbuffer, io, ClosingTransferWriteHandler)
 
       @inline def completed(processed: Integer, io: Io) = {
         val encoder = io.transfer.encoder.getOrElse(null)
@@ -432,24 +434,48 @@ object Io
           }
           write(io)
         } else {
-          if (null != encoder) encoder.finish(io.readbuffer)
-          io.transfer.source match { case f: FileByteChannel ⇒ f.close case _ ⇒ }
-          io.transfer.destination match { case f: FileByteChannel ⇒ f.close case _ ⇒ }
-          io.transfer = null
-          WriteHandler.completed(0, io)
+          if (null != encoder) {
+            io.readbuffer.clear
+            encoder.finish(io.readbuffer)
+            writeAndClose(io)
+          } else {
+            ClosingTransferWriteHandler.completed(processed, io)
+          }
         }
       }
 
       @inline def failed(e: Throwable, io: Io) = {
-        io.transfer = null
+        cleanup(io)
         WriteHandler.failed(e, io)
+      }
+
+      @inline private[this] final def cleanup(io: Io) = {
+        io.transfer.source match { case f: FileByteChannel ⇒ f.close case _ ⇒ }
+        io.transfer.destination match { case f: FileByteChannel ⇒ f.close case _ ⇒ }
+        io.transfer = null
       }
 
       private[this] final object TransferWriteHandler
 
         extends Handler[Integer, Io] {
 
-        @inline def completed(processed: Integer, io: Io) = read(io)
+        @inline def completed(processed: Integer, io: Io) =
+          if (0 < io.readbuffer.remaining) write(io) else read(io)
+
+        @inline def failed(e: Throwable, io: Io) = TransferHandler.failed(e, io)
+
+      }
+
+      private[this] final object ClosingTransferWriteHandler
+
+        extends Handler[Integer, Io] {
+
+        @inline def completed(processed: Integer, io: Io) = if (0 < io.readbuffer.remaining) {
+          writeAndClose(io)
+        } else {
+          cleanup(io)
+          WriteHandler.completed(0, io)
+        }
 
         @inline def failed(e: Throwable, io: Io) = TransferHandler.failed(e, io)
 

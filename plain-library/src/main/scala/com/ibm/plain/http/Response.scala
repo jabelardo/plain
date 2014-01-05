@@ -67,9 +67,9 @@ final case class Response private (
         markbuffer = writebuffer
         writebuffer = entity.buffer
         encode
-      case Some(entity: ArrayEntity) ⇒
+      case Some(ArrayEntity(array, offset, length, _)) ⇒
         markbuffer = writebuffer
-        writebuffer = ByteBuffer.wrap(entity.array, 0, entity.length.toInt)
+        writebuffer = ByteBuffer.wrap(array, offset, length.toInt)
         encode
       case _ ⇒ unsupported
     }
@@ -90,18 +90,18 @@ final case class Response private (
   }
 
   @inline private[this] final def renderMandatory = {
-    r(`Server: `) + `\r\n` + r(`Date: `) + r(rfc1123bytearray) + `\r\n` + ^
+    r(`Server: `) + r(`Date: `) + r(rfc1123bytearray) + `\r\n` + ^
   }
 
   @inline private[this] final def renderKeepAlive(io: Io) = {
     val keepalive = null == request || request.keepalive
     io ++ keepalive
-    if (!keepalive) r(`Connection: `) + r(if (keepalive) `keep-alive` else `close`) + `\r\n` + ^
+    if (!keepalive) r(`Connection: close`) + ^
   }
 
   @inline private[this] final def renderContent: Unit = {
     encoding = entity match {
-      case Some(entity) if tooTinyToCareSize < entity.length || -1 == entity.length ⇒ request.transferEncoding
+      case Some(entity) if entity.contenttype.mimetype.encodable ⇒ request.transferEncoding
       case _ ⇒ None
     }
     entity match {
@@ -110,7 +110,7 @@ final case class Response private (
         encoding match {
           case Some(encoding) ⇒
             r(`Content-Encoding: `) + r(encoding.text) + `\r\n` + ^
-            r(`Transfer-Encoding: chunked`) + `\r\n` + ^
+            r(`Transfer-Encoding: chunked`) + ^
           case _ ⇒
             r(`Content-Length: `) + r(entity.length) + `\r\n` + `\r\n` + ^
         }
@@ -138,8 +138,8 @@ final case class Response private (
         rb(entity.buffer) + ^
         releaseByteBuffer(entity.buffer)
         encode(entity)
-      case Some(entity: ArrayEntity) if entity.length <= writebuffer.remaining ⇒
-        r(entity.array) + ^
+      case Some(entity @ ArrayEntity(array, offset, length, _)) if length <= writebuffer.remaining ⇒
+        r(array, offset, length.toInt) + ^
         encode(entity)
       case Some(_) ⇒
         io ++ Cont[Io, Boolean](null)
@@ -163,11 +163,7 @@ object Response {
 
   final def apply(request: Request, status: Status) = new Response(request, Version.`HTTP/1.1`, status, null, None)
 
-  private final val `keep-alive` = "keep-alive".getBytes
-
-  private final val `close` = "close".getBytes
-
-  private final val `Connection: ` = "Connection: ".getBytes
+  private final val `Connection: close` = "Connection: close\r\n".getBytes
 
   private final val `Content-Type: ` = "Content-Type: ".getBytes
 
@@ -175,9 +171,9 @@ object Response {
 
   private final val `Content-Length: ` = "Content-Length: ".getBytes
 
-  private final val `Transfer-Encoding: chunked` = "Transfer-Encoding: chunked".getBytes
+  private final val `Transfer-Encoding: chunked` = "Transfer-Encoding: chunked\r\n".getBytes
 
-  private final val `Server: ` = ("Server: plain " + config.version).getBytes
+  private final val `Server: ` = ("Server: plain " + config.version + "\r\n").getBytes
 
   private final val `Date: ` = "Date: ".getBytes
 

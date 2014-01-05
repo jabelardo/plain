@@ -33,8 +33,8 @@ final case class Request(
   type Type = Request
 
   final def keepalive = `Connection`(headers) match {
-    case Some(value) if value.exists(_.equalsIgnoreCase("keep-alive")) ⇒ true
-    case _ ⇒ false
+    case Some(value) if value.exists(_.equalsIgnoreCase("close")) ⇒ false
+    case _ ⇒ true
   }
 
   final def transferEncoding: Option[Encoder] = `Accept-Encoding`(headers) match {
