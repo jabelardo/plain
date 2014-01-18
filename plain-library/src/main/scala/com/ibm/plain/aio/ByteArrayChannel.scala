@@ -51,7 +51,7 @@ final class ByteArrayChannel private (
 /**
  *
  */
-final object ByteArrayChannel {
+object ByteArrayChannel {
 
   final def apply(array: Array[Byte], offset: Int, length: Int) = new ByteArrayChannel(array, offset, length)
 

@@ -12,9 +12,9 @@ import java.util.concurrent.TimeUnit
 /**
  *
  */
-private final class SocketChannelWithTimeout private (
+final class SocketChannelWithTimeout private (
 
-  private[this] final val channel: SocketChannel)
+  final val channel: SocketChannel)
 
   extends Channel {
 
@@ -38,7 +38,7 @@ private final class SocketChannelWithTimeout private (
 
 }
 
-private object SocketChannelWithTimeout {
+object SocketChannelWithTimeout {
 
   final def apply(channel: SocketChannel) = new SocketChannelWithTimeout(tweak(channel))
 

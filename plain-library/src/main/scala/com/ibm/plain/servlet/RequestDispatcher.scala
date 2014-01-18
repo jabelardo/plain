@@ -27,8 +27,6 @@ final class RequestDispatcher(
     servletcontext.getJspServlet.service(request, response)
   }
 
-  final def include(request: js.ServletRequest, response: js.ServletResponse) = {
-
-  }
+  final def include(request: js.ServletRequest, response: js.ServletResponse) = unsupported
 
 }

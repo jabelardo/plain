@@ -58,7 +58,7 @@ package object plain
     val mxBean = java.lang.management.ManagementFactory.getThreadMXBean
     val threadInfo = mxBean.getThreadInfo(Thread.currentThread.getId, depth)
     val elements = threadInfo.getStackTrace
-    elements(depth - 1).getMethodName
+    elements(depth - 1).getClassName + "." + elements(depth - 1).getMethodName
   }
 
   final def unsupported = throw new UnsupportedOperationException(getCallingFunctionName(6))

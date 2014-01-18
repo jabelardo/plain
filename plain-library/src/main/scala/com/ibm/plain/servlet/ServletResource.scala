@@ -4,6 +4,10 @@ package plain
 
 package servlet
 
+import javax.servlet.http.Cookie
+
+import scala.collection.mutable.HashMap
+
 import aio.Io
 import http.{ HttpServletRequest, HttpServletResponse }
 import io.{ ByteArrayOutputStream, PrintWriter }
@@ -18,7 +22,6 @@ final class ServletResource
   final def completed(context: Context) = super.completed(context.response, context.io)
 
   final def failed(e: Throwable, context: Context) = {
-    e.printStackTrace
     super.failed(e, context.io ++ context.response.asInstanceOf[aio.Message])
   }
 
@@ -26,9 +29,9 @@ final class ServletResource
 
   final def handle(context: Context) = try {
     val request = context.request
-    val response = Response(request, Success.`200`)
+    val response = Response(request, Success.`200`, new HashMap[String, String])
     context ++ response
-    import context.io._
+    import context.io.printwriter
     if (null == printwriter)
       context.io ++ PrintWriter(ByteArrayOutputStream(io.defaultBufferSize))
     else
@@ -39,17 +42,42 @@ final class ServletResource
         Thread.currentThread.setContextClassLoader(servletcontext.getClassLoader)
         try {
           servletcontext.getServlet(request.path(2)) match {
-            case null ⇒ throw ClientError.`404`
+            case null ⇒
+              try {
+                response ++ rest.resource.DirectoryResource.get(unpackWebApplicationsDirectory.getAbsolutePath, context.remainder.mkString("/"))
+                completed(context)
+              } catch {
+                case e: Throwable ⇒
+                  val path = context.remainder.drop(1).mkString("/")
+                  val in = servletcontext.getClassLoader.getResourceAsStream(path)
+                  if (null == in) throw ClientError.`404`
+                  println(in.asInstanceOf[io.ByteArrayInputStream].toByteArray.length)
+                  val t = scala.io.Source.fromInputStream(in, scala.io.Codec.UTF8.name).mkString
+                  val entity = plain.http.Entity.ArrayEntity(t.getBytes(text.`UTF-8`), plain.http.ContentType(plain.http.MimeType.`text/css`))
+                  println(entity)
+                  response ++ entity
+                  completed(context)
+              }
             case servlet ⇒
-              val httpservletrequest = new HttpServletRequest(request, servletcontext)
+              val httpservletrequest = new HttpServletRequest(request, context, servletcontext)
               val httpservletresponse = new HttpServletResponse(response, servletcontext, printwriter)
               servlet.service(httpservletrequest, httpservletresponse)
               response ++ httpservletresponse.getEntity
+              httpservletrequest.getSession match {
+                case session if null != session && session.isNew ⇒
+                  val cookie = new Cookie("JSESSIONID", session.getId)
+                  cookie.setPath(request.path.take(2).mkString("/", "/", "/"))
+                  cookie.setHttpOnly(true)
+                  response ++ cookie
+                case _ ⇒
+              }
               completed(context)
           }
         } finally
           Thread.currentThread.setContextClassLoader(classloader)
-      case None ⇒ throw ClientError.`404`
+      case None ⇒
+        debug("404: " + request.path.mkString("/"))
+        throw ClientError.`404`
     }
   } catch {
     case e: Throwable ⇒ failed(e, context)

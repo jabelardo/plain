@@ -11,10 +11,6 @@ import akka.event.{ BusLogging, EventStream }
  */
 trait HasLogger {
 
-  final def disableLogging = log_ = new BusLogging(new EventStream(false), "", this.getClass)
-
-  final def enableLogging = log_ = createLogger(this)
-
   protected final def debug(s: String) = log.debug(s)
 
   protected final def info(s: String) = log.info(s)
@@ -23,9 +19,12 @@ trait HasLogger {
 
   protected final def error(s: String) = log.error(s)
 
-  implicit protected final def log = log_
-
-  @volatile private[this] final var log_ = createLogger(this)
+  implicit protected final val log = createLogger(this)
 
 }
 
+object HasLogger {
+
+  final val emptyLogger = new BusLogging(new EventStream(false), "", getClass)
+
+}

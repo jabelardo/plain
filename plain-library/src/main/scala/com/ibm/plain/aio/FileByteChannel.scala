@@ -59,7 +59,7 @@ final class FileByteChannel private (
 
   }
 
-  private[this] final object InnerCompletionHandler {
+  private[this] object InnerCompletionHandler {
 
     final def apply[A](handler: Handler[Integer, _ >: A]): Handler[Integer, _ >: A] = new InnerCompletionHandler[A](handler)
 
@@ -72,7 +72,7 @@ final class FileByteChannel private (
 /**
  *
  */
-final object FileByteChannel {
+object FileByteChannel {
 
   implicit def asynchronousFileChannel2FileByteChannel(channel: AsynchronousFileChannel) = wrap(channel)
 

@@ -43,11 +43,13 @@ final class ByteArrayInputStream(
 
   override final def available = lastposition - position
 
+  final val toByteArray = array
+
   private[this] var position = offset
 
   private[this] var lastposition = offset + length
 
-  override final def toString = getClass.getName + " a.len " + array.length + ", ofs " + offset + ", len " + length + ", pos " + position + ", lpos" + lastposition
+  override final def toString = getClass.getName + "(cap " + array.length + ", ofs " + offset + ", len " + length + ", pos " + position + ", last " + lastposition + ")"
 
   override final def close = lastposition = position
 

@@ -6,6 +6,8 @@ package servlet
 
 package http
 
+import javax.servlet.http.Cookie
+
 import scala.collection.JavaConversions.enumerationAsScalaIterator
 import scala.collection.concurrent.TrieMap
 
@@ -13,7 +15,7 @@ import com.ibm.plain.servlet.ServletContext
 
 import javax.{ servlet ⇒ js }
 
-final class HttpSession(
+final class HttpSession private (
 
   private[this] final val id: String,
 
@@ -21,7 +23,9 @@ final class HttpSession(
 
   extends js.http.HttpSession
 
-  with helper.HasAttributes {
+  with helper.HasAttributes
+
+  with logging.HasLogger {
 
   final val getCreationTime: Long = time.now
 
@@ -31,7 +35,7 @@ final class HttpSession(
 
   final def getMaxInactiveInterval: Int = maxinactiveinterval
 
-  final def getServletContext: js.ServletContext = servletcontext
+  final val getServletContext: js.ServletContext = servletcontext
 
   @deprecated("", "") final def getSessionContext: js.http.HttpSessionContext = deprecated
 
@@ -39,9 +43,9 @@ final class HttpSession(
 
   final def getValueNames: Array[String] = getAttributeNames.toArray
 
-  final def invalidate = unsupported
+  final def invalidate = HttpSession.destroy(id)
 
-  final def isNew: Boolean = unsupported
+  final def isNew: Boolean = isnew
 
   final def putValue(name: String, value: Object) = setAttribute(name, value)
 
@@ -53,8 +57,31 @@ final class HttpSession(
 
   protected[this] final val attributes = new TrieMap[String, Object]
 
-  @volatile private[this] final var maxinactiveinterval = 60 * 60
+  private[this] final var maxinactiveinterval = -1
 
-  @volatile private[this] final var lastaccesstime: Long = time.now
+  private[this] final var lastaccesstime: Long = -1L
+
+  private final var isnew = true
+
+}
+
+private object HttpSession {
+
+  final def create(id: String, servletcontext: ServletContext): HttpSession = {
+    val session = new HttpSession(id, servletcontext)
+    httpsessions.put(id, session)
+    session
+  }
+
+  final def retrieve(id: String): HttpSession = httpsessions.get(id) match {
+    case Some(session) ⇒
+      session.isnew = false
+      session
+    case _ ⇒ null
+  }
+
+  final def destroy(id: String): Unit = httpsessions.remove(id)
+
+  private[this] final val httpsessions = new TrieMap[String, HttpSession]
 
 }

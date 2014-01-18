@@ -96,36 +96,3 @@ object WarClassLoader {
   }
 
 }
-
-object Test1 extends App {
-
-  import WarClassLoader._
-  val cl = setAsContextClassLoader("/Users/guido/Development/Others/dashboard-demo/target/quicktickets-dashboard-1.0.1.war", "/tmp/web-apps")
-  val a = cl.loadClass("com.vaadin.ui.Component")
-  val b = Class.forName("com.vaadin.demo.dashboard.HelpOverlay", true, cl).newInstance
-  val f = Class.forName("org.apache.james.mime4j.codec.CodecUtil", true, cl).newInstance
-  println(b + " " + f)
-  val c = "WEB-INF/web.xml"
-  val d = "VAADIN/widgetsets/WEB-INF/deploy/com.vaadin.demo.dashboard.DashboardWidgetSet/symbolMaps/AC942BD1CD918B3B58EE8569A3FF9707.symbolMap"
-  for (i ← 1 to 3) println(fromInputStream(cl.getResourceAsStream(c)).getLines.mkString)
-  for (i ← 1 to 3) println(fromInputStream(cl.getResourceAsStream(d)).getLines.mkString.length)
-
-  val web = XML.load(cl.getResourceAsStream(c))
-  println(web)
-  println((web \ "servlet"))
-  println((web \ "display-name").text)
-  println((web \ "welcome-file-list" \ "welcome-file").map(_.text))
-  println(cl.getURLs.toList)
-  import scala.collection.JavaConversions._
-  println(cl.findResources("").toList)
-  println(cl.findResources("images/ant_logo_large.gif").toList)
-  println(cl.findResources("META-INF/NOTICE.txt").toList)
-
-  val cookie = new java.net.HttpCookie("Name", "Guido")
-  cookie.setDomain("ibm.com")
-  cookie.setPath("/hello")
-  cookie.setVersion(1)
-  cookie.setMaxAge(10000)
-  println(cookie)
-
-}

@@ -33,7 +33,7 @@ object Entity {
 
   final case class ArrayEntity(array: Array[Byte], offset: Int, length: Long, contenttype: ContentType) extends Entity {
 
-    final val encodable = aio.tooTinyToCareSize < length
+    final val encodable = length > aio.tooTinyToCareSize
 
   }
 
@@ -47,7 +47,7 @@ object Entity {
 
     val length: Long = buffer.remaining
 
-    val encodable = aio.tooTinyToCareSize < length
+    val encodable = length > aio.tooTinyToCareSize
 
   }
 

@@ -23,10 +23,10 @@ sealed abstract class Method(
 object Method {
 
   final def apply(method: String): Method = method match {
-    case "POST" ⇒ POST
-    case "PUT" ⇒ PUT
     case "GET" ⇒ GET
     case "HEAD" ⇒ HEAD
+    case "POST" ⇒ POST
+    case "PUT" ⇒ PUT
     case "DELETE" ⇒ DELETE
     case "OPTIONS" ⇒ OPTIONS
     case "CONNECT" ⇒ CONNECT

@@ -9,21 +9,30 @@ package http
 import java.io.{ BufferedReader, PrintWriter }
 import java.util.{ Enumeration, Locale, Map ⇒ JMap }
 
+import javax.{ servlet ⇒ js }
+
 import scala.collection.JavaConversions.{ asJavaEnumeration, mapAsJavaMap, mapAsScalaMap }
 import scala.collection.mutable.HashMap
 
-import com.ibm.plain.servlet.ServletContext
-
-import javax.{ servlet ⇒ js }
+import text.`UTF-8`
+import rest.Context
+import rest.Matching.default.decodeForm
+import plain.http.MimeType.`text/plain`
 import plain.http.Request
+import plain.http.Header.Request.`Cookie`
+import plain.http.Entity.ArrayEntity
 
 final class HttpServletRequest(
 
   private[this] final val request: Request,
 
+  private[this] final val context: Context,
+
   private[this] final val servletcontext: ServletContext)
 
   extends js.http.HttpServletRequest
+
+  with logging.HasLogger
 
   with helper.HasAttributes {
 
@@ -33,39 +42,67 @@ final class HttpServletRequest(
 
   final def getAuthType: String = unsupported
 
-  final def getContextPath: String = "/" + request.path.take(2).mkString("/")
+  final val getContextPath: String = request.path.take(2).mkString("/", "/", "")
 
   final def getCookies: Array[js.http.Cookie] = unsupported
 
   final def getDateHeader(x$1: String): Long = unsupported
 
-  final def getIntHeader(x$1: String): Int = unsupported
+  final def getIntHeader(name: String): Int = ignoreOrElse(getHeader(name).toInt, -1)
 
-  final def getMethod: String = request.method.toString
+  final val getMethod: String = request.method.toString
 
   final def getPart(x$1: String): js.http.Part = unsupported
 
   final def getParts: java.util.Collection[js.http.Part] = unsupported
 
-  final def getPathInfo: String = null
+  final val getPathInfo: String = request.path.drop(2).mkString("/")
 
   final def getPathTranslated: String = unsupported
 
-  final def getQueryString: String = request.query match { case Some(query) ⇒ query case _ ⇒ null }
+  final val getQueryString: String = request.query.getOrElse(null)
 
   final def getRemoteUser: String = unsupported
 
-  final def getRequestURI: String = "/" + request.path.mkString("/")
+  final val getRequestURI: String = request.path.mkString("/", "/", "")
 
   final def getRequestURL: StringBuffer = unsupported
 
-  final def getRequestedSessionId: String = unsupported
+  final val getRequestedSessionId: String = `Cookie`(request.headers) match {
+    case Some(value) ⇒ value.split("=")(1)
+    case _ ⇒ null
+  }
 
-  final def getServletPath: String = "/" + request.path.drop(2).mkString("/")
+  final val getServletPath: String = "/" + request.path.drop(2).mkString("/")
 
-  final def getSession: js.http.HttpSession = new HttpSession("1", servletcontext)
+  final val getSession: js.http.HttpSession = if (null == httpsession) {
+    httpsession = (`Cookie`(request.headers) match {
+      case Some(value) ⇒
+        HttpSession.retrieve(value.split("=")(1))
+      case _ ⇒
+        HttpSession.create(crypt.Uuid.newUuid, servletcontext)
+    })
+    httpsession
+  } else {
+    httpsession
+  }
 
-  final def getSession(create: Boolean): js.http.HttpSession = { println("getSession " + create); getSession }
+  final def getSession(create: Boolean): js.http.HttpSession = create match {
+    case true ⇒ getSession
+    case _ ⇒ if (null == httpsession) {
+      httpsession = (`Cookie`(request.headers) match {
+        case Some(value) ⇒
+          HttpSession.retrieve(value.split("=")(1)) match {
+            case null ⇒ HttpSession.create(crypt.Uuid.newUuid, servletcontext)
+            case session ⇒ session
+          }
+        case _ ⇒ null
+      })
+      httpsession
+    } else {
+      httpsession
+    }
+  }
 
   final def getUserPrincipal: java.security.Principal = unsupported
 
@@ -89,13 +126,17 @@ final class HttpServletRequest(
 
   final def setCharacterEncoding(arg0: String) = unsupported
 
-  final def getContentLength: Int = unsupported
+  final def getContentLength: Int = getIntHeader("content-length")
 
-  final def getContentLengthLong: Long = unsupported
+  final def getContentLengthLong: Long = getHeader("content-length").toLong
 
-  final def getContentType: String = unsupported
+  final def getContentType: String = getHeader("content-type")
 
-  final def getInputStream: js.ServletInputStream = unsupported
+  final def getInputStream: js.ServletInputStream = request.entity match {
+    case Some(arrayentity: ArrayEntity) ⇒
+      new ServletInputStream(new io.ByteArrayInputStream(arrayentity.array, arrayentity.offset, arrayentity.length.toInt))
+    case _ ⇒ unsupported
+  }
 
   final def getParameter(name: String): String = getParameterMap.get(name) match { case null ⇒ null case values ⇒ values.head }
 
@@ -104,7 +145,7 @@ final class HttpServletRequest(
   final def getParameterValues(name: String): Array[String] = getParameterMap.get(name)
 
   final lazy val getParameterMap: JMap[String, Array[String]] = ignoreOrElse(
-    rest.Matching.default.decodeForm(request.entity) map {
+    decodeForm(Some(ArrayEntity(request.query.get.getBytes(`UTF-8`), `text/plain`))) map {
       case (name, values) ⇒ (name, values.toArray)
     }, new java.util.HashMap[String, Array[String]])
 
@@ -112,35 +153,35 @@ final class HttpServletRequest(
 
   final def getScheme: String = unsupported
 
-  final def getServerName: String = "127.0.0.1"
+  final def getServerName: String = getLocalName
 
-  final def getServerPort: Int = 9080
+  final def getServerPort: Int = getLocalPort
 
   final def getReader: BufferedReader = unsupported
 
-  final def getRemoteAddr: String = "1.2.3.4"
+  final def getRemoteAddr: String = remoteaddress.getHostString
 
-  final def getRemoteHost: String = unsupported
+  final def getRemoteHost: String = remoteaddress.getHostName
+
+  final def getRemotePort: Int = remoteaddress.getPort
 
   final def getLocale: Locale = Locale.getDefault
 
   final def getLocales: Enumeration[Locale] = List(getLocale).toIterator
 
-  final def isSecure: Boolean = false
+  final val isSecure: Boolean = false
 
   final def getRequestDispatcher(path: String): js.RequestDispatcher = new RequestDispatcher(path, servletcontext)
 
   final def getRealPath(path: String): String = servletcontext.getRealPath(path)
 
-  final def getRemotePort: Int = unsupported
+  final def getLocalName: String = localaddress.getHostName
 
-  final def getLocalName: String = unsupported
+  final def getLocalAddr: String = localaddress.getHostString
 
-  final def getLocalAddr: String = unsupported
+  final def getLocalPort: Int = localaddress.getPort
 
-  final def getLocalPort: Int = unsupported
-
-  final def getServletContext: ServletContext = servletcontext
+  final val getServletContext: ServletContext = servletcontext
 
   final def startAsync: js.AsyncContext = unsupported
 
@@ -192,12 +233,12 @@ final class HttpServletRequest(
 
   final def getHeader(name: String): String = request.headers.get(name) match {
     case Some(value) ⇒ value
-    case _ ⇒ println("not found : " + name); null
+    case _ ⇒ ("Header not found : " + name); null
   }
 
   final def getHeaders(arg0: String): Enumeration[String] = unsupported
 
-  final def getHeaderNames: Enumeration[String] = unsupported
+  final def getHeaderNames: Enumeration[String] = request.headers.keysIterator
 
   final def getOutputStream: js.ServletOutputStream = unsupported
 
@@ -223,9 +264,15 @@ final class HttpServletRequest(
 
   final def setLocale(arg0: java.util.Locale) = unsupported
 
-  final def log(msg: String) = servletcontext.log(msg)
+  final def log(msg: String) = info(msg)
 
   protected[this] final val attributes = new HashMap[String, Object]
+
+  private[this] final lazy val localaddress = context.io.channel.asInstanceOf[aio.SocketChannelWithTimeout].channel.getLocalAddress.asInstanceOf[java.net.InetSocketAddress]
+
+  private[this] final lazy val remoteaddress = context.io.channel.asInstanceOf[aio.SocketChannelWithTimeout].channel.getRemoteAddress.asInstanceOf[java.net.InetSocketAddress]
+
+  private[this] final var httpsession: HttpSession = null
 
 }
 

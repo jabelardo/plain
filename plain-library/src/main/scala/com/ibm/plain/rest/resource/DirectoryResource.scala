@@ -12,6 +12,7 @@ import java.nio.file.Files.{ exists, isDirectory, isRegularFile, size }
 import org.apache.commons.io.FilenameUtils.getExtension
 
 import aio.FileByteChannel.forReading
+import logging.HasLogger
 import http.ContentType
 import http.Entity.AsynchronousByteChannelEntity
 import http.MimeType.{ `application/octet-stream`, forExtension }
@@ -24,11 +25,19 @@ class DirectoryResource
 
   extends Resource {
 
-  Get { get }
+  import DirectoryResource._
 
-  Get { _: String ⇒ get }
+  Get { get(context.config.getString("root"), context.remainder.mkString("/")) }
 
-  private[this] final def get = {
+  Get { _: String ⇒ get(context.config.getString("root"), context.remainder.mkString("/")) }
+
+}
+
+object DirectoryResource
+
+  extends HasLogger {
+
+  final def get(root: String, remainder: String) = {
 
     def entity(file: Path) = {
       val contenttype = ContentType(forExtension(getExtension(file.toString)).getOrElse(`application/octet-stream`))
@@ -39,7 +48,7 @@ class DirectoryResource
         contenttype.mimetype.encodable)
     }
 
-    Paths.get(context.config.getString("root")).toAbsolutePath.resolve(context.remainder.mkString("/")) match {
+    Paths.get(root).toAbsolutePath.resolve(remainder) match {
       case file if file.toString.contains("..") ⇒ throw ClientError.`401`
       case file if exists(file) && isRegularFile(file) ⇒ entity(file)
       case file if exists(file) && isDirectory(file) ⇒
@@ -47,8 +56,11 @@ class DirectoryResource
           case index if exists(index) && isRegularFile(index) ⇒ entity(index)
           case index ⇒ throw ClientError.`406`
         }
-      case _ ⇒ throw ClientError.`404`
+      case p ⇒
+        debug("404: " + p)
+        throw ClientError.`404`
     }
+
   }
 
 }

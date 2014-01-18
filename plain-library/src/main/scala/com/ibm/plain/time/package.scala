@@ -35,7 +35,7 @@ package object time
   }
 
   @volatile final var rfc1123bytearray: Array[Byte] = {
-    schedule(100, 2000) { rfc1123bytearray = rfc1123format.format(now).getBytes }
+    schedule(1000, 2000) { rfc1123bytearray = rfc1123format.format(now).getBytes }
     null
   }
 

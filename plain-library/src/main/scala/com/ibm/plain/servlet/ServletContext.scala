@@ -16,7 +16,6 @@ import scala.xml.XML
 
 import http.HttpServletWrapper
 import javax.{ servlet ⇒ js }
-import logging.HasLogger
 import plain.io.{ classPathFromClassLoader, temporaryDirectory }
 
 final class ServletContext(
@@ -27,7 +26,7 @@ final class ServletContext(
 
   with helper.HasAttributes
 
-  with HasLogger {
+  with logging.HasLogger {
 
   final def addFilter(filterName: String, filterClass: Class[_ <: js.Filter]) = unsupported
 

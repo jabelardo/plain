@@ -134,7 +134,7 @@ final class RequestIteratee private ()(implicit server: Server) {
         case Some(value) ⇒ Done(Some(TransferEncodedEntity(value, contenttype)))
         case None ⇒ `Content-Length`(headers) match {
           case Some(length) if length <= maxEntityBufferSize ⇒
-            (for (array ← takeBytes(length.toInt)) yield Some(ArrayEntity(array, contenttype)))
+            (for (array ← takeBytes(length.toInt)) yield Some(ArrayEntity(array, 0, length, contenttype)))
           case Some(length) ⇒ Done(Some(ContentEntity(contenttype, length)))
           case None ⇒ Done(None)
         }

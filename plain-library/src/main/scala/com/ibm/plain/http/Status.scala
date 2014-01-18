@@ -57,15 +57,20 @@ object Status {
 
   }
 
+  sealed abstract class ErrorStatus(r: String) extends BaseStatus(r)
+
   sealed abstract class Information(r: String) extends BaseStatus(r) with ControlThrowable
 
   sealed abstract class Success(r: String) extends BaseStatus(r) with ControlThrowable
 
-  sealed abstract class ClientError(r: String) extends BaseStatus(r) with ControlThrowable
+  sealed abstract class ClientError(r: String) extends ErrorStatus(r) with ControlThrowable
 
-  sealed abstract class Redirection(r: String) extends BaseStatus(r) with ControlThrowable
+  sealed abstract class Redirection(r: String) extends ErrorStatus(r) with ControlThrowable
 
-  sealed abstract class ServerError(r: String) extends BaseStatus(r) // here we would like to see the stack trace
+  /**
+   * Not a ControlThrowable because we would like to see the stack trace here.
+   */
+  sealed abstract class ServerError(r: String) extends BaseStatus(r)
 
   object Information {
 

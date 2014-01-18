@@ -234,7 +234,7 @@ object Io
 
   final def loop[E, A <: RenderableRoot](server: ServerChannel, readiteratee: Iteratee[Io, _], processor: Processor[A]): Unit = {
 
-    final object AcceptHandler
+    object AcceptHandler
 
       extends Handler[SocketChannel, Io] {
 
@@ -255,7 +255,7 @@ object Io
 
     }
 
-    final object ReadHandler
+    object ReadHandler
 
       extends Handler[Integer, Io] {
 
@@ -314,7 +314,7 @@ object Io
 
     }
 
-    final object ProcessHandler
+    object ProcessHandler
 
       extends Handler[Null, Io] {
 
@@ -372,7 +372,7 @@ object Io
 
     }
 
-    final object WriteHandler
+    object WriteHandler
 
       extends Handler[Integer, Io] {
 
@@ -390,7 +390,7 @@ object Io
             case Cont(_) ⇒
               io.renderable.renderBody(io).transfer match {
                 case Transfer(_, _, _) ⇒ TransferHandler.read(io)
-                case _ ⇒ write(io)
+                case _ ⇒ write(io, false)
               }
             case Error(e: IOException) ⇒
               io.release
@@ -401,7 +401,7 @@ object Io
               unhandled(e)
           }
         } else {
-          write(io)
+          write(io, false)
         }
       } catch { case _: Throwable ⇒ io.release }
 
@@ -409,7 +409,7 @@ object Io
 
     }
 
-    final object TransferHandler
+    object TransferHandler
 
       extends Handler[Integer, Io] {
 
@@ -455,7 +455,7 @@ object Io
         io.transfer = null
       }
 
-      private[this] final object TransferWriteHandler
+      private[this] object TransferWriteHandler
 
         extends Handler[Integer, Io] {
 
@@ -466,7 +466,7 @@ object Io
 
       }
 
-      private[this] final object ClosingTransferWriteHandler
+      private[this] object ClosingTransferWriteHandler
 
         extends Handler[Integer, Io] {
 
@@ -500,8 +500,8 @@ object Io
       processor.doProcess(io, ProcessHandler)
     }
 
-    @inline def write(io: Io): Unit = {
-      io.writebuffer.flip
+    @inline def write(io: Io, flip: Boolean = true): Unit = {
+      if (flip) io.writebuffer.flip
       io.channel.write(io.writebuffer, io, WriteHandler)
     }
 

@@ -5,6 +5,9 @@ package plain
 package http
 
 import java.nio.ByteBuffer
+import javax.servlet.http.Cookie
+
+import scala.language.implicitConversions
 
 import aio.{ Transfer, Encoder, Io, RenderableRoot, releaseByteBuffer, tooTinyToCareSize }
 import aio.Iteratee.{ Cont, Done }
@@ -25,7 +28,9 @@ final case class Response private (
 
   var status: Status,
 
-  val headers: Headers,
+  var headers: Headers,
+
+  var cookie: Cookie,
 
   var entity: Option[Entity])
 
@@ -39,11 +44,17 @@ final case class Response private (
 
   @inline final def ++(status: Status): Type = { this.status = status; this }
 
+  @inline final def ++(headers: Headers): Type = { this.headers = headers; this }
+
+  @inline final def ++(cookie: Cookie): Type = { this.cookie = cookie; this }
+
   @inline final def renderHeader(io: Io): Io = {
     implicit val _ = io
     bytebuffer = io.writebuffer
     renderVersion
     renderMandatory
+    renderHeaders
+    renderCookie
     renderKeepAlive(io)
     renderContent
     renderEntity(io)
@@ -91,6 +102,14 @@ final case class Response private (
 
   @inline private[this] final def renderMandatory = {
     r(`Server: `) + r(`Date: `) + r(rfc1123bytearray) + `\r\n` + ^
+  }
+
+  @inline private[this] final def renderHeaders = if (null != headers) headers.foreach {
+    case (name, value) ⇒ r(name.getBytes(`UTF-8`)) + `:` + ` ` + r(value.getBytes(`UTF-8`)) + `\r\n` + ^
+  }
+
+  @inline private[this] final def renderCookie = if (null != cookie) {
+    r(`Set-Cookie: `) + rc(cookie) + `\r\n` + ^
   }
 
   @inline private[this] final def renderKeepAlive(io: Io) = {
@@ -148,6 +167,8 @@ final case class Response private (
     }
   }
 
+  private[this] final def rc(cookie: Cookie) = r((cookie.getName + "=" + cookie.getValue + (cookie.getPath match { case null ⇒ "" case path ⇒ "; Path=" + path }) + (if (cookie.isHttpOnly) "; HttpOnly" else "")).getBytes(`UTF-8`))
+
   private[this] final var encoding: Option[Encoder] = None
 
   private[this] final var markbuffer: ByteBuffer = null
@@ -161,9 +182,15 @@ final case class Response private (
  */
 object Response {
 
-  final def apply(request: Request, status: Status) = new Response(request, Version.`HTTP/1.1`, status, null, None)
+  final def apply(request: Request, status: Status) = new Response(request, Version.`HTTP/1.1`, status, null, null, None)
+
+  final def apply(request: Request, status: Status, headers: Headers) = new Response(request, Version.`HTTP/1.1`, status, headers, null, None)
+
+  private final val `Connection: keep-alive` = "Connection: keep-alive\r\n".getBytes
 
   private final val `Connection: close` = "Connection: close\r\n".getBytes
+
+  private final val `Set-Cookie: ` = "Set-Cookie: ".getBytes
 
   private final val `Content-Type: ` = "Content-Type: ".getBytes
 
@@ -176,6 +203,10 @@ object Response {
   private final val `Server: ` = ("Server: plain " + config.version + "\r\n").getBytes
 
   private final val `Date: ` = "Date: ".getBytes
+
+  private final val `Path=` = "Path=".getBytes
+
+  private final val `HttpOnly` = "HttpOnly".getBytes
 
 }
 

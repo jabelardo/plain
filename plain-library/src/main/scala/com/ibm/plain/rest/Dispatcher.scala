@@ -31,7 +31,7 @@ abstract class Dispatcher
     import context.request
     resources.get(request.path.mkString("/")) match {
       case Some(resource) ⇒ resource.handle(context)
-      case _ ⇒ templates match {
+      case p ⇒ templates match {
         case Some(root) ⇒ root.get(request.path) match {
           case Some((clazz, config, variables, remainder)) ⇒
             clazz.newInstance match {
@@ -45,7 +45,9 @@ abstract class Dispatcher
                 resource.handle(context ++ config ++ variables ++ remainder)
               case _ ⇒ throw ServerError.`500`
             }
-          case _ ⇒ throw ClientError.`404`
+          case _ ⇒
+            if (log.isDebugEnabled) debug("404 : " + request.path.mkString("/"))
+            throw ClientError.`404`
         }
         case _ ⇒ throw ServerError.`501`
       }

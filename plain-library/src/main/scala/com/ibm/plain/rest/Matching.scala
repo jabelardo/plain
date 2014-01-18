@@ -106,7 +106,7 @@ final class Matching {
   final val encodeString: Encoder = ((s: String) ⇒
     Some(if (tooTinyToCareSize < s.length) ByteBufferEntity(s, ContentType(`text/plain`, `UTF-8`)) else ArrayEntity(s.getBytes(`UTF-8`), ContentType(`text/plain`, `UTF-8`)))).asInstanceOf[Encoder]
 
-  final val encodeHtml: Encoder = ((html: Html) ⇒ Some(ByteBufferEntity(html.xml.buildString(true), `text/html`))).asInstanceOf[Encoder]
+  final val encodeHtml: Encoder = ((html: Html) ⇒ Some(ByteBufferEntity("<!DOCTYPE html>" + html.xml.buildString(true), `text/html`))).asInstanceOf[Encoder]
 
   final val encodeForm: Encoder = ((form: Form) ⇒ {
     @inline def c(s: String) = defaultcodec.encode(convertCharset(s, `UTF-8`, defaultCharacterSet))

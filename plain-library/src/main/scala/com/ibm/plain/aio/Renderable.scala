@@ -6,9 +6,6 @@ package aio
 
 import java.nio.ByteBuffer
 
-import concurrent.OnlyOnce
-import text.`US-ASCII`
-
 /**
  *
  */
