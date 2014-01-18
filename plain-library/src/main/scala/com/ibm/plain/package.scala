@@ -75,6 +75,8 @@ package object plain
 
   final def ignoreOrElse[A](b: ⇒ A, failvalue: A) = try b catch { case e: Throwable ⇒ failvalue }
 
+  final def dumpStack = try { throw new Exception(getCallingFunctionName(6)) } catch { case e: Throwable ⇒ e.printStackTrace }
+
   private[this] final val unsupported_ = new UnsupportedOperationException
 
   private[this] final val notyetimplemented_ = new UnsupportedOperationException("Not yet implemented.")

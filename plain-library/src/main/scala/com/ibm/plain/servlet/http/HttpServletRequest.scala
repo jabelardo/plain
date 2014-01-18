@@ -78,7 +78,10 @@ final class HttpServletRequest(
   final val getSession: js.http.HttpSession = if (null == httpsession) {
     httpsession = (`Cookie`(request.headers) match {
       case Some(value) ⇒
-        HttpSession.retrieve(value.split("=")(1))
+        HttpSession.retrieve(value.split("=")(1)) match {
+          case null ⇒ HttpSession.create(crypt.Uuid.newUuid, servletcontext)
+          case session ⇒ session
+        }
       case _ ⇒
         HttpSession.create(crypt.Uuid.newUuid, servletcontext)
     })

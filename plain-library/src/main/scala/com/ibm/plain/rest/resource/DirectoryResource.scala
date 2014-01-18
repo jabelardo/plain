@@ -27,9 +27,9 @@ class DirectoryResource
 
   import DirectoryResource._
 
-  Get { get(context.config.getString("root"), context.remainder.mkString("/")) }
+  Get { get(List(context.config.getString("root")), context.remainder.mkString("/")) }
 
-  Get { _: String ⇒ get(context.config.getString("root"), context.remainder.mkString("/")) }
+  Get { _: String ⇒ get(List(context.config.getString("root")), context.remainder.mkString("/")) }
 
 }
 
@@ -37,30 +37,40 @@ object DirectoryResource
 
   extends HasLogger {
 
-  final def get(root: String, remainder: String) = {
+  final def get(list: Seq[String], remainder: String) = {
+    val roots = list.iterator
+    var found = false
+    var result: AsynchronousByteChannelEntity = null
 
-    def entity(file: Path) = {
-      val contenttype = ContentType(forExtension(getExtension(file.toString)).getOrElse(`application/octet-stream`))
+    def entity(path: Path) = {
+      found = true
+      val contenttype = ContentType(forExtension(getExtension(path.toString)).getOrElse(`application/octet-stream`))
       AsynchronousByteChannelEntity(
-        forReading(file),
+        forReading(path),
         contenttype,
-        size(file),
+        size(path),
         contenttype.mimetype.encodable)
     }
 
-    Paths.get(root).toAbsolutePath.resolve(remainder) match {
-      case file if file.toString.contains("..") ⇒ throw ClientError.`401`
-      case file if exists(file) && isRegularFile(file) ⇒ entity(file)
-      case file if exists(file) && isDirectory(file) ⇒
-        file.resolve("index.html") match {
-          case index if exists(index) && isRegularFile(index) ⇒ entity(index)
-          case index ⇒ throw ClientError.`406`
-        }
-      case p ⇒
-        debug("404: " + p)
-        throw ClientError.`404`
+    while (!found && roots.hasNext) {
+      result = Paths.get(roots.next).toAbsolutePath.resolve(remainder) match {
+        case path if path.toString.contains("..") ⇒ throw ClientError.`401`
+        case path if exists(path) && isRegularFile(path) ⇒ entity(path)
+        case path if exists(path) && isDirectory(path) ⇒
+          path.resolve("index.html") match {
+            case index if exists(index) && isRegularFile(index) ⇒ entity(index)
+            case index ⇒ throw ClientError.`406`
+          }
+        case _ ⇒ null
+      }
     }
 
+    if (!found) {
+      debug("404: " + remainder)
+      throw ClientError.`404`
+    } else {
+      result
+    }
   }
 
 }

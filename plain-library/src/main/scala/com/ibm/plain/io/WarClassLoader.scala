@@ -20,6 +20,9 @@ import org.apache.commons.io.{ FileUtils, FilenameUtils }
 import net.lingala.zip4j.model.FileHeader
 import net.lingala.zip4j.core.ZipFile
 
+import concurrent.spawn
+import logging.HasLogger
+
 final class WarClassLoader private (
 
   name: String,
@@ -56,7 +59,9 @@ final class WarClassLoader private (
 
 }
 
-object WarClassLoader {
+object WarClassLoader
+
+  extends HasLogger {
 
   final def setAsContextClassLoader(source: String): URLClassLoader = setAsContextClassLoader(source, temporaryDirectory.getAbsolutePath)
 
@@ -75,23 +80,35 @@ object WarClassLoader {
     val sourcepath = Paths.get(source).toFile.getAbsoluteFile
     val sourcewithoutextension = FilenameUtils.removeExtension(sourcepath.getName)
     val target = Paths.get(directory).resolve(sourcewithoutextension).toFile.getAbsoluteFile
-    if (sourcepath.lastModified > target.lastModified) {
-      FileUtils.deleteDirectory(target)
-      val zipfile = new ZipFile(sourcepath)
-      zipfile.extractAll(target.getAbsolutePath)
-    }
-    val urls = new ListBuffer[File]
+    val libdir = target.toPath.resolve("WEB-INF/lib").toFile
     val classesdir = target.toPath.resolve("WEB-INF/classes").toFile
     val metainfdir = target.toPath.resolve("META-INF").toFile
     val webinfdir = target.toPath.resolve("WEB-INF").toFile
+    if (sourcepath.lastModified > target.lastModified) {
+      FileUtils.deleteDirectory(target)
+      new ZipFile(sourcepath).extractAll(target.getAbsolutePath)
+      FileUtils.listFiles(libdir, Array("jar"), true).foreach { libfile ⇒
+        new ZipFile(libfile.getAbsolutePath).extractAll(classesdir.getAbsolutePath)
+        libfile.delete
+      }
+      FileUtils.listFiles(classesdir, Array("jar"), true).foreach { libfile ⇒
+        new ZipFile(libfile.getAbsolutePath).extractAll(classesdir.getAbsolutePath)
+        libfile.delete
+      }
+    }
+    val urls = new ListBuffer[File]
     urls += classesdir
     urls += metainfdir
     urls += webinfdir
-    urls ++= target.toPath.resolve("WEB-INF/lib").toFile.listFiles
     urls += target
     val loader = new WarClassLoader(sourcewithoutextension, urls.map(_.toPath.toUri.normalize.toURL).toArray, parent, target)
-    FileUtils.listFiles(classesdir, Array("class"), true).map(c ⇒
-      classesdir.toPath.relativize(c.toPath).toString.replace("/", ".").replace(".class", "")).foreach(c ⇒ ignore(loader.loadClass(c, true)))
+    spawn {
+      var count = 0
+      FileUtils.listFiles(classesdir, Array("class"), true).map(c ⇒
+        classesdir.toPath.relativize(c.toPath).toString.replace("/", ".").replace(".class", "")).foreach(c ⇒ ignore({ loader.loadClass(c, true); count += 1 }))
+      debug("Classes resolved for '" + loader.toString + "' : " + count)
+      System.gc
+    }
     loader
   }
 

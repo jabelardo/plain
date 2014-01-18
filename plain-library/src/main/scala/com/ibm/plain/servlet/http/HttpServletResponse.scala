@@ -61,7 +61,11 @@ final class HttpServletResponse(
 
   final def sendError(x$1: Int, x$2: String) = unsupported
 
-  final def sendRedirect(redirect: String) = { println("sendRedirect " + redirect) }
+  final def sendRedirect(redirect: String) = {
+    dumpStack; println("sendRedirect " + redirect)
+    response ++ Status.Redirection.`302`
+    setHeader("Location", "http://google.de")
+  }
 
   final def setDateHeader(name: String, value: Long) = setHeader(name, value.toString)
 

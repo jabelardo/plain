@@ -43,21 +43,10 @@ final class ServletResource
         try {
           servletcontext.getServlet(request.path(2)) match {
             case null ⇒
-              try {
-                response ++ rest.resource.DirectoryResource.get(unpackWebApplicationsDirectory.getAbsolutePath, context.remainder.mkString("/"))
-                completed(context)
-              } catch {
-                case e: Throwable ⇒
-                  val path = context.remainder.drop(1).mkString("/")
-                  val in = servletcontext.getClassLoader.getResourceAsStream(path)
-                  if (null == in) throw ClientError.`404`
-                  println(in.asInstanceOf[io.ByteArrayInputStream].toByteArray.length)
-                  val t = scala.io.Source.fromInputStream(in, scala.io.Codec.UTF8.name).mkString
-                  val entity = plain.http.Entity.ArrayEntity(t.getBytes(text.`UTF-8`), plain.http.ContentType(plain.http.MimeType.`text/css`))
-                  println(entity)
-                  response ++ entity
-                  completed(context)
-              }
+              val r = unpackWebApplicationsDirectory.getAbsolutePath + "/" + context.remainder.take(1).head
+              val roots = List(r + "/WEB-INF/classes", r)
+              response ++ rest.resource.DirectoryResource.get(roots, context.remainder.drop(1).mkString("/"))
+              completed(context)
             case servlet ⇒
               val httpservletrequest = new HttpServletRequest(request, context, servletcontext)
               val httpservletresponse = new HttpServletResponse(response, servletcontext, printwriter)

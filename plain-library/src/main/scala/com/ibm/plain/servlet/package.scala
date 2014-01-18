@@ -20,7 +20,7 @@ package object servlet
 
   final val webApplicationsDirectory = {
     val path = Paths.get(getString("plain.servlet.web-applications-directory"))
-    if (path.isAbsolute) path.toFile else Paths.get(config.home).resolve(path).toFile
+    if (path.isAbsolute) path.toFile else Paths.get(config.home).resolve(path).toFile.getAbsoluteFile
   }
 
   final val unpackWebApplicationsDirectory = unpackWebApplicationsToTempDirectory match {
@@ -28,7 +28,7 @@ package object servlet
       temporaryDirectory
     case false ⇒
       val path = Paths.get(getString("plain.servlet.unpack-web-applications-directory"))
-      if (path.isAbsolute) path.toFile else Paths.get(config.home).resolve(path).toFile
+      if (path.isAbsolute) path.toFile else Paths.get(config.home).resolve(path).toFile.getAbsoluteFile
   }
 
 }
