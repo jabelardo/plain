@@ -34,7 +34,7 @@ abstract sealed class ServletContainer
             val classloader = WarClassLoader(app.toString, Thread.currentThread.getContextClassLoader, unpackWebApplicationsDirectory.getAbsolutePath)
             Thread.currentThread.setContextClassLoader(classloader)
             val servletcontext = new ServletContext(classloader)
-            (servletcontext.getApplicationName, servletcontext)
+            (servletcontext.getContextPath, servletcontext)
           } finally Thread.currentThread.setContextClassLoader(context)
         }.toMap
       } finally Thread.currentThread.setContextClassLoader(context)
@@ -49,7 +49,7 @@ abstract sealed class ServletContainer
     this
   }
 
-  final def getServletContext(path: String): Option[ServletContext] = if (isStarted) webapplications.get(path) else None
+  final def getServletContext(path: String): ServletContext = webapplications.getOrElse(path, null)
 
   private[this] final var webapplications: Map[String, ServletContext] = null
 

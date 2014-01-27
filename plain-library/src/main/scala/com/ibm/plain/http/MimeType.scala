@@ -204,7 +204,7 @@ object MimeType {
 
   case object `multipart/form-data` extends `multipart/*`
 
-  case object `text/css` extends `text/*`("css")
+  case object `text/css` extends `text/*`("css", "scss")
   case object `text/comma-separated-values` extends `text/*`("csv")
   case object `text/csv` extends `text/*`("csv")
   case object `text/html` extends `text/*`("html", "html")

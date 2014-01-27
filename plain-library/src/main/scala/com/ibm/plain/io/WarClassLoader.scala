@@ -101,15 +101,7 @@ object WarClassLoader
     urls += metainfdir
     urls += webinfdir
     urls += target
-    val loader = new WarClassLoader(sourcewithoutextension, urls.map(_.toPath.toUri.normalize.toURL).toArray, parent, target)
-    spawn {
-      var count = 0
-      FileUtils.listFiles(classesdir, Array("class"), true).map(c ⇒
-        classesdir.toPath.relativize(c.toPath).toString.replace("/", ".").replace(".class", "")).foreach(c ⇒ ignore({ loader.loadClass(c, true); count += 1 }))
-      debug("Classes resolved for '" + loader.toString + "' : " + count)
-      System.gc
-    }
-    loader
+    new WarClassLoader(sourcewithoutextension, urls.map(_.toPath.toUri.normalize.toURL).toArray, parent, target)
   }
 
 }

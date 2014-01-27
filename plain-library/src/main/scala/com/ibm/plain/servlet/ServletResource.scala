@@ -28,16 +28,16 @@ final class ServletResource
   final def process(io: Io) = unsupported
 
   final def handle(context: Context) = try {
+    import context.io.printwriter
     val request = context.request
     val response = Response(request, Success.`200`, new HashMap[String, String])
     context ++ response
-    import context.io.printwriter
-    if (null == printwriter)
-      context.io ++ PrintWriter(ByteArrayOutputStream(io.defaultBufferSize))
-    else
-      printwriter.outputstream.reset
+    if (null == printwriter) context.io ++ PrintWriter(ByteArrayOutputStream(io.defaultBufferSize)) else printwriter.outputstream.reset
     ServletContainer.getServletContext(request.path(1)) match {
-      case Some(servletcontext) ⇒
+      case null ⇒
+        debug("404: " + request.path.mkString("/"))
+        throw ClientError.`404`
+      case servletcontext ⇒
         val classloader = Thread.currentThread.getContextClassLoader
         Thread.currentThread.setContextClassLoader(servletcontext.getClassLoader)
         try {
@@ -52,7 +52,7 @@ final class ServletResource
               val httpservletresponse = new HttpServletResponse(response, servletcontext, printwriter)
               servlet.service(httpservletrequest, httpservletresponse)
               response ++ httpservletresponse.getEntity
-              httpservletrequest.getSession match {
+              if (enableAutomaticCookieHandling) httpservletrequest.getSession match {
                 case session if null != session && session.isNew ⇒
                   val cookie = new Cookie("JSESSIONID", session.getId)
                   cookie.setPath(request.path.take(2).mkString("/", "/", "/"))
@@ -64,9 +64,6 @@ final class ServletResource
           }
         } finally
           Thread.currentThread.setContextClassLoader(classloader)
-      case None ⇒
-        debug("404: " + request.path.mkString("/"))
-        throw ClientError.`404`
     }
   } catch {
     case e: Throwable ⇒ failed(e, context)

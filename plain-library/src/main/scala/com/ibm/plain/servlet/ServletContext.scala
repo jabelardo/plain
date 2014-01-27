@@ -24,6 +24,8 @@ final class ServletContext(
 
   extends js.ServletContext
 
+  with aspect.MethodTracer
+
   with helper.HasAttributes
 
   with logging.HasLogger {
@@ -60,13 +62,11 @@ final class ServletContext(
     classloader.close
   }
 
-  final def getApplicationName = applicationname
-
   final def getClassLoader: ClassLoader = classloader
 
   final def getContext(uripath: String): ServletContext = unsupported
 
-  final def getContextPath: String = unsupported
+  final def getContextPath: String = classloader.toString
 
   final def getDefaultSessionTrackingModes: JSet[js.SessionTrackingMode] = unsupported
 
@@ -111,7 +111,7 @@ final class ServletContext(
 
   final def getServlet(name: String): js.Servlet = servlets.getOrElse(name, null)
 
-  final def getServletContextName: String = (webxml \ "display-name").text match { case "" ⇒ applicationname case s ⇒ s }
+  final def getServletContextName: String = (webxml \ "display-name").text match { case "" ⇒ getContextPath case s ⇒ s }
 
   final def getServletNames: Enumeration[String] = servlets.keysIterator
 
@@ -137,9 +137,9 @@ final class ServletContext(
 
   private[servlet] final def getJspServlet = jspservlet
 
-  private[servlet] final val webxml = XML.load(classloader.getResourceAsStream("WEB-INF/web.xml"))
-
   protected[this] final val attributes = new TrieMap[String, Object]
+
+  private[this] final val webxml = XML.load(classloader.getResourceAsStream("WEB-INF/web.xml"))
 
   private[this] final val version = List(3, 1)
 
@@ -162,8 +162,6 @@ final class ServletContext(
       case l ⇒ l.map(_.toInt)
     }
   } catch { case _: Throwable ⇒ version }
-
-  private[this] final val applicationname = classloader.toString
 
   private[this] final val contextparameters = {
     val m = new TrieMap[String, String]

@@ -21,7 +21,7 @@ class HttpServletWrapper(
 
   with ServletConfig {
 
-  override def toString = httpservlet.toString
+  override def toString = if (null != httpservlet) httpservlet.toString else "HttpServletWrapper(null)"
 
   override final def destroy = httpservlet.destroy
 

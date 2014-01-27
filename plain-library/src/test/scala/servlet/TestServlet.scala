@@ -11,9 +11,8 @@ import org.junit.Test
   @Test def test1 = {
     assert(true)
   }
-  
+
   @Test def test2 = {
-    println("test2")
     assert(true)
   }
 

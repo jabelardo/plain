@@ -23,6 +23,8 @@ final class HttpSession private (
 
   extends js.http.HttpSession
 
+  with aspect.MethodTracer
+
   with helper.HasAttributes
 
   with logging.HasLogger {

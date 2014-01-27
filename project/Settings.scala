@@ -9,6 +9,8 @@ import Keys._
 import com.typesafe.sbt._
 import com.typesafe.sbteclipse.plugin.EclipsePlugin.EclipseKeys
 import com.typesafe.sbteclipse.plugin.EclipsePlugin.EclipseCreateSrc
+import com.typesafe.sbt.SbtAspectj.{ Aspectj, aspectjSettings, compiledClasses }
+import com.typesafe.sbt.SbtAspectj.AspectjKeys.{ binaries, inputs, lintProperties }
 import ls.Plugin.{ lsSettings, LsKeys }
 import LsKeys.{ lsync, docsUrl ⇒ lsDocsUrl, tags ⇒ lsTags }
 
@@ -22,7 +24,14 @@ object Settings {
     scalaVersion := "2.10.3",
     logLevel := Level.Warn,
     exportJars := true,
-    mainClass in Compile := Some("com.ibm.plain.bootstrap.Main"))
+    mainClass in Compile := Some("com.ibm.plain.bootstrap.Main")) ++
+    aspectjSettings ++ Seq(
+      inputs in Aspectj <+= compiledClasses,
+      lintProperties in Aspectj += "invalidAbsoluteTypeName = ignore",
+      lintProperties in Aspectj += "adviceDidNotMatch = ignore",
+      products in Compile <<= products in Aspectj,
+      products in Runtime <<= products in Compile
+    )
 
   lazy val baseSettings = Defaults.defaultSettings ++ buildSettings
 

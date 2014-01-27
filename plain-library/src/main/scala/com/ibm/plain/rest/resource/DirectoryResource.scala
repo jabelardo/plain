@@ -54,7 +54,8 @@ object DirectoryResource
 
     while (!found && roots.hasNext) {
       result = Paths.get(roots.next).toAbsolutePath.resolve(remainder) match {
-        case path if path.toString.contains("..") ⇒ throw ClientError.`401`
+        case path if path.toString.contains("XXXXX..") ⇒
+          println(path); throw ClientError.`401`
         case path if exists(path) && isRegularFile(path) ⇒ entity(path)
         case path if exists(path) && isDirectory(path) ⇒
           path.resolve("index.html") match {
@@ -66,7 +67,7 @@ object DirectoryResource
     }
 
     if (!found) {
-      debug("404: " + remainder)
+      debug("404: " + remainder + "; " + roots.mkString(", "))
       throw ClientError.`404`
     } else {
       result
