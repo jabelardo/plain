@@ -59,11 +59,13 @@ final class HttpSession private (
 
   protected[this] final val attributes = new TrieMap[String, Object]
 
+  @inline private def fromCache: HttpSession = { isnew = false; this }
+
   private[this] final var maxinactiveinterval = -1
 
   private[this] final var lastaccesstime: Long = -1L
 
-  private final var isnew = true
+  private[this] final var isnew = true
 
 }
 
@@ -76,9 +78,7 @@ private object HttpSession {
   }
 
   final def retrieve(id: String): HttpSession = httpsessions.get(id) match {
-    case Some(session) ⇒
-      session.isnew = false
-      session
+    case Some(session) ⇒ session.fromCache
     case _ ⇒ null
   }
 
