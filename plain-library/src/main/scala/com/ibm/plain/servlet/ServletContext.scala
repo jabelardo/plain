@@ -137,8 +137,6 @@ final class ServletContext(
 
   private[servlet] final def getJspServlet = jspservlet
 
-  protected[this] final val attributes = new TrieMap[String, Object]
-
   private[this] final val webxml = XML.load(classloader.getResourceAsStream("WEB-INF/web.xml"))
 
   private[this] final val version = List(3, 1)

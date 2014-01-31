@@ -10,13 +10,11 @@ import java.util.Enumeration
 
 import scala.collection.JavaConversions.asJavaEnumeration
 import scala.collection.mutable.Map
+import scala.collection.concurrent.TrieMap
 
 trait HasAttributes {
 
-  final def getAttribute(name: String): Object = attributes.get(name) match {
-    case Some(attr) ⇒ attr
-    case _ ⇒ null
-  }
+  final def getAttribute(name: String): Object = attributes.getOrElse(name, null)
 
   final def getAttributeNames: Enumeration[String] = attributes.keysIterator
 
@@ -24,6 +22,6 @@ trait HasAttributes {
 
   final def setAttribute(name: String, value: Object): Unit = attributes.put(name, value)
 
-  protected val attributes: Map[String, Object]
+  private[this] val attributes: Map[String, Object] = new TrieMap[String, Object]
 
 }

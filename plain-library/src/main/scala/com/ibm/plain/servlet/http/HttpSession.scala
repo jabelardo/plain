@@ -57,8 +57,6 @@ final class HttpSession private (
 
   final def setLastAccessedTime(value: Long) = lastaccesstime = value
 
-  protected[this] final val attributes = new TrieMap[String, Object]
-
   @inline private def fromCache: HttpSession = { isnew = false; this }
 
   private[this] final var maxinactiveinterval = -1

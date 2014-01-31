@@ -269,8 +269,6 @@ final class HttpServletRequest(
 
   final def log(msg: String) = info(msg)
 
-  protected[this] final val attributes = new HashMap[String, Object]
-
   private[this] final lazy val localaddress = context.io.channel.asInstanceOf[aio.SocketChannelWithTimeout].channel.getLocalAddress.asInstanceOf[java.net.InetSocketAddress]
 
   private[this] final lazy val remoteaddress = context.io.channel.asInstanceOf[aio.SocketChannelWithTimeout].channel.getRemoteAddress.asInstanceOf[java.net.InetSocketAddress]
