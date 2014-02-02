@@ -105,13 +105,13 @@ final case class Templates(
       path match {
         case Nil ⇒ resource(Nil)
         case p @ (head :: tail) ⇒ templates.branch match {
-          case Some(Right(branch)) ⇒ branch.get("*") match {
-            case Some(remainder) ⇒
-              val r = remainder.resource.get
-              Some((r._1, r._2, variables, p))
-            case _ ⇒ branch.get(head) match {
-              case Some(subbranch) ⇒ get0(tail, variables, subbranch)
-              case _ ⇒ resource(p)
+          case Some(Right(branch)) ⇒ branch.get(head) match {
+            case Some(subbranch) ⇒ get0(tail, variables, subbranch)
+            case _ ⇒ branch.get("*") match {
+              case None ⇒ resource(p)
+              case Some(t) ⇒
+                val r = t.resource.get
+                Some((r._1, r._2, variables, p))
             }
           }
           case Some(Left((name, branch))) ⇒ get0(tail, variables += ((name, head)), branch)
@@ -128,7 +128,7 @@ final case class Templates(
     def inner(node: Templates, indent: String): String = {
       (node.resource match {
         case Some((resourceclass, config, remainderallowed)) ⇒
-          val c = config.toMap; indent + (if (node eq this) "/" else "") + (if (remainderallowed) " y" else "") + " => " + resourceclass.getName + (if (!c.isEmpty) " => " + c else "")
+          val c = config.toMap; indent + (if (node eq this) "/" else "") + " => " + resourceclass.getName + (if (!c.isEmpty) " => " + c else "")
         case _ ⇒ ""
       }) + (node.branch match {
         case Some(Left((name, node))) ⇒ inner(node, indent + "/{" + name + "}")

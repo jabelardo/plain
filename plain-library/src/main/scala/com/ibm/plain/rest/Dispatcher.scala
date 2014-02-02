@@ -34,6 +34,7 @@ abstract class Dispatcher
       case Some((resourceclass, config, variables, remainder)) ⇒
         staticresources.getOrElse(resourceclass, resourceclass.newInstance) match {
           case resource: BaseResource ⇒
+            println(resource.getClass)
             request.entity match {
               case None ⇒
               case Some(ContentEntity(_, length)) if request.method.entityallowed ⇒

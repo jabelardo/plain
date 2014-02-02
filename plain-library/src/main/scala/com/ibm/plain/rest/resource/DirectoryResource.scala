@@ -33,7 +33,7 @@ class DirectoryResource
 
   Get { get(context.config.getStringList("roots"), context.remainder.mkString("/")) }
 
-  Get { _: String ⇒ get(context.config.getStringList("root"), context.remainder.mkString("/")) }
+  Get { _: String ⇒ get(context.config.getStringList("roots"), context.remainder.mkString("/")) }
 
 }
 

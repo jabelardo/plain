@@ -91,10 +91,6 @@ object WarClassLoader
         new ZipFile(libfile.getAbsolutePath).extractAll(classesdir.getAbsolutePath)
         libfile.delete
       }
-      FileUtils.listFiles(classesdir, Array("jar"), true).foreach { libfile ⇒
-        new ZipFile(libfile.getAbsolutePath).extractAll(classesdir.getAbsolutePath)
-        libfile.delete
-      }
     }
     val urls = new ListBuffer[File]
     urls += classesdir
