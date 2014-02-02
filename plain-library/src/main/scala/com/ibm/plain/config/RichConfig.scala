@@ -4,6 +4,8 @@ package plain
 
 package config
 
+import java.util.concurrent.TimeUnit.MILLISECONDS
+
 import scala.collection.JavaConversions.{ asScalaBuffer, asScalaSet }
 import scala.concurrent.duration.Duration
 
@@ -22,15 +24,13 @@ class RichConfig(config: Config) {
 
   def getInt(key: String, default: Int) = if (config.hasPath(key)) config.getInt(key) else default
 
-  def getMilliseconds(key: String, default: Long): Long = if (config.hasPath(key)) config.getMilliseconds(key) else default
+  def getMilliseconds(key: String, default: Long): Long = getDuration(key, Duration.Zero)
 
   def getBoolean(key: String, default: Boolean) = if (config.hasPath(key)) config.getBoolean(key) else default
 
   def getBytes(key: String, default: Long): Long = if (config.hasPath(key)) config.getBytes(key) else default
 
-  def getDuration(key: String) = Duration(config.getMilliseconds(key), java.util.concurrent.TimeUnit.MILLISECONDS)
-
-  def getDuration(key: String, default: Duration) = if (config.hasPath(key)) Duration(config.getMilliseconds(key), java.util.concurrent.TimeUnit.MILLISECONDS) else default
+  def getDuration(key: String, default: Duration): Long = if (config.hasPath(key)) config.getDuration(key, MILLISECONDS) else default.toMillis
 
   def getInstanceFromClassName[A](key: String): A = Class.forName(config.getString(key)).newInstance.asInstanceOf[A]
 

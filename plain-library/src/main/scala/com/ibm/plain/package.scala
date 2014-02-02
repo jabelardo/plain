@@ -22,12 +22,11 @@ package object plain
       .register(io.Io)
       .register(aio.Aio)
       .register(monitor.extension.jmx.JmxMonitor)
+      .register(servlet.ServletContainer)
 
     jdbc.startupConnectionFactories.foreach(path ⇒ appl.register(jdbc.ConnectionFactory(path)))
 
     http.startupServers.foreach(path ⇒ appl.register(http.Server(path, Some(appl), None, None)))
-
-    appl.register(servlet.ServletContainer)
 
     appl
   }

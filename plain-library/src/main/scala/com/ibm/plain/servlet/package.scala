@@ -31,6 +31,6 @@ package object servlet
       if (path.isAbsolute) path.toFile else Paths.get(config.home).resolve(path).toFile.getAbsoluteFile
   }
 
-  final val enableAutomaticCookieHandling = getBoolean("plain.servlet.enable-automatic-cookie-handling", true)
+  final val maximumCachedSessions = getInt("plain.servlet.maximum-cached-sessions", 100000)
 
 }

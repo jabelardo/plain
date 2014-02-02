@@ -23,6 +23,17 @@ trait Uniform {
 }
 
 /**
+ * Indicates that there is only one instance of this resource which is also thread-safe.
+ */
+trait StaticResource
+
+  extends Uniform {
+
+  def init(config: Config) = ()
+
+}
+
+/**
  * A basic implementation for Uniform for correct exception handling.
  */
 trait BaseResource
@@ -30,9 +41,4 @@ trait BaseResource
   extends HttpProcessor
 
   with Uniform
-
-/**
- * Mark any Uniform with this trait when it is safe to use an instance from different threads and repeatedly (that is it has no inner state).
- */
-trait ReentrantUniform
 

@@ -50,6 +50,7 @@ package object config
    * check requirements
    */
   require(null != home, "Neither plain.config.home config setting nor PLAIN_HOME environment variable are set.")
+
   require(requiredVersion == config.version, String.format("plain.config.version in *.conf files (%s) does not match internal version (%s).", config.version, requiredVersion))
 
 }

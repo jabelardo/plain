@@ -4,14 +4,15 @@ package plain
 
 package servlet
 
-package helper
-
 import java.util.Enumeration
 
-import scala.collection.JavaConversions.asJavaEnumeration
 import scala.collection.mutable.Map
+import scala.collection.JavaConversions.asJavaEnumeration
 import scala.collection.concurrent.TrieMap
 
+/**
+ *
+ */
 trait HasAttributes {
 
   final def getAttribute(name: String): Object = attributes.getOrElse(name, null)

@@ -34,7 +34,8 @@ final class LeastRecentlyUsedCache[@specialized A] private (
   private[this] final val store = new ConcurrentLinkedHashMap.Builder[Any, A]
     .initialCapacity(initialcapacity)
     .maximumWeightedCapacity(maxcapacity)
-    .listener(new EvictionListener[Any, A] { def onEviction(k: Any, v: A) = { onremove(v) } })
+    .concurrencyLevel(concurrent.cores)
+    .listener(new EvictionListener[Any, A] { final def onEviction(k: Any, v: A) = { onremove(v) } })
     .build
 
   private[this] final var onremove: A ⇒ Unit = (a: A) ⇒ ()
@@ -49,7 +50,5 @@ object LeastRecentlyUsedCache {
   final def apply[A](maxcapacity: Int, initialcapacity: Int) = new LeastRecentlyUsedCache[A](maxcapacity, initialcapacity)
 
   final def apply[A](maxcapacity: Int): LeastRecentlyUsedCache[A] = apply(maxcapacity, 0)
-
-  final def apply[A]: LeastRecentlyUsedCache[A] = apply(1024, 0)
 
 }

@@ -13,7 +13,6 @@ import javax.{ servlet ⇒ js }
 
 import scala.collection.mutable.{ Map ⇒ MutableMap }
 
-import com.ibm.plain.servlet.ServletOutputStream
 import plain.http.{ ContentType, Entity }
 import plain.http.{ MimeType, Response, Status }
 import plain.http.Entity.ArrayEntity
@@ -23,13 +22,11 @@ final class HttpServletResponse(
 
   private[this] final val response: Response,
 
-  private[this] final val servletcontext: ServletContext,
+  private[this] final val servletcontext: js.ServletContext,
 
   private[this] final val printwriter: PrintWriter)
 
-  extends js.http.HttpServletResponse
-
-  with logging.HasLogger {
+  extends js.http.HttpServletResponse {
 
   final def addCookie(cookie: js.http.Cookie) = response ++ cookie
 

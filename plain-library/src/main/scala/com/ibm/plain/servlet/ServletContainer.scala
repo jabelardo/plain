@@ -11,33 +11,40 @@ import com.ibm.plain.io.{ FileExtensionFilter, WarClassLoader }
 
 import logging.HasLogger
 
+/**
+ *
+ */
 abstract sealed class ServletContainer
 
   extends BaseComponent[ServletContainer]("ServletContainer")
 
   with HasLogger {
 
+  final def getServletContext(path: String): ServletContext = webapplications.getOrElse(path, null)
+
+  final def getServletContexts: Set[ServletContext] = if (null != webapplications) webapplications.values.toSet else Set.empty
+
   override def isStopped = null == webapplications || 0 == webapplications.size
 
   override def start = {
     webapplications = {
-      val context = Thread.currentThread.getContextClassLoader
+      val parentloader = Thread.currentThread.getContextClassLoader
       try {
-        val apps: Array[Path] = if (webApplicationsDirectory.exists) {
+        val applicationpaths: Array[Path] = if (webApplicationsDirectory.exists) {
           webApplicationsDirectory.listFiles(FileExtensionFilter("war")) match {
             case null ⇒ Array.empty
             case files ⇒ files.map { f ⇒ webApplicationsDirectory.toPath.resolve(f.getName).toAbsolutePath }
           }
         } else Array.empty
-        apps.map { app ⇒
+        applicationpaths.map(_.toString).map { applicationpath ⇒
           try {
-            val classloader = WarClassLoader(app.toString, Thread.currentThread.getContextClassLoader, unpackWebApplicationsDirectory.getAbsolutePath)
+            val classloader = WarClassLoader(applicationpath, Thread.currentThread.getContextClassLoader, unpackWebApplicationsDirectory.getAbsolutePath)
             Thread.currentThread.setContextClassLoader(classloader)
-            val servletcontext = new ServletContext(classloader)
+            val servletcontext = new ServletContext(classloader, applicationpath)
             (servletcontext.getContextPath, servletcontext)
-          } finally Thread.currentThread.setContextClassLoader(context)
+          } finally Thread.currentThread.setContextClassLoader(parentloader)
         }.toMap
-      } finally Thread.currentThread.setContextClassLoader(context)
+      } finally Thread.currentThread.setContextClassLoader(parentloader)
     }
     debug(name + " has started. (" + webapplications.keySet.mkString(", ") + ")")
     this
@@ -49,10 +56,13 @@ abstract sealed class ServletContainer
     this
   }
 
-  final def getServletContext(path: String): ServletContext = webapplications.getOrElse(path, null)
-
   private[this] final var webapplications: Map[String, ServletContext] = null
 
 }
 
-object ServletContainer extends ServletContainer
+/**
+ *
+ */
+object ServletContainer
+
+  extends ServletContainer

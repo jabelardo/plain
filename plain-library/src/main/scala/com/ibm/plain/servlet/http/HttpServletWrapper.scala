@@ -21,7 +21,7 @@ class HttpServletWrapper(
 
   with ServletConfig {
 
-  override def toString = if (null != httpservlet) httpservlet.toString else "HttpServletWrapper(null)"
+  final def getHttpServlet = httpservlet
 
   override final def destroy = httpservlet.destroy
 
@@ -32,6 +32,8 @@ class HttpServletWrapper(
   override final def init(servletconfig: js.ServletConfig) = httpservlet.init(servletconfig)
 
   override final def service(request: js.ServletRequest, response: js.ServletResponse) = httpservlet.service(request, response)
+
+  override def toString = if (null != httpservlet) httpservlet.toString else "HttpServletWrapper(null)"
 
   protected[this] final val httpservlet: js.http.HttpServlet = Injector(Class.forName(
     (servletxml \ "servlet-class").text, true, servletcontext.getClassLoader).newInstance.asInstanceOf[js.http.HttpServlet])

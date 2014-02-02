@@ -6,28 +6,23 @@ package servlet
 
 package http
 
-import javax.servlet.http.Cookie
-
 import scala.collection.JavaConversions.enumerationAsScalaIterator
-import scala.collection.concurrent.TrieMap
-
-import com.ibm.plain.servlet.ServletContext
 
 import javax.{ servlet ⇒ js }
+
+import collection.mutable.LeastRecentlyUsedCache
 
 final class HttpSession private (
 
   private[this] final val id: String,
 
-  private[this] final val servletcontext: ServletContext)
+  private[this] final val servletcontext: js.ServletContext)
 
   extends js.http.HttpSession
 
-  with aspect.MethodTracer
+  //   with aspect.MethodTracer // :REMOVE:
 
-  with helper.HasAttributes
-
-  with logging.HasLogger {
+  with HasAttributes {
 
   final val getCreationTime: Long = time.now
 
@@ -69,7 +64,7 @@ final class HttpSession private (
 
 private object HttpSession {
 
-  final def create(id: String, servletcontext: ServletContext): HttpSession = {
+  final def create(id: String, servletcontext: js.ServletContext): HttpSession = {
     val session = new HttpSession(id, servletcontext)
     httpsessions.put(id, session)
     session
@@ -82,6 +77,6 @@ private object HttpSession {
 
   final def destroy(id: String): Unit = httpsessions.remove(id)
 
-  private[this] final val httpsessions = new TrieMap[String, HttpSession]
+  private[this] final val httpsessions = LeastRecentlyUsedCache[HttpSession](maximumCachedSessions)
 
 }

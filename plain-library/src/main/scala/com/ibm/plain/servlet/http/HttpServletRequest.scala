@@ -28,13 +28,11 @@ final class HttpServletRequest(
 
   private[this] final val context: Context,
 
-  private[this] final val servletcontext: ServletContext)
+  private[this] final val servletcontext: js.ServletContext)
 
   extends js.http.HttpServletRequest
 
-  with logging.HasLogger
-
-  with helper.HasAttributes {
+  with HasAttributes {
 
   final def authenticate(x$1: js.http.HttpServletResponse): Boolean = unsupported
 
@@ -42,7 +40,7 @@ final class HttpServletRequest(
 
   final def getAuthType: String = unsupported
 
-  final val getContextPath: String = request.path.take(2).mkString("/", "/", "")
+  final def getContextPath: String = request.path.take(2).mkString("/", "/", "")
 
   final def getCookies: Array[js.http.Cookie] = unsupported
 
@@ -50,32 +48,34 @@ final class HttpServletRequest(
 
   final def getIntHeader(name: String): Int = ignoreOrElse(getHeader(name).toInt, -1)
 
-  final val getMethod: String = request.method.toString
+  final def getMethod: String = request.method.toString
 
   final def getPart(x$1: String): js.http.Part = unsupported
 
   final def getParts: java.util.Collection[js.http.Part] = unsupported
 
-  final val getPathInfo: String = request.path.drop(2).mkString("/")
+  final def getPathInfo: String = request.path.drop(2).mkString("/")
 
   final def getPathTranslated: String = unsupported
 
-  final val getQueryString: String = request.query.getOrElse(null)
+  final def getQueryString: String = request.query.getOrElse(null)
 
   final def getRemoteUser: String = unsupported
 
-  final val getRequestURI: String = request.path.mkString("/", "/", "")
+  final def getRequestURI: String = request.path.mkString("/", "/", "")
 
   final def getRequestURL: StringBuffer = unsupported
 
-  final val getRequestedSessionId: String = `Cookie`(request.headers) match {
+  final def getRequestedSessionId: String = `Cookie`(request.headers) match {
     case Some(value) ⇒ value.split("=")(1)
     case _ ⇒ null
   }
 
-  final val getServletPath: String = "/" + request.path.drop(2).mkString("/")
+  final def getServletPath: String = "/" + request.path.drop(2).mkString("/")
 
-  final val getSession: js.http.HttpSession = if (null == httpsession) {
+  final def getSession: js.http.HttpSession = if (hasSession) {
+    httpsession
+  } else {
     httpsession = (`Cookie`(request.headers) match {
       case Some(value) ⇒
         HttpSession.retrieve(value.split("=")(1)) match {
@@ -85,8 +85,6 @@ final class HttpServletRequest(
       case _ ⇒
         HttpSession.create(crypt.Uuid.newUuid, servletcontext)
     })
-    httpsession
-  } else {
     httpsession
   }
 
@@ -172,9 +170,9 @@ final class HttpServletRequest(
 
   final def getLocales: Enumeration[Locale] = List(getLocale).toIterator
 
-  final val isSecure: Boolean = false
+  final def isSecure: Boolean = false
 
-  final def getRequestDispatcher(path: String): js.RequestDispatcher = new RequestDispatcher(path, servletcontext)
+  final def getRequestDispatcher(path: String): js.RequestDispatcher = new RequestDispatcher(path, servletcontext.asInstanceOf[ServletContext])
 
   final def getRealPath(path: String): String = servletcontext.getRealPath(path)
 
@@ -184,7 +182,7 @@ final class HttpServletRequest(
 
   final def getLocalPort: Int = localaddress.getPort
 
-  final val getServletContext: ServletContext = servletcontext
+  final def getServletContext: js.ServletContext = servletcontext
 
   final def startAsync: js.AsyncContext = unsupported
 
@@ -267,7 +265,7 @@ final class HttpServletRequest(
 
   final def setLocale(arg0: java.util.Locale) = unsupported
 
-  final def log(msg: String) = info(msg)
+  final def hasSession = null != httpsession
 
   private[this] final lazy val localaddress = context.io.channel.asInstanceOf[aio.SocketChannelWithTimeout].channel.getLocalAddress.asInstanceOf[java.net.InetSocketAddress]
 

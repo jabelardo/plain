@@ -9,7 +9,11 @@ package resource
 import java.nio.file.{ Path, Paths }
 import java.nio.file.Files.{ exists, isDirectory, isRegularFile, size }
 
+import scala.collection.JavaConversions.asScalaBuffer
+
 import org.apache.commons.io.FilenameUtils.getExtension
+
+import com.typesafe.config.Config
 
 import aio.FileByteChannel.forReading
 import logging.HasLogger
@@ -27,9 +31,9 @@ class DirectoryResource
 
   import DirectoryResource._
 
-  Get { get(List(context.config.getString("root")), context.remainder.mkString("/")) }
+  Get { get(context.config.getStringList("roots"), context.remainder.mkString("/")) }
 
-  Get { _: String ⇒ get(List(context.config.getString("root")), context.remainder.mkString("/")) }
+  Get { _: String ⇒ get(context.config.getStringList("root"), context.remainder.mkString("/")) }
 
 }
 

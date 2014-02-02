@@ -37,8 +37,8 @@ abstract class Processor
           case servererror: ServerError ⇒ if (log.isDebugEnabled) debug(stackTraceToString(status))
           case _ ⇒
         }
-        val request = try io.message.asInstanceOf[Request] catch { case _: Throwable ⇒ null }
-        val response = try io.message.asInstanceOf[Response] catch { case _: Throwable ⇒ null }
+        val request = ignoreOrElse(io.message.asInstanceOf[Request], null)
+        val response = ignoreOrElse(io.message.asInstanceOf[Response], null)
         Done[Io, Response](if (null != response) {
           status match {
             case e: ErrorStatus ⇒ response ++ errorPage(e.code, e.reason, response.request.path.mkString("/"))
@@ -68,7 +68,7 @@ abstract class Processor
                                                                                                                        
      Link : $uri                                                                                                               
                                                                                                                       
-    """.getBytes(text.`UTF-8`), ContentType(MimeType.`text/plain`))
+""".getBytes(text.`UTF-8`), ContentType(MimeType.`text/plain`))
 
 }
 

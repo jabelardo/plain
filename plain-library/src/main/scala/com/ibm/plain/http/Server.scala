@@ -164,7 +164,7 @@ object Server
 
     final val loadBalancingRedirectionPath = getString("load-balancing.redirection-path")
 
-    final val pauseBetweenAccepts = cfg.getDuration("feature.pause-between-accepts")
+    final val pauseBetweenAccepts = cfg.getDuration("feature.pause-between-accepts", Duration.Zero)
 
     final val treat10VersionAs11 = getBoolean("feature.allow-version-1-0-but-treat-it-like-1-1")
 

@@ -22,7 +22,7 @@ object Dependencies {
   val reflections = "org.reflections" % "reflections" % "0.9.8"
   val junit = "junit" % "junit" % "4.11"
   val junitItf = "com.novocode" % "junit-interface" % "0.10"
-  val config = "com.typesafe" % "config" % "1.0.2"
+  val config = "com.typesafe" % "config" % "1.2.0"
   val logback = "ch.qos.logback" % "logback-classic" % "1.0.13"
   val janino = "org.codehaus.janino" % "janino" % "2.6.1"
   val akkaActor = "com.typesafe.akka" %% "akka-actor" % "2.2.3"

@@ -8,6 +8,8 @@ import java.io.{ File, InputStream }
 import java.net.{ URL, URLClassLoader }
 import java.util.{ Enumeration, EventListener, Map ⇒ JMap, Set ⇒ JSet }
 
+import org.apache.commons.io.FilenameUtils
+
 import scala.collection.JavaConversions.{ asJavaEnumeration, enumerationAsScalaIterator, mapAsJavaMap, seqAsJavaList }
 import scala.collection.concurrent.TrieMap
 import scala.language.postfixOps
@@ -20,13 +22,15 @@ import plain.io.{ classPathFromClassLoader, temporaryDirectory }
 
 final class ServletContext(
 
-  private[this] final val classloader: URLClassLoader)
+  private[this] final val classloader: URLClassLoader,
+
+  private[this] final val root: String)
 
   extends js.ServletContext
 
-  with aspect.MethodTracer
+  //   with aspect.MethodTracer // :REMOVE:
 
-  with helper.HasAttributes
+  with HasAttributes
 
   with logging.HasLogger {
 
@@ -66,7 +70,7 @@ final class ServletContext(
 
   final def getContext(uripath: String): ServletContext = unsupported
 
-  final def getContextPath: String = classloader.toString
+  final val getContextPath: String = FilenameUtils.getBaseName(root)
 
   final def getDefaultSessionTrackingModes: JSet[js.SessionTrackingMode] = unsupported
 
@@ -98,6 +102,8 @@ final class ServletContext(
     case null ⇒ null
     case url ⇒ ignoreOrElse(new File(url.toURI).getAbsolutePath, null)
   }
+
+  final def getRealPath = FilenameUtils.removeExtension(root)
 
   final def getRequestDispatcher(path: String): js.RequestDispatcher = unsupported
 
@@ -135,6 +141,8 @@ final class ServletContext(
 
   final def setSessionTrackingModes(modes: JSet[js.SessionTrackingMode]) = unsupported
 
+  final def getServletMappings = servletmappings
+
   private[servlet] final def getJspServlet = jspservlet
 
   private[this] final val webxml = XML.load(classloader.getResourceAsStream("WEB-INF/web.xml"))
@@ -169,7 +177,7 @@ final class ServletContext(
 
   private[this] final val servlets = (webxml \ "servlet").map { servletxml ⇒
     val loadonstartup = if ((servletxml \ "load-on-startup").isEmpty) 0 else (servletxml \ "load-on-startup").text match { case "" ⇒ 0 case i ⇒ i.toInt }
-    if (0 < loadonstartup) warning("load-on-startup " + loadonstartup + " ignored during bootstrapping.")
+    if (0 < loadonstartup) warning("load-on-startup = " + loadonstartup + " ignored during bootstrapping.")
     val servlet = new HttpServletWrapper(this, servletxml)
     servlet.init(servlet)
     (servlet.getServletName, servlet)
