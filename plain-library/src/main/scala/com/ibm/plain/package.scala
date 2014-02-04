@@ -76,6 +76,8 @@ package object plain
 
   final def dumpStack = try { throw new Exception(getCallingFunctionName(6)) } catch { case e: Throwable ⇒ e.printStackTrace }
 
+  final def dump[A](b: ⇒ A) = try b catch { case e: Throwable ⇒ println(e); throw e }
+
   private[this] final val unsupported_ = new UnsupportedOperationException
 
   private[this] final val notyetimplemented_ = new UnsupportedOperationException("Not yet implemented.")

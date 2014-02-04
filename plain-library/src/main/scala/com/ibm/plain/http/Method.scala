@@ -15,6 +15,8 @@ sealed abstract class Method(
 
   final val idempotent: Boolean,
 
+  final val readonly: Boolean,
+
   final val entityallowed: Boolean)
 
 /**
@@ -37,13 +39,13 @@ object Method {
   /**
    * For GET we convert a query into an entity if this is feasible. Same for HEAD.
    */
-  case object GET extends Method(true, true, true)
-  case object HEAD extends Method(true, true, true)
-  case object POST extends Method(false, false, true)
-  case object PUT extends Method(false, true, true)
-  case object DELETE extends Method(false, true, false)
-  case object OPTIONS extends Method(true, true, true)
-  case object CONNECT extends Method(true, true, true)
-  case object TRACE extends Method(true, true, false)
+  case object GET extends Method(true, true, true, true)
+  case object HEAD extends Method(true, true, true, true)
+  case object POST extends Method(false, false, false, true)
+  case object PUT extends Method(false, true, false, true)
+  case object DELETE extends Method(false, true, false, false)
+  case object OPTIONS extends Method(true, true, true, true)
+  case object CONNECT extends Method(true, true, true, true)
+  case object TRACE extends Method(true, true, false, false)
 
 }

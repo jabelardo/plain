@@ -30,11 +30,10 @@ abstract class Dispatcher
 
   final def handle(context: Context) = {
     import context.request
-    templates.get(request.path) match {
+    templates.get(request.method, request.path) match {
       case Some((resourceclass, config, variables, remainder)) ⇒
         staticresources.getOrElse(resourceclass, resourceclass.newInstance) match {
           case resource: BaseResource ⇒
-            println(resource.getClass)
             request.entity match {
               case None ⇒
               case Some(ContentEntity(_, length)) if request.method.entityallowed ⇒
@@ -55,26 +54,26 @@ abstract class Dispatcher
         Template(c.getString("uri"), Class.forName(c.getString("resource-class-name")), c.getConfig("resource-config", ConfigFactory.empty))
       } ++ servletcontexts.flatMap { servletcontext ⇒
         servletcontext.getServlets.map { _.asInstanceOf[HttpServletWrapper].getHttpServlet }.map { servlet ⇒
-          Template(servletcontext.getContextPath + "/" + servlet.getServletName, servlet.getClass, ConfigFactory.empty)
+          Template(servletcontext.getContextPath.drop(1) + servletcontext.getServletMappings.getOrElse(servlet.getServletName, ""), servlet.getClass, ConfigFactory.empty)
         }
       } ++ servletcontexts.filter(_.getServlets.size == 1).map { servletcontext ⇒
         val servletclass = servletcontext.getServlets.toSeq.head.asInstanceOf[HttpServletWrapper].getHttpServlet.getClass
-        Template(servletcontext.getContextPath, servletclass, ConfigFactory.empty)
+        Template(servletcontext.getContextPath.drop(1), servletclass, ConfigFactory.empty)
       } ++ servletcontexts.map { servletcontext ⇒
-        val root = FilenameUtils.removeExtension(servletcontext.getRealPath)
+        val root = servletcontext.getRealPath.replace(".war", "")
         val rootclasses = root + "/WEB-INF/classes"
         val config = s"""{ roots = [ $rootclasses, $root ] }"""
         Template(
-          servletcontext.getContextPath + "/*",
+          servletcontext.getContextPath.drop(1) + "/*",
           classOf[resource.DirectoryResource],
           ConfigFactory.parseString(config))
       } ++ servletcontexts.filter(_.getServlets.size == 1).map { servletcontext ⇒
-        val servletname = servletcontext.getServlets.toSeq.head.getServletConfig.getServletName
-        val root = FilenameUtils.removeExtension(servletcontext.getRealPath)
+        val servletpath = servletcontext.getServletMappings.getOrElse(servletcontext.getServlets.toSeq.head.getServletConfig.getServletName, "")
+        val root = servletcontext.getRealPath.replace(".war", "")
         val rootclasses = root + "/WEB-INF/classes"
         val config = s"""{ roots = [ $rootclasses, $root ] }"""
         Template(
-          servletcontext.getContextPath + "/" + servletname + "/*",
+          servletcontext.getContextPath.drop(1) + servletpath + "/*",
           classOf[resource.DirectoryResource],
           ConfigFactory.parseString(config))
       }).get

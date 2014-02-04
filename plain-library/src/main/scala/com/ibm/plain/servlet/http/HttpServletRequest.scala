@@ -28,9 +28,13 @@ final class HttpServletRequest(
 
   private[this] final val context: Context,
 
-  private[this] final val servletcontext: js.ServletContext)
+  private[this] final val servletcontext: ServletContext,
+
+  private[this] final val servlet: js.http.HttpServlet)
 
   extends js.http.HttpServletRequest
+
+  with aspect.MethodTracer // :REMOVE:
 
   with HasAttributes {
 
@@ -40,7 +44,7 @@ final class HttpServletRequest(
 
   final def getAuthType: String = unsupported
 
-  final def getContextPath: String = request.path.take(2).mkString("/", "/", "")
+  final def getContextPath: String = servletcontext.getContextPath
 
   final def getCookies: Array[js.http.Cookie] = unsupported
 
@@ -54,9 +58,9 @@ final class HttpServletRequest(
 
   final def getParts: java.util.Collection[js.http.Part] = unsupported
 
-  final def getPathInfo: String = request.path.drop(2).mkString("/")
+  final lazy val getPathInfo: String = ("/" + request.path.mkString("/")).replace(getContextPath, "").replace(getServletPath, "")
 
-  final def getPathTranslated: String = unsupported
+  final def getPathTranslated: String = null
 
   final def getQueryString: String = request.query.getOrElse(null)
 
@@ -71,7 +75,7 @@ final class HttpServletRequest(
     case _ ⇒ null
   }
 
-  final def getServletPath: String = "/" + request.path.drop(2).mkString("/")
+  final def getServletPath: String = servletcontext.getServletMappings.getOrElse(servlet.getServletName, "")
 
   final def getSession: js.http.HttpSession = if (hasSession) {
     httpsession
@@ -105,7 +109,7 @@ final class HttpServletRequest(
     }
   }
 
-  final def getUserPrincipal: java.security.Principal = unsupported
+  final def getUserPrincipal: java.security.Principal = null
 
   final def isRequestedSessionIdFromCookie: Boolean = unsupported
 
@@ -150,7 +154,7 @@ final class HttpServletRequest(
       case (name, values) ⇒ (name, values.toArray)
     }, new java.util.HashMap[String, Array[String]])
 
-  final def getProtocol: String = unsupported
+  final def getProtocol: String = request.version.toString
 
   final def getScheme: String = unsupported
 

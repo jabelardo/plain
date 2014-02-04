@@ -5,6 +5,7 @@ package plain
 package rest
 
 import java.nio.{ ByteBuffer, CharBuffer }
+import java.util.Arrays.copyOfRange
 import scala.collection.mutable.{ HashMap, MultiMap, Set ⇒ MutableSet }
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.{ Type, typeOf }
@@ -50,9 +51,9 @@ final class Matching {
 
   final val decodeUnit: Decoder[Unit] = (entity: Option[Entity]) ⇒ ()
 
-  final val decodeArray: Decoder[Array[Byte]] = (entity: Option[Entity]) ⇒ entity match { case Some(a: ArrayEntity) ⇒ a.array case _ ⇒ throw ClientError.`415` }
+  final val decodeArray: Decoder[Array[Byte]] = (entity: Option[Entity]) ⇒ entity match { case Some(a: ArrayEntity) ⇒ copyOfRange(a.array, a.offset, a.length.toInt) case _ ⇒ throw ClientError.`415` }
 
-  final val decodeString: Decoder[String] = (entity: Option[Entity]) ⇒ entity match { case Some(a: ArrayEntity) ⇒ new String(a.array, a.contenttype.charsetOrDefault) case _ ⇒ throw ClientError.`415` }
+  final val decodeString: Decoder[String] = (entity: Option[Entity]) ⇒ entity match { case Some(a: ArrayEntity) ⇒ new String(a.array, a.offset, a.length.toInt, a.contenttype.charsetOrDefault) case _ ⇒ throw ClientError.`415` }
 
   final val decodeHtml: Decoder[Html] = (entity: Option[Entity]) ⇒ new Html(XML.loadString(decodeString(entity)))
 

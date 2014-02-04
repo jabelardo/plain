@@ -28,7 +28,7 @@ final class ServletContext(
 
   extends js.ServletContext
 
-  //   with aspect.MethodTracer // :REMOVE:
+  with aspect.MethodTracer // :REMOVE:
 
   with HasAttributes
 
@@ -70,7 +70,7 @@ final class ServletContext(
 
   final def getContext(uripath: String): ServletContext = unsupported
 
-  final val getContextPath: String = FilenameUtils.getBaseName(root)
+  final val getContextPath: String = "/" + FilenameUtils.getBaseName(root)
 
   final def getDefaultSessionTrackingModes: JSet[js.SessionTrackingMode] = unsupported
 
@@ -92,7 +92,10 @@ final class ServletContext(
 
   final def getMajorVersion: Int = version(0)
 
-  final def getMimeType(file: String): String = unsupported
+  final def getMimeType(file: String): String = {
+    println("getMimeType " + file)
+    "text/css"
+  }
 
   final def getMinorVersion: Int = version(1)
 
@@ -117,7 +120,7 @@ final class ServletContext(
 
   final def getServlet(name: String): js.Servlet = servlets.getOrElse(name, null)
 
-  final def getServletContextName: String = (webxml \ "display-name").text match { case "" ⇒ getContextPath case s ⇒ s }
+  final def getServletContextName: String = (webxml \ "display-name").text match { case "" ⇒ getContextPath.replace("/", "") case s ⇒ s }
 
   final def getServletNames: Enumeration[String] = servlets.keysIterator
 
@@ -183,13 +186,20 @@ final class ServletContext(
     (servlet.getServletName, servlet)
   }.toMap
 
-  private[this] final val servletmappings: Map[Regex, js.Servlet] = {
+  private[this] final val servletmappings: Map[String, String] = {
+    def handleRegex(regex: Regex) = regex.toString match {
+      case "/*" ⇒ ""
+      case r if r.startsWith("^") && r.endsWith("$") ⇒ r.drop(1).dropRight(1)
+      case r if r.startsWith("^") ⇒ r.drop(1)
+      case r if r.endsWith("$") ⇒ r.dropRight(1)
+      case r ⇒ warning("Unhandled regex in servlet-mappings : " + r); r
+    }
     def mappings(attribute: Boolean) = (webxml \ "servlet-mapping").map { mapping ⇒
       def pattern(p: String) = (mapping \ ((if (attribute) "@" else "") + p)) match { case u if u.isEmpty ⇒ None case u ⇒ Some(u.text.r) }
       (pattern("url-pattern").getOrElse(pattern("url-regexp").getOrElse(null)), servlets.getOrElse((mapping \ ((if (attribute) "@" else "") + "servlet-name")).text, null))
     }.filter(_._1 != null).toMap
 
-    mappings(false) ++ mappings(true)
+    (mappings(false) ++ mappings(true)).map { case (regex, servlet) ⇒ (servlet.getServletConfig.getServletName, handleRegex(regex)) }
   }
 
   private[this] final val jspservlet: js.Servlet = {

@@ -22,9 +22,11 @@ final class HttpServletResponse(
 
   private[this] final val response: Response,
 
-  private[this] final val servletcontext: js.ServletContext,
+  private[this] final val servletcontext: ServletContext,
 
-  private[this] final val printwriter: PrintWriter)
+  private[this] final val printwriter: PrintWriter,
+
+  private[this] final val servlet: js.http.HttpServlet)
 
   extends js.http.HttpServletResponse {
 
@@ -58,10 +60,9 @@ final class HttpServletResponse(
 
   final def sendError(x$1: Int, x$2: String) = unsupported
 
-  final def sendRedirect(redirect: String) = {
-    dumpStack; println("sendRedirect " + redirect)
-    response ++ Status.Redirection.`302`
-    setHeader("Location", "http://google.de")
+  final def sendRedirect(redirect: String) = redirect match {
+    case r if r == servletcontext.getContextPath ⇒ throw Status.Redirection.`302`
+    case r ⇒ servletcontext.log(r, Status.Redirection.`307`); throw Status.Redirection.`307`
   }
 
   final def setDateHeader(name: String, value: Long) = setHeader(name, value.toString)

@@ -23,6 +23,6 @@ trait HasAttributes {
 
   final def setAttribute(name: String, value: Object): Unit = attributes.put(name, value)
 
-  private[this] val attributes: Map[String, Object] = new TrieMap[String, Object]
+  private[this] final val attributes: Map[String, Object] = new TrieMap[String, Object]
 
 }

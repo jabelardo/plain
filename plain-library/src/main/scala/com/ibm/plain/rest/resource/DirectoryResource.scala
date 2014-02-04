@@ -20,7 +20,7 @@ import logging.HasLogger
 import http.ContentType
 import http.Entity.AsynchronousByteChannelEntity
 import http.MimeType.{ `application/octet-stream`, forExtension }
-import http.Status.ClientError
+import http.Status.{ ClientError, ServerError }
 
 /**
  *
@@ -31,9 +31,9 @@ class DirectoryResource
 
   import DirectoryResource._
 
-  Get { get(context.config.getStringList("roots"), context.remainder.mkString("/")) }
+  Get { get(context.config.getStringList("roots"), context.remainder.mkString("/"), context) }
 
-  Get { _: String ⇒ get(context.config.getStringList("roots"), context.remainder.mkString("/")) }
+  Get { _: String ⇒ get(context.config.getStringList("roots"), context.remainder.mkString("/"), context) }
 
 }
 
@@ -41,7 +41,7 @@ object DirectoryResource
 
   extends HasLogger {
 
-  final def get(list: Seq[String], remainder: String) = {
+  final def get(list: Seq[String], remainder: String, context: Context) = {
     val roots = list.iterator
     var found = false
     var result: AsynchronousByteChannelEntity = null

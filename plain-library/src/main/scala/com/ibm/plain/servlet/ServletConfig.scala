@@ -13,7 +13,9 @@ import scala.collection.JavaConversions._
 
 trait ServletConfig
 
-  extends js.ServletConfig {
+  extends js.ServletConfig
+
+  with aspect.MethodTracer { // :REMOVE:
 
   abstract override final def getServletName = name
 

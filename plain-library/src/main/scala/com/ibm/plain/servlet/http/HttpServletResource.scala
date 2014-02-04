@@ -42,8 +42,8 @@ final class HttpServletResource(
     val parentloader = Thread.currentThread.getContextClassLoader
     Thread.currentThread.setContextClassLoader(classloader)
     try {
-      val httpservletrequest = new HttpServletRequest(request, context, servletcontext)
-      val httpservletresponse = new HttpServletResponse(response, servletcontext, printwriter)
+      val httpservletrequest = new HttpServletRequest(request, context, servletcontext, servlet)
+      val httpservletresponse = new HttpServletResponse(response, servletcontext, printwriter, servlet)
       servlet.service(httpservletrequest, httpservletresponse)
       response ++ httpservletresponse.getEntity
       if (httpservletrequest.hasSession) httpservletrequest.getSession match {
@@ -60,7 +60,7 @@ final class HttpServletResource(
     case e: Throwable ⇒ failed(e, context)
   }
 
-  private[this] final val servletcontext = servlet.getServletContext
+  private[this] final val servletcontext = servlet.getServletContext.asInstanceOf[ServletContext]
 
   private[this] final val classloader = servletcontext.getClassLoader
 

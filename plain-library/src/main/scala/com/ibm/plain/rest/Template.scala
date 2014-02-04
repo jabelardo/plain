@@ -12,6 +12,7 @@ import scala.collection.mutable.OpenHashMap
 import com.typesafe.config.Config
 
 import config._
+import http.Method
 import http.Request.{ Path, Variables }
 
 /**
@@ -38,7 +39,7 @@ final case class Segment(name: String, next: Element) extends Element
 
 final case class Variable(name: String, next: Element) extends Element
 
-final case class ResourceClass(resource: Class[_ <: BaseResource], config: Config, remainderallowed: Boolean) extends Element
+final case class ResourceClass(resource: Class[_ <: BaseResource], config: Config) extends Element
 
 /**
  *
@@ -49,14 +50,12 @@ final class Template private (
 
   val config: Config,
 
-  val path: String,
-
-  val remainderallowed: Boolean) {
+  val path: String) {
 
   final val root = if (0 == path.length) {
-    ResourceClass(resource, config, remainderallowed)
+    ResourceClass(resource, config)
   } else {
-    path.split("/").reverse.foldLeft[Element](ResourceClass(resource, config, remainderallowed)) {
+    path.split("/").reverse.foldLeft[Element](ResourceClass(resource, config)) {
       case (elems, e) ⇒
         if (e.startsWith("{") && e.endsWith("}"))
           Variable(e.drop(1).dropRight(1), elems)
@@ -79,17 +78,17 @@ final class Template private (
 
 object Template {
 
-  def apply(path: String, clazz: Class[_], config: Config) = new Template(clazz.asInstanceOf[Class[_ <: BaseResource]], config, path, path.endsWith("/*"))
+  def apply(path: String, clazz: Class[_], config: Config) = new Template(clazz.asInstanceOf[Class[_ <: BaseResource]], config, path)
 
 }
 
 final case class Templates(
 
-  resource: Option[(Class[_ <: BaseResource], Config, Boolean)],
+  resource: Option[(Class[_ <: BaseResource], Config)],
 
   branch: Option[Either[(String, Templates), Map[String, Templates]]]) {
 
-  final def get(path: Path): Option[(Class[_ <: BaseResource], Config, Variables, Path)] = {
+  final def get(method: Method, path: Path): Option[(Class[_ <: BaseResource], Config, Variables, Path)] = {
 
     @inline @tailrec
     def get0(
@@ -98,7 +97,7 @@ final case class Templates(
       templates: Templates): Option[(Class[_ <: BaseResource], Config, Variables, Path)] = {
 
       @inline def resource(tail: Path) = templates.resource match {
-        case Some((resourceclass, config, remainderallowed)) if Nil == tail || remainderallowed ⇒ Some((resourceclass, config, variables, tail))
+        case Some((resourceclass, config)) ⇒ Some((resourceclass, config, variables, tail))
         case _ ⇒ None
       }
 
@@ -108,10 +107,10 @@ final case class Templates(
           case Some(Right(branch)) ⇒ branch.get(head) match {
             case Some(subbranch) ⇒ get0(tail, variables, subbranch)
             case _ ⇒ branch.get("*") match {
-              case None ⇒ resource(p)
-              case Some(t) ⇒
+              case Some(t) if method.readonly && !path.mkString("/").contains("css") ⇒
                 val r = t.resource.get
                 Some((r._1, r._2, variables, p))
+              case _ ⇒ resource(p)
             }
           }
           case Some(Left((name, branch))) ⇒ get0(tail, variables += ((name, head)), branch)
@@ -127,7 +126,7 @@ final case class Templates(
 
     def inner(node: Templates, indent: String): String = {
       (node.resource match {
-        case Some((resourceclass, config, remainderallowed)) ⇒
+        case Some((resourceclass, config)) ⇒
           val c = config.toMap; indent + (if (node eq this) "/" else "") + " => " + resourceclass.getName + (if (!c.isEmpty) " => " + c else "")
         case _ ⇒ ""
       }) + (node.branch match {
@@ -176,9 +175,9 @@ object Templates {
           case Some(Templates(resource, Some(Left((oldname, branch))))) ⇒ wrongVariable
           case _ ⇒ alreadySegment
         }
-        case ResourceClass(resource, config, remainderallowed) ⇒ node match {
-          case None ⇒ Templates(Some((resource, config, remainderallowed)), None)
-          case Some(Templates(_, node)) ⇒ Templates(Some((resource, config, remainderallowed)), node)
+        case ResourceClass(resource, config) ⇒ node match {
+          case None ⇒ Templates(Some((resource, config)), None)
+          case Some(Templates(_, node)) ⇒ Templates(Some((resource, config)), node)
         }
       }
     }

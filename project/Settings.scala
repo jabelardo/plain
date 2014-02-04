@@ -28,9 +28,9 @@ object Settings {
     aspectjSettings ++ Seq(
       inputs in Aspectj <+= compiledClasses,
       lintProperties in Aspectj += "invalidAbsoluteTypeName = ignore",
-      lintProperties in Aspectj += "adviceDidNotMatch = ignore" // ,
-      // products in Compile <<= products in Aspectj,
-      // products in Runtime <<= products in Compile
+      lintProperties in Aspectj += "adviceDidNotMatch = ignore",
+      products in Compile <<= products in Aspectj,
+      products in Runtime <<= products in Compile
     ) 
 
   lazy val baseSettings = Defaults.defaultSettings ++ buildSettings

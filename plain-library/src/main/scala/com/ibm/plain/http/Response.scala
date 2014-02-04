@@ -101,7 +101,7 @@ final case class Response private (
   }
 
   @inline private[this] final def renderMandatory = {
-    r(`Server: `) + r(`Date: `) + r(rfc1123bytearray) + `\r\n` + ^
+    r(`Server: xyz`) + r(`Date: `) + r(rfc1123bytearray) + `\r\n` + ^
   }
 
   @inline private[this] final def renderHeaders = if (null != headers) headers.foreach {
@@ -200,7 +200,7 @@ object Response {
 
   private final val `Transfer-Encoding: chunked` = "Transfer-Encoding: chunked\r\n".getBytes
 
-  private final val `Server: ` = ("Server: plain " + config.version + "\r\n").getBytes
+  private final val `Server: xyz` = ("Server: plain " + config.version + "\r\n").getBytes
 
   private final val `Date: ` = "Date: ".getBytes
 
