@@ -18,7 +18,7 @@ object DictionaryColumn {
 
   type IntSet = scala.collection.mutable.HashSet[Int]
 
-  type KeyMap[A] = scala.collection.mutable.OpenHashMap[A, IntSet]
+  type KeyMap[A] = scala.collection.concurrent.TrieMap[A, IntSet]
 
 }
 
@@ -88,7 +88,7 @@ final class DictionaryColumnBuilder[@specialized A: ClassTag](
     new DictionaryColumn[A](length, keys.toMap, values, distinctvalues)
   }
 
-  private[this] final val keys = new KeyMap[A](max(capacity.toInt, 16))
+  private[this] final val keys = new KeyMap[A]
 
 }
 

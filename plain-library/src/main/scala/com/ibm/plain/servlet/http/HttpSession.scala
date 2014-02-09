@@ -20,7 +20,7 @@ final class HttpSession private (
 
   extends js.http.HttpSession
 
-  with aspect.MethodTracer // :REMOVE:
+  with aspect.MethodTracer // :TODO: remove MethodTracer
 
   with HasAttributes {
 

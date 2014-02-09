@@ -7,7 +7,7 @@ package rest
 package resource
 
 import java.nio.file.{ Path, Paths }
-import java.nio.file.Files.{ exists, isDirectory, isRegularFile, size }
+import java.nio.file.Files.{ exists ⇒ fexists, isDirectory, isRegularFile, size }
 
 import scala.collection.JavaConversions.asScalaBuffer
 
@@ -31,9 +31,9 @@ class DirectoryResource
 
   import DirectoryResource._
 
-  Get { get(context.config.getStringList("roots"), context.remainder.mkString("/"), context) }
+  Get { get(context.config.getStringList("roots"), context.remainder.mkString("/")) }
 
-  Get { _: String ⇒ get(context.config.getStringList("roots"), context.remainder.mkString("/"), context) }
+  Get { _: String ⇒ get(context.config.getStringList("roots"), context.remainder.mkString("/")) }
 
 }
 
@@ -41,7 +41,7 @@ object DirectoryResource
 
   extends HasLogger {
 
-  final def get(list: Seq[String], remainder: String, context: Context) = {
+  def get(list: Seq[String], remainder: String) = {
     val roots = list.iterator
     var found = false
     var result: AsynchronousByteChannelEntity = null
@@ -58,12 +58,11 @@ object DirectoryResource
 
     while (!found && roots.hasNext) {
       result = Paths.get(roots.next).toAbsolutePath.resolve(remainder) match {
-        case path if path.toString.contains("XXXXX..") ⇒
-          println(path); throw ClientError.`401`
-        case path if exists(path) && isRegularFile(path) ⇒ entity(path)
-        case path if exists(path) && isDirectory(path) ⇒
+        case path if path.toString.contains("..") ⇒ throw ClientError.`401`
+        case path if fexists(path) && isRegularFile(path) ⇒ entity(path)
+        case path if fexists(path) && isDirectory(path) ⇒
           path.resolve("index.html") match {
-            case index if exists(index) && isRegularFile(index) ⇒ entity(index)
+            case index if fexists(index) && isRegularFile(index) ⇒ entity(index)
             case index ⇒ throw ClientError.`406`
           }
         case _ ⇒ null
@@ -76,6 +75,26 @@ object DirectoryResource
     } else {
       result
     }
+  }
+
+  def exists(config: Config, remainder: List[String]): Boolean = {
+    val roots = config.getStringList("roots").iterator
+    var found = false
+
+    while (!found && roots.hasNext) {
+      Paths.get(roots.next).toAbsolutePath.resolve(remainder.mkString("/")) match {
+        case path if path.toString.contains("..") ⇒ false
+        case path if fexists(path) && isRegularFile(path) ⇒ found = true
+        case path if fexists(path) && isDirectory(path) ⇒
+          path.resolve("index.html") match {
+            case index if fexists(index) && isRegularFile(index) ⇒ found = true
+            case index ⇒ false
+          }
+        case _ ⇒ null
+      }
+    }
+
+    found
   }
 
 }

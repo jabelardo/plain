@@ -17,7 +17,7 @@ object BitSetColumn {
 
   type BitSet = scala.collection.mutable.BitSet
 
-  type BitSetMap[A] = scala.collection.mutable.OpenHashMap[A, BitSet]
+  type BitSetMap[A] = scala.collection.concurrent.TrieMap[A, BitSet]
 
 }
 
@@ -69,7 +69,7 @@ final class BitSetColumnBuilder[A](
 
   final def result = new BitSetColumn[A](bitsets.foldLeft(0) { case (s, (_, b)) ⇒ s + b.size }, bitsets.toMap)
 
-  private[this] final val bitsets = new BitSetMap[A](max(capacity.toInt, 16))
+  private[this] final val bitsets = new BitSetMap[A]
 
 }
 

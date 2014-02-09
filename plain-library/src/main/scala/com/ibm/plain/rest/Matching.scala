@@ -63,7 +63,6 @@ final class Matching {
       .map(fastSplit(_, '='))
       .collect { case List(k, v) ⇒ (c(k), c(v)) }
       .foldLeft(new HashMap[String, MutableSet[String]] with MultiMap[String, String]) { case (l, (k, v)) ⇒ l.addBinding(k, v) }
-    require(!form.isEmpty)
     form
   }
 
@@ -192,6 +191,6 @@ object Matching {
 
   type PriorityList = Array[(MimeType, List[Type])]
 
-  final lazy val default = new Matching
+  final val default = new Matching
 
 }

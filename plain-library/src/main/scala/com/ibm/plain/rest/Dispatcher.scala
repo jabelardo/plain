@@ -62,7 +62,7 @@ abstract class Dispatcher
       } ++ servletcontexts.map { servletcontext ⇒
         val root = servletcontext.getRealPath.replace(".war", "")
         val rootclasses = root + "/WEB-INF/classes"
-        val config = s"""{ roots = [ $rootclasses, $root ] }"""
+        val config = s"""{ roots = [ $root, $rootclasses ] }"""
         Template(
           servletcontext.getContextPath.drop(1) + "/*",
           classOf[resource.DirectoryResource],
@@ -71,7 +71,7 @@ abstract class Dispatcher
         val servletpath = servletcontext.getServletMappings.getOrElse(servletcontext.getServlets.toSeq.head.getServletConfig.getServletName, "")
         val root = servletcontext.getRealPath.replace(".war", "")
         val rootclasses = root + "/WEB-INF/classes"
-        val config = s"""{ roots = [ $rootclasses, $root ] }"""
+        val config = s"""{ roots = [ $root, $rootclasses ] }"""
         Template(
           servletcontext.getContextPath.drop(1) + servletpath + "/*",
           classOf[resource.DirectoryResource],
@@ -102,4 +102,4 @@ abstract class Dispatcher
 /**
  * The default rest-dispatcher, it will always respond with 501.
  */
-class DefaultDispatcher extends Dispatcher
+final class DefaultDispatcher extends Dispatcher

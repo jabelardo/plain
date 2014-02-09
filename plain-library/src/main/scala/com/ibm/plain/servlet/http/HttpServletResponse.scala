@@ -56,13 +56,15 @@ final class HttpServletResponse(
 
   final def getStatus: Int = response.status.code.toInt
 
-  final def sendError(x$1: Int) = unsupported
+  final def sendError(code: Int) = sendError(code, "No message.")
 
-  final def sendError(x$1: Int, x$2: String) = unsupported
+  final def sendError(code: Int, msg: String) = { println("sendError " + code + " " + msg) }
 
   final def sendRedirect(redirect: String) = redirect match {
-    case r if r == servletcontext.getContextPath ⇒ throw Status.Redirection.`302`
-    case r ⇒ servletcontext.log(r, Status.Redirection.`307`); throw Status.Redirection.`307`
+    case r if r == servletcontext.getContextPath + "/" ⇒
+      servletcontext.log(r, Status.Redirection.`302`); throw Status.Redirection.`302`
+    case r ⇒
+      servletcontext.log(r, Status.Redirection.`307`); throw Status.Redirection.`307`
   }
 
   final def setDateHeader(name: String, value: Long) = setHeader(name, value.toString)

@@ -19,6 +19,7 @@ import scala.xml.XML
 import http.HttpServletWrapper
 import javax.{ servlet ⇒ js }
 import plain.io.{ classPathFromClassLoader, temporaryDirectory }
+import plain.http.MimeType
 
 final class ServletContext(
 
@@ -92,9 +93,9 @@ final class ServletContext(
 
   final def getMajorVersion: Int = version(0)
 
-  final def getMimeType(file: String): String = {
-    println("getMimeType " + file)
-    "text/css"
+  final def getMimeType(file: String): String = MimeType.forExtension(FilenameUtils.getExtension(file)) match {
+    case Some(mimetype) ⇒ mimetype.name
+    case _ ⇒ null
   }
 
   final def getMinorVersion: Int = version(1)
@@ -106,7 +107,7 @@ final class ServletContext(
     case url ⇒ ignoreOrElse(new File(url.toURI).getAbsolutePath, null)
   }
 
-  final def getRealPath = FilenameUtils.removeExtension(root)
+  final val getRealPath = FilenameUtils.removeExtension(root)
 
   final def getRequestDispatcher(path: String): js.RequestDispatcher = unsupported
 
@@ -138,7 +139,7 @@ final class ServletContext(
 
   final def log(msg: String) = info(msg)
 
-  final def log(msg: String, e: Throwable) = log(msg + " : " + e.getMessage)
+  final def log(msg: String, e: Throwable) = log(msg + " : " + e)
 
   final def setInitParameter(name: String, value: String): Boolean = contextparameters.put(name, value) match { case None ⇒ false case _ ⇒ true }
 

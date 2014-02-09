@@ -20,7 +20,7 @@ object MostlyNullColumn {
 
   type IntSet = scala.collection.mutable.HashSet[Int]
 
-  type KeyMap[A] = scala.collection.mutable.OpenHashMap[A, IntSet]
+  type KeyMap[A] = scala.collection.concurrent.TrieMap[A, IntSet]
 
   type BitSet = scala.collection.mutable.BitSet
 
@@ -94,7 +94,7 @@ final class MostlyNullColumnBuilder[@specialized A: ClassTag](
     new MostlyNullColumn[A](length, keys.toMap, values, distinctvalues, nulls)
   }
 
-  private[this] final val keys = new KeyMap[A](max(capacity.toInt, 16))
+  private[this] final val keys = new KeyMap[A]
 
   private[this] final val nulls = new BitSet(capacity.toInt)
 

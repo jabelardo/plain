@@ -8,7 +8,7 @@ import java.util.Arrays
 import java.nio.charset.Charset
 import java.nio.ByteBuffer
 
-import scala.collection.mutable.OpenHashMap
+import scala.collection.concurrent.TrieMap
 
 /**
  *
@@ -32,7 +32,7 @@ object StringPool {
   }
 
   private[this] final val strings: scala.collection.Map[Int, String] = {
-    val map = new OpenHashMap[Int, String]
+    val map = new TrieMap[Int, String]
     val buf = ByteBuffer.wrap(new Array[Byte](arraySize))
 
     def add(s: String) = {
@@ -116,7 +116,7 @@ object StringPool {
     add("ping")
     add("text/plain,text/html;q=0.9,application/xhtml+xml;q=0.9,application/xml;q=0.8,*/*;q=0.7")
 
-    map
+    map.toMap
   }
 
   final val maxLength = strings.values.maxBy(_.length).length

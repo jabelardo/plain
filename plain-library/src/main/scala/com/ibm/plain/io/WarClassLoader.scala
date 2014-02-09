@@ -85,13 +85,13 @@ object WarClassLoader
     val metainfdir = target.toPath.resolve("META-INF").toFile
     val webinfdir = target.toPath.resolve("WEB-INF").toFile
     if (sourcepath.lastModified > target.lastModified) {
+      debug("Unpacking " + sourcepath + " to " + target)
       FileUtils.deleteDirectory(target)
       new ZipFile(sourcepath).extractAll(target.getAbsolutePath)
       FileUtils.listFiles(libdir, Array("jar"), true).foreach { libfile ⇒
         new ZipFile(libfile.getAbsolutePath).extractAll(classesdir.getAbsolutePath)
         libfile.delete
       }
-      debug("Unpacked " + sourcepath + " to " + target)
     }
     val urls = new ListBuffer[File]
     urls += classesdir

@@ -7,13 +7,14 @@ package rest
 import scala.annotation.tailrec
 import scala.language.existentials
 import scala.util.control.ControlThrowable
-import scala.collection.mutable.OpenHashMap
+import scala.collection.concurrent.TrieMap
 
 import com.typesafe.config.Config
 
 import config._
 import http.Method
 import http.Request.{ Path, Variables }
+import resource.DirectoryResource
 
 /**
  * Error handling.
@@ -93,7 +94,7 @@ final case class Templates(
     @inline @tailrec
     def get0(
       path: Path,
-      variables: OpenHashMap[String, String],
+      variables: TrieMap[String, String],
       templates: Templates): Option[(Class[_ <: BaseResource], Config, Variables, Path)] = {
 
       @inline def resource(tail: Path) = templates.resource match {
@@ -107,7 +108,7 @@ final case class Templates(
           case Some(Right(branch)) ⇒ branch.get(head) match {
             case Some(subbranch) ⇒ get0(tail, variables, subbranch)
             case _ ⇒ branch.get("*") match {
-              case Some(t) if method.readonly && !path.mkString("/").contains("css") ⇒
+              case Some(t) if method.readonly && DirectoryResource.exists(t.resource.get._2, p) ⇒
                 val r = t.resource.get
                 Some((r._1, r._2, variables, p))
               case _ ⇒ resource(p)
@@ -119,7 +120,7 @@ final case class Templates(
       }
     }
 
-    get0(path, new OpenHashMap, this)
+    get0(path, new TrieMap, this)
   }
 
   override final def toString = {
