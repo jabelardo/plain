@@ -54,7 +54,7 @@ package object aio
     case _ ⇒
   }
 
-  final def format(buffer: ByteBuffer) = "ByteBuffer(" + System.identityHashCode(buffer) + ", pos " + buffer.position + ", remain " + buffer.remaining + ", lim " + buffer.limit + ", cap " + buffer.capacity + ", " + (if (buffer.hasArray) "heap" else "direct") + ")" + "\n" + text.hexDump(buffer)
+  final def format(buffer: ByteBuffer) = "ByteBuffer(" + System.identityHashCode(buffer) + ", pos " + buffer.position + ", remain " + buffer.remaining + ", lim " + buffer.limit + ", cap " + buffer.capacity + ", " + (if (buffer.hasArray) "heap" else "direct") + ")" + "\n" + text.hexDump(buffer, 2048)
 
   final val FutureNotSupported = new UnsupportedOperationException("Future not supported.")
 

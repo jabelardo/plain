@@ -32,14 +32,33 @@ object Iteratees {
     Cont(cont(Io.empty) _)
   }
 
+  private[this] object ContinueWriteHandler
+
+    extends java.nio.channels.CompletionHandler[Integer, Io] {
+
+    @inline def completed(processed: Integer, io: Io) = io.writebuffer.clear
+
+    @inline def failed(e: Throwable, io: Io) = io.writebuffer.clear
+
+    final val response = "HTTP/1.1 100 Continue\r\n\r\n".getBytes
+
+  }
+
   final def takeBytes(n: Int): Iteratee[Io, Array[Byte]] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, Array[Byte]], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
-        if (in.length < n) {
+        if (0 == in.length) {
+          in.writebuffer.put(ContinueWriteHandler.response)
+          in.writebuffer.flip
+          in.channel.write(in.writebuffer, in, ContinueWriteHandler)
           (Cont(cont(in)), Empty)
         } else {
-          (Done.apply(in.take(n).consume), Elem(in))
+          if (in.length < n) {
+            (Cont(cont(in)), Empty)
+          } else {
+            (Done(in.take(n).consume), Elem(in))
+          }
         }
       case Failure(e) ⇒ (Error(e), input)
       case _ ⇒ (Error(EOF), input)

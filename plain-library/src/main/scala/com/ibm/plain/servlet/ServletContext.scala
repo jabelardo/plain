@@ -193,7 +193,7 @@ final class ServletContext(
       case r if r.startsWith("^") && r.endsWith("$") ⇒ r.drop(1).dropRight(1)
       case r if r.startsWith("^") ⇒ r.drop(1)
       case r if r.endsWith("$") ⇒ r.dropRight(1)
-      case r ⇒ warning("Unhandled regex in servlet-mappings : " + r); r
+      case r ⇒ error("Unhandled regex in servlet-mappings : " + r); r
     }
     def mappings(attribute: Boolean) = (webxml \ "servlet-mapping").map { mapping ⇒
       def pattern(p: String) = (mapping \ ((if (attribute) "@" else "") + p)) match { case u if u.isEmpty ⇒ None case u ⇒ Some(u.text.r) }

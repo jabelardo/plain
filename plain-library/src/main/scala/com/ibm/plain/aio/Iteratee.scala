@@ -5,6 +5,7 @@ package plain
 package aio
 
 import scala.annotation.tailrec
+import scala.util.control.ControlThrowable
 
 import Input.Eof
 
@@ -20,7 +21,7 @@ sealed trait Iteratee[E, +A] {
   final def result: A = this(Eof) match {
     case (Done(a), _) ⇒ a
     case (Error(e), _) ⇒ throw e
-    case _ ⇒ throw new IllegalStateException
+    case _ ⇒ throw illegalstate
   }
 
   def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B]
@@ -136,5 +137,7 @@ object Iteratee {
   }
 
   private final type R[E, A] = Input[E] ⇒ (Iteratee[E, A], Input[E])
+
+  private final val illegalstate = new IllegalStateException with ControlThrowable
 
 }

@@ -120,7 +120,7 @@ final case class Response private (
 
   @inline private[this] final def renderContent: Unit = {
     encoding = entity match {
-      case Some(entity) if entity.contenttype.mimetype.encodable ⇒ request.transferEncoding
+      case Some(entity) if entity.contenttype.mimetype.encodable && entity.length > tooTinyToCareSize ⇒ request.transferEncoding
       case _ ⇒ None
     }
     entity match {

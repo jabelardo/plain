@@ -277,11 +277,6 @@ final class HttpServletRequest(
 
     final val remoteaddress = context.io.channel.asInstanceOf[aio.SocketChannelWithTimeout].channel.getRemoteAddress.asInstanceOf[java.net.InetSocketAddress]
 
-    println("#r " + requesturi + getQueryString)
-    println("#c " + contextpath)
-    println("#s " + servletpath)
-    println("#p " + pathinfo)
-
   }
 
 }

@@ -57,7 +57,9 @@ final class Io private (
   /**
    * The trick method of the entire algorithm, it should be called only when the buffer is too small and on start with Io.empty.
    */
-  @noinline final def ++(that: Io): Io = if (0 == this.length) {
+  @noinline final def ++(that: Io): Io = if (this eq that) {
+    that
+  } else if (0 == this.length) {
     that
   } else if (0 == that.length) {
     this
@@ -67,6 +69,7 @@ final class Io private (
     b.put(this.readBytes(this.readbuffer.remaining), 0, this.readbuffer.remaining)
     b.put(that.readbuffer)
     this.releaseReadBuffer
+    this.releaseWriteBuffer
     that.releaseReadBuffer
     b.flip
     that + b
@@ -112,10 +115,11 @@ final class Io private (
     writebuffer = emptyBuffer
   }
 
-  @inline private[aio] final def release = {
+  @inline private[aio] final def release(e: Throwable) = ignore {
+    if (null != e && !e.isInstanceOf[java.nio.channels.InterruptedByTimeoutException]) e.printStackTrace
     releaseReadBuffer
     releaseWriteBuffer
-    if (channel.isOpen) channel.close
+    if (null != channel && channel.isOpen) channel.close
   }
 
   @inline private final def error(e: Throwable) = {
@@ -123,7 +127,7 @@ final class Io private (
       case _: IOException ⇒
       case e ⇒ logger.debug("Io.error " + e.toString)
     }
-    releaseReadBuffer
+    release(e)
   }
 
   final def decode(implicit cset: Charset, lowercase: Boolean): String = advanceBuffer(
@@ -221,8 +225,7 @@ object Io
 
   final private[aio] val empty = new Io(null, emptyBuffer, emptyBuffer, null, null, null, null, null, false, null, null, null, null)
 
-  final private[aio] def apply(iteratee: Iteratee[Io, _]): Io =
-    new Io(null, emptyBuffer, defaultByteBuffer, iteratee, null, null, null, null, true, null, null, null, null)
+  final private[aio] def apply(iteratee: Iteratee[Io, _]): Io = new Io(null, defaultByteBuffer, defaultByteBuffer, iteratee, null, null, null, null, true, null, null, null, null)
 
   final private def warnOnce = onlyonce { warning("Chunked input found. Enlarge aio.default-buffer-size : " + defaultBufferSize) }
 
@@ -240,8 +243,8 @@ object Io
 
       @inline final def completed(ch: SocketChannel, io: Io) = try {
         accept
-        read(io ++ SocketChannelWithTimeout(ch) ++ defaultByteBuffer)
-      } catch { case _: Throwable ⇒ io.release }
+        read(io ++ SocketChannelWithTimeout(ch))
+      } catch { case e: Throwable ⇒ io.release(e) }
 
       @inline final def failed(e: Throwable, io: Io) = {
         if (server.isOpen) {
@@ -261,7 +264,7 @@ object Io
 
       @inline final def completed(processed: Integer, io: Io) = try {
         if (0 > processed) {
-          io.release
+          io.release(null)
         } else {
           io.readbuffer.flip
           io.writebuffer.clear
@@ -308,9 +311,9 @@ object Io
             }
           }
         }
-      } catch { case _: Throwable ⇒ io.release }
+      } catch { case e: Throwable ⇒ io.release(e) }
 
-      @inline final def failed(e: Throwable, io: Io) = io.release
+      @inline final def failed(e: Throwable, io: Io) = io.release(e)
 
     }
 
@@ -366,7 +369,7 @@ object Io
           case e ⇒
             unhandled(e)
         }
-      } catch { case _: Throwable ⇒ io.release }
+      } catch { case e: Throwable ⇒ io.release(e) }
 
       @inline final def failed(e: Throwable, io: Io) = completed(null, io)
 
@@ -378,14 +381,14 @@ object Io
 
       @inline final def completed(processed: Integer, io: Io) = try {
         if (0 > processed) {
-          io.release
+          io.release(null)
         } else if (0 == io.writebuffer.remaining || io.isError) {
           io.iteratee match {
             case Done(keepalive: Boolean) ⇒
               if (keepalive) {
                 read(io.renderable.renderFooter(io) ++ readiteratee)
               } else {
-                io.release
+                io.release(null)
               }
             case Cont(_) ⇒
               io.renderable.renderBody(io).transfer match {
@@ -393,7 +396,7 @@ object Io
                 case _ ⇒ write(io, false)
               }
             case Error(e: IOException) ⇒
-              io.release
+              io.release(e)
               ignore
             case Error(e) ⇒
               info("write failed " + e)
@@ -403,9 +406,9 @@ object Io
         } else {
           write(io, false)
         }
-      } catch { case _: Throwable ⇒ io.release }
+      } catch { case e: Throwable ⇒ io.release(e) }
 
-      @inline final def failed(e: Throwable, io: Io) = io.release
+      @inline final def failed(e: Throwable, io: Io) = io.release(e)
 
     }
 

@@ -45,10 +45,13 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
 
   @tailrec final def release(buffer: ByteBuffer): Unit = if (trylock) {
     try {
-      // require(!pool.exists(_ eq buffer), "buffer released twice " + pool.size)
-      buffer.clear
-      pool = buffer :: pool
-      // info("release " + pool.size + ", buffer size " + buffersize + ", initial pool size " + initialpoolsize)
+      if (true || !pool.exists(_ eq buffer)) {
+        buffer.clear
+        pool = buffer :: pool
+        // info("Released " + pool.size + ", buffer size " + buffersize + ", initial pool size " + initialpoolsize)
+      } else {
+        warning("Trying to release twice " + pool.size + ", buffer size " + buffersize + ", initial pool size " + initialpoolsize)
+      }
     } finally unlock
   } else {
     Thread.`yield`
