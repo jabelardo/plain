@@ -328,7 +328,7 @@ object Io
               case Transfer(_, _, _) ⇒ TransferHandler.read(io)
               case _ ⇒ if (0 < io.readbuffer.remaining) {
                 io.renderable.renderFooter(io) ++ readiteratee
-                val usecached = if (io.readbuffer.remaining >= io.elementarray.length) {
+                val usecached = if (null != io.elementarray && io.readbuffer.remaining >= io.elementarray.length) {
                   io.readbuffer.mark
                   io.readbuffer.get(io.peekarray)
                   if (Arrays.equals(io.peekarray, io.elementarray)) {
