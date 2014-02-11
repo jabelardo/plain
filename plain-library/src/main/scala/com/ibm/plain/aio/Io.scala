@@ -115,8 +115,15 @@ final class Io private (
     writebuffer = emptyBuffer
   }
 
-  @inline private[aio] final def release(e: Throwable) = ignore {
-    if (null != e && !e.isInstanceOf[java.nio.channels.InterruptedByTimeoutException]) e.printStackTrace
+  @inline private[aio] final def release(e: Throwable) = {
+    e match {
+      case null ⇒
+      case _: java.io.IOException ⇒
+      case _: java.lang.IllegalStateException ⇒ logger.warning(e.toString)
+      case e ⇒
+        logger.debug(text.stackTraceToString(e))
+        logger.warning(e.toString)
+    }
     releaseReadBuffer
     releaseWriteBuffer
     if (null != channel && channel.isOpen) channel.close
@@ -134,7 +141,7 @@ final class Io private (
     readbuffer.remaining match {
       case 0 ⇒ Io.emptyString
       case n ⇒ readBytes(n) match {
-        case a if a eq array ⇒ StringPool.get(if (lowercase) toLowerCase(a) else a, n)
+        case a if a eq array ⇒ StringPool.get(if (lowercase) toLowerCase(a, 0, n) else a, n)
         case a ⇒ new String(a, 0, n, cset)
       }
     })
@@ -193,8 +200,8 @@ final class Io private (
     a
   }
 
-  @inline private[this] final def toLowerCase(a: Array[Byte]): Array[Byte] = {
-    for (i ← 0 until a.length) { val e = a(i); if ('A' <= e && e <= 'Z') a.update(i, (e + 32).toByte) }
+  @inline private[this] final def toLowerCase(a: Array[Byte], offset: Int, length: Int): Array[Byte] = {
+    for (i ← offset until length) { val e = a(i); if ('A' <= e && e <= 'Z') a.update(i, (e + 32).toByte) }
     a
   }
 

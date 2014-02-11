@@ -6,6 +6,7 @@ package aio
 
 import java.io.EOFException
 import java.nio.charset.Charset
+import java.nio.ByteBuffer
 
 import scala.annotation.tailrec
 
@@ -36,12 +37,19 @@ object Iteratees {
 
     extends java.nio.channels.CompletionHandler[Integer, Io] {
 
-    @inline def completed(processed: Integer, io: Io) = io.writebuffer.clear
+    @inline final def completed(processed: Integer, io: Io) = ()
 
-    @inline def failed(e: Throwable, io: Io) = io.writebuffer.clear
+    @inline final def failed(e: Throwable, io: Io) = ()
 
-    final val response = "HTTP/1.1 100 Continue\r\n\r\n".getBytes
+    @inline final def response = responsebuffer.duplicate
 
+    private[this] final val responsebuffer = {
+      val response = "HTTP/1.1 100 Continue\r\n\r\n".getBytes
+      val buffer = ByteBuffer.allocateDirect(response.length)
+      buffer.put(response)
+      buffer.flip
+      buffer
+    }
   }
 
   final def takeBytes(n: Int): Iteratee[Io, Array[Byte]] = {
@@ -49,9 +57,7 @@ object Iteratees {
       case Elem(more) ⇒
         val in = taken ++ more
         if (0 == in.length) {
-          in.writebuffer.put(ContinueWriteHandler.response)
-          in.writebuffer.flip
-          in.channel.write(in.writebuffer, in, ContinueWriteHandler)
+          in.channel.write(ContinueWriteHandler.response, in, ContinueWriteHandler)
           (Cont(cont(in)), Empty)
         } else {
           if (in.length < n) {
