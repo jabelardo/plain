@@ -33,4 +33,8 @@ package object servlet
 
   final val maximumCachedSessions = getInt("plain.servlet.maximum-cached-sessions", 100000)
 
+  final val precompileJspPages = getBoolean("plain.servlet.precompile-jsp-pages", true)
+
+  final val precompileJspPagesStartDelay = getMilliseconds("plain.servlet.precompile-jsp-pages-start-delay", 5000)
+
 }

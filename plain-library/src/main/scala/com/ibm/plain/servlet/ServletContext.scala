@@ -8,18 +8,21 @@ import java.io.{ File, InputStream }
 import java.net.{ URL, URLClassLoader }
 import java.util.{ Enumeration, EventListener, Map ⇒ JMap, Set ⇒ JSet }
 
-import org.apache.commons.io.FilenameUtils
+import org.apache.commons.io.{ FileUtils, FilenameUtils }
 
-import scala.collection.JavaConversions.{ asJavaEnumeration, enumerationAsScalaIterator, mapAsJavaMap, seqAsJavaList }
+import scala.collection.JavaConversions.{ asJavaEnumeration, enumerationAsScalaIterator, mapAsJavaMap, seqAsJavaList, collectionAsScalaIterable }
+
 import scala.collection.concurrent.TrieMap
 import scala.language.postfixOps
 import scala.util.matching.Regex
 import scala.xml.XML
 
+import concurrent.scheduleOnce
 import reflect.Injector
 import javax.{ servlet ⇒ js }
 import plain.io.{ classPathFromClassLoader, temporaryDirectory }
-import plain.http.MimeType
+import plain.http.{ MimeType, Request, Response }
+import http.{ HttpServletRequest, HttpServletResponse }
 
 final class ServletContext(
 
@@ -64,6 +67,7 @@ final class ServletContext(
     filters.values.map(_._1).foreach(_.destroy)
     servlets.values.map(_._1).foreach(_.destroy)
     listeners.foreach(_.contextDestroyed(new js.ServletContextEvent(this)))
+    jsppages.cancel(true)
   }
 
   final def getClassLoader: ClassLoader = classloader
@@ -106,7 +110,7 @@ final class ServletContext(
     case url ⇒ ignoreOrElse(new File(url.toURI).getAbsolutePath, null)
   }
 
-  final val getRealPath = FilenameUtils.removeExtension(root)
+  final val getRealPath = FilenameUtils.normalize(FilenameUtils.removeExtension(root))
 
   final def getRequestDispatcher(path: String): js.RequestDispatcher = unsupported
 
@@ -213,7 +217,7 @@ final class ServletContext(
     (mappings(false) ++ mappings(true)).map { case (regex, (servlet, servletconfig)) ⇒ (servletconfig.getServletName, handleRegex(regex)) }
   }
 
-  private[this] final val jspservlet: js.Servlet = {
+  private[this] final val jspservlet: js.http.HttpServlet = {
     val systemUris = classOf[org.apache.jasper.runtime.TldScanner].getDeclaredField("systemUris")
     systemUris.setAccessible(true)
     systemUris.get(null).asInstanceOf[java.util.Set[_]].clear
@@ -225,7 +229,7 @@ final class ServletContext(
         <servlet-name>JSP</servlet-name>
         <init-param>
           <param-name>fork</param-name>
-          <param-value>false</param-value>
+          <param-value>true</param-value>
         </init-param>
         <init-param>
           <param-name>compilerSourceVM</param-name>
@@ -242,6 +246,27 @@ final class ServletContext(
       </servlet>
     jsp.init(new WebXmlServletConfig(config, this))
     jsp
+  }
+
+  private[this] final val jsppages = scheduleOnce(precompileJspPagesStartDelay) {
+    if (precompileJspPages) {
+      val jspfiles = FileUtils.listFiles(new File(getRealPath), Array("jsp"), true)
+      if (0 < jspfiles.size) {
+        trace(getRealPath + " : " + jspfiles.size + " jsp file(s) found.")
+        jspfiles.foreach { jsp ⇒
+          val path = jsp.getAbsolutePath.replace(getRealPath, "")
+          try {
+            val printwriter = io.PrintWriter(io.ByteArrayOutputStream(io.defaultBufferSize))
+            val request = new HttpServletRequest(Request.Get(path), null, this, jspservlet)
+            val response = new HttpServletResponse(Response(null, null), this, printwriter, jspservlet)
+            new RequestDispatcher(path, this).forward(request, response)
+          } catch {
+            case _: Throwable ⇒
+          } finally trace("jsp file precompiled : " + jsp)
+        }
+        info(getRealPath + " : " + jspfiles.size + " jsp file(s) precompiled.")
+      }
+    }
   }
 
   private[this] final val filters = {

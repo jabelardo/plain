@@ -59,4 +59,6 @@ object Request {
 
   type Variables = scala.collection.Map[String, String]
 
+  final def Get(path: String): Request = Request(Method.GET, path.split("/").toList.filter(0 < _.length), None, Version.`HTTP/1.1`, null, None)
+
 }

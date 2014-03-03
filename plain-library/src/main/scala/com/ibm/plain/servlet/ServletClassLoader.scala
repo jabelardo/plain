@@ -140,7 +140,7 @@ object ServletClassLoader
 
   final def apply(source: String, parent: ClassLoader, directory: String): URLClassLoader = {
     val sourcepath = Paths.get(source).toFile.getAbsoluteFile
-    val sourcewithoutextension = FilenameUtils.removeExtension(sourcepath.getName)
+    val sourcewithoutextension = FilenameUtils.normalize(FilenameUtils.removeExtension(sourcepath.getName))
     val target = Paths.get(directory).resolve(sourcewithoutextension).toFile.getAbsoluteFile
     val libdir = target.toPath.resolve("WEB-INF/lib").toFile
     val classesdir = target.toPath.resolve("WEB-INF/classes").toFile
