@@ -16,7 +16,7 @@ import org.apache.commons.io.FilenameUtils.getExtension
 import com.typesafe.config.Config
 
 import aio.FileByteChannel.forReading
-import logging.HasLogger
+import logging.Logger
 import http.ContentType
 import http.Entity.AsynchronousByteChannelEntity
 import http.MimeType.{ `application/octet-stream`, forExtension }
@@ -39,7 +39,7 @@ class DirectoryResource
 
 object DirectoryResource
 
-  extends HasLogger {
+  extends Logger {
 
   def get(list: Seq[String], remainder: String) = {
     val roots = list.iterator

@@ -20,8 +20,6 @@ final class HttpSession private (
 
   extends js.http.HttpSession
 
-  with aspect.MethodTracer // :TODO: remove MethodTracer
-
   with HasAttributes {
 
   final val getCreationTime: Long = time.now

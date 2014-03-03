@@ -9,14 +9,12 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import scala.annotation.tailrec
 
-import logging.HasLogger
+import logging.createLogger
 import concurrent.OnlyOnce
 
 final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
 
-  extends HasLogger
-
-  with OnlyOnce {
+  extends OnlyOnce {
 
   /**
    * This is an expensive O(n) operation.
@@ -36,7 +34,7 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
       buffer.clear
       buffer
     } else {
-      onlyonce { warning("ByteBufferPool exhausted : buffer size " + buffersize + ", initial pool size " + initialpoolsize) }
+      onlyonce { createLogger(this).warn("ByteBufferPool exhausted : buffer size " + buffersize + ", initial pool size " + initialpoolsize) }
       ByteBuffer.allocateDirect(buffersize)
     }
   } else {
@@ -46,12 +44,11 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
 
   @tailrec final def release(buffer: ByteBuffer): Unit = if (trylock) {
     try {
-      if (!pool.exists(_ eq buffer)) { // :TODO: use watermark
+      if (!pool.exists(_ eq buffer)) {
         buffer.clear
         pool = buffer :: pool
-        // info("Released " + pool.size + ", buffer size " + buffersize + ", initial pool size " + initialpoolsize + ", watermark " + watermark)
       } else {
-        warning("Trying to release twice (prevented) " + pool.size + ", buffer size " + buffersize + ", initial pool size " + initialpoolsize)
+        createLogger(this).warn("Trying to release twice (prevented) " + pool.size + ", buffer size " + buffersize + ", initial pool size " + initialpoolsize)
       }
     } finally unlock
   } else {

@@ -2,12 +2,11 @@ package com.ibm
 
 package plain
 
-import language.postfixOps
-import scala.concurrent.duration._
+import scala.concurrent.duration.{ DurationInt, DurationLong }
+import scala.language.postfixOps
 
-import akka.event.LoggingAdapter
 import config.CheckedConfig
-import concurrent.schedule
+import logging.defaultLogger
 
 /**
  * Utilities to ease the handling of time values and simple tools for micro benchmarking and profiling.
@@ -34,10 +33,7 @@ package object time
     f
   }
 
-  @volatile final var rfc1123bytearray: Array[Byte] = {
-    schedule(1000, 2000) { rfc1123bytearray = rfc1123format.format(now).getBytes }
-    null
-  }
+  @volatile final var rfc1123bytearray: Array[Byte] = null
 
   // prevent "false sharing"
   @volatile final var padding1: Array[Byte] = null
@@ -55,37 +51,37 @@ package object time
   /**
    * Executes f and log.info the time elapsed in milliseconds.
    */
-  @inline def infoMillis[R](f: ⇒ R)(implicit log: LoggingAdapter): R = { val r = timeMillis(f); log.info((r._2 / 1000.0) + " sec"); r._1 }
+  @inline def infoMillis[R](f: ⇒ R): R = { val r = timeMillis(f); defaultLogger.info((r._2 / 1000.0) + " sec"); r._1 }
 
   /**
    * Executes f and log.info message and the time elapsed in nanoseconds.
    */
-  @inline def infoMillis[R](msg: String)(f: ⇒ R)(implicit log: LoggingAdapter) = { val r = timeMillis(f); log.info(msg + " " + (r._2 / 1000.0) + " sec"); r._1 }
+  final def infoMillis[R](msg: String)(f: ⇒ R) = { val r = timeMillis(f); defaultLogger.info(msg + " " + (r._2 / 1000.0) + " sec"); r._1 }
 
   /**
    * Executes f and returns the time elapsed in nanoseconds.
    */
-  @inline def timeNanos[R](f: ⇒ R): (R, Long) = { val begin = nowNanos; val r = f; (r, nowNanos - begin) }
+  final def timeNanos[R](f: ⇒ R): (R, Long) = { val begin = nowNanos; val r = f; (r, nowNanos - begin) }
 
   /**
    * Executes f and log.info the time elapsed in nanoseconds.
    */
-  @inline def infoNanos[R](f: ⇒ R)(implicit log: LoggingAdapter) = { val r = timeNanos(f); log.info((r._2 / 1000000.0) + " msec"); r._1 }
+  final def infoNanos[R](f: ⇒ R) = { val r = timeNanos(f); defaultLogger.info((r._2 / 1000000.0) + " msec"); r._1 }
 
   /**
    * Executes f and log.info message and the time elapsed in nanoseconds.
    */
-  @inline def infoNanos[R](msg: String)(f: ⇒ R)(implicit log: LoggingAdapter) = { val r = timeNanos(f); log.info(msg + " " + (r._2 / 1000000.0) + " msec"); r._1 }
+  final def infoNanos[R](msg: String)(f: ⇒ R) = { val r = timeNanos(f); defaultLogger.info(msg + " " + (r._2 / 1000000.0) + " msec"); r._1 }
 
   /**
    * Executes f and log.info the time elapsed in nanoseconds.
    */
-  @inline def infoNanoNanos[R](f: ⇒ R)(implicit log: LoggingAdapter) = { val r = timeNanos(f); log.info(r._2 + " nanos"); r._1 }
+  final def infoNanoNanos[R](f: ⇒ R) = { val r = timeNanos(f); defaultLogger.info(r._2 + " nanos"); r._1 }
 
   /**
    * Executes f and log.info message and the time elapsed in nanoseconds.
    */
-  @inline def infoNanoNanos[R](msg: String)(f: ⇒ R)(implicit log: LoggingAdapter) = { val r = timeNanos(f); log.info(msg + " " + r._2 + " nanos"); r._1 }
+  final def infoNanoNanos[R](msg: String)(f: ⇒ R) = { val r = timeNanos(f); defaultLogger.info(msg + " " + r._2 + " nanos"); r._1 }
 
   /**
    * 0 seconds.

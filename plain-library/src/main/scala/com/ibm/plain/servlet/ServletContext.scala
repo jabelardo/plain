@@ -16,7 +16,7 @@ import scala.language.postfixOps
 import scala.util.matching.Regex
 import scala.xml.XML
 
-import http.HttpServletWrapper
+import reflect.Injector
 import javax.{ servlet ⇒ js }
 import plain.io.{ classPathFromClassLoader, temporaryDirectory }
 import plain.http.MimeType
@@ -29,11 +29,9 @@ final class ServletContext(
 
   extends js.ServletContext
 
-  with aspect.MethodTracer // :REMOVE:
-
   with HasAttributes
 
-  with logging.HasLogger {
+  with logging.Logger {
 
   final def addFilter(filterName: String, filterClass: Class[_ <: js.Filter]) = unsupported
 
@@ -62,9 +60,10 @@ final class ServletContext(
   final def declareRoles(roles: String*) = unsupported
 
   final def destroy = {
-    servlets.values.foreach(servlet ⇒ ignore(servlet.destroy))
-    servlets.clear
     classloader.close
+    filters.values.map(_._1).foreach(_.destroy)
+    servlets.values.map(_._1).foreach(_.destroy)
+    listeners.foreach(_.contextDestroyed(new js.ServletContextEvent(this)))
   }
 
   final def getClassLoader: ClassLoader = classloader
@@ -119,7 +118,7 @@ final class ServletContext(
 
   final def getServerInfo: String = unsupported
 
-  final def getServlet(name: String): js.Servlet = servlets.getOrElse(name, null)
+  final def getServlet(name: String): js.Servlet = servlets.get(name) match { case Some((servlet, _)) ⇒ servlet case _ ⇒ null }
 
   final def getServletContextName: String = (webxml \ "display-name").text match { case "" ⇒ getContextPath.replace("/", "") case s ⇒ s }
 
@@ -129,7 +128,7 @@ final class ServletContext(
 
   final def getServletRegistrations: JMap[String, _ <: js.ServletRegistration] = unsupported
 
-  final def getServlets: Enumeration[js.Servlet] = servlets.values.toIterator
+  final def getServlets: Enumeration[js.Servlet] = servlets.values.map(_._1).toIterator
 
   final def getSessionCookieConfig: js.SessionCookieConfig = unsupported
 
@@ -147,22 +146,13 @@ final class ServletContext(
 
   final def getServletMappings = servletmappings
 
+  final def getHttpServlets = servlets.values
+
   private[servlet] final def getJspServlet = jspservlet
 
   private[this] final val webxml = XML.load(classloader.getResourceAsStream("WEB-INF/web.xml"))
 
   private[this] final val version = List(3, 1)
-
-  private[this] final val init: Unit = {
-    setAttribute(org.apache.jasper.Constants.SERVLET_CLASSPATH, classPathFromClassLoader(classloader))
-    setAttribute(org.apache.jasper.Constants.JSP_RESOURCE_INJECTOR_CONTEXT_ATTRIBUTE, new org.glassfish.jsp.api.ResourceInjector {
-      final def createTagHandlerInstance[T <: js.jsp.tagext.JspTag](tagclass: Class[T]): T = tagclass.newInstance
-      final def preDestroy(tag: js.jsp.tagext.JspTag) = ()
-    })
-    setAttribute("com.sun.faces.useMyFaces", Boolean.box(false))
-    setAttribute("org.glassfish.jsp.isStandaloneWebapp", Boolean.box(false))
-    setAttribute(js.ServletContext.TEMPDIR, temporaryDirectory)
-  }
 
   private[this] final val welcomefiles = (webxml \ "welcome-file-list" \ "welcome-file") map (_.text)
 
@@ -179,13 +169,33 @@ final class ServletContext(
     m
   }
 
-  private[this] final val servlets = (webxml \ "servlet").map { servletxml ⇒
-    val loadonstartup = if ((servletxml \ "load-on-startup").isEmpty) 0 else (servletxml \ "load-on-startup").text match { case "" ⇒ 0 case i ⇒ i.toInt }
-    if (0 < loadonstartup) warning("load-on-startup = " + loadonstartup + " ignored during bootstrapping.")
-    val servlet = new HttpServletWrapper(this, servletxml)
-    servlet.init(servlet)
-    (servlet.getServletName, servlet)
-  }.toMap
+  private[this] final val listeners: Seq[js.ServletContextListener] = (webxml \ "listener").map { listener ⇒
+    Class.forName((listener \ "listener-class").text, true, classloader).newInstance.asInstanceOf[js.ServletContextListener]
+  }
+
+  private[this] final val servlets = {
+    setAttribute(org.apache.jasper.Constants.SERVLET_CLASSPATH, classPathFromClassLoader(classloader))
+    setAttribute(org.apache.jasper.Constants.JSP_RESOURCE_INJECTOR_CONTEXT_ATTRIBUTE, new org.glassfish.jsp.api.ResourceInjector {
+      final def createTagHandlerInstance[T <: js.jsp.tagext.JspTag](tagclass: Class[T]): T = tagclass.newInstance
+      final def preDestroy(tag: js.jsp.tagext.JspTag) = ()
+    })
+    setAttribute("com.sun.faces.useMyFaces", Boolean.box(false))
+    setAttribute("org.glassfish.jsp.isStandaloneWebapp", Boolean.box(false))
+    setAttribute(js.ServletContext.TEMPDIR, temporaryDirectory)
+    listeners.foreach { listener ⇒
+      debug("Initializing listener: " + listener.getClass.getName + " " + listener.getClass.getClassLoader)
+      ignore(listener.contextInitialized(new js.ServletContextEvent(this)))
+    }
+    (webxml \ "servlet").map { servletxml ⇒
+      val loadonstartup = if ((servletxml \ "load-on-startup").isEmpty) 0 else (servletxml \ "load-on-startup").text match { case "" ⇒ 0 case i ⇒ i.toInt }
+      if (0 < loadonstartup) warn("load-on-startup = " + loadonstartup + " ignored during bootstrapping.")
+      val servlet = Injector(Class.forName(
+        (servletxml \ "servlet-class").text, true, getClassLoader).newInstance.asInstanceOf[js.http.HttpServlet])
+      val servletconfig = new WebXmlServletConfig(servletxml, this)
+      servlet.init(servletconfig)
+      (servletconfig.getServletName, (servlet, servletconfig))
+    }.toMap
+  }
 
   private[this] final val servletmappings: Map[String, String] = {
     def handleRegex(regex: Regex) = regex.toString match {
@@ -200,7 +210,7 @@ final class ServletContext(
       (pattern("url-pattern").getOrElse(pattern("url-regexp").getOrElse(null)), servlets.getOrElse((mapping \ ((if (attribute) "@" else "") + "servlet-name")).text, null))
     }.filter(_._1 != null).toMap
 
-    (mappings(false) ++ mappings(true)).map { case (regex, servlet) ⇒ (servlet.getServletConfig.getServletName, handleRegex(regex)) }
+    (mappings(false) ++ mappings(true)).map { case (regex, (servlet, servletconfig)) ⇒ (servletconfig.getServletName, handleRegex(regex)) }
   }
 
   private[this] final val jspservlet: js.Servlet = {
@@ -218,12 +228,31 @@ final class ServletContext(
           <param-value>false</param-value>
         </init-param>
         <init-param>
+          <param-name>compilerSourceVM</param-name>
+          <param-value>1.7</param-value>
+        </init-param>
+        <init-param>
+          <param-name>compilerTargetVM</param-name>
+          <param-value>1.7</param-value>
+        </init-param>
+        <init-param>
           <param-name>xpoweredBy</param-name>
           <param-value>false</param-value>
         </init-param>
       </servlet>
-    jsp.init(new SimpleServletConfig(config, this))
+    jsp.init(new WebXmlServletConfig(config, this))
     jsp
+  }
+
+  private[this] final val filters = {
+    val m = (webxml \ "filter").map { filterxml ⇒
+      val filter = Class.forName(
+        (filterxml \ "filter-class").text, true, getClassLoader).newInstance.asInstanceOf[js.Filter]
+      val filterconfig = new WebXmlFilterConfig(filterxml, this)
+      filter.init(filterconfig)
+      (filterconfig.getFilterName, (filter, filterconfig))
+    }.toMap
+    m
   }
 
 }

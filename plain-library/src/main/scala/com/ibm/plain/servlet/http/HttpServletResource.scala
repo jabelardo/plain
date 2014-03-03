@@ -60,8 +60,8 @@ final class HttpServletResource(
     case e: Throwable ⇒ failed(e, context)
   }
 
-  private[this] final val servletcontext = servlet.getServletContext.asInstanceOf[ServletContext]
+  private[this] final def servletcontext = servlet.getServletContext.asInstanceOf[ServletContext]
 
-  private[this] final val classloader = servletcontext.getClassLoader
+  private[this] final def classloader = servletcontext.getClassLoader
 
 }

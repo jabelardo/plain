@@ -7,7 +7,7 @@ package jdbc
 import java.sql.{ Connection ⇒ JdbcConnection }
 import javax.sql.{ DataSource ⇒ JdbcDataSource }
 import java.util.Properties
-import java.util.concurrent.{ LinkedBlockingDeque, TimeUnit }
+import java.util.concurrent.{ LinkedBlockingDeque, TimeUnit, ScheduledFuture }
 import java.util.concurrent.atomic.{ AtomicInteger, AtomicLong }
 
 import scala.Array.canBuildFrom
@@ -20,13 +20,11 @@ import scala.language.postfixOps
 import com.ibm.plain.bootstrap.BaseComponent
 import com.typesafe.config.{ Config, ConfigList, ConfigValue, ConfigFactory, ConfigValueFactory }
 
-import akka.actor.Cancellable
-
 import bootstrap.BaseComponent
 import concurrent.schedule
 import config.config2RichConfig
 import javax.sql.DataSource
-import logging.HasLogger
+import logging.createLogger
 import reflect.primitive
 import time.now
 
@@ -37,9 +35,7 @@ final case class ConnectionFactory(
 
   configpath: String)
 
-  extends BaseComponent[ConnectionFactory]
-
-  with HasLogger {
+  extends BaseComponent[ConnectionFactory] {
 
   override def name = getClass.getSimpleName + "(name=" + displayname + ", config=" + configpath + ", pool=" + poolmin + "/" + poolmax + ")"
 
@@ -53,7 +49,7 @@ final case class ConnectionFactory(
       (0 until poolmin).foreach(_ ⇒ conns += newConnection)
       conns.foreach(_.close)
     } catch {
-      case e: Throwable ⇒ error(name + " : Cannot establish connection :  " + e)
+      case e: Throwable ⇒ logger.error(name + " : Cannot establish connection :  " + e)
     }
     connectioncleaner = schedule(idletimeout) {
       if (idle.size > poolmin) {
@@ -70,15 +66,15 @@ final case class ConnectionFactory(
         }
       }
     }
-    debug(name + " has started.")
+    logger.debug(name + " has started.")
     this
   }
 
   override final def stop = {
     if (isStarted) {
-      if (null != connectioncleaner) connectioncleaner.cancel
+      if (null != connectioncleaner) connectioncleaner.cancel(true)
       closeConnections
-      debug(name + " has stopped.")
+      logger.debug(name + " has stopped.")
     }
     this
   }
@@ -121,13 +117,13 @@ final case class ConnectionFactory(
       }
       if (elapsed > peakelapsed.get) {
         peakelapsed.set(elapsed)
-        if (log.isDebugEnabled) debug(name + " : peak elapsed : " + elapsed)
+        logger.debug(name + " : peak elapsed : " + elapsed)
       }
-      if (None == connection) error(name + ": " + "No more connections available in pool.")
+      if (None == connection) logger.error(name + ": " + "No more connections available in pool.")
       connection
     } catch {
       case e: Throwable ⇒
-        error("Datasource '" + name + "' cannot establish connection: " + e)
+        logger.error("Datasource '" + name + "' cannot establish connection: " + e)
         None
     }
   }
@@ -138,7 +134,7 @@ final case class ConnectionFactory(
     connections.keySet.foreach(_.doClose)
     connections.clear
   } catch {
-    case e: Throwable ⇒ error(name + " : " + e)
+    case e: Throwable ⇒ logger.error(name + " : " + e)
   }
 
   private[this] final def setParameters(any: Any, config: Config) = {
@@ -182,7 +178,7 @@ final case class ConnectionFactory(
 
   private[this] final val peakelapsed = new AtomicLong(0L)
 
-  private[this] final var connectioncleaner: Cancellable = null
+  private[this] final var connectioncleaner: ScheduledFuture[_] = null
 
   private[this] final val driver = settings.getString("driver")
 
@@ -219,6 +215,8 @@ final case class ConnectionFactory(
   private[this] final val datasourcepropertiessetter = settings.withFallback(config.settings.getConfig("plain.jdbc.drivers." + driver)).getString("datasource-properties-setter", "")
 
   private[this] final val connectionsettings = settings.getConfig("connection-settings", ConfigFactory.empty).withFallback(config.settings.getConfig("plain.jdbc.drivers." + driver + ".connection-settings", ConfigFactory.empty))
+
+  private[this] final lazy val logger = createLogger(this)
 
 }
 

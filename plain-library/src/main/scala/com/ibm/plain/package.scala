@@ -1,7 +1,6 @@
 package com.ibm
 
 import scala.concurrent.duration.Duration
-import scala.concurrent.duration.TimeUnit
 
 package object plain
 
@@ -9,7 +8,6 @@ package object plain
 
   import config._
   import config.settings._
-  import concurrent.scheduleGcTimeout
 
   /**
    * This is the central point for registering Components to the application in the correct order.
@@ -19,6 +17,7 @@ package object plain
     val appl = bootstrap.application
       .register(concurrent.Concurrent)
       .register(logging.Logging)
+      .register(time.Time)
       .register(io.Io)
       .register(aio.Aio)
       .register(monitor.extension.jmx.JmxMonitor)
@@ -37,7 +36,6 @@ package object plain
 
   def run(timeout: Duration)(body: ⇒ Unit): Unit = try {
     application.bootstrap
-    if (0 < scheduleGcTimeout) concurrent.schedule(scheduleGcTimeout, scheduleGcTimeout) { sys.runtime.gc }
     body
     application.awaitTermination(timeout)
   } catch {

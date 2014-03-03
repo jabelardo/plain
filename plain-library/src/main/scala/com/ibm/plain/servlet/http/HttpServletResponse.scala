@@ -32,13 +32,13 @@ final class HttpServletResponse(
 
   final def addCookie(cookie: js.http.Cookie) = response ++ cookie
 
-  final def addDateHeader(x$1: String, x$2: Long) = unsupported
+  final def addDateHeader(name: String, value: Long) = addHeader(name, value.toString)
 
-  final def addHeader(x$1: String, x$2: String) = unsupported
+  final def addHeader(name: String, value: String) = setHeader(name, value)
 
-  final def addIntHeader(x$1: String, x$2: Int) = unsupported
+  final def addIntHeader(name: String, value: Int) = addHeader(name, value.toString)
 
-  final def containsHeader(x$1: String): Boolean = unsupported
+  final def containsHeader(name: String): Boolean = response.headers.contains(name)
 
   final def encodeRedirectURL(x$1: String): String = unsupported
 
@@ -56,15 +56,19 @@ final class HttpServletResponse(
 
   final def getStatus: Int = response.status.code.toInt
 
-  final def sendError(code: Int) = sendError(code, "No message.")
+  final def sendError(code: Int) = sendError(code, "")
 
-  final def sendError(code: Int, msg: String) = { println("sendError " + code + " " + msg) }
+  final def sendError(code: Int, msg: String) = {
+    log(msg, Status(code))
+    dumpStack
+    throw Status(code)
+  }
 
   final def sendRedirect(redirect: String) = redirect match {
     case r if r == servletcontext.getContextPath + "/" ⇒
-      servletcontext.log(r, Status.Redirection.`302`); throw Status.Redirection.`302`
+      log(r, Status.Redirection.`302`); throw Status.Redirection.`301`
     case r ⇒
-      servletcontext.log(r, Status.Redirection.`307`); throw Status.Redirection.`307`
+      log(r, Status.Redirection.`307`); throw Status.Redirection.`307`
   }
 
   final def setDateHeader(name: String, value: Long) = setHeader(name, value.toString)
@@ -74,11 +78,11 @@ final class HttpServletResponse(
     case _ ⇒ response.headers.asInstanceOf[MutableMap[String, String]].put(name, value)
   }
 
-  final def setIntHeader(x$1: String, x$2: Int) = unsupported
+  final def setIntHeader(name: String, value: Int) = setHeader(name, value.toString)
 
-  final def setStatus(x$1: Int, x$2: String) = unsupported
+  final def setStatus(code: Int, message: String) = setStatus(code)
 
-  final def setStatus(status: Int) = response ++ Status(status)
+  final def setStatus(code: Int) = response ++ Status(code)
 
   final def flushBuffer = printwriter.flush
 
@@ -119,6 +123,8 @@ final class HttpServletResponse(
   final def setLocale(x$1: java.util.Locale) = unsupported
 
   final def getEntity: Entity = ArrayEntity(printwriter.outputstream.getArray, 0, printwriter.outputstream.length, contenttype)
+
+  final def log(msg: String, e: Throwable) = servletcontext.log(msg, e)
 
   private[this] final var usewriter = false
 

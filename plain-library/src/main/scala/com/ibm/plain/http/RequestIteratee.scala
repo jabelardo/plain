@@ -25,7 +25,11 @@ final class RequestIteratee private ()(implicit server: Server) {
 
   import RequestConstants._
 
-  import server.settings.{ defaultCharacterSet, disableUrlDecoding, maxEntityBufferSize }
+  private[this] final val defaultCharacterSet = server.getSettings.defaultCharacterSet
+
+  private[this] final val disableUrlDecoding = server.getSettings.disableUrlDecoding
+
+  private[this] final val maxEntityBufferSize = server.getSettings.maxEntityBufferSize
 
   private[this] implicit final val ascii = `US-ASCII`
 

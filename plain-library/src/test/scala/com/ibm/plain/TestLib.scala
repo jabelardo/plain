@@ -27,20 +27,12 @@ import config._
       val d = temporaryDirectory
       println(f)
       println(d)
-      defaultLogger.debug("debug")
-      defaultLogger.info("info")
-      defaultLogger.warning("warning")
-      defaultLogger.error("error")
       var c = 0
       schedule(1000, 2000) {
         c += 1
         println("print " + c)
         val log = defaultLogger
         import log._
-        debug("debug " + c)
-        info("info " + c)
-        warning("warning " + c)
-        error("error " + c)
       }
       println("after serve")
     }

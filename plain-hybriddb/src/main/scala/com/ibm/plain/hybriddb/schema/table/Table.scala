@@ -18,7 +18,7 @@ import scala.collection.SeqView
 import column._
 import reflect.ReflectHelper._
 import reflect.mirror._
-import logging.HasLogger
+import logging.Logger
 
 /**
  *
@@ -46,7 +46,7 @@ object Table
 
   extends TableHelper
 
-  with HasLogger {
+  with Logger {
 
   def fromSeq[T <: Table: TypeTag](name: String, capacity: Long, rows: Seq[Seq[Any]]): T = {
     val builders = createBuilders[T](capacity)
@@ -55,9 +55,9 @@ object Table
       var i = 0
       row.foreach { v ⇒ val b = builders(i); val bb = b.getClass.cast(b); bb.set(v); i += 1 }
       length += 1
-      if (log.isDebugEnabled && 0 == length % 100000) debug("" + length)
+      if (0 == length % 100000) debug("" + length)
     }
-    if (log.isDebugEnabled) debug(length + " rows")
+    debug(length + " rows")
     val parameters: List[Any] = name :: length :: builders.map(_.result).toList
     val table = newInstance[T](parameters)
     serialize(table, new File("/tmp/persons.bin"))

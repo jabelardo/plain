@@ -103,8 +103,7 @@ final class Matching {
 
   final val encodeByteBuffer: Encoder = ((buffer: ByteBuffer) ⇒ Some(ByteBufferEntity(buffer, `application/octet-stream`))).asInstanceOf[Encoder]
 
-  final val encodeString: Encoder = ((s: String) ⇒
-    Some(if (tooTinyToCareSize < s.length) ByteBufferEntity(s, ContentType(`text/plain`, `UTF-8`)) else ArrayEntity(s.getBytes(`UTF-8`), ContentType(`text/plain`, `UTF-8`)))).asInstanceOf[Encoder]
+  final val encodeString: Encoder = ((s: String) ⇒ Some(E(s, ContentType(`text/plain`, `UTF-8`)))).asInstanceOf[Encoder]
 
   final val encodeHtml: Encoder = ((html: Html) ⇒ Some(ByteBufferEntity("<!DOCTYPE html>" + html.xml.buildString(true), `text/html`))).asInstanceOf[Encoder]
 
@@ -116,17 +115,17 @@ final class Matching {
 
   final val encodeMultipartForm: Encoder = ((form: MultipartForm) ⇒ Some(ArrayEntity(Array[Byte](), `multipart/form-data`))).asInstanceOf[Encoder]
 
-  final val encodeJson: Encoder = ((json: Json) ⇒ Some(ByteBufferEntity(Json.build(json), `application/json`))).asInstanceOf[Encoder]
+  final val encodeJson: Encoder = ((json: Json) ⇒ Some(E(Json.build(json), `application/json`))).asInstanceOf[Encoder]
 
-  final val encodeJObject: Encoder = ((json: JObject) ⇒ Some(ByteBufferEntity(Json.build(json), `application/json`))).asInstanceOf[Encoder]
+  final val encodeJObject: Encoder = ((json: JObject) ⇒ Some(E(Json.build(json), `application/json`))).asInstanceOf[Encoder]
 
-  final val encodeJArray: Encoder = ((json: JArray) ⇒ Some(ByteBufferEntity(Json.build(json), `application/json`))).asInstanceOf[Encoder]
+  final val encodeJArray: Encoder = ((json: JArray) ⇒ Some(E(Json.build(json), `application/json`))).asInstanceOf[Encoder]
 
-  final val encodeXml: Encoder = ((xml: Xml) ⇒ Some(ByteBufferEntity(xml.buildString(true), `application/xml`))).asInstanceOf[Encoder]
+  final val encodeXml: Encoder = ((xml: Xml) ⇒ Some(E(xml.buildString(true), `application/xml`))).asInstanceOf[Encoder]
 
-  final val encodeJsonMarshaled: Encoder = ((marshaled: JsonMarshaled) ⇒ Some(ByteBufferEntity(marshaled.toJson, `application/json`))).asInstanceOf[Encoder]
+  final val encodeJsonMarshaled: Encoder = ((marshaled: JsonMarshaled) ⇒ Some(E(marshaled.toJson, `application/json`))).asInstanceOf[Encoder]
 
-  final val encodeXmlMarshaled: Encoder = ((marshaled: XmlMarshaled) ⇒ Some(ByteBufferEntity(marshaled.toXml, `application/xml`))).asInstanceOf[Encoder]
+  final val encodeXmlMarshaled: Encoder = ((marshaled: XmlMarshaled) ⇒ Some(E(marshaled.toXml, `application/xml`))).asInstanceOf[Encoder]
 
   final val encoders: TypeEncoders = Array(
     (entity, encodeEntity),
@@ -171,6 +170,9 @@ final class Matching {
     (outmimetype, outtypelist) ← outputPriority
     outtype ← outtypelist
   } yield ((inmimetype, outmimetype), (intype, outtype))
+
+  @inline private[this] final def E(s: String, contenttype: ContentType): Entity =
+    if (tooTinyToCareSize < s.length) ByteBufferEntity(s, contenttype) else ArrayEntity(s.getBytes(`UTF-8`), contenttype)
 
 }
 

@@ -19,7 +19,7 @@ package object http
 
   final val defaultcodec = new URLCodec(defaultCharacterSet.toString)
 
-  final lazy val defaultServerConfiguration = Server.ServerConfiguration("plain.http.default-server", true)
+  final lazy val defaultServerConfiguration = new Server.ServerConfiguration("plain.http.default-server", true)
 
   final val channelGroupThreadPoolType = getInt("plain.http.channel-group-thread-pool-type", 0)
 

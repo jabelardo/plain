@@ -8,12 +8,12 @@ import javax.annotation.Resource
 import javax.sql.DataSource
 import org.reflections._
 
-import logging.HasLogger
+import logging.Logger
 import jdbc.dataSourceForJndiLookupName
 
 final class Injector[A] private (any: A)
 
-  extends HasLogger {
+  extends Logger {
 
   def inject: A = {
     injectResource
@@ -31,10 +31,10 @@ final class Injector[A] private (any: A)
             field.setAccessible(true)
             field.set(any, datasource)
             debug("@Resource " + any.getClass.getName + "." + field.getName + " injected.")
-          case None ⇒ warning("@Resource " + any.getClass.getName + "." + field.getName + " not injected.")
+          case None ⇒ warn("@Resource " + any.getClass.getName + "." + field.getName + " not injected.")
         }
       } else {
-        warning("@Resource injection not implemented for : " + field.getType)
+        warn("@Resource injection not implemented for : " + field.getType)
       }
     }
 

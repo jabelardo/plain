@@ -2,19 +2,17 @@ package com.ibm
 
 package plain
 
-import java.util.concurrent.{ ForkJoinPool, ThreadPoolExecutor, ArrayBlockingQueue, TimeUnit }
+import java.util.concurrent.{ ForkJoinPool, ThreadPoolExecutor, ArrayBlockingQueue, TimeUnit, ScheduledFuture }
+
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationLong
-import akka.actor.Cancellable
-import akka.dispatch.MessageDispatcher
-import logging.HasLogger
+import scala.language.implicitConversions
+
 import config.CheckedConfig
 
 package object concurrent
 
-  extends CheckedConfig
-
-  with HasLogger {
+  extends CheckedConfig {
 
   import config._
   import config.settings._
@@ -23,56 +21,44 @@ package object concurrent
 
   final val parallelism = cores * cores
 
-  final def dispatcher = Concurrent.dispatcher
+  final def executor = Concurrent.executor
 
   final def scheduler = Concurrent.scheduler
 
-  final def executor = Concurrent.executor
-
-  final def ioexecutor = executor
+  final def ioexecutor = Concurrent.ioexecutor
 
   /**
    * Spawn a body: => Unit to an execution context and forget about it. Use this only if you have no need to handle errors during the execution of 'body'.
    */
-  final def spawn(body: ⇒ Any): Unit = dispatcher.execute(new Runnable { def run = body })
-
-  /**
-   * Spawn a body: => Unit to an execution context and forget about it. This versions requires an explicit dispatcher, useful in combination with a PinnedDispatcher.
-   */
-  final def spawn(dispatcher: MessageDispatcher)(body: ⇒ Any): Unit = {
-    dispatcher.execute(new Runnable { def run = body })
-  }
+  final def spawn(body: ⇒ Any): Unit = executor.execute(body)
 
   /**
    * Schedule 'body' to be executed every 'repeateddelay' milliseconds, but execute it first after 'initialdelay' milliseconds.
    */
-  final def schedule(initialdelay: Long, repeateddelay: Long)(body: ⇒ Unit) = {
-    scheduler.schedule(initialdelay.milliseconds, repeateddelay.milliseconds)(body)(dispatcher)
+  final def schedule(initialdelay: Long, repeateddelay: Long)(body: ⇒ Any) = {
+    scheduler.scheduleWithFixedDelay(body, initialdelay, repeateddelay, TimeUnit.MILLISECONDS)
   }
 
   /**
    * Schedule 'body' to be executed every 'delay' milliseconds, but execute it first after 'delay' milliseconds.
    */
-  final def schedule(delay: Long)(body: ⇒ Unit) = {
-    scheduler.schedule(delay.milliseconds, delay.milliseconds)(body)(dispatcher)
+  final def schedule(delay: Long)(body: ⇒ Any): ScheduledFuture[_] = {
+    scheduler.scheduleWithFixedDelay(body, delay, delay, TimeUnit.MILLISECONDS)
   }
 
   /**
    * Schedule 'body' to be executed only once after 'initialdelay' milliseconds.
    */
-  final def scheduleOnce(delay: Long)(body: ⇒ Unit): Cancellable = {
-    scheduler.scheduleOnce(delay.milliseconds)(body)(dispatcher)
+  final def scheduleOnce(delay: Long)(body: ⇒ Any): ScheduledFuture[_] = {
+    scheduler.schedule(new Runnable { def run = body }, delay, TimeUnit.MILLISECONDS)
   }
 
   /**
    * Simply create a scala.dispatch.Future by providing a body: => T without worrying about an execution context.
    * Usually this is too simplistic, you will probably need Future/Promise to handle full asynchronicity.
    */
-  final def future[T](body: ⇒ T): Future[T] = Future(body)(dispatcher)
+  final def future[T](body: ⇒ T): Future[T] = Future(body)(executor)
 
-  final val scheduleGcTimeout = getMilliseconds("plain.concurrent.schedule-gc-timeout", 600000) match {
-    case timeout if 60000 <= timeout ⇒ timeout
-    case _ ⇒ -1
-  }
+  private[this] final implicit def runnable(body: ⇒ Any): Runnable = new Runnable { def run = body }
 
 }

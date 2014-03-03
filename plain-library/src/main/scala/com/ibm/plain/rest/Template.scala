@@ -19,7 +19,7 @@ import resource.DirectoryResource
 /**
  * Error handling.
  */
-case class InvalidTemplate(
+case class InvalidTemplateException(
 
   template: Template,
 
@@ -63,7 +63,7 @@ final class Template private (
         else if (!(e.contains("{") || e.contains("}")))
           Segment(e, elems)
         else
-          throw InvalidTemplate(this, "Neither a segment nor a variable.")
+          throw InvalidTemplateException(this, "Neither a segment nor a variable.")
     }
   }
 
@@ -152,11 +152,11 @@ object Templates {
 
     def add0(element: Element, node: Option[Templates]): Templates = {
 
-      @inline def alreadyVariable = throw InvalidTemplate(template, "Already a variable at this position.")
+      @inline def alreadyVariable = throw InvalidTemplateException(template, "Already a variable at this position.")
 
-      @inline def alreadySegment = throw InvalidTemplate(template, "Already a segment at this position.")
+      @inline def alreadySegment = throw InvalidTemplateException(template, "Already a segment at this position.")
 
-      @inline def wrongVariable = throw InvalidTemplate(template, "Already a variable with a different name at this position.")
+      @inline def wrongVariable = throw InvalidTemplateException(template, "Already a variable with a different name at this position.")
 
       element match {
         case Segment(name, next) ⇒ node match {
@@ -183,7 +183,7 @@ object Templates {
       }
     }
 
-    Some(add0(template.root, node))
+    if (null != template) Some(add0(template.root, node)) else None
   }
 
 }

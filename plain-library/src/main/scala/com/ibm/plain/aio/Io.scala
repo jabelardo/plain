@@ -15,9 +15,9 @@ import scala.math.min
 
 import io.PrintWriter
 import concurrent.OnlyOnce
+import logging.Logger
 import Input.{ Elem, Empty, Eof }
 import Iteratee.{ Cont, Done, Error }
-import logging.HasLogger
 
 /**
  * Io represents the context of an asynchronous i/o operation.
@@ -119,10 +119,10 @@ final class Io private (
     e match {
       case null ⇒
       case _: java.io.IOException ⇒
-      case _: java.lang.IllegalStateException ⇒ logger.warning(e.toString)
+      case _: java.lang.IllegalStateException ⇒ Io.warn(e.toString)
       case e ⇒
-        logger.debug(text.stackTraceToString(e))
-        logger.warning(e.toString)
+        Io.debug(text.stackTraceToString(e))
+        Io.warn(e.toString)
     }
     releaseReadBuffer
     releaseWriteBuffer
@@ -132,7 +132,7 @@ final class Io private (
   @inline private final def error(e: Throwable) = {
     e match {
       case _: IOException ⇒
-      case e ⇒ logger.debug("Io.error " + e.toString)
+      case e ⇒ Io.debug("Io.error " + e.toString)
     }
     release(e)
   }
@@ -218,7 +218,7 @@ final class Io private (
  */
 object Io
 
-  extends HasLogger
+  extends Logger
 
   with OnlyOnce {
 
@@ -234,9 +234,7 @@ object Io
 
   final private[aio] def apply(iteratee: Iteratee[Io, _]): Io = new Io(null, defaultByteBuffer, defaultByteBuffer, iteratee, null, null, null, null, true, null, null, null, null)
 
-  final private def warnOnce = onlyonce { warning("Chunked input found. Enlarge aio.default-buffer-size : " + defaultBufferSize) }
-
-  final private val logger = log
+  final private def warnOnce = onlyonce { warn("Chunked input found. Enlarge aio.default-buffer-size : " + defaultBufferSize) }
 
   /**
    * Io handlers
@@ -258,7 +256,7 @@ object Io
           accept
           e match {
             case _: IOException ⇒ debug("Accept failed : " + e)
-            case e: Throwable ⇒ warning("Accept failed : " + e)
+            case e: Throwable ⇒ warn("Accept failed : " + e)
           }
         }
       }

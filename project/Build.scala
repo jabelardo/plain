@@ -22,10 +22,11 @@ object PlainBuild extends Build {
         scalareflect,
         reflections,
         config,
-        logback,
-        janino,
-        akkaSlf4j,
-        akkaActor,
+	slf4j,
+	log4j2slf4j,
+        log4j2api,
+	log4j2core,
+	disruptor,
         commonsLang,
         commonsCodec,
         commonsIo,
@@ -39,7 +40,8 @@ object PlainBuild extends Build {
         h2jdbc,
         mysqljdbc,
         servlet31,
-        jsp23) ++ test(junit, junitItf))
+        jsp23,
+	jstl12) ++ test(junit, junitItf))
 
   lazy val hybriddb = Project(
     id = "plain-hybriddb",

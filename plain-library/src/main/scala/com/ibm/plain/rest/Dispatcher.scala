@@ -16,7 +16,7 @@ import http.{ Dispatcher ⇒ HttpDispatcher }
 import http.Entity.ContentEntity
 import http.Status.{ ClientError, ServerError }
 import servlet.ServletContainer
-import servlet.http.{ HttpServletResource, HttpServletWrapper }
+import servlet.http.HttpServletResource
 import org.apache.commons.io.FilenameUtils
 
 /**
@@ -53,11 +53,15 @@ abstract class Dispatcher
       config.getConfigList("routes", List.empty).map { c: Config ⇒
         Template(c.getString("uri"), Class.forName(c.getString("resource-class-name")), c.getConfig("resource-config", ConfigFactory.empty))
       } ++ servletcontexts.flatMap { servletcontext ⇒
-        servletcontext.getServlets.map { _.asInstanceOf[HttpServletWrapper].getHttpServlet }.map { servlet ⇒
-          Template(servletcontext.getContextPath.drop(1) + servletcontext.getServletMappings.getOrElse(servlet.getServletName, ""), servlet.getClass, ConfigFactory.empty)
+        servletcontext.getHttpServlets.map {
+          case (httpservlet, servletconfig) ⇒
+            Template(
+              servletcontext.getContextPath.drop(1) + servletcontext.getServletMappings.getOrElse(servletconfig.getServletName, ""),
+              httpservlet.getClass,
+              ConfigFactory.empty)
         }
       } ++ servletcontexts.filter(_.getServlets.size == 1).map { servletcontext ⇒
-        val servletclass = servletcontext.getServlets.toSeq.head.asInstanceOf[HttpServletWrapper].getHttpServlet.getClass
+        val servletclass = servletcontext.getHttpServlets.head._1.getClass
         Template(servletcontext.getContextPath.drop(1), servletclass, ConfigFactory.empty)
       } ++ servletcontexts.map { servletcontext ⇒
         val root = servletcontext.getRealPath.replace(".war", "")
@@ -68,7 +72,7 @@ abstract class Dispatcher
           classOf[resource.DirectoryResource],
           ConfigFactory.parseString(config))
       } ++ servletcontexts.filter(_.getServlets.size == 1).map { servletcontext ⇒
-        val servletpath = servletcontext.getServletMappings.getOrElse(servletcontext.getServlets.toSeq.head.getServletConfig.getServletName, "")
+        val servletpath = servletcontext.getServletMappings.getOrElse(servletcontext.getHttpServlets.toSeq.head._2.getServletName, "")
         val root = servletcontext.getRealPath.replace(".war", "")
         val rootclasses = root + "/WEB-INF/classes"
         val config = s"""{ roots = [ $root, $rootclasses ] }"""
@@ -76,7 +80,7 @@ abstract class Dispatcher
           servletcontext.getContextPath.drop(1) + servletpath + "/*",
           classOf[resource.DirectoryResource],
           ConfigFactory.parseString(config))
-      }).get
+      }).getOrElse(null)
     staticresources = (config.getConfigList("routes", List.empty).map { c: Config ⇒
       val resourceclass = Class.forName(c.getString("resource-class-name"))
       if (isStatic(resourceclass)) {
@@ -85,10 +89,12 @@ abstract class Dispatcher
         (resourceclass, resource)
       } else (null, null)
     } ++ servletcontexts.flatMap {
-      _.getServlets.map { _.asInstanceOf[HttpServletWrapper].getHttpServlet }.map { servlet ⇒ (servlet.getClass, new HttpServletResource(servlet))
+      _.getHttpServlets.map {
+        case (httpservlet, _) ⇒ (httpservlet.getClass, new HttpServletResource(httpservlet))
       }
     }).filter(_._1 != null).toMap
-    if (log.isDebugEnabled) debug(getClass.getSimpleName + "(name=" + name + ", routes=" + templates + ")")
+    debug("name = " + name)
+    templates.toString.split("\n").filter(0 < _.length).foreach(r ⇒ debug("route = " + r))
   }
 
   @inline private[this] final def isStatic(resourceclass: Class[_]) = classOf[StaticResource].isAssignableFrom(resourceclass)
@@ -100,6 +106,8 @@ abstract class Dispatcher
 }
 
 /**
- * The default rest-dispatcher, it will always respond with 501.
+ *
  */
-final class DefaultDispatcher extends Dispatcher
+final class DefaultDispatcher
+
+  extends Dispatcher

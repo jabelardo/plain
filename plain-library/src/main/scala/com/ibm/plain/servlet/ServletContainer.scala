@@ -7,18 +7,16 @@ package servlet
 import java.nio.file.Path
 
 import com.ibm.plain.bootstrap.BaseComponent
-import com.ibm.plain.io.{ FileExtensionFilter, WarClassLoader }
+import com.ibm.plain.io.FileExtensionFilter
 
-import logging.HasLogger
+import logging.createLogger
 
 /**
  *
  */
 abstract sealed class ServletContainer
 
-  extends BaseComponent[ServletContainer]("ServletContainer")
-
-  with HasLogger {
+  extends BaseComponent[ServletContainer]("ServletContainer") {
 
   final def getServletContext(path: String): ServletContext = webapplications.getOrElse(path, null)
 
@@ -38,7 +36,7 @@ abstract sealed class ServletContainer
         } else Array.empty
         applicationpaths.map(_.toString).map { applicationpath ⇒
           try {
-            val classloader = WarClassLoader(applicationpath, Thread.currentThread.getContextClassLoader, unpackWebApplicationsDirectory.getAbsolutePath)
+            val classloader = ServletClassLoader(applicationpath, parentloader, unpackWebApplicationsDirectory.getAbsolutePath)
             Thread.currentThread.setContextClassLoader(classloader)
             val servletcontext = new ServletContext(classloader, applicationpath)
             (servletcontext.getContextPath, servletcontext)
@@ -46,13 +44,14 @@ abstract sealed class ServletContainer
         }.toMap
       } finally Thread.currentThread.setContextClassLoader(parentloader)
     }
-    debug(name + " has started. (" + webapplications.keySet.mkString(", ") + ")")
+    createLogger(this).debug(name + " has started. " + (if (0 < webapplications.size) " Servlet applications: " + webapplications.keySet.mkString(", ") else "No servlet applications."))
     this
   }
 
   override def stop = try {
     webapplications.values.foreach(ctx ⇒ ignore(ctx.destroy))
     webapplications = null
+    createLogger(this).debug(name + " has stopped.")
     this
   }
 

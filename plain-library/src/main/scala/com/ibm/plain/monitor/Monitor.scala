@@ -8,7 +8,7 @@ import scala.collection.JavaConversions.asScalaSet
 import scala.concurrent.duration._
 
 import bootstrap.{ BaseComponent, application }
-import logging.{ HasLogger, Logging }
+import logging.{ createLogger, loggingLevel, setLoggingLevel }
 import concurrent.scheduleOnce
 import aio.Aio._
 
@@ -17,9 +17,7 @@ import aio.Aio._
  */
 abstract class Monitor
 
-  extends BaseComponent[Monitor]("plain-monitor")
-
-  with HasLogger {
+  extends BaseComponent[Monitor]("plain-monitor") {
 
   override def isStarted = isRegistered
 
@@ -55,20 +53,20 @@ abstract class Monitor
 
   def getBufferPoolSizeHuge = hugeBufferPool.size
 
-  def getLogLevel = Logging.getLogLevel
+  def getLogLevel = loggingLevel
 
-  def setLogLevel(level: String) = Logging.setLogLevel(level)
+  def setLogLevel(level: String) = setLoggingLevel(level)
 
   def getUptimeInSeconds = (application.uptime / 1000).toLong
 
   def getComponents: Array[String] = application.render
 
   def shutdown(token: String): String = if (shutdownToken == token) {
-    warning("Application teardown was called from JMX console.")
+    createLogger(this).warn("Application teardown was called from JMX console.")
     scheduleOnce(200)(application.teardown)
     "Application teardown started."
   } else {
-    error("Application teardown was tried from JMX console, but with invalid token.")
+    createLogger(this).error("Application teardown was tried from JMX console, but with invalid token.")
     throw new IllegalArgumentException("Invalid token.")
   }
 

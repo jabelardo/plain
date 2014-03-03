@@ -9,13 +9,11 @@ import scala.language.implicitConversions
 import scala.util.control.ControlThrowable
 
 import config.CheckedConfig
-import logging.HasLogger
+import logging.createLogger
 
 package object aio
 
-  extends CheckedConfig
-
-  with HasLogger {
+  extends CheckedConfig {
 
   import config._
   import config.settings._
@@ -30,7 +28,7 @@ package object aio
     else if (length <= hugeBufferSize)
       hugeByteBuffer
     else {
-      warning("Allocating a ByteBuffer on the heap with a size larger then 'hugeBufferSize': " + length + " bytes")
+      createLogger(this).warn("Allocating a ByteBuffer on the heap with a size larger then 'hugeBufferSize': " + length + " bytes")
       ByteBuffer.allocate(length)
     }
   }

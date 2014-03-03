@@ -51,5 +51,7 @@ final class ByteArrayInputStream(
 
   override final def close = lastposition = position
 
+  final def getByteArray: Array[Byte] = array
+
 }
 

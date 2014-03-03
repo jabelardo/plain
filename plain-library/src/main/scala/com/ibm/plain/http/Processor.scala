@@ -13,7 +13,7 @@ import Status.{ ClientError, ServerError, ErrorStatus }
 import Entity.ArrayEntity
 import aio.Io
 import aio.Iteratee.{ Done, Error }
-import logging.HasLogger
+import logging.Logger
 import text.stackTraceToString
 
 /**
@@ -23,7 +23,7 @@ abstract class Processor
 
   extends AioProcessor[Response]
 
-  with HasLogger {
+  with Logger {
 
   final def completed(response: Response, io: Io) = {
     io ++ Done[Io, Response](response)
@@ -33,7 +33,7 @@ abstract class Processor
     case e: IOException if !e.isInstanceOf[FileSystemException] ⇒ Error[Io](e)
     case status: Status ⇒
       status match {
-        case servererror: ServerError ⇒ if (log.isDebugEnabled) debug("Dispatching failed : " + stackTraceToString(status))
+        case servererror: ServerError ⇒ debug("Dispatching failed : " + stackTraceToString(status))
         case _ ⇒
       }
       val request = ignoreOrElse(io.message.asInstanceOf[Request], null)
@@ -49,7 +49,7 @@ abstract class Processor
       })
     case e ⇒
       info("Dispatching failed : " + e)
-      if (log.isDebugEnabled) debug(stackTraceToString(e))
+      debug(stackTraceToString(e))
       Done[Io, Response] {
         val e = ServerError.`500`
         val request = try io.message.asInstanceOf[Request] catch { case _: Throwable ⇒ null }

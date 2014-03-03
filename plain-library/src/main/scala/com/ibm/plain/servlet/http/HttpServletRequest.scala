@@ -35,8 +35,6 @@ final class HttpServletRequest(
 
   extends js.http.HttpServletRequest
 
-  with aspect.MethodTracer // :REMOVE:
-
   with HasAttributes {
 
   final def authenticate(x$1: js.http.HttpServletResponse): Boolean = unsupported
@@ -45,7 +43,7 @@ final class HttpServletRequest(
 
   final def getAuthType: String = unsupported
 
-  final def getContextPath: String = init.contextpath
+  final def getContextPath: String = contextpath
 
   final def getCookies: Array[js.http.Cookie] = unsupported
 
@@ -59,7 +57,7 @@ final class HttpServletRequest(
 
   final def getParts: java.util.Collection[js.http.Part] = unsupported
 
-  final def getPathInfo: String = init.pathinfo
+  final def getPathInfo: String = pathinfo
 
   final def getPathTranslated: String = null
 
@@ -67,7 +65,7 @@ final class HttpServletRequest(
 
   final def getRemoteUser: String = unsupported
 
-  final def getRequestURI: String = init.requesturi
+  final def getRequestURI: String = requesturi
 
   final def getRequestURL: StringBuffer = unsupported
 
@@ -76,9 +74,9 @@ final class HttpServletRequest(
     case _ ⇒ null
   }
 
-  final def getServletPath: String = init.servletpath
+  final def getServletPath: String = servletpath
 
-  final def getSession: js.http.HttpSession = init.httpsession
+  final def getSession: js.http.HttpSession = httpsession
 
   final def getSession(create: Boolean): js.http.HttpSession = getSession
 
@@ -121,7 +119,7 @@ final class HttpServletRequest(
 
   final def getParameterValues(name: String): Array[String] = getParameterMap.get(name)
 
-  final def getParameterMap: JMap[String, Array[String]] = init.parametermap
+  final def getParameterMap: JMap[String, Array[String]] = parametermap
 
   final def getProtocol: String = request.version.toString
 
@@ -133,11 +131,11 @@ final class HttpServletRequest(
 
   final def getReader: BufferedReader = new BufferedReader(new InputStreamReader(getInputStream))
 
-  final def getRemoteAddr: String = init.remoteaddress.getHostString
+  final def getRemoteAddr: String = remoteaddress.getHostString
 
-  final def getRemoteHost: String = init.remoteaddress.getHostName
+  final def getRemoteHost: String = remoteaddress.getHostName
 
-  final def getRemotePort: Int = init.remoteaddress.getPort
+  final def getRemotePort: Int = remoteaddress.getPort
 
   final def getLocale: Locale = Locale.getDefault
 
@@ -149,11 +147,11 @@ final class HttpServletRequest(
 
   final def getRealPath(path: String): String = servletcontext.getRealPath(path)
 
-  final def getLocalName: String = init.localaddress.getHostName
+  final def getLocalName: String = localaddress.getHostName
 
-  final def getLocalAddr: String = init.localaddress.getHostString
+  final def getLocalAddr: String = localaddress.getHostString
 
-  final def getLocalPort: Int = init.localaddress.getPort
+  final def getLocalPort: Int = localaddress.getPort
 
   final def getServletContext: js.ServletContext = servletcontext
 
@@ -238,26 +236,22 @@ final class HttpServletRequest(
 
   final def setLocale(arg0: java.util.Locale) = unsupported
 
-  final def hasSession = null != data
+  final def hasSession = hassession
 
-  @inline private[this] final def init: Data = if (null != data) data else { data = new Data; data }
+  final lazy val requesturi = request.path.mkString("/", "/", "")
 
-  private[this] final var data: Data = new Data
+  final lazy val contextpath = servletcontext.getContextPath
 
-  private[this] final class Data {
+  final lazy val servletpath = servletcontext.getServletMappings.getOrElse(servlet.getServletName, "") match {
+    case "" ⇒ contextpath
+    case s ⇒ s
+  }
 
-    final val requesturi = request.path.mkString("/", "/", "")
+  final lazy val pathinfo = (requesturi.replace(contextpath, "").replace(servletpath, "") + "/") match { case "/" ⇒ null case i ⇒ i }
 
-    final val contextpath = servletcontext.getContextPath
-
-    final val servletpath = servletcontext.getServletMappings.getOrElse(servlet.getServletName, "") match {
-      case "" ⇒ contextpath
-      case s ⇒ s
-    }
-
-    final val pathinfo = (requesturi.replace(contextpath, "").replace(servletpath, "") + "/") match { case "/" ⇒ null case i ⇒ i }
-
-    final val httpsession: HttpSession = `Cookie`(request.headers) match {
+  final lazy val httpsession: HttpSession = {
+    hassession = true
+    `Cookie`(request.headers) match {
       case Some(value) ⇒
         HttpSession.retrieve(value.split(";").head.split("=")(1)) match {
           case null ⇒ HttpSession.create(crypt.Uuid.newUuid, servletcontext)
@@ -266,18 +260,19 @@ final class HttpServletRequest(
       case _ ⇒
         HttpSession.create(crypt.Uuid.newUuid, servletcontext)
     }
-
-    final val parametermap: JMap[String, Array[String]] = if (request.query.isDefined) ignoreOrElse(
-      decodeForm(Some(ArrayEntity(request.query.get.getBytes(`UTF-8`), `text/plain`))) map {
-        case (name, values) ⇒ (name, values.toArray)
-      }, new java.util.HashMap[String, Array[String]])
-    else new java.util.HashMap[String, Array[String]]
-
-    final val localaddress = context.io.channel.asInstanceOf[aio.SocketChannelWithTimeout].channel.getLocalAddress.asInstanceOf[java.net.InetSocketAddress]
-
-    final val remoteaddress = context.io.channel.asInstanceOf[aio.SocketChannelWithTimeout].channel.getRemoteAddress.asInstanceOf[java.net.InetSocketAddress]
-
   }
+
+  final var hassession = false
+
+  final lazy val parametermap: JMap[String, Array[String]] = if (request.query.isDefined) ignoreOrElse(
+    decodeForm(Some(ArrayEntity(request.query.get.getBytes(`UTF-8`), `text/plain`))) map {
+      case (name, values) ⇒ (name, values.toArray)
+    }, new java.util.HashMap[String, Array[String]])
+  else new java.util.HashMap[String, Array[String]]
+
+  final lazy val localaddress = context.io.channel.asInstanceOf[aio.SocketChannelWithTimeout].channel.getLocalAddress.asInstanceOf[java.net.InetSocketAddress]
+
+  final lazy val remoteaddress = context.io.channel.asInstanceOf[aio.SocketChannelWithTimeout].channel.getRemoteAddress.asInstanceOf[java.net.InetSocketAddress]
 
 }
 

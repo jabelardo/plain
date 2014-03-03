@@ -207,7 +207,6 @@ package object io
         var retries = deleteDirectoryRetries
         while (0 < retries) {
           try {
-            createLogger(this).info("deleteDirectory : retry " + retries + " " + directory)
             Thread.sleep(deleteDirectoryPauseBetweenRetries)
             FileUtils.deleteDirectory(directory)
             retries = 0

@@ -2,9 +2,11 @@ package com.ibm
 
 package plain
 
-import config.CheckedConfig
-import org.apache.commons.lang3.SystemUtils._
 import java.net.InetAddress
+import org.apache.commons.lang3.SystemUtils._
+
+import config.CheckedConfig
+import logging.createLogger
 
 package object os
 
@@ -48,14 +50,14 @@ package object os
    * The machine name the JVM is running on.
    */
   final val hostName = try InetAddress.getLocalHost.getHostName catch {
-    case e: Throwable ⇒ logging.defaultLogger.error(e.toString); "localhost"
+    case e: Throwable ⇒ createLogger(this).error(e.toString); "localhost"
   }
 
   /**
    * The canonical hostname the JVM is running on. Depending on DNS settings this might take some time to compute.
    */
   final lazy val canonicalHostName = try InetAddress.getLocalHost.getCanonicalHostName catch {
-    case e: Throwable ⇒ logging.defaultLogger.error(e.toString); "localhost"
+    case e: Throwable ⇒ createLogger(this).error(e.toString); "localhost"
   }
 
 }
