@@ -4,20 +4,13 @@ package plain
 
 package logging
 
-import java.io.{ FileOutputStream, PrintStream }
-import java.nio.file.{ Files, Paths }
+import scala.collection.JavaConversions._
 
-import org.slf4j.LoggerFactory
-
-import scala.concurrent.duration._
-
-import akka.actor.ActorSystem
-import akka.event.{ Logging ⇒ AkkaLogging }
-import akka.event.Logging.{ DebugLevel, ErrorLevel, InfoLevel, WarningLevel, levelFor }
-import akka.event.LoggingAdapter
-import ch.qos.logback.classic.LoggerContext
-import ch.qos.logback.classic.joran.JoranConfigurator
-import ch.qos.logback.core.util.StatusPrinter
+import org.apache.logging.log4j.Level
+import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.core.LoggerContext
+import org.apache.logging.log4j.core.config.Configurator
+import org.slf4j.{ Logger ⇒ JLogger, LoggerFactory }
 
 import bootstrap.BaseComponent
 
@@ -28,73 +21,39 @@ abstract sealed class Logging
 
   extends BaseComponent[Logging]("plain-logging") {
 
-  override def isStopped = loggingSystem.isTerminated
+  override final def start = {
+    defaultLogger.trace("Logging started.")
+    this
+  }
 
-  override def start = {
-    if (isEnabled) {
-      if (isStopped) throw new IllegalStateException("Underlying system already terminated and cannot be started more than once.")
-      val context = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
-      try {
-        val configurator = new JoranConfigurator
-        configurator.setContext(context)
-        context.reset
-        configurator.doConfigure(getClass.getClassLoader.getResourceAsStream("logback.xml"))
-        if (loggingConsole.enable && loggingConsole.toFile) {
-          try {
-            val path = Paths.get(System.getProperty("plain.logging.console.file"))
-            Files.createDirectories(path.getParent)
-            val console = new PrintStream(new FileOutputStream(path.toFile))
-            System.setOut(console)
-            System.setErr(console)
-          } catch {
-            case e: Throwable ⇒
-              println("Could not create plain.logging.console.file : " + e)
-          }
-        }
-      } catch {
-        case e: Throwable ⇒ println(e)
-      }
-      StatusPrinter.printInCaseOfErrorsOrWarnings(context)
-
-      if (config.logConfigOnStart) if (defaultLogger.isInfoEnabled) defaultLogger.info(config.settings.root.render)
+  override final def stop = {
+    if (isStarted) try {
+      defaultLogger.trace("Logging stopped.")
+      Configurator.shutdown(LogManager.getContext(false).asInstanceOf[LoggerContext])
+    } catch {
+      case e: Throwable ⇒ defaultLogger.error("Logging shutdown failed : " + e)
     }
     this
   }
 
-  override def stop = {
-    if (isStarted) loggingSystem.shutdown
-    this
+  final def getLevel = loggingLevel
+
+  final def setLevel(level: String) = {
+    val oldlevel = loggingLevel
+    val newlevel = Level.toLevel(canonicalLevel(level))
+    require(newlevel.name == canonicalLevel(level), "Invalid level. Valid values are ALL, TRACE, DEBUG, INFO, WARN, ERROR and OFF.")
+    val context = LogManager.getContext(false).asInstanceOf[LoggerContext]
+    context.getConfiguration.getLoggers.values.foreach(config ⇒ config.setLevel(newlevel))
+    context.updateLoggers
+    defaultLogger.info("Changed logging level from '" + oldlevel + "' to '" + newlevel + "'.")
   }
 
-  override def awaitTermination(timeout: Duration) = if (!loggingSystem.isTerminated) loggingSystem.awaitTermination(timeout)
-
-  def infoLevel = loggingSystem.eventStream.setLogLevel(InfoLevel)
-
-  def createLogger(any: Any): LoggingAdapter = AkkaLogging.getLogger(loggingSystem.eventStream, any.getClass)
-
-  def createLogger(name: String): LoggingAdapter = AkkaLogging.getLogger(loggingSystem.eventStream, name)
-
-  def getLogLevel = loggingSystem.eventStream.logLevel match {
-    case DebugLevel ⇒ "Debug"
-    case InfoLevel ⇒ "Info"
-    case WarningLevel ⇒ "Warning"
-    case ErrorLevel ⇒ "Error"
-    case l ⇒ l.toString
+  def createLogger(any: Any): Logger = any match {
+    case name: String ⇒ new NamedLogger(name)
+    case any ⇒ new NamedLogger(any.getClass.getName.replace("$", ""))
   }
 
-  def setLogLevel(level: String) = loggingSystem.eventStream.setLogLevel(level match {
-    case "Debug" ⇒ DebugLevel
-    case "Info" ⇒ InfoLevel
-    case "Warning" ⇒ WarningLevel
-    case "Error" ⇒ ErrorLevel
-    case _ ⇒ loggingSystem.eventStream.logLevel
-  })
-
-  private[this] lazy val loggingSystem = {
-    val system = ActorSystem(name)
-    system.eventStream.setLogLevel(levelFor(loggingLevel).getOrElse(DebugLevel))
-    system
-  }
+  private[logging] final def createJLogger(name: String): JLogger = LoggerFactory.getLogger(name)
 
 }
 

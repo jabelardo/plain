@@ -30,7 +30,7 @@ trait OnlyOnce {
     }
   }
 
-  private[this] final val done = new AtomicBoolean
+  private[this] final val done = new AtomicBoolean(false)
 
   private[this] final val doing = new ReentrantLock
 

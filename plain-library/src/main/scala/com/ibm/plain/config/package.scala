@@ -23,15 +23,26 @@ package object config
 
   final val version = getString("plain.config.version")
 
-  final val logConfigOnStart = getBoolean("plain.config.log-config-on-start")
+  private[this] final val rconfig = new RichConfig(settings)
 
-  final val rethrowExceptionOnError = getBoolean("plain.config.rethrow-exception-on-error")
+  final val logConfigOnStart = rconfig.getBoolean("plain.config.log-config-on-start", false)
 
-  final val printStackTraceOnError = getBoolean("plain.config.print-stacktrace-on-error")
+  final val logConfigFormatted = rconfig.getBoolean("plain.config.log-config-formatted", false)
 
-  final val terminateOnError = getBoolean("plain.config.terminate-on-error")
+  final val rethrowExceptionOnError = rconfig.getBoolean("plain.config.rethrow-exception-on-error", false)
 
-  final val terminateOnErrorExitCode = getInt("plain.config.terminate-on-error-exitcode")
+  final val printStackTraceOnError = rconfig.getBoolean("plain.config.print-stacktrace-on-error", true)
+
+  final val terminateOnError = rconfig.getBoolean("plain.config.terminate-on-error", true)
+
+  final val terminateOnErrorExitCode = rconfig.getInt("plain.config.terminate-on-error-exitcode", -1)
+
+  /**
+   * Must match the version string provided by the *.conf files.
+   */
+  final val requiredVersion = "1.0.0"
+
+  final val home = rconfig.getString("plain.config.home", System.getenv("PLAIN_HOME"))
 
   /**
    * implicit conversions
@@ -40,16 +51,10 @@ package object config
   implicit def config2RichConfig(config: Config) = new RichConfig(config)
 
   /**
-   * Must match the version string provided by the *.conf files.
-   */
-  final val requiredVersion = "1.0.0"
-
-  final val home = getString("plain.config.home", System.getenv("PLAIN_HOME"))
-
-  /**
    * check requirements
    */
   require(null != home, "Neither plain.config.home config setting nor PLAIN_HOME environment variable are set.")
+
   require(requiredVersion == config.version, String.format("plain.config.version in *.conf files (%s) does not match internal version (%s).", config.version, requiredVersion))
 
 }

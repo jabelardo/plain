@@ -24,48 +24,39 @@ object ConnectionHelper {
   /**
    * Return an Option.
    */
-  implicit def rrs2Boolean(rs: RichResultSet) = rs.nextBoolean
-  implicit def rrs2Byte(rs: RichResultSet) = rs.nextByte
-  implicit def rrs2Int(rs: RichResultSet) = rs.nextInt
-  implicit def rrs2Long(rs: RichResultSet) = rs.nextLong
-  implicit def rrs2Float(rs: RichResultSet) = rs.nextFloat
-  implicit def rrs2Double(rs: RichResultSet) = rs.nextDouble
-  implicit def rrs2String(rs: RichResultSet) = rs.nextString
-  implicit def rrs2Date(rs: RichResultSet) = rs.nextDate
-  implicit def rrs2Time(rs: RichResultSet) = rs.nextTime
-  implicit def rrs2Timestamp(rs: RichResultSet) = rs.nextTimestamp
-  implicit def rrs2InputStream(rs: RichResultSet) = rs.nextInputStream
-  implicit def rrs2Array(rs: RichResultSet) = rs.nextArray
+  implicit def rrs2Boolean(rs: RichResultSet) = rs.nextOptionBoolean
+  implicit def rrs2Byte(rs: RichResultSet) = rs.nextOptionByte
+  implicit def rrs2Int(rs: RichResultSet) = rs.nextOptionInt
+  implicit def rrs2Long(rs: RichResultSet) = rs.nextOptionLong
+  implicit def rrs2Float(rs: RichResultSet) = rs.nextOptionFloat
+  implicit def rrs2Double(rs: RichResultSet) = rs.nextOptionDouble
+  implicit def rrs2String(rs: RichResultSet) = rs.nextOptionString
+  implicit def rrs2Date(rs: RichResultSet) = rs.nextOptionDate
+  implicit def rrs2Time(rs: RichResultSet) = rs.nextOptionTime
+  implicit def rrs2Timestamp(rs: RichResultSet) = rs.nextOptionTimestamp
+  implicit def rrs2InputStream(rs: RichResultSet) = rs.nextOptionInputStream
+  implicit def rrs2Array(rs: RichResultSet) = rs.nextOptionArray
 
   /**
    * Return a default value in case of None.
    */
-  implicit final def rs2Boolean(rs: RichResultSet) = rs.nextBoolean.getOrElse(false)
-  implicit final def rs2Byte(rs: RichResultSet): Byte = rs.nextByte.getOrElse(0)
-  implicit final def rs2Int(rs: RichResultSet): Int = rs.nextInt.getOrElse(0)
-  implicit final def rs2Long(rs: RichResultSet): Long = rs.nextLong.getOrElse(0L)
-  implicit final def rs2Float(rs: RichResultSet) = rs.nextFloat.getOrElse(0.0F)
-  implicit final def rs2Double(rs: RichResultSet) = rs.nextDouble.getOrElse(0.0)
-  implicit final def rs2String(rs: RichResultSet) = rs.nextString.getOrElse("")
-  implicit final def rs2Date(rs: RichResultSet) = rs.nextDate.getOrElse(Date.valueOf("1970-01-01"))
-  implicit final def rs2Time(rs: RichResultSet) = rs.nextTime.getOrElse(Time.valueOf("00:00:00"))
-  implicit final def rs2Timestamp(rs: RichResultSet) = rs.nextTimestamp.getOrElse(Timestamp.valueOf("1970-01-01 00:00:00.000000000"))
-  implicit final def rs2InputStream(rs: RichResultSet) = rs.nextInputStream.getOrElse(new ByteArrayInputStream(new Array[Byte](0)))
-  implicit final def rs2Array(rs: RichResultSet) = rs.nextArray.getOrElse(new Array[Byte](0))
+  implicit final def rs2Boolean(rs: RichResultSet) = rs.nextOptionBoolean.getOrElse(false)
+  implicit final def rs2Byte(rs: RichResultSet): Byte = rs.nextOptionByte.getOrElse(0)
+  implicit final def rs2Int(rs: RichResultSet): Int = rs.nextOptionInt.getOrElse(0)
+  implicit final def rs2Long(rs: RichResultSet): Long = rs.nextOptionLong.getOrElse(0L)
+  implicit final def rs2Float(rs: RichResultSet) = rs.nextOptionFloat.getOrElse(0.0F)
+  implicit final def rs2Double(rs: RichResultSet) = rs.nextOptionDouble.getOrElse(0.0)
+  implicit final def rs2String(rs: RichResultSet) = rs.nextOptionString.getOrElse("")
+  implicit final def rs2Date(rs: RichResultSet) = rs.nextOptionDate.getOrElse(Date.valueOf("1970-01-01"))
+  implicit final def rs2Time(rs: RichResultSet) = rs.nextOptionTime.getOrElse(Time.valueOf("00:00:00"))
+  implicit final def rs2Timestamp(rs: RichResultSet) = rs.nextOptionTimestamp.getOrElse(Timestamp.valueOf("1970-01-01 00:00:00.000000000"))
+  implicit final def rs2InputStream(rs: RichResultSet) = rs.nextOptionInputStream.getOrElse(new ByteArrayInputStream(new Array[Byte](0)))
+  implicit final def rs2Array(rs: RichResultSet) = rs.nextOptionArray.getOrElse(new Array[Byte](0))
 
   implicit final def resultSet2Rich(rs: ResultSet) = new RichResultSet(rs)
-  //  implicit final def rich2ResultSet(r: RichResultSet) = r.rs
 
-  implicit final def ps2Rich(ps: PreparedStatement) = new RichPreparedStatement(ps)
-  //  implicit final def rich2PS(r: RichPreparedStatement) = r.ps
-
-  implicit final def str2RichPrepared(s: String)(implicit conn: Connection): RichPreparedStatement = conn.prepareStatement(s, FETCH_FORWARD, TYPE_FORWARD_ONLY, CONCUR_READ_ONLY)
-  implicit final def conn2Rich(conn: Connection) = new RichConnection(conn)
-
-  implicit final def st2Rich(s: Statement) = new RichStatement(s)
-  implicit final def rich2St(rs: RichStatement) = rs.s
-
-  implicit final def conn2Statement(conn: Connection): Statement = conn.createStatement
+  implicit final def str2RichPrepared(s: String)(implicit conn: Connection) =
+    new RichPreparedStatement(conn.prepareStatement(s, Array(CONCUR_READ_ONLY)))
 
   /**
    * Methods like map, list, dump and row should be used for debugging and rapid prototyping, whenever performance or memory consumption is an issue they must be avoided.
@@ -77,18 +68,31 @@ object ConnectionHelper {
      */
     final def apply(i: Int) = { require(0 < i && i <= rs.getMetaData.getColumnCount); pos = i; this }
 
-    final def nextBoolean: Option[Boolean] = { val ret = rs.getBoolean(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
-    final def nextByte: Option[Byte] = { val ret = rs.getByte(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
-    final def nextInt: Option[Int] = { val ret = rs.getInt(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
-    final def nextLong: Option[Long] = { val ret = rs.getLong(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
-    final def nextFloat: Option[Float] = { val ret = rs.getFloat(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
-    final def nextDouble: Option[Double] = { val ret = rs.getDouble(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
-    final def nextString: Option[String] = { val ret = rs.getString(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
-    final def nextDate: Option[Date] = { val ret = rs.getDate(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
-    final def nextTime: Option[Time] = { val ret = rs.getTime(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
-    final def nextTimestamp: Option[Timestamp] = { val ret = rs.getTimestamp(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
-    final def nextInputStream: Option[InputStream] = { val ret = rs.getBlob(pos); pos += 1; if (rs.wasNull) None else Some(ret.getBinaryStream) }
-    final def nextArray: Option[Array[Byte]] = { val ret = rs.getBlob(pos); pos += 1; if (rs.wasNull) None else { val r = Some(ret.getBytes(1, ret.length.toInt)); ret.free; r } }
+    final def nextBoolean: Boolean = { val ret = rs.getBoolean(pos); pos += 1; ret }
+    final def nextByte: Byte = { val ret = rs.getByte(pos); pos += 1; ret }
+    final def nextInt: Int = { val ret = rs.getInt(pos); pos += 1; ret }
+    final def nextLong: Long = { val ret = rs.getLong(pos); pos += 1; ret }
+    final def nextFloat: Float = { val ret = rs.getFloat(pos); pos += 1; ret }
+    final def nextDouble: Double = { val ret = rs.getDouble(pos); pos += 1; ret }
+    final def nextString: String = { val ret = rs.getString(pos); pos += 1; ret }
+    final def nextDate: Date = { val ret = rs.getDate(pos); pos += 1; ret }
+    final def nextTime: Time = { val ret = rs.getTime(pos); pos += 1; ret }
+    final def nextTimestamp: Timestamp = { val ret = rs.getTimestamp(pos); pos += 1; ret }
+    final def nextInputStream: InputStream = { val ret = rs.getBlob(pos); pos += 1; ret.getBinaryStream }
+    final def nextArray: Array[Byte] = { val ret = rs.getBlob(pos); pos += 1; val r = ret.getBytes(1, ret.length.toInt); ret.free; r }
+
+    final def nextOptionBoolean: Option[Boolean] = { val ret = rs.getBoolean(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
+    final def nextOptionByte: Option[Byte] = { val ret = rs.getByte(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
+    final def nextOptionInt: Option[Int] = { val ret = rs.getInt(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
+    final def nextOptionLong: Option[Long] = { val ret = rs.getLong(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
+    final def nextOptionFloat: Option[Float] = { val ret = rs.getFloat(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
+    final def nextOptionDouble: Option[Double] = { val ret = rs.getDouble(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
+    final def nextOptionString: Option[String] = { val ret = rs.getString(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
+    final def nextOptionDate: Option[Date] = { val ret = rs.getDate(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
+    final def nextOptionTime: Option[Time] = { val ret = rs.getTime(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
+    final def nextOptionTimestamp: Option[Timestamp] = { val ret = rs.getTimestamp(pos); pos += 1; if (rs.wasNull) None else Some(ret) }
+    final def nextOptionInputStream: Option[InputStream] = { val ret = rs.getBlob(pos); pos += 1; if (rs.wasNull) None else Some(ret.getBinaryStream) }
+    final def nextOptionArray: Option[Array[Byte]] = { val ret = rs.getBlob(pos); pos += 1; if (rs.wasNull) None else { val r = Some(ret.getBytes(1, ret.length.toInt)); ret.free; r } }
 
     final def foldLeft[A](init: A)(f: (ResultSet, A) ⇒ A): A = rs.next match {
       case false ⇒ init
@@ -150,11 +154,9 @@ object ConnectionHelper {
       case t ⇒ unsupported
     }
 
-    private[this] final var pos = 1
+    private[this] final def columncount = rs.getMetaData.getColumnCount
 
-    private[this] final val columncount = rs.getMetaData.getColumnCount
-
-    private[this] final val meta = {
+    private[this] final def meta = {
       val metadata = rs.getMetaData
       val width = 32
       val array = new Array[(String, Int, ResultSet ⇒ Int ⇒ Any)](columncount)
@@ -163,36 +165,44 @@ object ConnectionHelper {
       array
     }
 
+    private[this] final var pos = 1
+
   }
 
   /**
    *
    */
-  final class RichPreparedStatement(private[this] val ps: PreparedStatement) {
+  final class RichPreparedStatement(
 
-    final def execute[A](f: RichResultSet ⇒ A): Stream[A] = {
+    private[this] val ps: PreparedStatement) {
+
+    @inline final def execute[A](f: RichResultSet ⇒ A): Stream[A] = {
       pos = 1
       makestream(f, ps.executeQuery)
     }
 
-    final def execute: Boolean = { pos = 1; ps.execute }
+    @inline final def execute: Boolean = { pos = 1; ps.execute }
 
-    final def executeUpdate: Int = { pos = 1; ps.executeUpdate }
+    @inline final def executeUpdate: Int = { pos = 1; ps.executeUpdate }
 
-    final def !! = execute((rs: RichResultSet) ⇒ rs)
+    final def ! = execute((rs: RichResultSet) ⇒ rs)
 
-    final def <<![A](f: RichResultSet ⇒ A) = execute(f)
+    final def ![A](f: RichResultSet ⇒ A) = execute(f)
 
-    final def <<! = execute
+    final def !! = execute
 
-    final def <<!! = executeUpdate
+    final def +! = executeUpdate
+
+    final def ++ = ps.addBatch
+
+    final def ++! = { pos = 1; ps.executeBatch }
 
     final def <<?(n: Int): RichPreparedStatement = { repeat = n; this }
 
     final def <<(any: Option[Any]): RichPreparedStatement = {
       any match {
         case None ⇒
-          ps.setNull(pos, Types.NULL); inc
+          ps.setNull(pos, Types.NULL); pos += 1; this
         case Some(a) ⇒ (this << a)
       }
     }
@@ -218,40 +228,16 @@ object ConnectionHelper {
       this <<? 1
     }
 
-    @inline private[this] final def inc = { pos += 1; this }
-
     private[this] final var pos = 1
 
     private[this] final var repeat = 1
 
   }
 
-  /**
-   *
-   */
-  final class RichConnection(val conn: Connection) extends AnyVal {
-    final def <<(sql: String) = new RichStatement(conn.createStatement) << sql
-    final def <<(sql: Seq[String]) = new RichStatement(conn.createStatement) << sql
-  }
-
-  /**
-   *
-   */
-  final class RichStatement(val s: Statement) extends AnyVal {
-    final def <<(sql: String) = { s.execute(sql); this }
-    final def <<(sql: Seq[String]) = { for (x ← sql) s.execute(x); this }
-  }
-
-  /**
-   *
-   */
   implicit final def query[A](s: String, f: RichResultSet ⇒ A)(implicit stat: Statement): Stream[A] = {
     makestream(f, stat.executeQuery(s))
   }
 
-  /**
-   *
-   */
   implicit final def simpleQuery(s: String)(implicit stat: Statement): Stream[RichResultSet] = {
     query(s, (rs: RichResultSet) ⇒ rs)
   }

@@ -2,16 +2,23 @@ package com.ibm
 
 package plain
 
-import java.lang.reflect.{ Method, Modifier }
-import scala.collection.JavaConversions._
-import scala.reflect.runtime.universe._
+import java.lang.management.ManagementFactory
+
+import scala.collection.JavaConversions.asScalaSet
+import scala.reflect.runtime.universe.runtimeMirror
+
 import org.reflections.Reflections
-import org.reflections.util._
-import org.reflections.scanners._
 
 /**
  * Some tools to ease the use the Java reflection api in Scala.
  */
+import java.lang.management.ManagementFactory
+
+import scala.collection.JavaConversions.asScalaSet
+import scala.reflect.runtime.universe.runtimeMirror
+
+import org.reflections.Reflections
+
 package object reflect {
 
   final val mirror = runtimeMirror(getClass.getClassLoader)
@@ -23,18 +30,16 @@ package object reflect {
 
   final lazy val reflections = new Reflections("com.ibm.plain") // not working with OneJar, needs work-around
 
-  def subClasses[A](clazz: Class[A]): Set[Class[_ <: A]] = reflections.getSubTypesOf(clazz).toSet
+  final def subClasses[A](clazz: Class[A]): Set[Class[_ <: A]] = reflections.getSubTypesOf(clazz).toSet
 
-  def tryBoolean(p: ⇒ Any, show: Boolean = false) = try { p; true } catch { case e: Throwable ⇒ if (show) println(e); false }
+  final def tryBoolean(p: ⇒ Any, show: Boolean = false) = try { p; true } catch { case e: Throwable ⇒ if (show) println(e); false }
 
-  def tryLocation = try { throw new Exception("tryLocation thrown.") } catch { case e: Throwable ⇒ e.printStackTrace }
-
-  def stackSize = try { throw new Exception("stackSize thrown.") } catch { case e: Throwable ⇒ println("stackSize : " + e.getStackTrace.size) }
+  final def stackSize = try { throw new Exception("stackSize thrown.") } catch { case e: Throwable ⇒ println("stackSize : " + e.getStackTrace.size) }
 
   /**
    * Returns the primitive corresponding to it, for example Int for java.lang.Integer
    */
-  def primitive(clazz: Class[_]) = clazz.getName match {
+  final def primitive(clazz: Class[_]) = clazz.getName match {
     case "java.lang.Boolean" ⇒ classOf[Boolean]
     case "java.lang.Byte" ⇒ classOf[Byte]
     case "java.lang.Character" ⇒ classOf[Char]
@@ -49,7 +54,7 @@ package object reflect {
   /**
    * Returns the boxed corresponding to it, for example java.lang.Integer for Int
    */
-  def boxed(clazz: Class[_]) = clazz.getName match {
+  final def boxed(clazz: Class[_]) = clazz.getName match {
     case "boolean" ⇒ classOf[java.lang.Boolean]
     case "byte" ⇒ classOf[java.lang.Byte]
     case "char" ⇒ classOf[java.lang.Character]
@@ -64,7 +69,7 @@ package object reflect {
   /**
    * Returns a 'scala-safe' getSimpleName for the provided class.
    */
-  def simpleName(n: String): String = {
+  final def simpleName(n: String): String = {
     val last = n.lastIndexOf('$')
     if (-1 < last) {
       val prev = n.lastIndexOf('$', last - 1)
@@ -75,7 +80,7 @@ package object reflect {
   /**
    * Returns a 'scala-safe' getSimpleName for the provided class' parent.
    */
-  def simpleParentName(n: String): String = {
+  final def simpleParentName(n: String): String = {
     val last = n.lastIndexOf('$', n.length - 2)
     if (-1 < last) {
       val prev = n.lastIndexOf('$', last - 1)
@@ -87,7 +92,7 @@ package object reflect {
    * Return a 'beautiful' name for a class/object that was named with ``, this is so! expensive please only call it only once e.g. on  objects.
    * Please note: Usually case class/object .toString does exactly this, alas sometimes it doesn't, e.g. if your hierarchy extends from a Function.
    */
-  def scalifiedName(cls: Class[_]): String = simpleName(cls.getName
+  final def scalifiedName(cls: Class[_]): String = simpleName(cls.getName
     .replace("$eq", "=")
     .replace("$u002E", ".")
     .replace("$greater", ">")

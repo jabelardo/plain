@@ -9,10 +9,11 @@ import java.nio.file.FileSystemException
 
 import aio.{ Processor ⇒ AioProcessor }
 
-import Status.ServerError
+import Status.{ ClientError, ServerError, ErrorStatus }
+import Entity.ArrayEntity
 import aio.Io
 import aio.Iteratee.{ Done, Error }
-import logging.HasLogger
+import logging.Logger
 import text.stackTraceToString
 
 /**
@@ -22,29 +23,54 @@ abstract class Processor
 
   extends AioProcessor[Response]
 
-  with HasLogger {
+  with Logger {
 
   final def completed(response: Response, io: Io) = {
     io ++ Done[Io, Response](response)
   }
 
-  def failed(e: Throwable, io: Io) = {
-    io ++ (e match {
-      case e: IOException if !e.isInstanceOf[FileSystemException] ⇒ Error[Io](e)
-      case status: Status ⇒
+  def failed(e: Throwable, io: Io) = io ++ (e match {
+    case e: IOException if !e.isInstanceOf[FileSystemException] ⇒ Error[Io](e)
+    case status: Status ⇒
+      status match {
+        case servererror: ServerError ⇒ debug("Dispatching failed : " + stackTraceToString(status))
+        case _ ⇒
+      }
+      val request = ignoreOrElse(io.message.asInstanceOf[Request], null)
+      val response = ignoreOrElse(io.message.asInstanceOf[Response], null)
+      Done[Io, Response](if (null != response) {
         status match {
-          case servererror: ServerError ⇒ if (log.isDebugEnabled) debug(stackTraceToString(status))
+          case e: ErrorStatus ⇒ response ++ errorPage(e.code, e.reason, if (null == response.request) "Unknown" else response.request.path.mkString("/"))
           case _ ⇒
         }
+        response ++ status
+      } else {
+        Response(request, status) ++ errorPage(status.code, status.reason, if (null == request) "Unknown" else request.path.mkString("/"))
+      })
+    case e ⇒
+      info("Dispatching failed : " + e)
+      debug(stackTraceToString(e))
+      Done[Io, Response] {
+        val e = ServerError.`500`
         val request = try io.message.asInstanceOf[Request] catch { case _: Throwable ⇒ null }
-        val response = try io.message.asInstanceOf[Response] catch { case _: Throwable ⇒ null }
-        Done[Io, Response](if (null != response) response ++ status else Response(request, status))
-      case e ⇒
-        info("Dispatching failed : " + e)
-        if (log.isDebugEnabled) debug(stackTraceToString(e))
-        Done[Io, Response](Response(null, ServerError.`500`))
-    })
-  }
+        Response(null, e) ++ errorPage(e.code, e.reason, if (null == request) "Unknown" else request.path.mkString("/"))
+      }
+  })
+
+  private[this] final def errorPage(code: String, reason: String, uri: String) = ArrayEntity(
+    s"""                                                                                                                           
+                                                                                                                          
+     Error : $code                                                                                                                          
+                                                                                                                           
+     Message : $reason                                                                                                                    
+                                                                                                                            
+     Link : $uri                                                                                                                    
+                                                                                                                           
+""".getBytes(text.`UTF-8`), ContentType(MimeType.`text/plain`))
+
+}
+
+private object Processor {
 
 }
 

@@ -4,11 +4,11 @@ package plain
 
 package concurrent
 
+import java.util.concurrent.TimeUnit
+
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Duration
 
-import akka.actor.ActorSystem
-import akka.dispatch.ExecutorServiceDelegate
-import config.config2RichConfig
 import bootstrap.BaseComponent
 
 /**
@@ -20,48 +20,27 @@ abstract sealed class Concurrent
 
   with OnlyOnce {
 
-  override def isStarted = null != actorSystem && !actorSystem.isTerminated
-
-  override def isStopped = null != actorSystem && actorSystem.isTerminated
-
-  override def start = {
-    if (isEnabled) {
-      if (isStopped) throw new IllegalStateException("Underlying system already terminated and cannot be started more than once.")
-      createActorSystem
+  override final def stop = {
+    if (isStarted) {
+      forkjoinpool.shutdown
+      scheduledpool.shutdown
     }
     this
   }
 
-  override def stop = {
-    if (isStarted) actorSystem.shutdown
-    this
-  }
+  override final def awaitTermination(timeout: Duration) = forkjoinpool.awaitTermination(timeout.toMillis, TimeUnit.MILLISECONDS)
 
-  override def awaitTermination(timeout: Duration) = if (!actorSystem.isTerminated) actorSystem.awaitTermination(timeout)
+  final def scheduler = scheduledpool
 
-  final def dispatcher = { if (null == actorSystem) createActorSystem; actorSystem.dispatcher }
+  final def executor = executioncontext
 
-  final def scheduler = { if (null == actorSystem) createActorSystem; actorSystem.scheduler }
+  final def ioexecutor = forkjoinpool
 
-  /**
-   * Provide access to the protected field 'executorService' of the dispatcher in order to share the nicely configured threadpool from akka.
-   */
-  final lazy val executor = {
-    import language.existentials
-    createActorSystem
-    val clazz = actorSystem.dispatcher.getClass
-    val executorService = clazz.getDeclaredMethod("executorService")
-    executorService.setAccessible(true)
-    executorService.invoke(actorSystem.dispatcher).asInstanceOf[ExecutorServiceDelegate].executor
-  }
+  private[this] final val scheduledpool = java.util.concurrent.Executors.newScheduledThreadPool(2)
 
-  @inline private[this] final def createActorSystem = onlyonce {
-    import config._
-    import config.settings._
-    actorSystem = ActorSystem(getString("plain.concurrent.actorsystem"), config.settings)
-  }
+  private[this] final val forkjoinpool = new java.util.concurrent.ForkJoinPool(parallelism)
 
-  private[this] final var actorSystem: ActorSystem = null
+  private[this] final val executioncontext: ExecutionContext = ExecutionContext.fromExecutorService(forkjoinpool)
 
 }
 

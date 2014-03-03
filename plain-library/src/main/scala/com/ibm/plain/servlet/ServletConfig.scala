@@ -4,26 +4,45 @@ package plain
 
 package servlet
 
-import javax.servlet.{ ServletConfig ⇒ JServletConfig }
-import rest.Context
+import java.util.Enumeration
+import javax.{ servlet ⇒ js }
+
+import scala.xml.Node
+import scala.language.postfixOps
+import scala.collection.JavaConversions._
 
 /**
  *
  */
-final class ServletConfig private (
+abstract class ServletConfig
 
-  protected[this] final val context: Context)
+  extends js.ServletConfig {
 
-  extends JServletConfig
+  override final def getServletName = name
 
-  with spi.ServletConfig
+  override final def getInitParameter(name: String): String = initparameters.get(name) match { case Some(value) ⇒ value case _ ⇒ null }
 
-/**
- *
- */
-object ServletConfig {
+  override final def getInitParameterNames: Enumeration[String] = initparameters.keysIterator
 
-  final def apply(context: Context): ServletConfig = new ServletConfig(context)
+  override final def getServletContext: js.ServletContext = servletcontext
+
+  protected[this] val servletcontext: ServletContext
+
+  protected[this] val servletxml: Node
+
+  protected[this] final val initparameters = (servletxml \ "init-param") map { p ⇒ (p \ "param-name" text, p \ "param-value" text) } toMap
+
+  protected[this] final val name = (servletxml \ "servlet-name").text
 
 }
 
+/**
+ *
+ */
+final class WebXmlServletConfig(
+
+  protected[this] final val servletxml: Node,
+
+  protected[this] final val servletcontext: ServletContext)
+
+  extends ServletConfig

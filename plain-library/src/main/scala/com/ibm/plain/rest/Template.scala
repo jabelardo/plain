@@ -7,17 +7,19 @@ package rest
 import scala.annotation.tailrec
 import scala.language.existentials
 import scala.util.control.ControlThrowable
-import scala.collection.mutable.OpenHashMap
+import scala.collection.concurrent.TrieMap
 
 import com.typesafe.config.Config
 
 import config._
+import http.Method
 import http.Request.{ Path, Variables }
+import resource.DirectoryResource
 
 /**
  * Error handling.
  */
-case class InvalidTemplate(
+case class InvalidTemplateException(
 
   template: Template,
 
@@ -38,32 +40,30 @@ final case class Segment(name: String, next: Element) extends Element
 
 final case class Variable(name: String, next: Element) extends Element
 
-final case class ResourceClass(resource: Class[_ <: Resource], config: Config, remainderallowed: Boolean) extends Element
+final case class ResourceClass(resource: Class[_ <: BaseResource], config: Config) extends Element
 
 /**
  *
  */
 final class Template private (
 
-  val resource: Class[_ <: Resource],
+  val resource: Class[_ <: BaseResource],
 
   val config: Config,
 
-  val path: String,
-
-  val remainderallowed: Boolean) {
+  val path: String) {
 
   final val root = if (0 == path.length) {
-    ResourceClass(resource, config, remainderallowed)
+    ResourceClass(resource, config)
   } else {
-    path.split("/").reverse.foldLeft[Element](ResourceClass(resource, config, remainderallowed)) {
+    path.split("/").reverse.foldLeft[Element](ResourceClass(resource, config)) {
       case (elems, e) ⇒
         if (e.startsWith("{") && e.endsWith("}"))
           Variable(e.drop(1).dropRight(1), elems)
         else if (!(e.contains("{") || e.contains("}")))
           Segment(e, elems)
         else
-          throw InvalidTemplate(this, "Neither a segment nor a variable.")
+          throw InvalidTemplateException(this, "Neither a segment nor a variable.")
     }
   }
 
@@ -73,57 +73,62 @@ final class Template private (
 
   require(!root.isInstanceOf[Variable], "A path-template must not start with a variable : " + path)
 
-  require({ null != resource.newInstance.asInstanceOf[Resource] }, "Could not instantiate the given class. Did you misspell the absolute class name? (" + resource + ")")
+  if (classOf[BaseResource].isAssignableFrom(resource)) require(null != resource.newInstance.asInstanceOf[BaseResource], "Could not instantiate the given class. Did you misspell the absolute class name? (" + resource + ")")
 
 }
 
 object Template {
 
-  def apply(path: String, clazz: Class[_], config: Config) = new Template(clazz.asInstanceOf[Class[_ <: Resource]], config, path.replace("*", ""), path.endsWith("*"))
+  def apply(path: String, clazz: Class[_], config: Config) = new Template(clazz.asInstanceOf[Class[_ <: BaseResource]], config, path)
 
 }
 
 final case class Templates(
 
-  resource: Option[(Class[_ <: Resource], Config, Boolean)],
+  resource: Option[(Class[_ <: BaseResource], Config)],
 
   branch: Option[Either[(String, Templates), Map[String, Templates]]]) {
 
-  final def get(path: Path): Option[(Class[_ <: Resource], Config, Variables, Path)] = {
+  final def get(method: Method, path: Path): Option[(Class[_ <: BaseResource], Config, Variables, Path)] = {
 
     @inline @tailrec
     def get0(
       path: Path,
-      variables: OpenHashMap[String, String],
-      templates: Templates): Option[(Class[_ <: Resource], Config, Variables, Path)] = {
+      variables: TrieMap[String, String],
+      templates: Templates): Option[(Class[_ <: BaseResource], Config, Variables, Path)] = {
 
       @inline def resource(tail: Path) = templates.resource match {
-        case Some((resourceclass, config, remainderallowed)) if Nil == tail || remainderallowed ⇒ Some((resourceclass, config, variables, tail))
+        case Some((resourceclass, config)) ⇒ Some((resourceclass, config, variables, tail))
         case _ ⇒ None
       }
 
       path match {
         case Nil ⇒ resource(Nil)
-        case l @ (head :: tail) ⇒ templates.branch match {
+        case p @ (head :: tail) ⇒ templates.branch match {
           case Some(Right(branch)) ⇒ branch.get(head) match {
             case Some(subbranch) ⇒ get0(tail, variables, subbranch)
-            case _ ⇒ resource(l)
+            case _ ⇒ branch.get("*") match {
+              case Some(t) if method.readonly && DirectoryResource.exists(t.resource.get._2, p) ⇒
+                val r = t.resource.get
+                Some((r._1, r._2, variables, p))
+              case _ ⇒ resource(p)
+            }
           }
           case Some(Left((name, branch))) ⇒ get0(tail, variables += ((name, head)), branch)
-          case _ ⇒ resource(l)
+          case _ ⇒ resource(p)
         }
       }
     }
 
-    get0(path, new OpenHashMap, this)
+    get0(path, new TrieMap, this)
   }
 
   override final def toString = {
 
     def inner(node: Templates, indent: String): String = {
       (node.resource match {
-        case Some((resourceclass, config, remainderallowed)) ⇒
-          val c = config.toMap; indent + (if (node eq this) "/" else "") + (if (remainderallowed) "/*" else "") + " => " + resourceclass.getName + (if (!c.isEmpty) " => " + c else "")
+        case Some((resourceclass, config)) ⇒
+          val c = config.toMap; indent + (if (node eq this) "/" else "") + " => " + resourceclass.getName + (if (!c.isEmpty) " => " + c else "")
         case _ ⇒ ""
       }) + (node.branch match {
         case Some(Left((name, node))) ⇒ inner(node, indent + "/{" + name + "}")
@@ -147,11 +152,11 @@ object Templates {
 
     def add0(element: Element, node: Option[Templates]): Templates = {
 
-      @inline def alreadyVariable = throw InvalidTemplate(template, "Already a variable at this position.")
+      @inline def alreadyVariable = throw InvalidTemplateException(template, "Already a variable at this position.")
 
-      @inline def alreadySegment = throw InvalidTemplate(template, "Already a segment at this position.")
+      @inline def alreadySegment = throw InvalidTemplateException(template, "Already a segment at this position.")
 
-      @inline def wrongVariable = throw InvalidTemplate(template, "Already a variable with a different name at this position.")
+      @inline def wrongVariable = throw InvalidTemplateException(template, "Already a variable with a different name at this position.")
 
       element match {
         case Segment(name, next) ⇒ node match {
@@ -171,14 +176,14 @@ object Templates {
           case Some(Templates(resource, Some(Left((oldname, branch))))) ⇒ wrongVariable
           case _ ⇒ alreadySegment
         }
-        case ResourceClass(resource, config, remainderallowed) ⇒ node match {
-          case None ⇒ Templates(Some((resource, config, remainderallowed)), None)
-          case Some(Templates(_, node)) ⇒ Templates(Some((resource, config, remainderallowed)), node)
+        case ResourceClass(resource, config) ⇒ node match {
+          case None ⇒ Templates(Some((resource, config)), None)
+          case Some(Templates(_, node)) ⇒ Templates(Some((resource, config)), node)
         }
       }
     }
 
-    Some(add0(template.root, node))
+    if (null != template) Some(add0(template.root, node)) else None
   }
 
 }

@@ -12,11 +12,6 @@ import org.junit.Test
 
 import scala.language.reflectiveCalls
 
-import shapeless._
-import HList._
-import Tuples._
-import TypeOperators._
-
 import column._
 import json.Json
 

@@ -4,33 +4,24 @@ package plain
 
 package servlet
 
-import java.io.OutputStream
-import javax.servlet.{ ServletOutputStream ⇒ JServletOutputStream }
+import io.ByteArrayOutputStream
 
-/**
- *
- */
-final class ServletOutputStream private (
+import javax.{ servlet ⇒ js }
 
-  out: OutputStream)
+final class ServletOutputStream(
 
-  extends JServletOutputStream {
+  private[this] final val out: ByteArrayOutputStream)
 
-  @inline override final def flush = out.flush
+  extends js.ServletOutputStream {
 
-  @inline override final def write(i: Int) = out.write(i)
+  final def write(i: Int) = out.write(i)
 
-  @inline override final def write(a: Array[Byte]) = out.write(a, 0, a.length)
+  override final def write(a: Array[Byte]) = write(a, 0, a.length)
 
-  @inline override final def write(a: Array[Byte], offset: Int, length: Int) = out.write(a, offset, length)
+  override final def write(a: Array[Byte], offset: Int, length: Int) = out.write(a, offset, length)
 
-}
+  final def isReady = unsupported
 
-/**
- *
- */
-object ServletOutputStream {
-
-  final def apply(out: OutputStream): ServletOutputStream = new ServletOutputStream(out)
+  final def setWriteListener(listener: js.WriteListener) = unsupported
 
 }

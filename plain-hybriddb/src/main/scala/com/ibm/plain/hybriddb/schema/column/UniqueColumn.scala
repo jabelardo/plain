@@ -15,7 +15,7 @@ import scala.reflect.ClassTag
  */
 object UniqueColumn {
 
-  type UniqueMap[A] = scala.collection.mutable.OpenHashMap[A, Long]
+  type UniqueMap[A] = scala.collection.concurrent.TrieMap[A, Long]
 
 }
 
@@ -63,7 +63,7 @@ final class UniqueColumnBuilder[@specialized A: ClassTag](
 
   final def result = new UniqueColumn[A](keys.size, array, keys.toMap)
 
-  private[this] final val keys = new UniqueMap[A](capacity.toInt)
+  private[this] final val keys = new UniqueMap[A]
 
   private[this] final val array = new Array[A](capacity.toInt)
 

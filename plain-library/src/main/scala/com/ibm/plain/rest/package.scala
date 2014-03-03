@@ -18,4 +18,12 @@ package object rest
 
   type MultipartForm = scala.collection.Map[String, Any]
 
+  final implicit class Html(val xml: scala.xml.Elem)
+
+    extends AnyVal {
+
+    override final def toString = xml.toString
+
+  }
+
 }

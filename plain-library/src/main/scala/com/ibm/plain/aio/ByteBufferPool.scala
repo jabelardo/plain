@@ -4,19 +4,17 @@ package plain
 
 package aio
 
-import java.nio.{ ByteBuffer, ByteOrder }
+import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicBoolean
 
 import scala.annotation.tailrec
 
-import logging.HasLogger
+import logging.createLogger
 import concurrent.OnlyOnce
 
 final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
 
-  extends HasLogger
-
-  with OnlyOnce {
+  extends OnlyOnce {
 
   /**
    * This is an expensive O(n) operation.
@@ -26,6 +24,7 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
   @tailrec final def get: ByteBuffer = if (trylock) {
     val buffer = try pool match {
       case head :: tail ⇒
+        if (0 < watermark) watermark -= 1
         pool = tail
         head
       case _ ⇒
@@ -35,7 +34,7 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
       buffer.clear
       buffer
     } else {
-      onlyonce { warning("ByteBufferPool exhausted : buffer size " + buffersize + ", initial pool size " + initialpoolsize) }
+      onlyonce { createLogger(this).warn("ByteBufferPool exhausted : buffer size " + buffersize + ", initial pool size " + initialpoolsize) }
       ByteBuffer.allocateDirect(buffersize)
     }
   } else {
@@ -45,10 +44,12 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
 
   @tailrec final def release(buffer: ByteBuffer): Unit = if (trylock) {
     try {
-      // require(!pool.exists(_ eq buffer), "buffer released twice " + pool.size)
-      buffer.clear
-      pool = buffer :: pool
-      // debug("current " + pool.size + ", buffer size " + buffersize + ", initial pool size " + initialpoolsize)
+      if (!pool.exists(_ eq buffer)) {
+        buffer.clear
+        pool = buffer :: pool
+      } else {
+        createLogger(this).warn("Trying to release twice (prevented) " + pool.size + ", buffer size " + buffersize + ", initial pool size " + initialpoolsize)
+      }
     } finally unlock
   } else {
     Thread.`yield`
@@ -60,6 +61,8 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
   @inline private[this] final def unlock = locked.set(false)
 
   @volatile private[this] final var pool: List[ByteBuffer] = (0 until initialpoolsize).map(_ ⇒ ByteBuffer.allocateDirect(buffersize)).toList
+
+  @volatile private[this] final var watermark = initialpoolsize
 
   private[this] final val locked = new AtomicBoolean(false)
 

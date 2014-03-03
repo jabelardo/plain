@@ -22,6 +22,8 @@ sealed abstract class Entity {
 
   val length: Long
 
+  val encodable: Boolean
+
 }
 
 /**
@@ -29,9 +31,25 @@ sealed abstract class Entity {
  */
 object Entity {
 
-  final case class ArrayEntity(array: Array[Byte], contenttype: ContentType) extends Entity { val length: Long = array.length }
+  final case class ArrayEntity(array: Array[Byte], offset: Int, length: Long, contenttype: ContentType) extends Entity {
 
-  final case class ByteBufferEntity(buffer: ByteBuffer, contenttype: ContentType) extends Entity { val length: Long = buffer.remaining }
+    final val encodable = length > aio.tooTinyToCareSize
+
+  }
+
+  object ArrayEntity {
+
+    final def apply(array: Array[Byte], contenttype: ContentType): ArrayEntity = ArrayEntity(array, 0, array.length, contenttype)
+
+  }
+
+  final case class ByteBufferEntity(buffer: ByteBuffer, contenttype: ContentType) extends Entity {
+
+    val length: Long = buffer.remaining
+
+    val encodable = length > aio.tooTinyToCareSize
+
+  }
 
   object ByteBufferEntity {
 
@@ -51,13 +69,13 @@ object Entity {
 
   }
 
-  final case class ContentEntity(contenttype: ContentType, length: Long) extends Entity
+  final case class ContentEntity(contenttype: ContentType, length: Long) extends Entity { val encodable = false }
 
-  final case class AsynchronousByteChannelEntity(channel: AsynchronousByteChannel, contenttype: ContentType, length: Long) extends Entity
+  final case class AsynchronousByteChannelEntity(channel: AsynchronousByteChannel, contenttype: ContentType, length: Long, encodable: Boolean) extends Entity
 
   final case class `User-defined`(encoding: String, contenttype: ContentType) extends TransferEncodedEntity
 
-  sealed abstract class TransferEncodedEntity extends Entity { val length = -1L }
+  sealed abstract class TransferEncodedEntity extends Entity { val length = -1L; val encodable = true }
 
   final case class `identity`(contenttype: ContentType) extends TransferEncodedEntity
 

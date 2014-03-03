@@ -5,11 +5,13 @@ package plain
 package rest
 
 import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel }
+
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.{ Type, TypeTag, typeOf }
 import scala.util.continuations.{ reify, suspendable }
+
 import com.typesafe.config.Config
-import logging.HasLogger
+
 import reflect.tryBoolean
 import aio.{ ByteArrayChannel, FixedLengthChannel, Io, Transfer }
 import http.{ Request, Response, Status, Entity, Method, MimeType, Accept }
@@ -25,11 +27,9 @@ import Matching._
  */
 trait Resource
 
-  extends BaseUniform
+  extends BaseResource
 
-  with DelayedInit
-
-  with HasLogger {
+  with DelayedInit {
 
   import Resource._
 
@@ -73,6 +73,7 @@ trait Resource
   final def process(io: Io) = unsupported
 
   final def handle(context: Context) = try {
+    context ++ Response(context.request, Success.`200`)
     methods.get(context.request.method) match {
       case Some(Right(resourcepriorities)) ⇒ execute(context, resourcepriorities)
       case _ ⇒ throw ClientError.`405`
@@ -159,9 +160,8 @@ trait Resource
         (methodbody, encode)
     } match {
       case Some((methodbody, encode)) ⇒
-        val response = Response(request, Success.`200`)
-        context ++ methodbody ++ response
-        response ++ encode(innerinput match {
+        context ++ methodbody
+        context.response ++ encode(innerinput match {
           case Some((input, _)) ⇒ methodbody.body(input)
           case _ ⇒ throw ServerError.`501`
         })

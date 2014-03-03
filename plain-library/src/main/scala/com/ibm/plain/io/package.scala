@@ -2,18 +2,20 @@ package com.ibm
 
 package plain
 
-import java.io.{ File, IOException, InputStream, OutputStream, Reader, Writer, BufferedOutputStream }
+import java.io.{ BufferedOutputStream, File, IOException, InputStream, OutputStream, Reader, Writer }
+import java.net.URLClassLoader
 import java.nio.ByteBuffer
 import java.nio.channels.{ FileChannel, ReadableByteChannel, WritableByteChannel }
 import java.nio.channels.Channels.newChannel
 import java.nio.file.{ Files, Paths }
-import java.util.zip.{ GZIPInputStream, GZIPOutputStream }
+import java.util.zip.GZIPInputStream
+
 import org.apache.commons.io.FileUtils
+
+import com.ibm.plain.io.{ ByteBufferInputStream, ByteBufferOutputStream, GZIPOutputStream, Io, NullOutputStream }
+
 import concurrent.spawn
-import config.config2RichConfig
-import config.settings.{ getInt, getMilliseconds }
-import config.CheckedConfig
-import io.Io
+import config.{ CheckedConfig, config2RichConfig }
 import logging.createLogger
 
 package object io
@@ -123,6 +125,27 @@ package object io
   }
 
   /**
+   * Create classpath from a given ClassLoader
+   */
+  final def classPathFromClassLoader(classloader: URLClassLoader): String = {
+    val b = new StringBuilder
+    val sep = java.io.File.pathSeparator
+    var cl = classloader
+    while (null != cl) {
+      cl.getURLs.foreach { url ⇒
+        if (0 < b.length) b.append(sep)
+        url.toString match {
+          case u if u.startsWith("file:") ⇒ ignore(b.append(new File(url.toURI).getCanonicalPath))
+          case u if u.startsWith("jndi:") ⇒ b.append(u.drop(5))
+          case u ⇒ b.append(u)
+        }
+      }
+      cl = ignoreOrElse(cl.getParent.asInstanceOf[URLClassLoader], null)
+    }
+    b.toString
+  }
+
+  /**
    * If not set differently this will result to 2k which proved to provide best performance under high load.
    */
   final val defaultBufferSize = getBytes("plain.io.default-buffer-size", 2 * 1024).toInt
@@ -150,7 +173,7 @@ package object io
    * Create a temporary file somewhere in the default location. It will be deleted at JVM shutdown.
    */
   final def temporaryFile = {
-    val f = Files.createTempFile(temp, null, null).toFile
+    val f = Files.createTempFile(temp, null, null).toFile.getAbsoluteFile
     deleteOnExit(f)
     f
   }
@@ -184,7 +207,6 @@ package object io
         var retries = deleteDirectoryRetries
         while (0 < retries) {
           try {
-            createLogger(this).info("deleteDirectory : retry " + retries + " " + directory)
             Thread.sleep(deleteDirectoryPauseBetweenRetries)
             FileUtils.deleteDirectory(directory)
             retries = 0

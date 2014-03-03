@@ -6,9 +6,6 @@ package aio
 
 import java.nio.ByteBuffer
 
-import concurrent.OnlyOnce
-import text.`US-ASCII`
-
 /**
  *
  */
@@ -72,60 +69,23 @@ object Renderable {
 
   case object `:` extends SimpleRenderable(':'.toByte)
 
-  final class r private (val array: Array[Byte])
+  final class r private (val array: Array[Byte], val offset: Int, val length: Int)
 
-    extends AnyVal with Renderable {
+    extends Renderable {
 
-    @inline final def render(implicit out: ByteBuffer) = out.put(array)
+    @inline final def render(implicit out: ByteBuffer) = out.put(array, offset, length)
 
   }
 
   object r {
 
-    @inline final def apply(array: Array[Byte]): r = new r(array)
+    @inline final def apply(array: Array[Byte], offset: Int, length: Int): r = new r(array, offset, length)
 
-    @inline final def apply(l: Long): r = new r(ls(l))
+    @inline final def apply(array: Array[Byte]): r = new r(array, 0, array.length)
 
-    @inline final def apply(i: Int): r = new r(ls(i))
+    @inline final def apply(i: Int): r = apply(i.toString.getBytes)
 
-    @inline private[this] final def ls(l: Long) = try longs(l.toInt) catch { case _: Throwable ⇒ l.toString.getBytes }
-
-    @inline private[this] final def ls(i: Int) = try longs(i) catch { case _: Throwable ⇒ i.toString.getBytes }
-
-    private[this] final val longs: Array[Array[Byte]] = Array(
-      "0".getBytes,
-      "1".getBytes,
-      "2".getBytes,
-      "3".getBytes,
-      "4".getBytes,
-      "5".getBytes,
-      "6".getBytes,
-      "7".getBytes,
-      "8".getBytes,
-      "9".getBytes,
-      "10".getBytes,
-      "11".getBytes,
-      "12".getBytes,
-      "13".getBytes,
-      "14".getBytes,
-      "15".getBytes,
-      "16".getBytes,
-      "17".getBytes,
-      "18".getBytes,
-      "19".getBytes,
-      "20".getBytes,
-      "21".getBytes,
-      "22".getBytes,
-      "23".getBytes,
-      "24".getBytes,
-      "25".getBytes,
-      "26".getBytes,
-      "27".getBytes,
-      "28".getBytes,
-      "29".getBytes,
-      "30".getBytes,
-      "31".getBytes,
-      "32".getBytes)
+    @inline final def apply(l: Long): r = apply(l.toString.getBytes)
 
   }
 

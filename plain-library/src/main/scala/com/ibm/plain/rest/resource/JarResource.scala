@@ -15,7 +15,7 @@ import http.Entity.ArrayEntity
 import http.MimeType.{ `application/octet-stream`, forExtension }
 import http.Status.ClientError
 import io.{ copyBytesIo ⇒ copy }
-import logging.HasLogger
+import logging.Logger
 
 /**
  *
@@ -53,5 +53,5 @@ class JarResource
 /**
  *
  */
-object JarResource extends HasLogger
+object JarResource extends Logger
 

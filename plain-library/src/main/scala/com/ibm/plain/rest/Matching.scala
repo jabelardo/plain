@@ -5,10 +5,12 @@ package plain
 package rest
 
 import java.nio.{ ByteBuffer, CharBuffer }
+import java.util.Arrays.copyOfRange
 import scala.collection.mutable.{ HashMap, MultiMap, Set ⇒ MutableSet }
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.{ Type, typeOf }
 import scala.xml.{ XML, Elem ⇒ Xml }
+import scala.language.implicitConversions
 import json.{ Json, JsonMarshaled }
 import json.Json.{ JArray, JObject }
 import text.{ `UTF-8`, fastSplit, convertCharset }
@@ -22,7 +24,7 @@ import http.MimeType._
 import http.Entity
 import http.Entity._
 
-private final class Matching {
+final class Matching {
 
   import Matching._
 
@@ -32,6 +34,7 @@ private final class Matching {
     final val array = typeOf[Array[Byte]]
     final val bytebuffer = typeOf[ByteBuffer]
     final val string = typeOf[String]
+    final val html = typeOf[Html]
     final val form = typeOf[Form]
     final val multipartform = typeOf[MultipartForm]
     final val json = typeOf[Json]
@@ -48,9 +51,11 @@ private final class Matching {
 
   final val decodeUnit: Decoder[Unit] = (entity: Option[Entity]) ⇒ ()
 
-  final val decodeArray: Decoder[Array[Byte]] = (entity: Option[Entity]) ⇒ entity match { case Some(a: ArrayEntity) ⇒ a.array case _ ⇒ throw ClientError.`415` }
+  final val decodeArray: Decoder[Array[Byte]] = (entity: Option[Entity]) ⇒ entity match { case Some(a: ArrayEntity) ⇒ copyOfRange(a.array, a.offset, a.length.toInt) case _ ⇒ throw ClientError.`415` }
 
-  final val decodeString: Decoder[String] = (entity: Option[Entity]) ⇒ entity match { case Some(a: ArrayEntity) ⇒ new String(a.array, a.contenttype.charsetOrDefault) case _ ⇒ throw ClientError.`415` }
+  final val decodeString: Decoder[String] = (entity: Option[Entity]) ⇒ entity match { case Some(a: ArrayEntity) ⇒ new String(a.array, a.offset, a.length.toInt, a.contenttype.charsetOrDefault) case _ ⇒ throw ClientError.`415` }
+
+  final val decodeHtml: Decoder[Html] = (entity: Option[Entity]) ⇒ new Html(XML.loadString(decodeString(entity)))
 
   final val decodeForm: Decoder[Form] = (entity: Option[Entity]) ⇒ {
     @inline def c(s: String) = convertCharset(defaultcodec.decode(s), defaultCharacterSet, `UTF-8`)
@@ -58,7 +63,6 @@ private final class Matching {
       .map(fastSplit(_, '='))
       .collect { case List(k, v) ⇒ (c(k), c(v)) }
       .foldLeft(new HashMap[String, MutableSet[String]] with MultiMap[String, String]) { case (l, (k, v)) ⇒ l.addBinding(k, v) }
-    require(!form.isEmpty)
     form
   }
 
@@ -81,6 +85,7 @@ private final class Matching {
     (unit, decodeUnit),
     (array, decodeArray),
     (string, decodeString),
+    (html, decodeHtml),
     (form, decodeForm),
     (multipartform, decodeMultipartForm),
     (json, decodeJson),
@@ -98,8 +103,9 @@ private final class Matching {
 
   final val encodeByteBuffer: Encoder = ((buffer: ByteBuffer) ⇒ Some(ByteBufferEntity(buffer, `application/octet-stream`))).asInstanceOf[Encoder]
 
-  final val encodeString: Encoder = ((s: String) ⇒
-    Some(if (tooTinyToCareSize < s.length) ByteBufferEntity(s, ContentType(`text/html`, `UTF-8`)) else ArrayEntity(s.getBytes(`UTF-8`), ContentType(`text/html`, `UTF-8`)))).asInstanceOf[Encoder]
+  final val encodeString: Encoder = ((s: String) ⇒ Some(E(s, ContentType(`text/plain`, `UTF-8`)))).asInstanceOf[Encoder]
+
+  final val encodeHtml: Encoder = ((html: Html) ⇒ Some(ByteBufferEntity("<!DOCTYPE html>" + html.xml.buildString(true), `text/html`))).asInstanceOf[Encoder]
 
   final val encodeForm: Encoder = ((form: Form) ⇒ {
     @inline def c(s: String) = defaultcodec.encode(convertCharset(s, `UTF-8`, defaultCharacterSet))
@@ -109,17 +115,17 @@ private final class Matching {
 
   final val encodeMultipartForm: Encoder = ((form: MultipartForm) ⇒ Some(ArrayEntity(Array[Byte](), `multipart/form-data`))).asInstanceOf[Encoder]
 
-  final val encodeJson: Encoder = ((json: Json) ⇒ Some(ByteBufferEntity(Json.build(json), `application/json`))).asInstanceOf[Encoder]
+  final val encodeJson: Encoder = ((json: Json) ⇒ Some(E(Json.build(json), `application/json`))).asInstanceOf[Encoder]
 
-  final val encodeJObject: Encoder = ((json: JObject) ⇒ Some(ByteBufferEntity(Json.build(json), `application/json`))).asInstanceOf[Encoder]
+  final val encodeJObject: Encoder = ((json: JObject) ⇒ Some(E(Json.build(json), `application/json`))).asInstanceOf[Encoder]
 
-  final val encodeJArray: Encoder = ((json: JArray) ⇒ Some(ByteBufferEntity(Json.build(json), `application/json`))).asInstanceOf[Encoder]
+  final val encodeJArray: Encoder = ((json: JArray) ⇒ Some(E(Json.build(json), `application/json`))).asInstanceOf[Encoder]
 
-  final val encodeXml: Encoder = ((xml: Xml) ⇒ Some(ByteBufferEntity(xml.buildString(true), `application/xml`))).asInstanceOf[Encoder]
+  final val encodeXml: Encoder = ((xml: Xml) ⇒ Some(E(xml.buildString(true), `application/xml`))).asInstanceOf[Encoder]
 
-  final val encodeJsonMarshaled: Encoder = ((marshaled: JsonMarshaled) ⇒ Some(ByteBufferEntity(marshaled.toJson, `application/json`))).asInstanceOf[Encoder]
+  final val encodeJsonMarshaled: Encoder = ((marshaled: JsonMarshaled) ⇒ Some(E(marshaled.toJson, `application/json`))).asInstanceOf[Encoder]
 
-  final val encodeXmlMarshaled: Encoder = ((marshaled: XmlMarshaled) ⇒ Some(ByteBufferEntity(marshaled.toXml, `application/xml`))).asInstanceOf[Encoder]
+  final val encodeXmlMarshaled: Encoder = ((marshaled: XmlMarshaled) ⇒ Some(E(marshaled.toXml, `application/xml`))).asInstanceOf[Encoder]
 
   final val encoders: TypeEncoders = Array(
     (entity, encodeEntity),
@@ -127,6 +133,7 @@ private final class Matching {
     (array, encodeArray),
     (bytebuffer, encodeByteBuffer),
     (string, encodeString),
+    (html, encodeHtml),
     (form, encodeForm),
     (multipartform, encodeMultipartForm),
     (json, encodeJson),
@@ -153,9 +160,9 @@ private final class Matching {
     (`application/xhtml+xml`, List(xml, string, bytebuffer, array, entity, unit)),
     (`application/x-www-form-urlencoded`, List(form, string, bytebuffer, array, entity, unit)),
     (`multipart/form-data`, List(multipartform, string, bytebuffer, array, entity, unit)),
-    (`text/html`, List(string, xml, bytebuffer, array, entity, unit)),
+    (`text/html`, List(html, string, xml, bytebuffer, array, entity, unit)),
     (`text/plain`, List(string, form, jsonmarshaled, xmlmarshaled, xml, jobject, jarray, json, bytebuffer, array, entity, unit)),
-    (`*/*`, List(string, form, jsonmarshaled, xmlmarshaled, xml, jobject, jarray, json, bytebuffer, array, entity, unit)))
+    (`*/*`, List(html, string, form, jsonmarshaled, xmlmarshaled, xml, jobject, jarray, json, bytebuffer, array, entity, unit)))
 
   final val priorities: Array[((MimeType, MimeType), (Type, Type))] = for {
     (inmimetype, intypelist) ← inputPriority
@@ -164,12 +171,15 @@ private final class Matching {
     outtype ← outtypelist
   } yield ((inmimetype, outmimetype), (intype, outtype))
 
+  @inline private[this] final def E(s: String, contenttype: ContentType): Entity =
+    if (tooTinyToCareSize < s.length) ByteBufferEntity(s, contenttype) else ArrayEntity(s.getBytes(`UTF-8`), contenttype)
+
 }
 
 /**
  *
  */
-private object Matching {
+object Matching {
 
   type Decoder[A] = Option[Entity] ⇒ A
 
@@ -182,5 +192,7 @@ private object Matching {
   type TypeEncoders = Map[Type, Encoder]
 
   type PriorityList = Array[(MimeType, List[Type])]
+
+  final val default = new Matching
 
 }

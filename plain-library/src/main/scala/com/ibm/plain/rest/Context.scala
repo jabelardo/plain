@@ -38,7 +38,7 @@ final class Context private (
 
   @inline final def ++(remainder: Path) = { this.remainder = remainder; this }
 
-  @inline final def ++(request: Request) = { this.request = request; this }
+  @inline final def ++(request: Request) = { this.request = request; io ++ request; this }
 
   @inline final def ++(response: Response) = { this.response = response; this }
 

@@ -6,6 +6,7 @@ package aio
 
 import java.io.EOFException
 import java.nio.charset.Charset
+import java.nio.ByteBuffer
 
 import scala.annotation.tailrec
 
@@ -17,7 +18,7 @@ import Iteratee.{ Cont, Done, Error }
  */
 object Iteratees {
 
-  final def take(n: Int)(implicit cset: Charset): Iteratee[Io, String] = {
+  final def take(n: Int)(implicit cset: Charset, lowercase: Boolean): Iteratee[Io, String] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
@@ -32,14 +33,38 @@ object Iteratees {
     Cont(cont(Io.empty) _)
   }
 
+  private[this] object ContinueWriteHandler
+
+    extends java.nio.channels.CompletionHandler[Integer, Io] {
+
+    @inline final def completed(processed: Integer, io: Io) = ()
+
+    @inline final def failed(e: Throwable, io: Io) = ()
+
+    @inline final def response = responsebuffer.duplicate
+
+    private[this] final val responsebuffer = {
+      val response = "HTTP/1.1 100 Continue\r\n\r\n".getBytes
+      val buffer = ByteBuffer.allocateDirect(response.length)
+      buffer.put(response)
+      buffer.flip
+      buffer
+    }
+  }
+
   final def takeBytes(n: Int): Iteratee[Io, Array[Byte]] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, Array[Byte]], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
-        if (in.length < n) {
+        if (0 == in.length) {
+          in.channel.write(ContinueWriteHandler.response, in, ContinueWriteHandler)
           (Cont(cont(in)), Empty)
         } else {
-          (Done.apply(in.take(n).consume), Elem(in))
+          if (in.length < n) {
+            (Cont(cont(in)), Empty)
+          } else {
+            (Done(in.take(n).consume), Elem(in))
+          }
         }
       case Failure(e) ⇒ (Error(e), input)
       case _ ⇒ (Error(EOF), input)
@@ -64,7 +89,7 @@ object Iteratees {
     Cont(cont _)
   }
 
-  final def peek(n: Int)(implicit cset: Charset): Iteratee[Io, String] = {
+  final def peek(n: Int)(implicit cset: Charset, lowercase: Boolean): Iteratee[Io, String] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
@@ -79,7 +104,7 @@ object Iteratees {
     Cont(cont(Io.empty) _)
   }
 
-  final def takeWhile(p: Int ⇒ Boolean)(implicit cset: Charset): Iteratee[Io, String] = {
+  final def takeWhile(p: Int ⇒ Boolean)(implicit cset: Charset, lowercase: Boolean): Iteratee[Io, String] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
@@ -95,9 +120,9 @@ object Iteratees {
     Cont(cont(Io.empty) _)
   }
 
-  final def takeUntil(p: Int ⇒ Boolean)(implicit cset: Charset): Iteratee[Io, String] = takeWhile(b ⇒ !p(b))(cset)
+  final def takeUntil(p: Int ⇒ Boolean)(implicit cset: Charset, lowercase: Boolean): Iteratee[Io, String] = takeWhile(b ⇒ !p(b))(cset, lowercase)
 
-  final def takeUntil(delimiter: Byte)(implicit cset: Charset): Iteratee[Io, String] = {
+  final def takeUntil(delimiter: Byte)(implicit cset: Charset, lowercase: Boolean): Iteratee[Io, String] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more
@@ -113,7 +138,7 @@ object Iteratees {
     Cont(cont(Io.empty) _)
   }
 
-  final def takeUntilCrLf(implicit cset: Charset): Iteratee[Io, String] = {
+  final def takeUntilCrLf(implicit cset: Charset, lowercase: Boolean): Iteratee[Io, String] = {
     def cont(taken: Io)(input: Input[Io]): (Iteratee[Io, String], Input[Io]) = input match {
       case Elem(more) ⇒
         val in = taken ++ more

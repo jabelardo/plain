@@ -20,13 +20,13 @@ final class ByteArrayChannel private (
 
   extends Channel {
 
-  type Integer = java.lang.Integer
+  private final type Integer = java.lang.Integer
 
   final def close = total = 0
 
   final def isOpen = 0 < total
 
-  final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[Integer, _ >: A]) = {
+  @inline final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[Integer, _ >: A]) = {
     if (0 < total) {
       val len = scala.math.min(total, buffer.remaining)
       buffer.put(array, position, len)
@@ -42,9 +42,9 @@ final class ByteArrayChannel private (
 
   final def write(buffer: ByteBuffer): java.util.concurrent.Future[Integer] = unsupported
 
-  private[this] var position = offset
+  private[this] final var position = offset
 
-  private[this] var total = length
+  private[this] final var total = length
 
 }
 
@@ -53,9 +53,9 @@ final class ByteArrayChannel private (
  */
 object ByteArrayChannel {
 
-  def apply(array: Array[Byte], offset: Int, length: Int) = new ByteArrayChannel(array, offset, length)
+  final def apply(array: Array[Byte], offset: Int, length: Int) = new ByteArrayChannel(array, offset, length)
 
-  def apply(array: Array[Byte]): ByteArrayChannel = apply(array, 0, array.length)
+  final def apply(array: Array[Byte]): ByteArrayChannel = apply(array, 0, array.length)
 
 }
 

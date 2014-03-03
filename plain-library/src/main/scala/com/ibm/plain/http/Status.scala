@@ -36,6 +36,57 @@ sealed abstract class Status
  */
 object Status {
 
+  import Information._
+  import Success._
+  import Redirection._
+  import ClientError._
+  import ServerError._
+
+  final def apply(code: Int): Status = code match {
+    case 100 ⇒ `100`
+    case 101 ⇒ `101`
+    case 200 ⇒ `200`
+    case 201 ⇒ `201`
+    case 202 ⇒ `202`
+    case 203 ⇒ `203`
+    case 204 ⇒ `204`
+    case 205 ⇒ `205`
+    case 206 ⇒ `206`
+    case 300 ⇒ `300`
+    case 301 ⇒ `301`
+    case 302 ⇒ `302`
+    case 303 ⇒ `303`
+    case 304 ⇒ `304`
+    case 305 ⇒ `305`
+    case 306 ⇒ `306`
+    case 307 ⇒ `307`
+    case 400 ⇒ `400`
+    case 401 ⇒ `401`
+    case 402 ⇒ `402`
+    case 403 ⇒ `403`
+    case 404 ⇒ `404`
+    case 405 ⇒ `405`
+    case 406 ⇒ `406`
+    case 407 ⇒ `407`
+    case 408 ⇒ `408`
+    case 409 ⇒ `409`
+    case 410 ⇒ `410`
+    case 411 ⇒ `411`
+    case 412 ⇒ `412`
+    case 413 ⇒ `413`
+    case 414 ⇒ `414`
+    case 415 ⇒ `415`
+    case 416 ⇒ `416`
+    case 417 ⇒ `417`
+    case 500 ⇒ `500`
+    case 501 ⇒ `501`
+    case 502 ⇒ `502`
+    case 503 ⇒ `503`
+    case 504 ⇒ `504`
+    case 505 ⇒ `505`
+    case _ ⇒ `500`
+  }
+
   sealed abstract class BaseStatus(rsn: String) extends Status {
 
     final val code = reflect.simpleName(getClass.getName)
@@ -48,15 +99,20 @@ object Status {
 
   }
 
+  sealed abstract class ErrorStatus(r: String) extends BaseStatus(r)
+
   sealed abstract class Information(r: String) extends BaseStatus(r) with ControlThrowable
 
   sealed abstract class Success(r: String) extends BaseStatus(r) with ControlThrowable
 
-  sealed abstract class ClientError(r: String) extends BaseStatus(r) with ControlThrowable
+  sealed abstract class ClientError(r: String) extends ErrorStatus(r) with ControlThrowable
 
-  sealed abstract class Redirection(r: String) extends BaseStatus(r) with ControlThrowable
+  sealed abstract class Redirection(r: String) extends ErrorStatus(r) with ControlThrowable
 
-  sealed abstract class ServerError(r: String) extends BaseStatus(r) // here we would like to see the stack trace
+  /**
+   * Not a ControlThrowable because we would like to see the stack trace here.
+   */
+  sealed abstract class ServerError(r: String) extends BaseStatus(r)
 
   object Information {
 

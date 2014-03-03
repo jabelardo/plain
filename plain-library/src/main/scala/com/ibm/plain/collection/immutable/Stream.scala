@@ -15,19 +15,19 @@ object Stream {
 
     extends Stream[A] {
 
-    override val isEmpty = false
+    override final val isEmpty = false
 
-    override val head = hd
+    override final val head = hd
 
-    override def tail: Stream[A] = tl
+    override final def tail: Stream[A] = tl
 
-    protected val tailDefined = true
+    protected final val tailDefined = true
 
   }
 
   object cons {
 
-    def apply[A](hd: A, tl: ⇒ Stream[A]) = new Cons(hd, tl)
+    final def apply[A](hd: A, tl: ⇒ Stream[A]) = new Cons(hd, tl)
 
   }
 

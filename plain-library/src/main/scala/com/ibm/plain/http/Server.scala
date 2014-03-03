@@ -6,10 +6,12 @@ package http
 
 import java.net.{ InetSocketAddress, StandardSocketOptions }
 import java.nio.channels.{ AsynchronousChannelGroup ⇒ Group, AsynchronousServerSocketChannel ⇒ ServerChannel }
+import java.util.concurrent.Executors.defaultThreadFactory
 import java.nio.charset.Charset
 import java.util.concurrent.TimeUnit
 
 import scala.concurrent.duration.Duration
+import scala.collection.mutable.HashMap
 
 import com.ibm.plain.bootstrap.BaseComponent
 import com.typesafe.config.{ Config, ConfigFactory }
@@ -17,7 +19,7 @@ import com.typesafe.config.{ Config, ConfigFactory }
 import aio.Io.loop
 import bootstrap.Application
 import config.{ CheckedConfig, config2RichConfig }
-import logging.HasLogger
+import logging.createLogger
 
 /**
  *
@@ -32,9 +34,7 @@ final case class Server(
 
   private val serverconfig: Option[Server.ServerConfiguration])
 
-  extends BaseComponent[Server]
-
-  with HasLogger {
+  extends BaseComponent[Server] {
 
   import Server._
 
@@ -52,7 +52,7 @@ final case class Server(
         serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(aio.sendReceiveBufferSize))
         serverChannel.bind(bindaddress, backlog)
         loop(serverChannel, RequestIteratee(this).readRequest, dispatcher)
-        debug(name + " has started.")
+        logger.debug(name + " has started.")
       }
 
       application match {
@@ -62,13 +62,14 @@ final case class Server(
         case _ ⇒
           startOne
       }
+      System.gc
     }
-    if (1 < settings.portRange.size && !settings.loadBalancingEnable) warning(name + " : port-range > 1 with load-balancing.enable=off")
-    if (settings.portRange.size >= Runtime.getRuntime.availableProcessors) warning("Your port-range size should be smaller than the number of cores available on this system.")
-    if (1 == settings.portRange.size && settings.loadBalancingEnable) warning("You cannot enable load-balancing for a port-range of size 1.")
+    if (1 < settings.portRange.size && !settings.loadBalancingEnable) logger.warn(name + " : port-range > 1 with load-balancing.enable=off")
+    if (settings.portRange.size >= Runtime.getRuntime.availableProcessors) logger.warn("Your port-range size should be smaller than the number of cores available on this system.")
+    if (1 == settings.portRange.size && settings.loadBalancingEnable) logger.warn("You cannot enable load-balancing for a port-range of size 1.")
     this
   } catch {
-    case e: Throwable ⇒ error(name + " failed to start : " + e); throw e
+    case e: Throwable ⇒ logger.error(name + " failed to start : " + e); throw e
   }
 
   override def stop = try {
@@ -78,63 +79,64 @@ final case class Server(
       /**
        * do not shutdown the shared channelGroup here
        */
-      debug(name + " has stopped.")
+      logger.debug(name + " has stopped.")
     }
     this
   } catch {
-    case e: Throwable ⇒ error(name + " failed to stop : " + e); this
+    case e: Throwable ⇒ logger.error(name + " failed to stop : " + e); this
   }
 
   override def awaitTermination(timeout: Duration) = if (!channelGroup.isShutdown) channelGroup.awaitTermination(if (Duration.Inf == timeout) -1 else timeout.toMillis, TimeUnit.MILLISECONDS)
 
+  override final def name = "HttpServer(name=" + settings.displayName +
+    ", address=" + bindaddress +
+    ", backlog=" + settings.backlog +
+    ", dispatcher=" + { try dispatcher.name catch { case _: Throwable ⇒ "invalid" } } +
+    (if (settings.loadBalancingEnable && application.isDefined) ", load-balancing-path=" + settings.loadBalancingBalancingPath else "") +
+    ")"
+
+  final def getSettings = settings
+
   private[this] var serverChannel: ServerChannel = null
 
-  private[http] final lazy val settings = serverconfig match {
-    case None ⇒ ServerConfiguration(configpath, false)
+  private[this] final lazy val settings = serverconfig match {
+    case None ⇒ new ServerConfiguration(configpath, false)
     case Some(s) ⇒ s
   }
+
+  private[this] final lazy val dispatcher = settings.createDispatcher
 
   private[this] final lazy val bindaddress = if ("*" == settings.address)
     new InetSocketAddress(port.getOrElse(settings.portRange.head))
   else
     new InetSocketAddress(settings.address, port.getOrElse(settings.portRange.head))
 
-  override final lazy val name = "HttpServer(name=" + settings.displayName +
-    ", address=" + bindaddress +
-    ", backlog=" + settings.backlog +
-    ", dispatcher=" + { try settings.dispatcher.name catch { case _: Throwable ⇒ "invalid" } } +
-    (if (settings.loadBalancingEnable && application.isDefined) ", load-balancing-path=" + settings.loadBalancingBalancingPath else "") +
-    ")"
+  private[this] lazy val logger = createLogger(this)
 
 }
 
 /**
  * Contains common things shared among several HttpServers, the configuration class, for instance.
  */
-object Server
-
-  extends HasLogger {
+object Server {
 
   private final val channelGroup = channelGroupThreadPoolType match {
-    case 1 ⇒ Group.withFixedThreadPool(concurrent.cores, java.util.concurrent.Executors.defaultThreadFactory)
-    case 2 ⇒ Group.withFixedThreadPool(concurrent.parallelism, java.util.concurrent.Executors.defaultThreadFactory)
+    // case 0 handled in line 50
+    case 1 ⇒ Group.withFixedThreadPool(concurrent.cores, defaultThreadFactory)
+    case 2 ⇒ Group.withFixedThreadPool(concurrent.parallelism, defaultThreadFactory)
     case _ ⇒ Group.withThreadPool(concurrent.ioexecutor)
   }
-
-  debug("ThreadPool type = " + channelGroupThreadPoolType + ", cores = " + concurrent.cores + ", parallelism = " + concurrent.parallelism)
 
   /**
    * A per-server provided configuration, unspecified details will be inherited from defaultServerConfiguration.
    */
-  final case class ServerConfiguration(
+  final class ServerConfiguration(
 
-    path: String,
+    val path: String,
 
-    default: Boolean)
+    val default: Boolean)
 
     extends CheckedConfig {
-
-    import ServerConfiguration._
 
     final val cfg: Config = config.settings.getConfig(path).withFallback(if (default) fallback else defaultServerConfiguration.cfg)
 
@@ -144,20 +146,11 @@ object Server
 
     final val displayName = getString("display-name")
 
-    final lazy val dispatcher = {
-      val dconfig = config.settings.getConfig(getString("dispatcher")).withFallback(config.settings.getConfig("plain.rest.default-dispatcher"))
-      val d = dconfig.getInstanceFromClassName[Dispatcher]("class-name")
-      d.name_ = dconfig.getString("display-name", getString("dispatcher"))
-      d.config_ = dconfig
-      d.init
-      d
-    }
-
     final val address = getString("address")
 
     final val portRange = getIntList("port-range", List.empty)
 
-    final val backlog = getInt("backlog")
+    final val backlog = getBytes("backlog").toInt
 
     final val loadBalancingEnable = getBoolean("load-balancing.enable")
 
@@ -165,7 +158,7 @@ object Server
 
     final val loadBalancingRedirectionPath = getString("load-balancing.redirection-path")
 
-    final val pauseBetweenAccepts = cfg.getDuration("feature.pause-between-accepts")
+    final val pauseBetweenAccepts = cfg.getDuration("feature.pause-between-accepts", Duration.Zero)
 
     final val treat10VersionAs11 = getBoolean("feature.allow-version-1-0-but-treat-it-like-1-1")
 
@@ -178,6 +171,16 @@ object Server
     final val maxEntityBufferSize = getBytes("feature.max-entity-buffer-size", 16 * 1024).toInt
 
     require(0 < portRange.size, "You must at least specify one port for 'port-range'.")
+
+    def createDispatcher = {
+      val dconfig = config.settings.getConfig(getString("dispatcher")).withFallback(config.settings.getConfig("plain.rest.default-dispatcher"))
+
+      val dispatcher = dconfig.getInstanceFromClassName[Dispatcher]("class-name")
+      dispatcher.name_ = dconfig.getString("display-name", getString("dispatcher"))
+      dispatcher.config_ = dconfig
+      dispatcher.init
+      dispatcher
+    }
 
   }
 

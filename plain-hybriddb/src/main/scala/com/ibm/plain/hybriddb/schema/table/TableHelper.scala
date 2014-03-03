@@ -18,7 +18,7 @@ import column._
 import reflect.ReflectHelper._
 import reflect.mirror._
 import plain.io.LZ4
-import logging.HasLogger
+import logging.Logger
 
 protected trait TableHelper {
 

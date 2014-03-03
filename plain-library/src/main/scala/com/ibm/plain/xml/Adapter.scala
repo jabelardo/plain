@@ -13,8 +13,6 @@ import javax.xml.bind.annotation.adapters.{ XmlAdapter, XmlJavaTypeAdapter }
 import java.util.{ Vector ⇒ JVector }
 import java.math.{ BigDecimal ⇒ JBigDecimal }
 
-import akka.actor.ActorPath
-
 object Adapter {
 
   class OptionAdapter[A](nones: A*) extends XmlAdapter[A, Option[A]] {
@@ -44,11 +42,6 @@ object Adapter {
   final class ThrowableAdapter extends XmlAdapter[String, Throwable] {
     def marshal(e: Throwable): String = text.anyToBase64(e)
     def unmarshal(s: String): Throwable = text.anyFromBase64(s)
-  }
-
-  final class ActorPathAdapter extends XmlAdapter[String, ActorPath] {
-    def marshal(path: ActorPath): String = path.toString
-    def unmarshal(s: String): ActorPath = ActorPath.fromString(s)
   }
 
   final case class ElementsWrapper[A](@xmlElementRef elements: JVector[A]) {

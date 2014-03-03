@@ -4,23 +4,26 @@ package plain
 
 package servlet
 
-import java.io.InputStream
-import javax.servlet.{ ServletInputStream ⇒ JServletInputStream }
+import io.ByteArrayInputStream
 
-/**
- *
- */
-final class ServletInputStream(in: InputStream)
+import javax.{ servlet ⇒ js }
 
-  extends JServletInputStream {
+final class ServletInputStream(
 
-  @inline override final def read: Int = in.read
+  private[this] final val in: ByteArrayInputStream)
 
-  @inline override final def read(a: Array[Byte]) = in.read(a, 0, a.length)
+  extends js.ServletInputStream {
 
-  @inline override final def read(a: Array[Byte], offset: Int, length: Int) = in.read(a, offset, length)
+  final def isFinished = !isReady
 
-  @inline override final def available: Int = in.available
+  final def isReady = 0 < in.available
+
+  final def setReadListener(readlistener: js.ReadListener) = unsupported
+
+  final def read = in.read
+
+  override final def read(array: Array[Byte], offset: Int, length: Int) = in.read(array, offset, length)
+
+  override final def read(array: Array[Byte]) = read(array, 0, array.length)
 
 }
-

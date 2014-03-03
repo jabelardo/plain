@@ -6,6 +6,7 @@ package http
 
 import Status.ClientError
 import text.fastSplit
+import MimeType.`*/*`
 
 /**
  *
@@ -30,7 +31,7 @@ object Accept {
    */
   def apply(headervalue: String): Accept = {
 
-    def range(r: String): (Double, MimeType) = (fastSplit(r, ';') match {
+    @inline def range(r: String): (Double, MimeType) = (fastSplit(r, ';') match {
       case h :: Nil ⇒ (1.0, h)
       case h :: t :: Nil ⇒ fastSplit(t, '=') match {
         case k :: v :: Nil if "q" == k.trim ⇒ (v.trim.toDouble, h)
@@ -41,11 +42,13 @@ object Accept {
       case (q, m) ⇒ (q, MimeType(m.trim))
     }
 
-    fastSplit(headervalue, ',') match {
+    if (ignoreAcceptHeader) All else fastSplit(headervalue, ',') match {
       case l: List[String] ⇒ new Accept(l.map(range).sortWith { case (a, b) ⇒ a._1 > b._1 }.map(_._2))
       case _ ⇒ throw ClientError.`415`
     }
   }
+
+  private[this] final val All = new Accept(List(`*/*`))
 
 }
 

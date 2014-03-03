@@ -20,7 +20,7 @@ final case class Request(
 
   path: Request.Path,
 
-  query: Option[String],
+  private final val queryoption: Option[String],
 
   version: Version,
 
@@ -32,9 +32,14 @@ final case class Request(
 
   type Type = Request
 
+  final val query = queryoption match {
+    case None ⇒ None
+    case Some(q) ⇒ Some(q.replace("_escaped_fragment_=", ""))
+  }
+
   final def keepalive = `Connection`(headers) match {
-    case Some(value) if value.exists(_.equalsIgnoreCase("keep-alive")) ⇒ true
-    case _ ⇒ false
+    case Some(value) if value.exists(_.equalsIgnoreCase("close")) ⇒ false
+    case _ ⇒ true
   }
 
   final def transferEncoding: Option[Encoder] = `Accept-Encoding`(headers) match {

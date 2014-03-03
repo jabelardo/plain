@@ -51,7 +51,7 @@ abstract class BaseComponent[C](n: String)
 
   def enable = { enabled = true; this.asInstanceOf[C] }
 
-  def isStarted = !isStopped
+  def isStarted = started
 
   def isStopped = !started
 
@@ -73,7 +73,7 @@ abstract class BaseComponent[C](n: String)
       started = true
     }
   } catch {
-    case e: Throwable ⇒ println("Excption during start of '" + name + "' : " + e); e.printStackTrace; throw e
+    case e: Throwable ⇒ println("Exception during start of Component '" + name + "' : " + e); e.printStackTrace; throw e
   }
 
   def doStop = try {
@@ -83,14 +83,14 @@ abstract class BaseComponent[C](n: String)
       Thread.`yield`
     }
   } catch {
-    case e: Throwable ⇒ println("Excption during stop of '" + name + "' : " + e)
+    case e: Throwable ⇒ println("Exception during stop of Component '" + name + "' : " + e)
   }
 
   def doAwaitTermination(timeout: Duration) = try {
     if (isStarted) awaitTermination(timeout)
   } catch {
     case e: TimeoutException ⇒ println(name + " " + e)
-    case e: Throwable ⇒ println("Excption during awaitTermination of '" + name + "' : " + e)
+    case e: Throwable ⇒ println("Exception during awaitTermination of Component '" + name + "' : " + e)
   }
 
   @volatile private[this] var enabled = true

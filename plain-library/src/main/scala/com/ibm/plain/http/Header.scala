@@ -120,6 +120,8 @@ object Header {
 
     object `User-Agent` extends Request[String] with StringValue
 
+    object `Cookie` extends Request[String] with StringValue
+
   }
 
   /**

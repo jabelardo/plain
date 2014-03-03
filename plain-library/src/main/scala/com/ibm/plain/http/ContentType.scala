@@ -28,6 +28,8 @@ final case class ContentType private (
 
   import ContentType._
 
+  override final def toString = new String(text)
+
   @inline final def charsetOrDefault = charset match { case Some(charset) ⇒ charset case None ⇒ defaultCharacterSet }
 
   @inline final def render(implicit buffer: ByteBuffer) = r(text) + ^
@@ -41,24 +43,26 @@ final case class ContentType private (
  */
 object ContentType {
 
-  def apply(mimetype: MimeType) = mimetype match {
+  final def apply(mimetype: MimeType) = mimetype match {
     case `application/json` | `application/xml` | `text/xml` | `text/html` | `text/plain` ⇒ new ContentType(mimetype, Some(`UTF-8`))
     case mimetype ⇒ new ContentType(mimetype, None)
   }
 
-  def apply(mimetype: MimeType, charset: Charset) = new ContentType(mimetype, Some(charset))
+  final def apply(mimetype: MimeType, charset: Charset) = new ContentType(mimetype, Some(charset))
 
   /**
    * Given a header value like "text/html; charset=ISO-8859-15" this will split it into a MimeType and a Charset.
    */
-  def apply(headervalue: String): ContentType = fastSplit(headervalue, ';') match {
+  final def apply(headervalue: String): ContentType = fastSplit(headervalue, ';') match {
     case mimetype :: Nil ⇒ apply(MimeType(mimetype))
     case mimetype :: charset :: Nil ⇒
       apply(MimeType(mimetype.trim), Some(try Charset.forName(charset.trim.replace("charset=", "")) catch { case _: Throwable ⇒ defaultCharacterSet }))
     case _ ⇒ throw ClientError.`415`
   }
 
-  implicit def fromMimeType(mimetype: MimeType) = ContentType(mimetype)
+  final implicit def fromMimeType(mimetype: MimeType) = ContentType(mimetype)
+
+  final val default = apply(`application/json`)
 
 }
 
