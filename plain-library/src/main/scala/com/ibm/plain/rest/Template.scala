@@ -89,13 +89,13 @@ final case class Templates(
 
   branch: Option[Either[(String, Templates), Map[String, Templates]]]) {
 
-  final def get(method: Method, path: Path): Option[(Class[_ <: BaseResource], Config, Variables, Path)] = {
+  final def get(method: Method, path: Path): Option[(Class[_ <: BaseResource], Config, Option[Variables], Path)] = {
 
     @inline @tailrec
     def get0(
       path: Path,
-      variables: TrieMap[String, String],
-      templates: Templates): Option[(Class[_ <: BaseResource], Config, Variables, Path)] = {
+      variables: Option[TrieMap[String, String]],
+      templates: Templates): Option[(Class[_ <: BaseResource], Config, Option[Variables], Path)] = {
 
       @inline def resource(tail: Path) = templates.resource match {
         case Some((resourceclass, config)) ⇒ Some((resourceclass, config, variables, tail))
@@ -114,13 +114,13 @@ final case class Templates(
               case _ ⇒ resource(p)
             }
           }
-          case Some(Left((name, branch))) ⇒ get0(tail, variables += ((name, head)), branch)
+          case Some(Left((name, branch))) ⇒ get0(tail, { val v = variables match { case None ⇒ new TrieMap[String, String] case Some(v) ⇒ v }; v += ((name, head)); Some(v) }, branch)
           case _ ⇒ resource(p)
         }
       }
     }
 
-    get0(path, new TrieMap, this)
+    get0(path, None, this)
   }
 
   override final def toString = {

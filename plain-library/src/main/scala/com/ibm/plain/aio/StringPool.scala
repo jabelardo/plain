@@ -8,7 +8,7 @@ import java.util.Arrays
 import java.nio.charset.Charset
 import java.nio.ByteBuffer
 
-import scala.collection.concurrent.TrieMap
+import scala.collection.mutable.HashMap
 
 /**
  *
@@ -32,7 +32,7 @@ object StringPool {
   }
 
   private[this] final val strings: scala.collection.Map[Int, String] = {
-    val map = new TrieMap[Int, String]
+    val map = new HashMap[Int, String]
     val buf = ByteBuffer.wrap(new Array[Byte](arraySize))
 
     def add(s: String) = {

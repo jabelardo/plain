@@ -21,7 +21,7 @@ package object http
 
   final lazy val defaultServerConfiguration = new Server.ServerConfiguration("plain.http.default-server", true)
 
-  final val channelGroupThreadPoolType = getInt("plain.http.channel-group-thread-pool-type", 0)
+  final val channelGroupThreadPoolType = getInt("plain.http.channel-group-thread-pool-type", 3)
 
   final val ignoreAcceptHeader = getBoolean("plain.http.ignore-accept-header", false)
 

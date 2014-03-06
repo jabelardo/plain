@@ -4,7 +4,7 @@ package plain
 
 package concurrent
 
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.{ Executors, ForkJoinPool, TimeUnit }
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Duration
@@ -24,6 +24,9 @@ abstract sealed class Concurrent
     if (isStarted) {
       forkjoinpool.shutdown
       scheduledpool.shutdown
+      Thread.`yield`
+      forkjoinpool.shutdownNow
+      scheduledpool.shutdownNow
     }
     this
   }
@@ -36,9 +39,9 @@ abstract sealed class Concurrent
 
   final def ioexecutor = forkjoinpool
 
-  private[this] final val scheduledpool = java.util.concurrent.Executors.newScheduledThreadPool(2)
+  private[this] final val scheduledpool = Executors.newScheduledThreadPool(cores)
 
-  private[this] final val forkjoinpool = new java.util.concurrent.ForkJoinPool(parallelism)
+  private[this] final val forkjoinpool = new ForkJoinPool(parallelism)
 
   private[this] final val executioncontext: ExecutionContext = ExecutionContext.fromExecutorService(forkjoinpool)
 

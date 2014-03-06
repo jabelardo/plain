@@ -26,7 +26,7 @@ package object logging
   final val useAsyncLogging = {
     System.setProperty("Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector")
     System.setProperty("AsyncLogger.WaitStrategy", "Block")
-    System.setProperty("log4j.Clock", "CachedClock")
+    System.setProperty("AsyncLogger.RingBufferSize", (32 * 1024).toString)
     true
   }
 

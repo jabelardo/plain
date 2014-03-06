@@ -40,7 +40,7 @@ abstract class Dispatcher
               case Some(_) if !request.method.entityallowed ⇒ throw ServerError.`501`
               case _ ⇒
             }
-            resource.handle(context ++ config ++ variables ++ remainder)
+            resource.handle(context ++ config ++ variables.getOrElse(Dispatcher.emptyvariables) ++ remainder)
           case _ ⇒ throw ServerError.`500`
         }
       case _ ⇒ throw ClientError.`404`
@@ -94,7 +94,7 @@ abstract class Dispatcher
       }
     }).filter(_._1 != null).toMap
     debug("name = " + name)
-    templates.toString.split("\n").filter(0 < _.length).foreach(r ⇒ debug("route = " + r))
+    if (null != templates) templates.toString.split("\n").filter(0 < _.length).foreach(r ⇒ debug("route = " + r))
   }
 
   @inline private[this] final def isStatic(resourceclass: Class[_]) = classOf[StaticResource].isAssignableFrom(resourceclass)
@@ -102,6 +102,15 @@ abstract class Dispatcher
   private[this] final var templates: Templates = null
 
   private[this] final var staticresources: Map[Class[_], StaticResource] = null
+
+}
+
+/**
+ *
+ */
+object Dispatcher {
+
+  final val emptyvariables: http.Request.Variables = Map.empty
 
 }
 
