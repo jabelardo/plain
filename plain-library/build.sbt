@@ -1,0 +1,3 @@
+
+libraryDependencies ++= Shared.basicDependencies
+
