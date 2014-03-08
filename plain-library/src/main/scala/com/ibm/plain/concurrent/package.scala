@@ -19,7 +19,7 @@ package object concurrent
 
   final val cores = sys.runtime.availableProcessors
 
-  final val parallelism = cores * cores
+  final val parallelism = cores * 2
 
   final def executor = Concurrent.executor
 

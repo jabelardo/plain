@@ -1,10 +1,14 @@
 target/
 **/target/
+**/webapps/
 build/
 bin/
 logs/
 tmp/
 temp/
+dist/*
+project/boot/
+project/plugins/project/
 *.class
 *.war
 */.cache
@@ -13,6 +17,7 @@ temp/
 *.classpath
 */.project
 *.project
+*.settings
 */.settings
 */.prefs
 *.prefs
@@ -23,4 +28,3 @@ temp/
 **/*~
 .DS_Store
 
-.DS_Store
