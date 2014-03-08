@@ -1,4 +1,4 @@
-import Globals._
+import Plain._
 
 libraryDependencies ++= basicDependencies
 
