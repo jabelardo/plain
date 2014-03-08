@@ -31,3 +31,12 @@ javacOptions in ThisBuild ++= Seq(
 	"-Xlint:-options"
 )
 
+lazy val library = project in file("plain-library")
+
+lazy val hybriddb = project in file("plain-hybriddb") dependsOn "library"
+
+lazy val samples = project in file("plain-samples") aggregate ("helloworld", "jdbc")
+
+lazy val helloworld = project in file("plain-samples/plain-sample-hello-world") dependsOn "library"
+
+lazy val jdbc = project in file("plain-samples/plain-sample-jdbc") dependsOn "library" 

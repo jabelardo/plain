@@ -1,3 +1,4 @@
+import Globals._
 
-libraryDependencies ++= Shared.basicDependencies
+libraryDependencies ++= basicDependencies
 

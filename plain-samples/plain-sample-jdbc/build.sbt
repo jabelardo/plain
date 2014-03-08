@@ -1,7 +1,7 @@
 import Globals._
 import AssemblyKeys._
 
-libraryDependencies ++= basicDependencies
+libraryDependencies ++= basicDependencies ++ jdbc
 
 assemblySettings
 
