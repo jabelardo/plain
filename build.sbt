@@ -1,5 +1,6 @@
 import sbt._
 import Keys._
+import EclipseKeys._
 
 scalariformSettings
 
@@ -12,6 +13,12 @@ scalaVersion in ThisBuild := "2.10.3"
 version in ThisBuild := "1.0.0-SNAPSHOT"
 
 mainClass in ThisBuild := Some("com.ibm.plain.bootstrap.Main")
+
+createSrc in ThisBuild := EclipseCreateSrc.Default + EclipseCreateSrc.Resource
+
+eclipseOutput := Some("target")
+
+withSource := true
 
 scalacOptions in ThisBuild ++= Seq(
 	"-g:vars",
@@ -40,3 +47,7 @@ lazy val samples = project in file("plain-samples") aggregate ("helloworld", "jd
 lazy val helloworld = project in file("plain-samples/plain-sample-hello-world") dependsOn "library"
 
 lazy val jdbc = project in file("plain-samples/plain-sample-jdbc") dependsOn "library" 
+
+lazy val benchmark = project in file("plain-benchmark") dependsOn "library"
+
+
