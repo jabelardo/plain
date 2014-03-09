@@ -1,8 +1,9 @@
 import sbt._
 import Keys._
 import EclipseKeys._
-
-scalariformSettings
+import AssemblyKeys._
+import Plain._
+import Camel._
 
 name := "plain.io"
 
@@ -38,16 +39,22 @@ javacOptions in ThisBuild ++= Seq(
 	"-Xlint:-options"
 )
 
-lazy val library = project in file("plain-library")
+scalariformSettings
+
+lazy val library = project in file("plain-library") settings(basicSettings: _*)
 
 lazy val hybriddb = project in file("plain-hybriddb") dependsOn "library"
 
-lazy val samples = project in file("plain-samples") aggregate ("helloworld", "jdbc")
+lazy val samples = project in file("plain-samples") aggregate("helloworld", "jdbc", "camelhelloworld") 
 
-lazy val helloworld = project in file("plain-samples/plain-sample-hello-world") dependsOn "library"
+lazy val helloworld = project in file("plain-samples/plain-sample-hello-world") dependsOn "library" settings(assemblySettings: _*)
 
-lazy val jdbc = project in file("plain-samples/plain-sample-jdbc") dependsOn "library" 
+lazy val jdbc = project in file("plain-samples/plain-sample-jdbc") dependsOn "library" settings(jdbcSettings: _*) settings(assemblySettings: _*)
 
-lazy val benchmark = project in file("plain-benchmark") dependsOn "library"
+lazy val benchmark = project in file("plain-benchmark") dependsOn "library" settings(jdbcSettings: _*) settings(assemblySettings: _*)
+
+lazy val camel = project in file("plain-camel") dependsOn "library" settings(camelSettings: _*)
+
+lazy val camelhelloworld = project in file("plain-samples/plain-camel-hello-world") dependsOn "camel" settings(assemblySettings: _*) 
 
 
