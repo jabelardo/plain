@@ -17,9 +17,9 @@ mainClass in ThisBuild := Some("com.ibm.plain.bootstrap.Main")
 
 createSrc in ThisBuild := EclipseCreateSrc.Default + EclipseCreateSrc.Resource
 
-eclipseOutput := Some("target")
+eclipseOutput in ThisBuild := Some("target")
 
-withSource := true
+withSource in ThisBuild:= true
 
 scalacOptions in ThisBuild ++= Seq(
 	"-g:vars",
@@ -43,18 +43,18 @@ scalariformSettings
 
 lazy val library = project in file("plain-library") settings(basicSettings: _*)
 
-lazy val hybriddb = project in file("plain-hybriddb") dependsOn "library"
+lazy val hybriddb = project in file("plain-hybriddb") dependsOn library settings(basicSettings: _*)
 
-lazy val samples = project in file("plain-samples") aggregate("helloworld", "jdbc", "camelhelloworld") 
+lazy val samples = project in file("plain-samples") aggregate(helloworld, jdbc, camelhelloworld)  
 
-lazy val helloworld = project in file("plain-samples/plain-sample-hello-world") dependsOn "library" settings(assemblySettings: _*)
+lazy val helloworld = project in file("plain-samples/plain-sample-hello-world") dependsOn library settings(assemblySettings: _*)
 
-lazy val jdbc = project in file("plain-samples/plain-sample-jdbc") dependsOn "library" settings(jdbcSettings: _*) settings(assemblySettings: _*)
+lazy val jdbc = project in file("plain-samples/plain-sample-jdbc") dependsOn library settings(jdbcSettings: _*) settings(assemblySettings: _*)
 
-lazy val benchmark = project in file("plain-benchmark") dependsOn "library" settings(jdbcSettings: _*) settings(assemblySettings: _*)
+lazy val benchmark = project in file("plain-benchmark") dependsOn library settings(jdbcSettings: _*) settings(assemblySettings: _*)
 
-lazy val camel = project in file("plain-camel") dependsOn "library" settings(camelSettings: _*)
+lazy val camel = project in file("plain-camel") dependsOn library settings(camelSettings: _*)
 
-lazy val camelhelloworld = project in file("plain-samples/plain-camel-hello-world") dependsOn "camel" settings(assemblySettings: _*) 
+lazy val camelhelloworld = project in file("plain-samples/plain-camel-hello-world") dependsOn camel settings(assemblySettings: _*) 
 
 

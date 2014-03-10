@@ -9,6 +9,7 @@ import scala.concurrent.duration.Duration
 
 import time.now
 import concurrent.OnlyOnce
+import reflect._
 
 /**
  *
@@ -23,7 +24,14 @@ abstract sealed class Application
 
   final def bootstrap = {
     components.filter(_.isEnabled).foreach(_.doStart)
+    bootstrapExternals
     Runtime.getRuntime.addShutdownHook(new Thread(new Runnable { def run = teardown }))
+  }
+
+  final def bootstrapExternals = {
+    val externals = subClasses(classOf[ExternalComponent[_]]).map(_.newInstance).toSeq.sortWith { case (a, b) ⇒ a.order > b.order }
+    externals.filter(_.isEnabled).foreach(_.doStart)
+    components ++= externals
   }
 
   final def teardown = onlyonce { try { components.filter(_.isStarted).reverse.foreach { c ⇒ try c.doStop catch { case e: Throwable ⇒ println(c + " : " + e) } } } catch { case e: Throwable ⇒ terminateJvm(e, -1, false) } }

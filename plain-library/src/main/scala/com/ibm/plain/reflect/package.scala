@@ -28,7 +28,7 @@ package object reflect {
     tuple.getConstructors.apply(0).newInstance(as: _*).asInstanceOf[Product]
   }
 
-  final lazy val reflections = new Reflections("com.ibm.plain") // not working with OneJar, needs work-around
+  final lazy val reflections = new Reflections("com.ibm.plain")
 
   final def subClasses[A](clazz: Class[A]): Set[Class[_ <: A]] = reflections.getSubTypesOf(clazz).toSet
 
