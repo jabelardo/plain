@@ -24,14 +24,14 @@ abstract sealed class Concurrent
     if (isStarted) {
       forkjoinpool.shutdown
       scheduledpool.shutdown
-      Thread.`yield`
+      ignore(Thread.sleep(bootstrap.delayDuringTeardown))
       forkjoinpool.shutdownNow
       scheduledpool.shutdownNow
     }
     this
   }
 
-  override final def awaitTermination(timeout: Duration) = forkjoinpool.awaitTermination(timeout.toMillis, TimeUnit.MILLISECONDS)
+  override final def awaitTermination(timeout: Duration) = ignore(forkjoinpool.awaitTermination(timeout.toMillis, TimeUnit.MILLISECONDS))
 
   final def scheduler = scheduledpool
 

@@ -17,7 +17,7 @@ trait Route
 
   final def delayedInit(body: ⇒ Unit) = {
     body
-    camelextension.context.addRoutes(this)
+    camelExtension.context.addRoutes(this)
   }
 
   final def configure = ()

@@ -25,6 +25,11 @@ package object camel
 
   final val bootstrapOrder = getInt("plain.camel.bootstrap-order", -1)
 
-  @volatile var camelextension: AkkaCamel = null
+  final def camelExtension = {
+    require(null != camelextension, "plain-camel is not initialized.")
+    camelextension
+  }
+
+  @volatile private[camel] var camelextension: AkkaCamel = null
 
 }

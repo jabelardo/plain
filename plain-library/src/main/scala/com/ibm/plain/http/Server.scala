@@ -19,7 +19,7 @@ import com.typesafe.config.{ Config, ConfigFactory }
 import aio.Io.loop
 import bootstrap.Application
 import config.{ CheckedConfig, config2RichConfig }
-import logging.createLogger
+import logging.Logger
 
 /**
  *
@@ -34,7 +34,9 @@ final case class Server(
 
   private val serverconfig: Option[Server.ServerConfiguration])
 
-  extends BaseComponent[Server] {
+  extends BaseComponent[Server]
+
+  with Logger {
 
   import Server._
 
@@ -52,7 +54,6 @@ final case class Server(
         serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(aio.sendReceiveBufferSize))
         serverChannel.bind(bindaddress, backlog)
         loop(serverChannel, RequestIteratee(this).readRequest, dispatcher)
-        logger.debug(name + " has started.")
       }
 
       application match {
@@ -62,14 +63,14 @@ final case class Server(
         case _ ⇒
           startOne
       }
-      System.gc
+
     }
-    if (1 < settings.portRange.size && !settings.loadBalancingEnable) logger.warn(name + " : port-range > 1 with load-balancing.enable=off")
-    if (settings.portRange.size >= Runtime.getRuntime.availableProcessors) logger.warn("Your port-range size should be smaller than the number of cores available on this system.")
-    if (1 == settings.portRange.size && settings.loadBalancingEnable) logger.warn("You cannot enable load-balancing for a port-range of size 1.")
+    if (1 < settings.portRange.size && !settings.loadBalancingEnable) warn(name + " : port-range > 1 with load-balancing.enable=off")
+    if (settings.portRange.size >= Runtime.getRuntime.availableProcessors) warn("Your port-range size should be smaller than the number of cores available on this system.")
+    if (1 == settings.portRange.size && settings.loadBalancingEnable) warn("You cannot enable load-balancing for a port-range of size 1.")
     this
   } catch {
-    case e: Throwable ⇒ logger.error(name + " failed to start : " + e); throw e
+    case e: Throwable ⇒ error(name + " failed to start : " + e); throw e
   }
 
   override def stop = try {
@@ -79,11 +80,10 @@ final case class Server(
       /**
        * do not shutdown the shared channelGroup here
        */
-      logger.debug(name + " has stopped.")
     }
     this
   } catch {
-    case e: Throwable ⇒ logger.error(name + " failed to stop : " + e); this
+    case e: Throwable ⇒ error(name + " failed to stop : " + e); this
   }
 
   override def awaitTermination(timeout: Duration) = if (!channelGroup.isShutdown) channelGroup.awaitTermination(if (Duration.Inf == timeout) -1 else timeout.toMillis, TimeUnit.MILLISECONDS)
@@ -110,8 +110,6 @@ final case class Server(
     new InetSocketAddress(port.getOrElse(settings.portRange.head))
   else
     new InetSocketAddress(settings.address, port.getOrElse(settings.portRange.head))
-
-  private[this] lazy val logger = createLogger(this)
 
 }
 

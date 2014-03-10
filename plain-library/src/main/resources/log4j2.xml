@@ -10,5 +10,13 @@
 		<Root level="${sys:rootLevel}">
 			<AppenderRef ref="Console" />
 		</Root>
+		<Logger name="org.reflections.Reflections" level="error"
+			additivity="false" />
+		<Logger name="org.apache.camel.management" level="error"
+			additivity="false" />
+		<Logger name="org.apache.camel.impl" level="info"
+			additivity="false" />
+		<Logger name="akka.camel" level="info"
+			additivity="false" />
 	</Loggers>
 </Configuration>

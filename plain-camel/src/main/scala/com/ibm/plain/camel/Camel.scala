@@ -31,10 +31,9 @@ final class Camel
 
   override def start = {
     if (null == actorsystem && null == camel) {
-      actorsystem = ActorSystem(actorSystemName)
+      actorsystem = ActorSystem(actorSystemName, defaultExecutionContext = Some(concurrent.executor))
       camel = CamelExtension(actorsystem)
       camelextension = camel
-      debug(name + " has started.")
       routes
     }
     this
@@ -46,8 +45,7 @@ final class Camel
       actorsystem = null
       camel = null
       camelextension = null
-      Thread.sleep(delayDuringShutdown)
-      debug(name + " has stopped.")
+      ignore(Thread.sleep(delayDuringShutdown))
     }
     this
   }

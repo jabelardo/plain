@@ -6,6 +6,7 @@ package bootstrap
 
 import scala.collection.mutable.{ ArrayBuffer, SynchronizedBuffer }
 import scala.concurrent.duration.Duration
+import scala.util.control.NonFatal
 
 import time.now
 import concurrent.OnlyOnce
@@ -34,7 +35,7 @@ abstract sealed class Application
     components ++= externals
   }
 
-  final def teardown = onlyonce { try { components.filter(_.isStarted).reverse.foreach { c ⇒ try c.doStop catch { case e: Throwable ⇒ println(c + " : " + e) } } } catch { case e: Throwable ⇒ terminateJvm(e, -1, false) } }
+  final def teardown = onlyonce { try { components.filter(_.isStarted).reverse.foreach { c ⇒ try c.doStop catch { case NonFatal(e) ⇒ println(c + " : " + e) } } } catch { case e: Throwable ⇒ terminateJvm(e, -1, false) } }
 
   final def awaitTermination(timeout: Duration) = components.filter(_.isStarted).foreach { c ⇒
     c.doAwaitTermination(timeout)

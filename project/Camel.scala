@@ -1,5 +1,7 @@
 import sbt._
 import Keys._
+import sbtassembly.Plugin._
+import AssemblyKeys._
 
 object Camel {
 
@@ -41,7 +43,10 @@ object Camel {
 	
 	)
 
-	def excludedCamelJars = Seq("geronimo-servlet_2.5_spec-1.2.jar", "javax.servlet-2.5.0.v201103041518.jar")
+	def excludedCamelJars = Seq(
+		"geronimo-servlet_2.5_spec-1.2.jar",
+		"javax.servlet-2.5.0.v201103041518.jar"
+	)
 
 }
 

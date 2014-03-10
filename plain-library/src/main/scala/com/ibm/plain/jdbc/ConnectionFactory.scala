@@ -24,7 +24,7 @@ import bootstrap.BaseComponent
 import concurrent.schedule
 import config.config2RichConfig
 import javax.sql.DataSource
-import logging.createLogger
+import logging.Logger
 import reflect.primitive
 import time.now
 
@@ -35,7 +35,9 @@ final case class ConnectionFactory(
 
   configpath: String)
 
-  extends BaseComponent[ConnectionFactory] {
+  extends BaseComponent[ConnectionFactory]
+
+  with Logger {
 
   override def name = getClass.getSimpleName + "(name=" + displayname + ", config=" + configpath + ", pool=" + poolmin + "/" + poolmax + ")"
 
@@ -49,7 +51,7 @@ final case class ConnectionFactory(
       (0 until poolmin).foreach(_ ⇒ conns += newConnection)
       conns.foreach(_.close)
     } catch {
-      case e: Throwable ⇒ logger.error(name + " : Cannot establish connection :  " + e)
+      case e: Throwable ⇒ error(name + " : Cannot establish connection :  " + e)
     }
     connectioncleaner = schedule(idletimeout) {
       if (idle.size > poolmin) {
@@ -66,7 +68,6 @@ final case class ConnectionFactory(
         }
       }
     }
-    logger.debug(name + " has started.")
     this
   }
 
@@ -74,7 +75,6 @@ final case class ConnectionFactory(
     if (isStarted) {
       if (null != connectioncleaner) connectioncleaner.cancel(true)
       closeConnections
-      logger.debug(name + " has stopped.")
     }
     this
   }
@@ -117,13 +117,13 @@ final case class ConnectionFactory(
       }
       if (elapsed > peakelapsed.get) {
         peakelapsed.set(elapsed)
-        logger.debug(name + " : peak elapsed : " + elapsed)
+        debug(name + " : peak elapsed : " + elapsed)
       }
-      if (None == connection) logger.error(name + ": " + "No more connections available in pool.")
+      if (None == connection) error(name + ": " + "No more connections available in pool.")
       connection
     } catch {
       case e: Throwable ⇒
-        logger.error("Datasource '" + name + "' cannot establish connection: " + e)
+        error("Datasource '" + name + "' cannot establish connection: " + e)
         None
     }
   }
@@ -134,7 +134,7 @@ final case class ConnectionFactory(
     connections.keySet.foreach(_.doClose)
     connections.clear
   } catch {
-    case e: Throwable ⇒ logger.error(name + " : " + e)
+    case e: Throwable ⇒ error(name + " : " + e)
   }
 
   private[this] final def setParameters(any: Any, config: Config) = {
@@ -215,8 +215,6 @@ final case class ConnectionFactory(
   private[this] final val datasourcepropertiessetter = settings.withFallback(config.settings.getConfig("plain.jdbc.drivers." + driver)).getString("datasource-properties-setter", "")
 
   private[this] final val connectionsettings = settings.getConfig("connection-settings", ConfigFactory.empty).withFallback(config.settings.getConfig("plain.jdbc.drivers." + driver + ".connection-settings", ConfigFactory.empty))
-
-  private[this] final lazy val logger = createLogger(this)
 
 }
 
