@@ -124,7 +124,7 @@ final class ServletContext(
 
   final def getServlet(name: String): js.Servlet = servlets.get(name) match { case Some((servlet, _)) ⇒ servlet case _ ⇒ null }
 
-  final def getServletContextName: String = (webxml \ "display-name").text match { case "" ⇒ getContextPath.replace("/", "") case s ⇒ s }
+  final def getServletContextName: String = (webxml \ "display-name").text.trim match { case "" ⇒ getContextPath.replace("/", "") case s ⇒ s }
 
   final def getServletNames: Enumeration[String] = servlets.keysIterator
 
@@ -158,7 +158,7 @@ final class ServletContext(
 
   private[this] final val version = List(3, 1)
 
-  private[this] final val welcomefiles = (webxml \ "welcome-file-list" \ "welcome-file") map (_.text)
+  private[this] final val welcomefiles = (webxml \ "welcome-file-list" \ "welcome-file") map (_.text.trim)
 
   private[this] final val effectiveversion = try {
     (webxml \ "@version").text.split('.').toList match {
@@ -174,7 +174,7 @@ final class ServletContext(
   }
 
   private[this] final val listeners: Seq[js.ServletContextListener] = (webxml \ "listener").map { listener ⇒
-    Class.forName((listener \ "listener-class").text, true, classloader).newInstance.asInstanceOf[js.ServletContextListener]
+    Class.forName((listener \ "listener-class").text.trim, true, classloader).newInstance.asInstanceOf[js.ServletContextListener]
   }
 
   private[this] final val servlets = {
@@ -194,7 +194,7 @@ final class ServletContext(
       val loadonstartup = if ((servletxml \ "load-on-startup").isEmpty) 0 else (servletxml \ "load-on-startup").text match { case "" ⇒ 0 case i ⇒ i.toInt }
       if (0 < loadonstartup) warn("load-on-startup = " + loadonstartup + " ignored during bootstrapping.")
       val servlet = Injector(Class.forName(
-        (servletxml \ "servlet-class").text, true, getClassLoader).newInstance.asInstanceOf[js.http.HttpServlet])
+        (servletxml \ "servlet-class").text.trim, true, getClassLoader).newInstance.asInstanceOf[js.http.HttpServlet])
       val servletconfig = new WebXmlServletConfig(servletxml, this)
       servlet.init(servletconfig)
       (servletconfig.getServletName, (servlet, servletconfig))
@@ -272,7 +272,7 @@ final class ServletContext(
   private[this] final val filters = {
     val m = (webxml \ "filter").map { filterxml ⇒
       val filter = Class.forName(
-        (filterxml \ "filter-class").text, true, getClassLoader).newInstance.asInstanceOf[js.Filter]
+        (filterxml \ "filter-class").text.trim, true, getClassLoader).newInstance.asInstanceOf[js.Filter]
       val filterconfig = new WebXmlFilterConfig(filterxml, this)
       filter.init(filterconfig)
       (filterconfig.getFilterName, (filter, filterconfig))

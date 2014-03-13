@@ -41,9 +41,9 @@ javacOptions in ThisBuild ++= Seq(
 
 scalariformSettings
 
-lazy val library = project in file("plain-library") settings(basicSettings: _*)
+lazy val library = project in file("plain-library") settings(plainSettings: _*)
 
-lazy val hybriddb = project in file("plain-hybriddb") dependsOn library settings(basicSettings: _*)
+lazy val hybriddb = project in file("plain-hybriddb") dependsOn library settings(jdbcSettings: _*)
 
 lazy val samples = project in file("plain-samples") aggregate(helloworld, jdbc, camelhelloworld)  
 

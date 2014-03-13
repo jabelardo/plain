@@ -59,8 +59,7 @@ final class HttpServletResponse(
   final def sendError(code: Int) = sendError(code, "")
 
   final def sendError(code: Int, msg: String) = {
-    log(msg, Status(code))
-    dumpStack
+    log(if (0 < msg.length) msg else "<>", Status(code))
     throw Status(code)
   }
 

@@ -12,25 +12,30 @@ object Camel {
 	def activemqVersion = "5.9.0"
 
 	def core = Seq(
-                "org.apache.camel" % "camel-servlet" % camelVersion,
-                "org.apache.camel" % "camel-jetty" % camelVersion,
-                "org.apache.camel" % "camel-leveldb" % camelVersion,
-                "org.apache.camel" % "camel-nagios" % camelVersion,
-                "org.apache.camel" % "camel-ftp" % camelVersion,
-                "org.apache.camel" % "camel-http4" % camelVersion,
-                "org.apache.camel" % "camel-jdbc" % camelVersion,
                 "org.apache.camel" % "camel-core" % camelVersion
-	) map (_ withSources() withJavadoc())
+	) 
 
 	def akka = Seq(
 		"com.typesafe.akka" %% "akka-camel" % akkaVersion
-	) map (_ withSources() withJavadoc())
+	)
 
 	def activemq = Seq(
 		"org.apache.activemq" % "activemq-camel" % activemqVersion
-	) map (_ withSources() withJavadoc())
+	)
 
-	def camelDependencies = core ++ akka ++ activemq
+        def persistence = Seq(
+                "org.apache.camel" % "camel-jdbc" % camelVersion,
+                "org.apache.camel" % "camel-leveldb" % camelVersion
+        )
+
+        def networking = Seq(
+                "org.apache.camel" % "camel-servlet" % camelVersion,
+                "org.apache.camel" % "camel-nagios" % camelVersion,
+                "org.apache.camel" % "camel-ftp" % camelVersion,
+                "org.apache.camel" % "camel-http4" % camelVersion
+        )
+
+	def camelDependencies = core ++ akka ++ networking
 
 	def camelSettings = Seq(
 

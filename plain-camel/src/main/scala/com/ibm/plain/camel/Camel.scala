@@ -52,26 +52,39 @@ final class Camel
 
   lazy val routes = {
 
-    val a = new Route {
+    //    val a = new Route {
+    //
+    //      from("file:/tmp/inbox?delete=true&delay=5000").
+    //        convertBodyTo(classOf[String], "UTF-8").
+    //        transform(body).
+    //        to("file:/tmp/outbox")
+    //
+    //    }
+    //
+    //    val b = new Route {
+    //
+    //      val myendpoint = actorsystem.actorOf(Props[MyEndpoint])
+    //      camel.activationFutureFor(myendpoint)(actorInvocationTimeout, actorsystem.dispatcher)
+    //
+    //      from("file:/tmp/inbox?noop=true&delay=5000").
+    //        convertBodyTo(classOf[String], "UTF-8").
+    //        to(myendpoint)
+    //    }
 
-      from("file:/tmp/inbox?delete=true&delay=5000").
-        convertBodyTo(classOf[String], "UTF-8").
-        transform(body).
-        to("file:/tmp/outbox")
-
-    }
-
-    val b = new Route {
+    val c = new Route {
 
       val myendpoint = actorsystem.actorOf(Props[MyEndpoint])
       camel.activationFutureFor(myendpoint)(actorInvocationTimeout, actorsystem.dispatcher)
 
-      from("file:/tmp/inbox?noop=true&delay=5000").
+      from("servlet:/a?servletName=AServlet&matchOnUriPrefix=true").
         convertBodyTo(classOf[String], "UTF-8").
         to(myendpoint)
+
     }
 
-    b
+    import org.apache.camel.component.http.CamelServlet
+
+    c
   }
 
   override final def awaitTermination(timeout: Duration) = actorsystem.awaitTermination(timeout)
@@ -90,7 +103,7 @@ class MyEndpoint extends Actor with Producer {
   def endpointUri = "file:/tmp/outbox"
 
   override def transformOutgoingMessage(msg: Any) = msg match {
-    case msg: CamelMessage ⇒ msg.mapBody { body: String ⇒ body.toUpperCase }
+    case msg: CamelMessage ⇒ msg.mapBody { body: String ⇒ println("received " + body); if (null != body) body.toUpperCase else "empty" }
   }
 
 }

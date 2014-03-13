@@ -67,7 +67,7 @@ final class HttpServletRequest(
 
   final def getRequestURI: String = requesturi
 
-  final def getRequestURL: StringBuffer = unsupported
+  final def getRequestURL: StringBuffer = new StringBuffer(requesturi)
 
   final def getRequestedSessionId: String = `Cookie`(request.headers) match {
     case Some(value) ⇒ value.split(";").head.split("=")(1)
@@ -98,7 +98,7 @@ final class HttpServletRequest(
 
   final def upgrade[T <: js.http.HttpUpgradeHandler](x$1: Class[T]): T = unsupported
 
-  final def getCharacterEncoding: String = unsupported
+  final def getCharacterEncoding: String = getHeader("character-encoding")
 
   final def setCharacterEncoding(arg0: String) = unsupported
 
@@ -205,7 +205,7 @@ final class HttpServletRequest(
 
   final def getHeader(name: String): String = request.headers.get(name) match {
     case Some(value) ⇒ value
-    case _ ⇒ ("Header not found : " + name); null
+    case _ ⇒ servletcontext.warn("Header not found : " + name); null
   }
 
   final def getHeaders(arg0: String): Enumeration[String] = unsupported

@@ -10,7 +10,7 @@ object Plain {
 		"org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.0-rc1",
 		"org.apache.logging.log4j" % "log4j-api" % "2.0-rc1",
 		"org.apache.logging.log4j" % "log4j-core" % "2.0-rc1"
-	) map (_ withSources() withJavadoc())
+	) 
 
 	def commons = Seq(
 		"com.googlecode.concurrentlinkedhashmap" % "concurrentlinkedhashmap-lru" % "1.4",
@@ -19,12 +19,12 @@ object Plain {
 		"commons-io" % "commons-io" % "2.4",
 		"commons-net" % "commons-net" % "3.3",
 		"commons-codec" % "commons-codec" % "1.9"
-	) map (_ withSources() withJavadoc()) 
+	) 
 
 	def reflection = Seq(
 		"org.scala-lang" % "scala-reflect" % "2.10.3",
 		"org.reflections" % "reflections" % "0.9.8"
-	) map (_ withSources() withJavadoc())
+	)
 
 	def javax = Seq(
 		"javax.servlet" % "javax.servlet-api" % "3.1.0",
@@ -35,12 +35,12 @@ object Plain {
 	def compress = Seq(
 		"net.jpountz.lz4" % "lz4" % "1.2.0",
 		"net.lingala.zip4j" % "zip4j" % "1.3.1"
-	) map (_ withSources() withJavadoc())
+	) 
 
 	def json = Seq(
 		"com.fasterxml.jackson.core" % "jackson-databind" % "2.3.0",
 		"com.sun.jersey" % "jersey-json" % "1.18"
-	) map (_ withSources() withJavadoc())
+	) 
 
 	def jdbc = Seq(
 		"mysql" % "mysql-connector-java" % "5.1.29",
@@ -49,7 +49,7 @@ object Plain {
 		"com.h2database" % "h2" % "1.3.175"
 	) 
 
-	def commercialjdbc = Seq(
+	def commercialJdbc = Seq(
 		"com.oracle" % "ojdbc" % "11.2.0",
 		"com.microsoft.sqlserver" % "sqljdbc4" % "4.0"
 	)
@@ -57,16 +57,16 @@ object Plain {
 	def test = Seq(
 		"junit" % "junit" % "4.11" % "test",
 		"com.novocode" % "junit-interface" % "0.10" % "test"
-	) map (_ withSources() withJavadoc())
+	) 
 
-	def basicDependencies = logging ++ commons ++ reflection ++ compress ++ json ++ javax ++ test
+	def plainDependencies = logging ++ commons ++ reflection ++ compress ++ json ++ javax ++ test
 
-	def basicSettings = Defaults.defaultSettings ++ Seq(
-		libraryDependencies ++= basicDependencies
+	def plainSettings = Defaults.defaultSettings ++ Seq(
+		libraryDependencies ++= plainDependencies
 	)
 
-	def jdbcSettings = basicSettings ++ Seq(
-		libraryDependencies ++= basicDependencies ++ jdbc
+	def jdbcSettings = plainSettings ++ Seq(
+		libraryDependencies ++= plainDependencies ++ jdbc
 	)
 
 }

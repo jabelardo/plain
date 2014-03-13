@@ -9,14 +9,16 @@ import java.nio.file.Path
 import com.ibm.plain.bootstrap.BaseComponent
 import com.ibm.plain.io.FileExtensionFilter
 
-import logging.createLogger
+import logging.Logger
 
 /**
  *
  */
 abstract sealed class ServletContainer
 
-  extends BaseComponent[ServletContainer]("ServletContainer") {
+  extends BaseComponent[ServletContainer]("ServletContainer")
+
+  with Logger {
 
   final def getServletContext(path: String): ServletContext = webapplications.getOrElse(path, null)
 
@@ -44,14 +46,13 @@ abstract sealed class ServletContainer
         }.toMap
       } finally Thread.currentThread.setContextClassLoader(parentloader)
     }
-    createLogger(this).debug(name + " has started. " + (if (0 < webapplications.size) " Servlet applications: " + webapplications.keySet.mkString(", ") else "No servlet applications."))
+    debug((if (0 < webapplications.size) " Servlet applications: " + webapplications.keySet.mkString(", ") else "No servlet applications."))
     this
   }
 
   override def stop = try {
     webapplications.values.foreach(ctx ⇒ ignore(ctx.destroy))
     webapplications = null
-    createLogger(this).debug(name + " has stopped.")
     this
   }
 

@@ -147,7 +147,7 @@ object ServletClassLoader
     val metainfdir = target.toPath.resolve("META-INF").toFile
     val webinfdir = target.toPath.resolve("WEB-INF").toFile
     val urls = new ListBuffer[File]
-    def unpackJars = {
+    def unpackJars = if (libdir.exists) {
       val total = FileUtils.listFiles(libdir, Array("jar"), true).size
       var i = 0
       FileUtils.listFiles(libdir, Array("jar"), true).foreach { libfile ⇒
@@ -163,10 +163,10 @@ object ServletClassLoader
       new ZipFile(sourcepath).extractAll(target.getAbsolutePath)
       unpackJars
     }
-    urls ++= target.toPath.resolve("WEB-INF/lib/").toFile.listFiles
-    urls += classesdir
-    urls += metainfdir
-    urls += webinfdir
+    if (libdir.exists) urls ++= libdir.listFiles
+    if (classesdir.exists) urls += classesdir
+    if (metainfdir.exists) urls += metainfdir
+    if (webinfdir.exists) urls += webinfdir
     urls += target
     new ServletClassLoader(sourcewithoutextension, urls.map(_.toPath.toUri.normalize.toURL).toArray, parent, target)
   }
