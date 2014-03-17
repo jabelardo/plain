@@ -65,7 +65,7 @@ final class ServletContext(
   final def destroy = {
     classloader.close
     filters.values.map(_._1).foreach(_.destroy)
-    servlets.values.map(_._1).foreach(_.destroy)
+    servlets.values.map(_._1).map(s ⇒ if (s.isLeft) s.left.get._2 else s.right.get).foreach(_.destroy)
     listeners.foreach(_.contextDestroyed(new js.ServletContextEvent(this)))
     jsppages.cancel(true)
   }
@@ -122,7 +122,11 @@ final class ServletContext(
 
   final def getServerInfo: String = unsupported
 
-  final def getServlet(name: String): js.Servlet = servlets.get(name) match { case Some((servlet, _)) ⇒ servlet case _ ⇒ null }
+  final def getServlet(name: String): js.Servlet = servlets.get(name) match {
+    case Some((Left((_, servlet)), _, _)) ⇒ servlet
+    case Some((Right(servlet), _, _)) ⇒ servlet
+    case _ ⇒ null
+  }
 
   final def getServletContextName: String = (webxml \ "display-name").text.trim match { case "" ⇒ getContextPath.replace("/", "") case s ⇒ s }
 
@@ -132,7 +136,7 @@ final class ServletContext(
 
   final def getServletRegistrations: JMap[String, _ <: js.ServletRegistration] = unsupported
 
-  final def getServlets: Enumeration[js.Servlet] = servlets.values.map(_._1).toIterator
+  final def getServlets: Enumeration[js.Servlet] = servlets.values.map(_._1).map(s ⇒ if (s.isLeft) s.left.get._2 else s.right.get).toIterator
 
   final def getSessionCookieConfig: js.SessionCookieConfig = unsupported
 
@@ -177,7 +181,7 @@ final class ServletContext(
     Class.forName((listener \ "listener-class").text.trim, true, classloader).newInstance.asInstanceOf[js.ServletContextListener]
   }
 
-  private[this] final val servlets = {
+  private[this] final val servlets: Map[String, (Either[(Int, js.http.HttpServlet), js.http.HttpServlet], js.ServletConfig, ServletContext)] = {
     setAttribute(org.apache.jasper.Constants.SERVLET_CLASSPATH, classPathFromClassLoader(classloader))
     setAttribute(org.apache.jasper.Constants.JSP_RESOURCE_INJECTOR_CONTEXT_ATTRIBUTE, new org.glassfish.jsp.api.ResourceInjector {
       final def createTagHandlerInstance[T <: js.jsp.tagext.JspTag](tagclass: Class[T]): T = tagclass.newInstance
@@ -188,33 +192,34 @@ final class ServletContext(
     setAttribute(js.ServletContext.TEMPDIR, temporaryDirectory)
     listeners.foreach { listener ⇒
       debug("Initializing listener: " + listener.getClass.getName + " " + listener.getClass.getClassLoader)
-      ignore(listener.contextInitialized(new js.ServletContextEvent(this)))
+      try listener.contextInitialized(new js.ServletContextEvent(this)) catch { case e: Throwable ⇒ error("Listener not initialized : " + e) }
     }
     (webxml \ "servlet").map { servletxml ⇒
       val loadonstartup = if ((servletxml \ "load-on-startup").isEmpty) 0 else (servletxml \ "load-on-startup").text match { case "" ⇒ 0 case i ⇒ i.toInt }
-      if (0 < loadonstartup) warn("load-on-startup = " + loadonstartup + " ignored during bootstrapping.")
       val servlet = Injector(Class.forName(
         (servletxml \ "servlet-class").text.trim, true, getClassLoader).newInstance.asInstanceOf[js.http.HttpServlet])
       val servletconfig = new WebXmlServletConfig(servletxml, this)
-      servlet.init(servletconfig)
-      (servletconfig.getServletName, (servlet, servletconfig))
+      (servletconfig.getServletName, (if (0 < loadonstartup) Left((loadonstartup, servlet)) else Right(servlet), servletconfig, this))
     }.toMap
   }
 
+  private[this] final val loadedservlets = servlets.toSeq.
+    filter { case (_, value) ⇒ value._1.isLeft }.
+    map { case (_, value) ⇒ (value._1.left.get, value._2) }.
+    sortWith { case (a, b) ⇒ a._1._1 < b._1._1 }.
+    map { case ((_, servlet), servletconfig) ⇒ servlet.init(servletconfig); servlet }
+
   private[this] final val servletmappings: Map[String, String] = {
     def handleRegex(regex: Regex) = regex.toString match {
-      case "/*" ⇒ ""
       case r if r.startsWith("^") && r.endsWith("$") ⇒ r.drop(1).dropRight(1)
-      case r if r.startsWith("^") ⇒ r.drop(1)
-      case r if r.endsWith("$") ⇒ r.dropRight(1)
-      case r ⇒ error("Unhandled regex in servlet-mappings : " + r); r
+      case r ⇒ r
     }
     def mappings(attribute: Boolean) = (webxml \ "servlet-mapping").map { mapping ⇒
       def pattern(p: String) = (mapping \ ((if (attribute) "@" else "") + p)) match { case u if u.isEmpty ⇒ None case u ⇒ Some(u.text.r) }
       (pattern("url-pattern").getOrElse(pattern("url-regexp").getOrElse(null)), servlets.getOrElse((mapping \ ((if (attribute) "@" else "") + "servlet-name")).text, null))
     }.filter(_._1 != null).toMap
 
-    (mappings(false) ++ mappings(true)).map { case (regex, (servlet, servletconfig)) ⇒ (servletconfig.getServletName, handleRegex(regex)) }
+    (mappings(false) ++ mappings(true)).map { case (regex, (servlet, servletconfig, servletcontext)) ⇒ (servletconfig.getServletName, handleRegex(regex)) }
   }
 
   private[this] final val jspservlet: js.http.HttpServlet = {

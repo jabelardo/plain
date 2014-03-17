@@ -17,9 +17,9 @@ package object camel
   import config._
   import config.settings._
 
-  final val actorSystemName = getString("plain.camel.actor-system-name", "akka-camel-system")
+  final val actorSystemName = getString("plain.camel.actor-system-name", "plain-camel-system")
 
-  final val actorInvocationTimeout = getMilliseconds("plain.camel.actor-invocation-timeout", 1000)
+  final val actorInvocationTimeout = getMilliseconds("plain.camel.actor-invocation-timeout", 15000)
 
   final val delayDuringShutdown = getMilliseconds("plain.camel.delay-during-shutdown", 200)
 

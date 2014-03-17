@@ -61,9 +61,9 @@ package object aio
   /**
    * If not set differently this will result to 54k which proved to provide best performance under high load.
    */
-  final val defaultBufferSize = getBytes("plain.aio.default-buffer-size", 54 * 1024).toInt
+  final val defaultBufferSize = getBytes("plain.aio.default-buffer-size", 16 * 1024).toInt
 
-  final val defaultBufferPoolSize = getBytes("plain.aio.default-buffer-pool-size", 10000).toInt
+  final val defaultBufferPoolSize = getBytes("plain.aio.default-buffer-pool-size", 32 * 1024).toInt
 
   final val tinyBufferSize = getBytes("plain.aio.tiny-buffer-size", 4 * 1024).toInt
 

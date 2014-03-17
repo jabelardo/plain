@@ -4,10 +4,7 @@ package plain
 
 package camel
 
-import org.apache.camel.builder.RouteBuilder
-import org.apache.camel.component.file.GenericFile
-
-import com.ibm.plain.bootstrap.ExternalComponent
+import org.apache.camel.scala.dsl.builder.RouteBuilder
 
 import scala.concurrent.duration.Duration
 import scala.language.{ implicitConversions, postfixOps }
@@ -71,20 +68,28 @@ final class Camel
     //        to(myendpoint)
     //    }
 
-    val c = new Route {
+    new Route {
 
       val myendpoint = actorsystem.actorOf(Props[MyEndpoint])
-      camel.activationFutureFor(myendpoint)(actorInvocationTimeout, actorsystem.dispatcher)
 
-      from("servlet:/a?servletName=AServlet&matchOnUriPrefix=true").
+      from("servlet:/services/one?matchOnUriPrefix=true").
         convertBodyTo(classOf[String], "UTF-8").
         to(myendpoint)
 
+      from("servlet:/services/two?matchOnUriPrefix=true").
+        convertBodyTo(classOf[String], "UTF-8").
+        to(myendpoint)
+
+      from("direct:abc").to(myendpoint)
+
     }
 
-    import org.apache.camel.component.http.CamelServlet
+    new RouteBuilder {
 
-    c
+      "servlet:/services/three?matchOnUriPrefix=true" routeId "three" convertBodyTo (classOf[String], "UTF-8") to "direct:abc"
+
+    }.addRoutesToCamelContext(camel.context)
+
   }
 
   override final def awaitTermination(timeout: Duration) = actorsystem.awaitTermination(timeout)
@@ -103,7 +108,7 @@ class MyEndpoint extends Actor with Producer {
   def endpointUri = "file:/tmp/outbox"
 
   override def transformOutgoingMessage(msg: Any) = msg match {
-    case msg: CamelMessage ⇒ msg.mapBody { body: String ⇒ println("received " + body); if (null != body) body.toUpperCase else "empty" }
+    case msg: CamelMessage ⇒ msg.mapBody { body: String ⇒ if (null != body) body.toUpperCase else "empty" }
   }
 
 }

@@ -8,6 +8,7 @@ package http
 
 import javax.servlet.http.HttpServlet
 import javax.servlet.http.Cookie
+import javax.servlet.ServletConfig
 
 import scala.collection.mutable.HashMap
 
@@ -19,7 +20,7 @@ import rest.{ BaseResource, Context, StaticResource }
 
 final class HttpServletResource(
 
-  private[this] final val servlet: HttpServlet)
+  private[this] final val servletwrapper: (Either[(Int, HttpServlet), HttpServlet], ServletConfig, ServletContext))
 
   extends BaseResource
 
@@ -34,13 +35,19 @@ final class HttpServletResource(
   final def process(io: Io) = unsupported
 
   final def handle(context: Context) = try {
+    if (null == servlet) servlet = servletwrapper match {
+      case (Right(servlet), servletconfig, _) ⇒
+        servlet.init(servletconfig)
+        servlet
+      case (Left((_, servlet)), _, _) ⇒ servlet
+    }
     val request = context.request
     val response = Response(request, Success.`200`, new HashMap[String, String])
     context ++ response
     import context.io.printwriter
     if (null == printwriter) context.io ++ PrintWriter(ByteArrayOutputStream(io.defaultBufferSize)) else printwriter.outputstream.reset
     val parentloader = Thread.currentThread.getContextClassLoader
-    Thread.currentThread.setContextClassLoader(classloader)
+    Thread.currentThread.setContextClassLoader(servletcontext.getClassLoader)
     try {
       val httpservletrequest = new HttpServletRequest(request, context, servletcontext, servlet)
       val httpservletresponse = new HttpServletResponse(response, servletcontext, printwriter, servlet)
@@ -60,8 +67,11 @@ final class HttpServletResource(
     case e: Throwable ⇒ failed(e, context)
   }
 
-  private[this] final def servletcontext = servlet.getServletContext.asInstanceOf[ServletContext]
+  private[this] final var servlet: HttpServlet = servletwrapper match {
+    case (Left((_, servlet)), _, _) ⇒ servlet
+    case _ ⇒ null
+  }
 
-  private[this] final def classloader = servletcontext.getClassLoader
+  private[this] final val servletcontext: ServletContext = servletwrapper._3
 
 }

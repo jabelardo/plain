@@ -16,6 +16,10 @@ package object servlet
   import config._
   import config.settings._
 
+  final val unpackWebApplicationsRecursively = getBoolean("plain.servlet.unpack-web-applications-recursively", true)
+  
+  final val forceUnpackWebApplications = getBoolean("plain.servlet.force-unpack-web-applications", false)
+  
   final val unpackWebApplicationsToTempDirectory = getBoolean("plain.servlet.unpack-web-applications-to-temp-directory", true)
 
   final val webApplicationsDirectory = {

@@ -10,7 +10,7 @@ import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel, CompletionHandle
 /**
  *
  */
-final class ByteArrayChannel private (
+final class AsynchronousByteArrayChannel private (
 
   array: Array[Byte],
 
@@ -51,11 +51,11 @@ final class ByteArrayChannel private (
 /**
  *
  */
-object ByteArrayChannel {
+object AsynchronousByteArrayChannel {
 
-  final def apply(array: Array[Byte], offset: Int, length: Int) = new ByteArrayChannel(array, offset, length)
+  final def apply(array: Array[Byte], offset: Int, length: Int) = new AsynchronousByteArrayChannel(array, offset, length)
 
-  final def apply(array: Array[Byte]): ByteArrayChannel = apply(array, 0, array.length)
+  final def apply(array: Array[Byte]): AsynchronousByteArrayChannel = apply(array, 0, array.length)
 
 }
 

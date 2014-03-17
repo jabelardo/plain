@@ -27,8 +27,8 @@ scalacOptions in ThisBuild ++= Seq(
 	"-target:jvm-1.7", 
 	"-deprecation", 
 	"-feature", 
-	"-unchecked",
-	"-optimise"
+	"-optimize",
+	"-unchecked"
 )
 
 javacOptions in ThisBuild ++= Seq(
@@ -50,6 +50,8 @@ lazy val samples = project in file("plain-samples") aggregate(helloworld, jdbc, 
 lazy val helloworld = project in file("plain-samples/plain-sample-hello-world") dependsOn library settings(assemblySettings: _*)
 
 lazy val jdbc = project in file("plain-samples/plain-sample-jdbc") dependsOn library settings(jdbcSettings: _*) settings(assemblySettings: _*)
+
+lazy val servlet = project in file("plain-samples/plain-sample-servlet") dependsOn library settings(assemblySettings: _*)
 
 lazy val benchmark = project in file("plain-benchmark") dependsOn library settings(jdbcSettings: _*) settings(assemblySettings: _*)
 

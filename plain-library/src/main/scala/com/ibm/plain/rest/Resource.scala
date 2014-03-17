@@ -13,7 +13,7 @@ import scala.util.continuations.{ reify, suspendable }
 import com.typesafe.config.Config
 
 import reflect.tryBoolean
-import aio.{ ByteArrayChannel, FixedLengthChannel, Io, Transfer }
+import aio.{ AsynchronousByteArrayChannel, FixedLengthChannel, Io, Transfer }
 import http.{ Request, Response, Status, Entity, Method, MimeType, Accept }
 import http.Entity._
 import http.MimeType._
@@ -98,6 +98,10 @@ trait Resource
     add[Unit, A](DELETE, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
   }
 
+  final def Delete[E: TypeTag, A: TypeTag](body: E ⇒ A): MethodBody = {
+    add[E, A](DELETE, typeOf[E], typeOf[A], body)
+  }
+
   final def Get[A: TypeTag](body: ⇒ A): MethodBody = {
     add[Unit, A](GET, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
   }
@@ -123,7 +127,7 @@ trait Resource
   protected[this] final def transfer(entity: Entity, destination: Channel) = {
     entity match {
       case entity: ContentEntity ⇒ context.io ++ Transfer(FixedLengthChannel(context.io.channel, context.io.readbuffer.remaining, entity.length), destination, None)
-      case entity: ArrayEntity ⇒ context.io ++ Transfer(ByteArrayChannel(entity.array), destination, None)
+      case entity: ArrayEntity ⇒ context.io ++ Transfer(AsynchronousByteArrayChannel(entity.array), destination, None)
       case _ ⇒ unsupported
     }
   }

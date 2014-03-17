@@ -458,8 +458,8 @@ object Io
       }
 
       @inline private[this] final def cleanup(io: Io) = {
-        io.transfer.source match { case f: FileByteChannel ⇒ f.close case _ ⇒ }
-        io.transfer.destination match { case f: FileByteChannel ⇒ f.close case _ ⇒ }
+        io.transfer.source match { case f: AsynchronousFileByteChannel ⇒ f.close case _ ⇒ }
+        io.transfer.destination match { case f: AsynchronousFileByteChannel ⇒ f.close case _ ⇒ }
         io.transfer = null
       }
 

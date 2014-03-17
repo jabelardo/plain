@@ -73,7 +73,7 @@ abstract class BaseComponent[C](n: String)
     if (isEnabled && !isStarted) {
       start
       started = true
-      debug("Started component : " + name)
+      info("Started component : " + name)
     }
   } catch {
     case e: Throwable ⇒ System.err.println("Exception during start of Component '" + name + "' : " + e); e.printStackTrace; throw e
@@ -84,7 +84,7 @@ abstract class BaseComponent[C](n: String)
       stop
       started = false
       ignore(Thread.sleep(delayDuringTeardown))
-      debug("Stopped component : " + name)
+      info("Stopped component : " + name)
     }
   } catch {
     case e: Throwable ⇒ System.err.println("Exception during stop of Component '" + name + "' : " + e)
