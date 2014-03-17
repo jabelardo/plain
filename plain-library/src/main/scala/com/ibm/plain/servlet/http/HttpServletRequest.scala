@@ -8,12 +8,9 @@ package http
 
 import java.io.{ BufferedReader, PrintWriter, InputStreamReader }
 import java.util.{ Enumeration, Locale, Map ⇒ JMap }
-
 import javax.{ servlet ⇒ js }
-
 import scala.collection.JavaConversions.{ asJavaEnumeration, mapAsJavaMap, mapAsScalaMap }
 import scala.collection.mutable.HashMap
-
 import text.`UTF-8`
 import rest.Context
 import rest.Matching.default.decodeForm
@@ -22,6 +19,7 @@ import plain.http.Request
 import plain.http.Header.Request.`Cookie`
 import plain.http.Entity.ArrayEntity
 import plain.io.ByteArrayInputStream
+import scala.collection.convert.Wrappers.ToIteratorWrapper
 
 final class HttpServletRequest(
 
@@ -205,10 +203,10 @@ final class HttpServletRequest(
 
   final def getHeader(name: String): String = request.headers.get(name) match {
     case Some(value) ⇒ value
-    case _ ⇒ servletcontext.warn("Header not found : " + name); null
+    case _ ⇒ servletcontext.trace("Header not found : " + name); null
   }
 
-  final def getHeaders(arg0: String): Enumeration[String] = unsupported
+  final def getHeaders(name: String): Enumeration[String] = List(getHeader(name)).toIterator
 
   final def getHeaderNames: Enumeration[String] = request.headers.keysIterator
 
@@ -242,7 +240,7 @@ final class HttpServletRequest(
 
   final lazy val contextpath = servletcontext.getContextPath
 
-  final lazy val servletpath = servletcontext.getServletMappings.getOrElse(servlet.getServletName, "") match {
+  final lazy val servletpath = if (null == servlet.getServletConfig) "" else servletcontext.getServletMappings.getOrElse(servlet.getServletName, "") match {
     case "" ⇒ contextpath
     case s ⇒ s
   }

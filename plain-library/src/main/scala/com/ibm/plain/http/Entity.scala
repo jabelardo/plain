@@ -31,6 +31,8 @@ sealed abstract class Entity {
  */
 object Entity {
 
+  final def unapply(entity: Entity): Option[(ContentType, Long, Boolean)] = Some((entity.contenttype, entity.length, entity.encodable))
+
   final case class ArrayEntity(array: Array[Byte], offset: Int, length: Long, contenttype: ContentType) extends Entity {
 
     final val encodable = length > aio.tooTinyToCareSize

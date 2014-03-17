@@ -22,7 +22,7 @@ package object bootstrap
     if (stacktrace) reason.printStackTrace
     try application.teardown catch { case e: Throwable ⇒ System.err.println(e) }
     val message = """
-%s
+Error : %s
 Memory used/free/max/total (mb) : %d %d %d %d
 Program will abort now."""
     val runtime = sys.runtime

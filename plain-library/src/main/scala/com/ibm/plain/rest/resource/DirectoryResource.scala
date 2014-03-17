@@ -12,13 +12,15 @@ import java.nio.file.Files.{ exists ⇒ fexists, isDirectory, isRegularFile, siz
 import scala.collection.JavaConversions.asScalaBuffer
 
 import org.apache.commons.io.FilenameUtils.getExtension
+import org.apache.commons.io.filefilter.RegexFileFilter
 
 import com.typesafe.config.Config
 
-import aio.FileByteChannel.forReading
+import aio.AsynchronousFileByteChannel.{ forReading, forWriting }
 import logging.Logger
 import http.ContentType
-import http.Entity.AsynchronousByteChannelEntity
+import http.Entity
+import http.Entity.{ AsynchronousByteChannelEntity, ArrayEntity }
 import http.MimeType.{ `application/octet-stream`, forExtension }
 import http.Status.{ ClientError, ServerError }
 
@@ -34,6 +36,23 @@ class DirectoryResource
   Get { get(context.config.getStringList("roots"), context.remainder.mkString("/")) }
 
   Get { _: String ⇒ get(context.config.getStringList("roots"), context.remainder.mkString("/")) }
+
+  Delete { val path = context.remainder.mkString("/"); println(path); println(context.request.query); path }
+
+  Delete { form: Form ⇒ val path = context.remainder.mkString("/"); println(form); println(path); println(context.request.query); path }
+
+  Put { entity: Entity ⇒
+    val filename = "/tmp/blabla.bin"
+    println("we are in PUT(Entity) + entity " + entity + " " + entity.length + " " + filename)
+    entity match {
+      case ArrayEntity(array, offset, length, _) ⇒ println("array: " + new String(array, offset, length.toInt))
+      case _ ⇒
+    }
+    val source = AsynchronousByteChannelEntity(context.io.channel, entity.contenttype, entity.length, entity.encodable)
+    val target = aio.AsynchronousFileByteChannel.forWriting(filename)
+
+    "Thank you for this file, we stored it under " + filename
+  }
 
 }
 
@@ -57,13 +76,17 @@ object DirectoryResource
     }
 
     while (!found && roots.hasNext) {
-      result = Paths.get(roots.next).toAbsolutePath.resolve(remainder) match {
+      val root = roots.next
+      trace("root=" + Paths.get(root).toAbsolutePath + " file=" + remainder)
+      result = Paths.get(root).toAbsolutePath.resolve(remainder) match {
         case path if path.toString.contains("..") ⇒ throw ClientError.`401`
         case path if fexists(path) && isRegularFile(path) ⇒ entity(path)
         case path if fexists(path) && isDirectory(path) ⇒
-          path.resolve("index.html") match {
-            case index if fexists(index) && isRegularFile(index) ⇒ entity(index)
-            case index ⇒ throw ClientError.`406`
+          path.toFile.listFiles(welcomefilter).filter(f ⇒ f.exists && f.isFile).headOption match {
+            case Some(file) ⇒
+              trace("Matched welcomefile : " + file)
+              entity(file.toPath)
+            case _ ⇒ throw ClientError.`406`
           }
         case _ ⇒ null
       }
@@ -86,9 +109,9 @@ object DirectoryResource
         case path if path.toString.contains("..") ⇒ false
         case path if fexists(path) && isRegularFile(path) ⇒ found = true
         case path if fexists(path) && isDirectory(path) ⇒
-          path.resolve("index.html") match {
-            case index if fexists(index) && isRegularFile(index) ⇒ found = true
-            case index ⇒ false
+          path.toFile.listFiles(welcomefilter).filter(f ⇒ f.exists && f.isFile).headOption match {
+            case Some(index) ⇒ found = true
+            case _ ⇒ false
           }
         case _ ⇒ null
       }
@@ -96,5 +119,9 @@ object DirectoryResource
 
     found
   }
+
+  private[this] final val welcomefiles = "([iI]ndex\\.((htm[l]*)|(jsp)))|([dD]efault\\.((htm[l]*)|(jsp)))"
+
+  private[this] final val welcomefilter: java.io.FileFilter = new RegexFileFilter(welcomefiles)
 
 }

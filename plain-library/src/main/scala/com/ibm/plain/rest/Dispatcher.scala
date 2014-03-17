@@ -8,10 +8,8 @@ import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
 import scala.collection.concurrent.TrieMap
 import scala.collection.JavaConversions._
 import aio.Io
-import aio.Iteratees.drop
-import aio.FileByteChannel.forWriting
 import config._
-import http.{ Request, Response }
+import http.{ Entity, Request, Response }
 import http.{ Dispatcher ⇒ HttpDispatcher }
 import http.Entity.ContentEntity
 import http.Status.{ ClientError, ServerError }
@@ -36,8 +34,9 @@ abstract class Dispatcher
           case resource: BaseResource ⇒
             request.entity match {
               case None ⇒
-              case Some(ContentEntity(_, length)) if request.method.entityallowed ⇒
-              case Some(_) if !request.method.entityallowed ⇒ throw ServerError.`501`
+              case Some(Entity(_)) if request.method.entityallowed ⇒
+              case Some(Entity(_, length, _)) if !request.method.entityallowed && length < aio.defaultBufferSize ⇒
+              case Some(_) if !request.method.entityallowed ⇒ throw ClientError.`413`
               case _ ⇒
             }
             resource.handle(context ++ config ++ variables.getOrElse(Dispatcher.emptyvariables) ++ remainder)
@@ -49,38 +48,19 @@ abstract class Dispatcher
 
   final def init = {
     val servletcontexts = ServletContainer.getServletContexts
+
     templates = Templates(
       config.getConfigList("routes", List.empty).map { c: Config ⇒
         Template(c.getString("uri"), Class.forName(c.getString("resource-class-name")), c.getConfig("resource-config", ConfigFactory.empty))
       } ++ servletcontexts.flatMap { servletcontext ⇒
         servletcontext.getHttpServlets.map {
-          case (httpservlet, servletconfig) ⇒
-            Template(
-              servletcontext.getContextPath.drop(1) + servletcontext.getServletMappings.getOrElse(servletconfig.getServletName, ""),
-              httpservlet.getClass,
-              ConfigFactory.empty)
+          case (either, servletconfig, scontext) ⇒ Template(
+            servletcontext.getContextPath.drop(1) + servletcontext.getServletMappings.getOrElse(servletconfig.getServletName, ""),
+            (if (either.isLeft) either.left.get._2 else either.right.get).getClass,
+            ConfigFactory.empty)
         }
-      } ++ servletcontexts.filter(_.getServlets.size == 1).map { servletcontext ⇒
-        val servletclass = servletcontext.getHttpServlets.head._1.getClass
-        Template(servletcontext.getContextPath.drop(1), servletclass, ConfigFactory.empty)
-      } ++ servletcontexts.map { servletcontext ⇒
-        val root = servletcontext.getRealPath.replace(".war", "")
-        val rootclasses = root + "/WEB-INF/classes"
-        val config = s"""{ roots = [ $root, $rootclasses ] }"""
-        Template(
-          servletcontext.getContextPath.drop(1) + "/*",
-          classOf[resource.DirectoryResource],
-          ConfigFactory.parseString(config))
-      } ++ servletcontexts.filter(_.getServlets.size == 1).map { servletcontext ⇒
-        val servletpath = servletcontext.getServletMappings.getOrElse(servletcontext.getHttpServlets.toSeq.head._2.getServletName, "")
-        val root = servletcontext.getRealPath.replace(".war", "")
-        val rootclasses = root + "/WEB-INF/classes"
-        val config = s"""{ roots = [ $root, $rootclasses ] }"""
-        Template(
-          servletcontext.getContextPath.drop(1) + servletpath + "/*",
-          classOf[resource.DirectoryResource],
-          ConfigFactory.parseString(config))
       }).getOrElse(null)
+
     staticresources = (config.getConfigList("routes", List.empty).map { c: Config ⇒
       val resourceclass = Class.forName(c.getString("resource-class-name"))
       if (isStatic(resourceclass)) {
@@ -90,10 +70,11 @@ abstract class Dispatcher
       } else (null, null)
     } ++ servletcontexts.flatMap {
       _.getHttpServlets.map {
-        case (httpservlet, _) ⇒ (httpservlet.getClass, new HttpServletResource(httpservlet))
+        case e @ (either, _, _) ⇒ ((if (either.isLeft) either.left.get._2 else either.right.get).getClass, new HttpServletResource(e))
       }
     }).filter(_._1 != null).toMap
-    debug("name = " + name)
+
+    debug("name = " + name + " " + staticresources)
     if (null != templates) templates.toString.split("\n").filter(0 < _.length).foreach(r ⇒ debug("route = " + r))
   }
 

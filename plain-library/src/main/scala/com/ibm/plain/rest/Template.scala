@@ -56,7 +56,7 @@ final class Template private (
   final val root = if (0 == path.length) {
     ResourceClass(resource, config)
   } else {
-    path.split("/").reverse.foldLeft[Element](ResourceClass(resource, config)) {
+    path.split("/").reverse.filter(_ != "*").foldLeft[Element](ResourceClass(resource, config)) {
       case (elems, e) ⇒
         if (e.startsWith("{") && e.endsWith("}"))
           Variable(e.drop(1).dropRight(1), elems)
@@ -104,19 +104,15 @@ final case class Templates(
 
       path match {
         case Nil ⇒ resource(Nil)
-        case p @ (head :: tail) ⇒ templates.branch match {
-          case Some(Right(branch)) ⇒ branch.get(head) match {
-            case Some(subbranch) ⇒ get0(tail, variables, subbranch)
-            case _ ⇒ branch.get("*") match {
-              case Some(t) if method.readonly && DirectoryResource.exists(t.resource.get._2, p) ⇒
-                val r = t.resource.get
-                Some((r._1, r._2, variables, p))
+        case p @ (head :: tail) ⇒
+          templates.branch match {
+            case Some(Right(branch)) ⇒ branch.get(head) match {
+              case Some(subbranch) ⇒ get0(tail, variables, subbranch)
               case _ ⇒ resource(p)
             }
+            case Some(Left((name, branch))) ⇒ get0(tail, { val v = variables match { case None ⇒ new TrieMap[String, String] case Some(v) ⇒ v }; v += ((name, head)); Some(v) }, branch)
+            case _ ⇒ resource(p)
           }
-          case Some(Left((name, branch))) ⇒ get0(tail, { val v = variables match { case None ⇒ new TrieMap[String, String] case Some(v) ⇒ v }; v += ((name, head)); Some(v) }, branch)
-          case _ ⇒ resource(p)
-        }
       }
     }
 

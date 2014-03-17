@@ -10,6 +10,7 @@ import java.nio.file.Paths
 
 import org.apache.commons.io.{ FileUtils, FilenameUtils }
 import net.lingala.zip4j.core.ZipFile
+import net.lingala.zip4j.model.{ FileHeader, UnzipParameters }
 
 import scala.collection.JavaConversions.collectionAsScalaIterable
 import scala.collection.concurrent.TrieMap
@@ -149,19 +150,28 @@ object ServletClassLoader
     val urls = new ListBuffer[File]
     def unpackJars = if (libdir.exists) {
       val total = FileUtils.listFiles(libdir, Array("jar"), true).size
+      val unzipparameters = new UnzipParameters
+      unzipparameters.setIgnoreAllFileAttributes(true)
       var i = 0
       FileUtils.listFiles(libdir, Array("jar"), true).foreach { libfile ⇒
-        new ZipFile(libfile.getAbsolutePath).extractAll(classesdir.getAbsolutePath)
-        libfile.delete
         i += 1
+        trace("Unpacking " + i + " of " + total + " (" + libfile.getName + ")")
+        val zipfile = new ZipFile(libfile.getAbsolutePath)
+        zipfile.getFileHeaders.map(_.asInstanceOf[FileHeader]).
+          filter(!_.getFileName.toLowerCase.contains("license")).
+          foreach { file ⇒
+            try zipfile.extractFile(file, classesdir.getAbsolutePath)
+            catch { case e: Throwable ⇒ warn("Could not unpack file " + file.getFileName + " in " + libfile.getName + " : " + e.getMessage) }
+          }
+        libfile.delete
         debug("Unpacked " + i + " of " + total + " (" + libfile.getName + ")")
       }
     }
-    if (sourcepath.lastModified > target.lastModified) {
+    if (forceUnpackWebApplications || sourcepath.lastModified > target.lastModified) {
       info("Unpacking " + sourcepath + " to " + target)
       FileUtils.deleteDirectory(target)
       new ZipFile(sourcepath).extractAll(target.getAbsolutePath)
-      unpackJars
+      if (unpackWebApplicationsRecursively) unpackJars
     }
     if (libdir.exists) urls ++= libdir.listFiles
     if (classesdir.exists) urls += classesdir

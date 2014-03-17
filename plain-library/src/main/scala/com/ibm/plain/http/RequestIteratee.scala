@@ -15,8 +15,9 @@ import Status.ClientError.`400`
 import Header.Entity.{ `Content-Length`, `Content-Type` }
 import Header.General.`Transfer-Encoding`
 import Version.`HTTP/1.1`
+import ContentType.fromMimeType
 import Entity.{ ArrayEntity, ContentEntity, TransferEncodedEntity }
-import MimeType.`text/plain`
+import MimeType.{ `text/plain`, `application/octet-stream` }
 
 /**
  * Consuming the input stream to produce a Request.
@@ -134,19 +135,24 @@ final class RequestIteratee private ()(implicit server: Server) {
 
   @inline private[this] final def readEntity(headers: Headers, query: Option[String]): Iteratee[Io, Option[Entity]] =
     `Content-Type`(headers) match {
-      case Some(contenttype) ⇒ `Transfer-Encoding`(headers) match {
-        case Some(value) ⇒ Done(Some(TransferEncodedEntity(value, contenttype)))
-        case None ⇒ `Content-Length`(headers) match {
-          case Some(length) if length <= maxEntityBufferSize ⇒
-            for (array ← takeBytes(length.toInt)) yield Some(ArrayEntity(array, 0, length, contenttype))
-          case Some(length) ⇒ Done(Some(ContentEntity(contenttype, length)))
-          case None ⇒ Done(None)
+      case Some(contenttype) ⇒
+        `Transfer-Encoding`(headers) match {
+          case Some(value) ⇒ Done(Some(TransferEncodedEntity(value, contenttype)))
+          case None ⇒ `Content-Length`(headers) match {
+            case Some(length) if length <= maxEntityBufferSize ⇒ for (array ← takeBytes(length.toInt)) yield Some(ArrayEntity(array, 0, length, contenttype))
+            case Some(length) ⇒ Done(Some(ContentEntity(contenttype, length)))
+            case None ⇒ println("none"); Done(None)
+          }
         }
-      }
-      case None ⇒ query match {
-        case Some(s) ⇒ Done(Some(ArrayEntity(s.getBytes(defaultCharacterSet), `text/plain`)))
-        case None ⇒ Done(None)
-      }
+      case None ⇒
+        `Content-Length`(headers) match {
+          case Some(length) if length <= maxEntityBufferSize ⇒ for (array ← takeBytes(length.toInt)) yield Some(ArrayEntity(array, 0, length, `application/octet-stream`))
+          case Some(length) ⇒ for { _ ← takeBytes(0); done ← Done(Some(ContentEntity(`application/octet-stream`, length))) } yield done
+          case None ⇒ query match {
+            case Some(query) ⇒ Done(Some(ArrayEntity(query.getBytes(defaultCharacterSet), `text/plain`)))
+            case None ⇒ Done(None)
+          }
+        }
     }
 
   final val readRequest: Iteratee[Io, Request] = for {

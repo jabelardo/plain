@@ -30,12 +30,21 @@ abstract sealed class Application
   }
 
   final def bootstrapExternals = {
-    val externals = subClasses(classOf[ExternalComponent[_]]).map(_.newInstance).toSeq.sortWith { case (a, b) ⇒ a.order > b.order }
+    val externals = subClasses(classOf[ExternalComponent[_]]).map(_.newInstance).toSeq.sortWith { case (a, b) ⇒ a.order < b.order }
     externals.filter(_.isEnabled).foreach(_.doStart)
     components ++= externals
   }
 
-  final def teardown = onlyonce { try { components.filter(_.isStarted).reverse.foreach { c ⇒ try c.doStop catch { case NonFatal(e) ⇒ println(c + " : " + e) } } } catch { case e: Throwable ⇒ terminateJvm(e, -1, false) } }
+  final def teardown = onlyonce {
+    try {
+      val shutdown = new Thread(new Runnable { def run = { Thread.sleep(15000); terminateJvm(new RuntimeException("Forcing hard shutdown now."), -1, false) } })
+      shutdown.setDaemon(true)
+      shutdown.start
+      components.filter(_.isStarted).reverse.foreach { c ⇒
+        try c.doStop catch { case NonFatal(e) ⇒ println(c + " : " + e) }
+      }
+    } catch { case e: Throwable ⇒ terminateJvm(e, -1, false) }
+  }
 
   final def awaitTermination(timeout: Duration) = components.filter(_.isStarted).foreach { c ⇒
     c.doAwaitTermination(timeout)

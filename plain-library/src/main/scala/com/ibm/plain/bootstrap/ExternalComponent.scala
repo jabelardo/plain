@@ -13,8 +13,8 @@ abstract class ExternalComponent[C](name: String)
   extends BaseComponent[C](name) {
 
   /**
-   * The higher the value of "order" the earlier components will be started. 0 or below means 'I don't care.'.
+   * The lower the value of "order" the earlier components will be started.
    */
-  def order = -1
+  def order = Int.MaxValue
 
 }

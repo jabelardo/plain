@@ -15,7 +15,7 @@ import scala.collection.JavaConversions._
 /**
  * Turns an AsynchronousFileChannel into an AsynchronousByteChannel to be used as source or destination for an AsynchronousChannelTransfer.
  */
-final class FileByteChannel private (
+final class AsynchronousFileByteChannel private (
 
   filechannel: AsynchronousFileChannel)
 
@@ -72,11 +72,11 @@ final class FileByteChannel private (
 /**
  *
  */
-object FileByteChannel {
+object AsynchronousFileByteChannel {
 
   implicit def asynchronousFileChannel2FileByteChannel(channel: AsynchronousFileChannel) = wrap(channel)
 
-  final def wrap(filechannel: AsynchronousFileChannel): AsynchronousByteChannel = new FileByteChannel(filechannel)
+  final def wrap(filechannel: AsynchronousFileChannel): AsynchronousByteChannel = new AsynchronousFileByteChannel(filechannel)
 
   final def apply(filechannel: AsynchronousFileChannel): AsynchronousByteChannel = wrap(filechannel)
 
