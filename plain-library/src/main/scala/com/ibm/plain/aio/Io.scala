@@ -20,6 +20,13 @@ import Input.{ Elem, Empty, Eof }
 import Iteratee.{ Cont, Done, Error }
 
 /**
+ * Basic asynchronous Io handling.
+ */
+sealed trait IoHandler
+
+  extends Handler[Integer, Io]
+
+/**
  * Io represents the context of an asynchronous i/o operation.
  */
 final class Io private (
@@ -234,7 +241,7 @@ object Io
 
   final private[aio] def apply(iteratee: Iteratee[Io, _]): Io = new Io(null, defaultByteBuffer, defaultByteBuffer, iteratee, null, null, null, null, true, null, null, null, null)
 
-  final private def warnOnce = onlyonce { warn("Chunked input found. Enlarge aio.default-buffer-size : " + defaultBufferSize) }
+  final private def warnOnce = onlyonce { warn("Chunked input found. You need to enlarge aio.default-buffer-size : " + defaultBufferSize) }
 
   /**
    * Io handlers
@@ -242,6 +249,9 @@ object Io
 
   final def loop[E, A <: RenderableRoot](server: ServerChannel, readiteratee: Iteratee[Io, _], processor: Processor[A]): Unit = {
 
+    /**
+     * Accept.
+     */
     object AcceptHandler
 
       extends Handler[SocketChannel, Io] {
@@ -263,9 +273,12 @@ object Io
 
     }
 
+    /**
+     * Read.
+     */
     object ReadHandler
 
-      extends Handler[Integer, Io] {
+      extends IoHandler {
 
       @inline final def completed(processed: Integer, io: Io) = try {
         if (0 > processed) {
@@ -322,11 +335,14 @@ object Io
 
     }
 
+    /**
+     * Process.
+     */
     object ProcessHandler
 
-      extends Handler[Null, Io] {
+      extends IoHandler {
 
-      @inline final def completed(processed: Null, io: Io) = try {
+      @inline final def completed(processed: Integer, io: Io) = try {
         io.iteratee match {
           case Done(renderable: RenderableRoot) ⇒
             renderable.renderHeader(io ++ renderable).transfer match {
@@ -376,13 +392,16 @@ object Io
         }
       } catch { case e: Throwable ⇒ io.release(e) }
 
-      @inline final def failed(e: Throwable, io: Io) = completed(null, io)
+      override final def failed(e: Throwable, io: Io) = completed(-1, io)
 
     }
 
+    /**
+     * Write.
+     */
     object WriteHandler
 
-      extends Handler[Integer, Io] {
+      extends IoHandler {
 
       @inline final def completed(processed: Integer, io: Io) = try {
         if (0 > processed) {
@@ -417,9 +436,12 @@ object Io
 
     }
 
+    /**
+     * Transfer a file in the response.
+     */
     object TransferHandler
 
-      extends Handler[Integer, Io] {
+      extends IoHandler {
 
       @inline def read(io: Io) = {
         io.readbuffer.clear
@@ -465,7 +487,7 @@ object Io
 
       private[this] object TransferWriteHandler
 
-        extends Handler[Integer, Io] {
+        extends IoHandler {
 
         @inline def completed(processed: Integer, io: Io) =
           if (0 < io.readbuffer.remaining) write(io) else read(io)
@@ -476,7 +498,7 @@ object Io
 
       private[this] object ClosingTransferWriteHandler
 
-        extends Handler[Integer, Io] {
+        extends IoHandler {
 
         @inline def completed(processed: Integer, io: Io) = if (0 < io.readbuffer.remaining) {
           writeAndClose(io)
@@ -517,6 +539,9 @@ object Io
 
     @inline def ignore = ()
 
+    /**
+     * And finally, here we actually start.
+     */
     accept
 
   }

@@ -19,9 +19,9 @@ trait Processor[A]
 
   def failed(e: Throwable, io: Io)
 
-  private[aio] final def doProcess(io: Io, handler: Handler[Null, Io]): Unit = try {
+  private[aio] final def doProcess(io: Io, handler: IoHandler): Unit = try {
     process(io)
-    handler.completed(null, io)
+    handler.completed(0, io)
   } catch {
     case e: Throwable ⇒
       failed(e, io)

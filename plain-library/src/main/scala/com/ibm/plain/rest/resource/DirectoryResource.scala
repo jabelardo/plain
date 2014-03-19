@@ -8,6 +8,7 @@ package resource
 
 import java.nio.file.{ Path, Paths }
 import java.nio.file.Files.{ exists ⇒ fexists, isDirectory, isRegularFile, size }
+import java.nio.channels.{ CompletionHandler ⇒ Handler }
 
 import scala.collection.JavaConversions.asScalaBuffer
 
@@ -16,6 +17,7 @@ import org.apache.commons.io.filefilter.RegexFileFilter
 
 import com.typesafe.config.Config
 
+import aio.{ AsynchronousFileByteChannel, AsynchronousFixedLengthChannel }
 import aio.AsynchronousFileByteChannel.{ forReading, forWriting }
 import logging.Logger
 import http.ContentType
@@ -42,16 +44,18 @@ class DirectoryResource
   Delete { form: Form ⇒ val path = context.remainder.mkString("/"); println(form); println(path); println(context.request.query); path }
 
   Put { entity: Entity ⇒
-    val filename = "/tmp/blabla.bin"
-    println("we are in PUT(Entity) + entity " + entity + " " + entity.length + " " + filename)
-    entity match {
-      case ArrayEntity(array, offset, length, _) ⇒ println("array: " + new String(array, offset, length.toInt))
-      case _ ⇒
-    }
-    val source = AsynchronousByteChannelEntity(context.io.channel, entity.contenttype, entity.length, entity.encodable)
-    val target = aio.AsynchronousFileByteChannel.forWriting(filename)
-
-    "Thank you for this file, we stored it under " + filename
+    val filename = "/tmp/test/blabla.bin"
+    println("PUT" + entity + " " + entity.length + " " + filename)
+    AsynchronousFileByteChannel.forWriting(filename).transferFrom(
+      AsynchronousFixedLengthChannel(context.io.channel, 0, entity.length),
+      context.io.writebuffer,
+      filename,
+      new Handler[Integer, String] {
+        def completed(processed: Integer, filename: String) = "Thank you, " + filename
+        def failed(e: Throwable, filename: String) = "Sorry, failed " + filename + " : " + e
+      })
+      Thread.sleep(20000)
+      "Thank you!"
   }
 
 }

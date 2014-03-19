@@ -10,7 +10,7 @@ import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel, CompletionHandle
 /**
  *
  */
-final class FixedLengthChannel private (
+final class AsynchronousFixedLengthChannel private (
 
   channel: Channel,
 
@@ -60,9 +60,9 @@ final class FixedLengthChannel private (
 /**
  *
  */
-object FixedLengthChannel {
+object AsynchronousFixedLengthChannel {
 
-  def apply(channel: Channel, offset: Long, length: Long) = new FixedLengthChannel(channel, offset, length)
+  def apply(channel: Channel, offset: Long, length: Long) = new AsynchronousFixedLengthChannel(channel, offset, length)
 
 }
 
