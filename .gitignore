@@ -27,4 +27,5 @@ project/plugins/project/
 */.localized
 **/*~
 .DS_Store
+.idea/
 
