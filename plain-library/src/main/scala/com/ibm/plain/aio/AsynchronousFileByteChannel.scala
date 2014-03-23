@@ -62,9 +62,6 @@ final class AsynchronousFileByteChannel private (
 
   }
 
-  /**
-   * This is a nice feature - why isn't it in the standard library?
-   */
   final def transferFrom[A](source: AsynchronousByteChannel, buffer: ByteBuffer, attachment: A, handler: Handler[Integer, _ >: A]) = {
     val target: AsynchronousByteChannel = this
     val readcompletionhandler = ReadCompletionHandler[A](buffer, source, target, handler)

@@ -18,6 +18,11 @@ package object aio
   import config._
   import config.settings._
 
+  /**
+   * Thrown to indicate that async Io has been started and is running in a separate control flow now.
+   */
+  object IoControl extends ControlThrowable
+
   final def bestFitByteBuffer(length: Int) = {
     if (length <= tinyBufferSize)
       tinyByteBuffer

@@ -73,4 +73,3 @@ abstract class Processor
 private object Processor {
 
 }
-
