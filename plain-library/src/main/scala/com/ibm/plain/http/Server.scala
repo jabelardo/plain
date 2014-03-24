@@ -16,7 +16,7 @@ import scala.collection.mutable.HashMap
 import com.ibm.plain.bootstrap.BaseComponent
 import com.typesafe.config.{ Config, ConfigFactory }
 
-import aio.Io.loop
+import aio.Exchange.loop
 import bootstrap.Application
 import config.{ CheckedConfig, config2RichConfig }
 import logging.Logger
@@ -53,7 +53,7 @@ final case class Server(
         serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
         serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(aio.sendReceiveBufferSize))
         serverChannel.bind(bindaddress, backlog)
-        loop(serverChannel, RequestIteratee(this).readRequest, dispatcher)
+        loop(serverChannel, this, null, dispatcher)
       }
 
       application match {
@@ -119,7 +119,7 @@ final case class Server(
 object Server {
 
   private final val channelGroup = channelGroupThreadPoolType match {
-    // case 0 handled in line 50
+    case 0 ⇒ throw new IllegalArgumentException("Default value is handled in line 50.")
     case 1 ⇒ Group.withFixedThreadPool(concurrent.cores, defaultThreadFactory)
     case 2 ⇒ Group.withFixedThreadPool(concurrent.parallelism, defaultThreadFactory)
     case _ ⇒ Group.withThreadPool(concurrent.ioexecutor)
@@ -190,13 +190,13 @@ object Server {
 	
     address = "*"
 	
-    port-range = [ 7500, 7501, 7502 ]
+    port-range = [ 8080 ]
 
-    backlog = 10000
+    backlog = 32K
 
     load-balancing {
     
-		enable = on
+		enable = off
      
 		balancing-path = /
     
@@ -208,15 +208,15 @@ object Server {
         
         pause-between-accepts = 0
 	
-		allow-version-1-0-but-treat-it-like-1-1 = on
+				allow-version-1-0-but-treat-it-like-1-1 = off
 	
-		allow-any-version-but-treat-it-like-1-1 = off
+				allow-any-version-but-treat-it-like-1-1 = off
 		
-		default-character-set = ISO-8859-15
+				default-character-set = ISO-8859-15
 		
-		disable-url-decoding = off
+				disable-url-decoding = off
 		
-		max-entity-buffer-size = 16K
+				max-entity-buffer-size = 64K
 
     }""")
 

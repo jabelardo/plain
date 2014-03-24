@@ -9,7 +9,7 @@ import javax.servlet.http.Cookie
 
 import scala.language.implicitConversions
 
-import aio.{ Transfer, Encoder, Io, RenderableRoot, releaseByteBuffer, tooTinyToCareSize }
+import aio.{ Transfer, Encoder, Io, OutMessage, RenderableRoot, releaseByteBuffer, tooTinyToCareSize }
 import aio.Iteratee.{ Cont, Done }
 import aio.Renderable._
 import text.`UTF-8`
@@ -35,6 +35,8 @@ final case class Response private (
   var entity: Option[Entity])
 
   extends Message
+
+  with OutMessage
 
   with RenderableRoot {
 

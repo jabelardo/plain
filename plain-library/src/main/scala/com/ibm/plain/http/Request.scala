@@ -6,7 +6,7 @@ package http
 
 import java.util.zip.Deflater
 
-import aio.Encoder
+import aio.{ Encoder, InMessage }
 import Message.Headers
 import Header.General.`Connection`
 import Header.Request.`Accept-Encoding`
@@ -28,7 +28,9 @@ final case class Request(
 
   var entity: Option[Entity])
 
-  extends Message {
+  extends Message
+
+  with aio.InMessage {
 
   type Type = Request
 

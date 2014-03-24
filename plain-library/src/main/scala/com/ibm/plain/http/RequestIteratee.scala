@@ -6,9 +6,9 @@ package http
 
 import aio._
 import aio.Iteratee._
-import aio.Iteratees._
+import aio.ExchamgeIteratees._
 import aio.Input._
-import text._
+import text.{ `US-ASCII`, utf8Codec }
 import Message.Headers
 import Request.Path
 import Status.ClientError.`400`
@@ -22,7 +22,11 @@ import MimeType.{ `text/plain`, `application/octet-stream` }
 /**
  * Consuming the input stream to produce a Request.
  */
-final class RequestIteratee private ()(implicit server: Server) {
+final class RequestIteratee private (
+
+  server: Server,
+  
+) {
 
   import RequestConstants._
 
@@ -42,7 +46,7 @@ final class RequestIteratee private ()(implicit server: Server) {
 
       def readUriSegment(allowed: Set[Int], nodecoding: Boolean): Iteratee[Io, String] = for {
         segment ← takeWhile(allowed)(defaultCharacterSet, false)
-      } yield if (nodecoding) segment else utf8codec.decode(segment)
+      } yield if (nodecoding) segment else utf8Codec.decode(segment)
 
       val readPathSegment = readUriSegment(path, disableUrlDecoding)
 
@@ -92,7 +96,7 @@ final class RequestIteratee private ()(implicit server: Server) {
       pathquery ← readRequestUri
       _ ← takeWhile(whitespace)
       version ← takeUntilCrLf
-    } yield (method, pathquery._1, pathquery._2, Version(version))
+    } yield (method, pathquery._1, pathquery._2, Version(version, server))
   }
 
   private[this] final def readHeaders: Iteratee[Io, Headers] = {
@@ -141,7 +145,7 @@ final class RequestIteratee private ()(implicit server: Server) {
           case None ⇒ `Content-Length`(headers) match {
             case Some(length) if length <= maxEntityBufferSize ⇒ for (array ← takeBytes(length.toInt)) yield Some(ArrayEntity(array, 0, length, contenttype))
             case Some(length) ⇒ Done(Some(ContentEntity(contenttype, length)))
-            case None ⇒ println("none"); Done(None)
+            case None ⇒ Done(None)
           }
         }
       case None ⇒
@@ -165,6 +169,6 @@ final class RequestIteratee private ()(implicit server: Server) {
 
 object RequestIteratee {
 
-  final def apply(server: Server) = new RequestIteratee()(server)
+  final def apply(server: Server) = new RequestIteratee(server)
 
 }

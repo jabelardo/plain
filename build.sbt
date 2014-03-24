@@ -27,6 +27,7 @@ scalacOptions in ThisBuild ++= Seq(
 	"-target:jvm-1.7", 
 	"-deprecation", 
 	"-feature", 
+	"-Yinline-warnings",
 	"-optimize",
 	"-unchecked"
 )

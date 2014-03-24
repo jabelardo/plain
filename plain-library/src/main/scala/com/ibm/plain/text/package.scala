@@ -36,7 +36,7 @@ package object text {
    */
   final val `ISO-8859-15` = Charset.forName("ISO-8859-15")
 
-  final val utf8codec = new URLCodec(`UTF-8`.toString)
+  final val utf8Codec = new URLCodec(`UTF-8`.toString)
 
   /**
    * Convert input to readable output if input is base64-encoded else return input.

@@ -136,7 +136,7 @@ final class Io private (
     if (null != channel && channel.isOpen) channel.close
   }
 
-  @inline private final def error(e: Throwable) = {
+  private final def error(e: Throwable) = {
     e match {
       case _: IOException ⇒
       case e ⇒ Io.debug("Io.error " + e.toString)
@@ -148,7 +148,7 @@ final class Io private (
     readbuffer.remaining match {
       case 0 ⇒ Io.emptyString
       case n ⇒ readBytes(n) match {
-        case a if a eq array ⇒ StringPool.get(if (lowercase) toLowerCase(a, 0, n) else a, n)
+        case a if a eq array ⇒ StringPool.get(if (lowercase) toLowerCase(a, 0, n) else a, n, cset)
         case a ⇒ new String(a, 0, n, cset)
       }
     })
@@ -342,7 +342,7 @@ object Io
 
       extends IoHandler {
 
-      @inline final def completed(processed: Integer, io: Io) = try {
+      final def completed(processed: Integer, io: Io) = try {
         io.iteratee match {
           case Done(renderable: RenderableRoot) ⇒
             renderable.renderHeader(io ++ renderable).transfer match {
@@ -521,12 +521,12 @@ object Io
       server.accept(Io(readiteratee), AcceptHandler)
     }
 
-    @inline def read(io: Io): Unit = {
+    def read(io: Io): Unit = {
       io.readbuffer.clear
       io.channel.read(io.readbuffer, io, ReadHandler)
     }
 
-    @inline def process(io: Io): Unit = {
+    def process(io: Io): Unit = {
       processor.doProcess(io, ProcessHandler)
     }
 
