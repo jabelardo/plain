@@ -20,6 +20,7 @@ import aio.Exchange.loop
 import bootstrap.Application
 import config.{ CheckedConfig, config2RichConfig }
 import logging.Logger
+import RequestIteratee.readRequest
 
 /**
  *
@@ -53,7 +54,7 @@ final case class Server(
         serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
         serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(aio.sendReceiveBufferSize))
         serverChannel.bind(bindaddress, backlog)
-        loop(serverChannel, this, null, dispatcher)
+        loop(serverChannel, this, readRequest(this), dispatcher)
       }
 
       application match {
@@ -94,6 +95,8 @@ final case class Server(
     ", dispatcher=" + { try dispatcher.name catch { case _: Throwable ⇒ "invalid" } } +
     (if (settings.loadBalancingEnable && application.isDefined) ", load-balancing-path=" + settings.loadBalancingBalancingPath else "") +
     ")"
+
+  final def characterset = getSettings.defaultCharacterSet
 
   final def getSettings = settings
 

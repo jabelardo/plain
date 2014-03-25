@@ -18,10 +18,10 @@ sealed trait Iteratee[E, +A] {
 
   def apply(input: Input[E]): (Iteratee[E, A], Input[E])
 
-  final def result: A = this(Eof) match {
+  @inline final def result: A = this(Eof) match {
     case (Done(a), _) ⇒ a
     case (Error(e), _) ⇒ throw e
-    case _ ⇒ throw illegalstate
+    case _ ⇒ throw IllegalState
   }
 
   def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B]
@@ -36,11 +36,11 @@ object Iteratee {
 
     extends Iteratee[E, A] {
 
-    final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = (this, input)
+    @inline final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = (this, input)
 
-    final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = f(a)
+    @inline final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = f(a)
 
-    final def map[B](f: A ⇒ B): Iteratee[E, B] = Done(f(a))
+    @inline final def map[B](f: A ⇒ B): Iteratee[E, B] = Done(f(a))
 
   }
 
@@ -56,11 +56,11 @@ object Iteratee {
 
     extends Iteratee[E, Nothing] {
 
-    final def apply(input: Input[E]): (Iteratee[E, Nothing], Input[E]) = (this, input)
+    @inline final def apply(input: Input[E]): (Iteratee[E, Nothing], Input[E]) = (this, input)
 
-    final def flatMap[B](f: Nothing ⇒ Iteratee[E, B]): Iteratee[E, B] = this
+    @inline final def flatMap[B](f: Nothing ⇒ Iteratee[E, B]): Iteratee[E, B] = this
 
-    final def map[B](f: Nothing ⇒ B): Iteratee[E, B] = this
+    @inline final def map[B](f: Nothing ⇒ B): Iteratee[E, B] = this
 
   }
 
@@ -76,14 +76,14 @@ object Iteratee {
 
     extends Iteratee[E, A] {
 
-    final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = k(input)
+    @inline final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = k(input)
 
-    final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = k match {
+    @inline final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = k match {
       case comp: Compose[E, B] ⇒ Cont(comp.clone(f.asInstanceOf[Any ⇒ Iteratee[E, _]]))
       case k ⇒ Cont(new Compose(k, f.asInstanceOf[Any ⇒ Iteratee[E, _]] :: Nil, Nil))
     }
 
-    final def map[B](f: A ⇒ B): Iteratee[E, B] = flatMap(a ⇒ Done(f(a)))
+    @inline final def map[B](f: A ⇒ B): Iteratee[E, B] = flatMap(a ⇒ Done(f(a)))
 
   }
 
@@ -138,6 +138,6 @@ object Iteratee {
 
   private final type R[E, A] = Input[E] ⇒ (Iteratee[E, A], Input[E])
 
-  private final val illegalstate = new IllegalStateException with ControlThrowable
+  private final val IllegalState = new IllegalStateException with ControlThrowable
 
 }

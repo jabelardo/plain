@@ -7,7 +7,10 @@ package aio
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousServerSocketChannel ⇒ ServerChannel, AsynchronousSocketChannel ⇒ SocketChannel, CompletionHandler ⇒ Handler }
+import java.nio.charset.Charset
 import java.util.concurrent.atomic.AtomicBoolean
+
+import scala.math.min
 
 import logging.Logger
 import Input._
@@ -27,19 +30,14 @@ import Iteratee._
 /**
  *
  */
-trait EndPoint
-
-/**
- *
- */
-import Exchange.{ ExchangeHandler, ReadIteratee, warn, debug }
+import Exchange.{ ExchangeHandler, ReadIteratee, warn, debug, emptyString, emptyArray }
 
 /**
  *
  */
 final class Exchange[A] private (
 
-  private[this] final val attachment: A,
+  final val attachment: A,
 
   private[this] final val socketchannel: SocketChannel,
 
@@ -65,7 +63,7 @@ final class Exchange[A] private (
     socketchannel.write(writebuffer, this, handler)
   }
 
-  @inline private final def ++(that: Exchange[A]) = { throw new NotImplementedError }
+  @inline final def ++(that: Exchange[A]) = if (this eq that) that else { throw new NotImplementedError }
 
   @inline private final def ++(contiteratee: Cont[Exchange[A], _]) = { this.contiteratee = contiteratee; this }
 
@@ -95,6 +93,82 @@ final class Exchange[A] private (
 
   private[this] final var contiteratee: Cont[Exchange[A], _] = null
 
+  final def decode(characterset: Charset, lowercase: Boolean): String = advanceBuffer(
+    readbuffer.remaining match {
+      case 0 ⇒ emptyString
+      case n ⇒ readBytes(n) match {
+        case a if a eq array ⇒ StringPool.get(if (lowercase) lowerAlphabet(a, 0, n) else a, n, characterset)
+        case a ⇒ new String(a, 0, n, characterset)
+      }
+    })
+
+  @inline final def consume: Array[Byte] = advanceBuffer(
+    readbuffer.remaining match {
+      case 0 ⇒ Io.emptyArray
+      case n ⇒ readBytes(n)
+    })
+
+  @inline final def length: Int = readbuffer.remaining
+
+  @inline final def take(n: Int): Exchange[A] = {
+    markLimit
+    readbuffer.limit(min(readbuffer.limit, readbuffer.position + n))
+    this
+  }
+
+  @inline final def peek(n: Int): Exchange[A] = {
+    markPosition
+    take(n)
+  }
+
+  @inline final def peek: Byte = readbuffer.get(readbuffer.position)
+
+  @inline final def drop(n: Int): Exchange[A] = {
+    readbuffer.position(min(readbuffer.limit, readbuffer.position + n))
+    this
+  }
+
+  @inline final def indexOf(b: Byte): Int = {
+    val p = readbuffer.position
+    val l = readbuffer.limit
+    var i = p
+    while (i < l && b != readbuffer.get(i)) i += 1
+    if (i == l) -1 else i - p
+  }
+
+  @inline final def span(p: Int ⇒ Boolean): (Int, Int) = {
+    val pos = readbuffer.position
+    val l = readbuffer.limit
+    var i = pos
+    while (i < l && p(readbuffer.get(i))) i += 1
+    (i - pos, l - i)
+  }
+
+  @inline final def remaining = readbuffer.remaining
+
+  @inline private[this] final def readBytes(n: Int): Array[Byte] = if (n <= StringPool.maxStringLength) { readbuffer.get(array, 0, n); array } else Array.fill(n)(readbuffer.get)
+
+  @inline private[this] final def markLimit: Unit = limitmark = readbuffer.limit
+
+  @inline private[this] final def markPosition: Unit = positionmark = readbuffer.position
+
+  @inline private[this] final def advanceBuffer[A](a: A): A = {
+    readbuffer.limit(limitmark)
+    if (-1 < positionmark) { readbuffer.position(positionmark); positionmark = -1 }
+    a
+  }
+
+  @inline private[this] final def lowerAlphabet(a: Array[Byte], offset: Int, length: Int): Array[Byte] = {
+    for (i ← offset until length) { val b = a(i); if ('A' <= b && b <= 'Z') a.update(i, (b + 32).toByte) }
+    a
+  }
+
+  private[this] final var limitmark = -1
+
+  private[this] final var positionmark = -1
+
+  private[this] final val array = new Array[Byte](StringPool.maxStringLength)
+
 }
 
 /**
@@ -103,6 +177,13 @@ final class Exchange[A] private (
 object Exchange
 
   extends Logger {
+
+  /**
+   * Type definitions.
+   */
+  type ReadIteratee[A] = Iteratee[Exchange[A], _]
+
+  type ExchangeHandler[A] = Handler[Integer, Exchange[A]]
 
   /**
    * Constructors.
@@ -120,11 +201,11 @@ object Exchange
     writebuffer: ByteBuffer) = new Exchange(attachment, socketchannel, readiteratee, readbuffer, writebuffer)
 
   /**
-   * Type definitions.
+   * Constants.
    */
-  type ReadIteratee[A] = Iteratee[Exchange[A], _]
+  final val emptyString = new String
 
-  type ExchangeHandler[A] = Handler[Integer, Exchange[A]]
+  final val emptyArray = new Array[Byte](0)
 
   /**
    * Helpers.
@@ -138,7 +219,7 @@ object Exchange
    */
   final def loop[A](
 
-    server: ServerChannel,
+    serverchannel: ServerChannel,
 
     attachment: A,
 
@@ -163,11 +244,11 @@ object Exchange
       }
 
       @inline final def failed(e: Throwable, ignore: Null) = {
-        if (server.isOpen) {
+        if (serverchannel.isOpen) {
           accept
           e match {
-            case _: IOException ⇒ debug("Accept failed : " + e + "(" + server + ")")
-            case _: Throwable ⇒ warn("Accept failed : " + e + "(" + server + ")")
+            case _: IOException ⇒ debug("Accept failed : " + e + "(" + serverchannel + ")")
+            case _: Throwable ⇒ warn("Accept failed : " + e + "(" + serverchannel + ")")
           }
         }
       }
@@ -225,7 +306,7 @@ object Exchange
     /**
      * The AIO methods.
      */
-    @inline def accept = server.accept(null, AcceptHandler)
+    @inline def accept = serverchannel.accept(null, AcceptHandler)
 
     @inline def read(exchange: Exchange[A]) = exchange.read(ReadHandler)
 
