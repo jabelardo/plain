@@ -15,9 +15,9 @@ import Iteratee.{ Cont, Done, Error }
  */
 object Iteratees {
 
-  final def take[A](n: Int, characterset: Charset, lowercase: Boolean): Iteratee[Exchange[A], String] = {
+  final def take(n: Int, characterset: Charset, lowercase: Boolean): Iteratee[Exchange, String] = {
 
-    def cont(taken: Exchange[A])(input: Input[Exchange[A]]): (Iteratee[Exchange[A], String], Input[Exchange[A]]) =
+    def cont(taken: Exchange)(input: Input[Exchange]): (Iteratee[Exchange, String], Input[Exchange]) =
       input match {
         case Elem(more) ⇒
           val in = if (null == taken) more else taken ++ more
@@ -33,9 +33,9 @@ object Iteratees {
     Cont(cont(null) _)
   }
 
-  final def takeBytes[A](n: Int): Iteratee[Exchange[A], Array[Byte]] = {
+  final def takeBytes(n: Int): Iteratee[Exchange, Array[Byte]] = {
 
-    def cont(taken: Exchange[A])(input: Input[Exchange[A]]): (Iteratee[Exchange[A], Array[Byte]], Input[Exchange[A]]) =
+    def cont(taken: Exchange)(input: Input[Exchange]): (Iteratee[Exchange, Array[Byte]], Input[Exchange]) =
       input match {
         case Elem(more) ⇒
           val in = if (null == taken) more else taken ++ more
@@ -51,9 +51,9 @@ object Iteratees {
     Cont(cont(null) _)
   }
 
-  final def peek[A]: Iteratee[Exchange[A], Byte] = {
+  final def peek: Iteratee[Exchange, Byte] = {
 
-    def cont(input: Input[Exchange[A]]): (Iteratee[Exchange[A], Byte], Input[Exchange[A]]) =
+    def cont(input: Input[Exchange]): (Iteratee[Exchange, Byte], Input[Exchange]) =
       input match {
         case Elem(more) ⇒ (Done(more.peek), Elem(more))
         case Failure(e) ⇒ (Error(e), input)
@@ -63,9 +63,9 @@ object Iteratees {
     Cont(cont _)
   }
 
-  final def isEof[A]: Iteratee[Exchange[A], Boolean] = {
+  final def isEof: Iteratee[Exchange, Boolean] = {
 
-    def cont(input: Input[Exchange[A]]): (Iteratee[Exchange[A], Boolean], Input[Exchange[A]]) =
+    def cont(input: Input[Exchange]): (Iteratee[Exchange, Boolean], Input[Exchange]) =
       input match {
         case Elem(more) if 0 < more.remaining ⇒ (Done(false), Elem(more))
         case _ ⇒ (Done(true), Eof)
@@ -74,9 +74,9 @@ object Iteratees {
     Cont(cont _)
   }
 
-  final def peek[A](n: Int, characterset: Charset, lowercase: Boolean): Iteratee[Exchange[A], String] = {
+  final def peek(n: Int, characterset: Charset, lowercase: Boolean): Iteratee[Exchange, String] = {
 
-    def cont(taken: Exchange[A])(input: Input[Exchange[A]]): (Iteratee[Exchange[A], String], Input[Exchange[A]]) =
+    def cont(taken: Exchange)(input: Input[Exchange]): (Iteratee[Exchange, String], Input[Exchange]) =
       input match {
         case Elem(more) ⇒
           val in = if (null == taken) more else taken ++ more
@@ -92,9 +92,9 @@ object Iteratees {
     Cont(cont(null) _)
   }
 
-  final def takeWhile[A](p: Int ⇒ Boolean, characterset: Charset, lowercase: Boolean): Iteratee[Exchange[A], String] = {
+  final def takeWhile(p: Int ⇒ Boolean, characterset: Charset, lowercase: Boolean): Iteratee[Exchange, String] = {
 
-    def cont(taken: Exchange[A])(input: Input[Exchange[A]]): (Iteratee[Exchange[A], String], Input[Exchange[A]]) =
+    def cont(taken: Exchange)(input: Input[Exchange]): (Iteratee[Exchange, String], Input[Exchange]) =
       input match {
         case Elem(more) ⇒
           val in = if (null == taken) more else taken ++ more
@@ -111,12 +111,12 @@ object Iteratees {
     Cont(cont(null) _)
   }
 
-  final def takeUntil[A](p: Int ⇒ Boolean, characterset: Charset, lowercase: Boolean): Iteratee[Exchange[A], String] =
+  final def takeUntil(p: Int ⇒ Boolean, characterset: Charset, lowercase: Boolean): Iteratee[Exchange, String] =
     takeWhile(b ⇒ !p(b), characterset, lowercase)
 
-  final def takeUntil[A](delimiter: Byte, characterset: Charset, lowercase: Boolean): Iteratee[Exchange[A], String] = {
+  final def takeUntil(delimiter: Byte, characterset: Charset, lowercase: Boolean): Iteratee[Exchange, String] = {
 
-    def cont(taken: Exchange[A])(input: Input[Exchange[A]]): (Iteratee[Exchange[A], String], Input[Exchange[A]]) =
+    def cont(taken: Exchange)(input: Input[Exchange]): (Iteratee[Exchange, String], Input[Exchange]) =
       input match {
         case Elem(more) ⇒
           val in = if (null == taken) more else taken ++ more
@@ -133,9 +133,9 @@ object Iteratees {
     Cont(cont(null) _)
   }
 
-  final def takeUntilCrLf[A](characterset: Charset, lowercase: Boolean): Iteratee[Exchange[A], String] = {
+  final def takeUntilCrLf(characterset: Charset, lowercase: Boolean): Iteratee[Exchange, String] = {
 
-    def cont(taken: Exchange[A])(input: Input[Exchange[A]]): (Iteratee[Exchange[A], String], Input[Exchange[A]]) =
+    def cont(taken: Exchange)(input: Input[Exchange]): (Iteratee[Exchange, String], Input[Exchange]) =
       input match {
         case Elem(more) ⇒
           val in = if (null == taken) more else taken ++ more
@@ -152,9 +152,9 @@ object Iteratees {
     Cont(cont(null) _)
   }
 
-  final def drop[A](n: Int): Iteratee[Exchange[A], Unit] = {
+  final def drop(n: Int): Iteratee[Exchange, Unit] = {
 
-    def cont(remaining: Int)(input: Input[Exchange[A]]): (Iteratee[Exchange[A], Unit], Input[Exchange[A]]) =
+    def cont(remaining: Int)(input: Input[Exchange]): (Iteratee[Exchange, Unit], Input[Exchange]) =
       input match {
         case Elem(more) ⇒
           val len = more.length

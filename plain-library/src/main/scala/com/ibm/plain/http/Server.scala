@@ -54,7 +54,7 @@ final case class Server(
         serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
         serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(aio.sendReceiveBufferSize))
         serverChannel.bind(bindaddress, backlog)
-        loop(serverChannel, this, readRequest(this), dispatcher)
+        loop(serverChannel, readRequest(this), dispatcher)
       }
 
       application match {

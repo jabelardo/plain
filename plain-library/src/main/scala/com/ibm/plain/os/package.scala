@@ -7,6 +7,8 @@ import org.apache.commons.lang3.SystemUtils._
 
 import config.CheckedConfig
 import logging.createLogger
+import concurrent.scheduleOnce
+import time.timeMillis
 
 package object os
 
@@ -49,15 +51,31 @@ package object os
   /**
    * The machine name the JVM is running on.
    */
-  final val hostName = try InetAddress.getLocalHost.getHostName catch {
-    case e: Throwable ⇒ createLogger(this).error(e.toString); "localhost"
-  }
+  final def hostName = hostname
 
   /**
    * The canonical hostname the JVM is running on. Depending on DNS settings this might take some time to compute.
    */
-  final lazy val canonicalHostName = try InetAddress.getLocalHost.getCanonicalHostName catch {
-    case e: Throwable ⇒ createLogger(this).error(e.toString); "localhost"
+  final def canonicalHostName = canonicalhostname
+
+  @volatile private[this] final var hostname = "localhost"
+
+  @volatile private[this] final var canonicalhostname = "localhost"
+
+  @volatile private[plain] final var hostResolved = false
+
+  scheduleOnce(200) {
+    val logger = createLogger(this)
+    val (_, millis) = timeMillis {
+      hostname = try InetAddress.getLocalHost.getHostName catch {
+        case e: Throwable ⇒ logger.error(e.toString); "localhost"
+      }
+      canonicalhostname = try InetAddress.getLocalHost.getCanonicalHostName catch {
+        case e: Throwable ⇒ logger.error(e.toString); "localhost"
+      }
+      hostResolved = true
+    }
+    (if (millis > 5000) logger.warn _ else logger.trace _)("Time to resolve hosts: " + millis + "ms, hostName=" + hostName + ", canonicalHostName=" + canonicalHostName)
   }
 
 }

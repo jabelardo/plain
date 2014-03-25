@@ -30,12 +30,13 @@ package object plain
     appl
   }
 
-  def run: Unit = run(())
+  final def run: Unit = run(())
 
-  def run(body: ⇒ Unit): Unit = run(Duration.fromNanos(Long.MaxValue))(body)
+  final def run(body: ⇒ Unit): Unit = run(Duration.fromNanos(Long.MaxValue))(body)
 
-  def run(timeout: Duration)(body: ⇒ Unit): Unit = try {
+  final def run(timeout: Duration)(body: ⇒ Unit): Unit = try {
     application.bootstrap
+    if (!os.hostResolved) logging.createLogger(this).warn("Hostname not yet resolved, maybe some DNS problem.")
     body
     application.awaitTermination(timeout)
   } catch {
