@@ -21,6 +21,8 @@ eclipseOutput in ThisBuild := Some("target")
 
 withSource in ThisBuild:= true
 
+scalacOptions in (doc) := Seq("-diagrams", "-doc-title plain.io")
+
 scalacOptions in ThisBuild ++= Seq(
 	"-g:vars",
 	"-encoding", "UTF-8", 

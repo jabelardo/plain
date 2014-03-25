@@ -45,61 +45,6 @@ final class Exchange private (
 
   private[this] final val writebuffer: ByteBuffer) {
 
-  @inline private final def apply(input: Input[Exchange]): (Iteratee[Exchange, _], Input[Exchange]) = {
-    readbuffer.flip
-    iteratee(input)
-  }
-
-  @inline private final def read(handler: ExchangeHandler) = {
-    clear
-    iteratee = readiteratee
-    channel.read(readbuffer, this, handler)
-  }
-
-  @inline private final def write(handler: ExchangeHandler, flip: Boolean) = {
-    if (flip) writebuffer.flip
-    channel.write(writebuffer, this, handler)
-  }
-
-  @inline private final def hasError = iteratee.isInstanceOf[Error[_]]
-
-  @inline private final def written = 0 == writebuffer.remaining
-
-  @inline final def ++(that: Exchange) = if (this eq that) that else { throw new NotImplementedError("this ne that") }
-
-  @inline private final def ++(iteratee: ReadIteratee) = { this.iteratee = iteratee; this }
-
-  @inline private final def ++(responsebuffer: ByteBuffer) = { this.writebuffer.put(responsebuffer); this }
-
-  @inline private final def close = keepalive = false
-
-  @inline private final def keepAlive = keepalive
-
-  @inline private final def clear = {
-    readbuffer.clear
-    writebuffer.clear
-  }
-
-  @inline private final def release(e: Throwable) = if (released.compareAndSet(false, true)) {
-    e match {
-      case null ⇒
-      case _: java.io.IOException ⇒
-      case _: java.lang.IllegalStateException ⇒ warn(e.toString)
-      case e ⇒
-        debug(text.stackTraceToString(e))
-        warn(e.toString)
-    }
-    releaseByteBuffer(readbuffer)
-    releaseByteBuffer(writebuffer)
-    if (channel.isOpen) channel.close
-  }
-
-  private[this] final var released = new AtomicBoolean(false)
-
-  private[this] final var keepalive = true
-
-  private[this] final var iteratee: ReadIteratee = readiteratee
-
   /**
    * Low level io.
    */
@@ -179,6 +124,65 @@ final class Exchange private (
   private[this] final var positionmark = -1
 
   private[this] final val array = new Array[Byte](StringPool.maxStringLength)
+
+  /**
+   * Privates.
+   */
+
+  @inline private final def apply(input: Input[Exchange]): (Iteratee[Exchange, _], Input[Exchange]) = {
+    readbuffer.flip
+    iteratee(input)
+  }
+
+  @inline private final def read(handler: ExchangeHandler) = {
+    clear
+    iteratee = readiteratee
+    channel.read(readbuffer, this, handler)
+  }
+
+  @inline private final def write(handler: ExchangeHandler, flip: Boolean) = {
+    if (flip) writebuffer.flip
+    channel.write(writebuffer, this, handler)
+  }
+
+  @inline private final def hasError = iteratee.isInstanceOf[Error[_]]
+
+  @inline private final def written = 0 == writebuffer.remaining
+
+  @inline final def ++(that: Exchange) = if (this eq that) that else { throw new NotImplementedError("this ne that") }
+
+  @inline private final def ++(iteratee: ReadIteratee) = { this.iteratee = iteratee; this }
+
+  @inline private final def ++(responsebuffer: ByteBuffer) = { this.writebuffer.put(responsebuffer); this }
+
+  @inline private final def close = keepalive = false
+
+  @inline private final def keepAlive = keepalive
+
+  @inline private final def clear = {
+    readbuffer.clear
+    writebuffer.clear
+  }
+
+  @inline private final def release(e: Throwable) = if (released.compareAndSet(false, true)) {
+    e match {
+      case null ⇒
+      case _: java.io.IOException ⇒
+      case _: java.lang.IllegalStateException ⇒ warn(e.toString)
+      case e ⇒
+        debug(text.stackTraceToString(e))
+        warn(e.toString)
+    }
+    releaseByteBuffer(readbuffer)
+    releaseByteBuffer(writebuffer)
+    if (channel.isOpen) channel.close
+  }
+
+  private[this] final var released = new AtomicBoolean(false)
+
+  private[this] final var keepalive = true
+
+  private[this] final var iteratee: ReadIteratee = readiteratee
 
 }
 
