@@ -163,10 +163,10 @@ final class Exchange private (
 
   @inline private[this] final def markPosition: Unit = positionmark = readbuffer.position
 
-  @inline private[this] final def advanceBuffer[WhatEver](a: WhatEver): WhatEver = {
+  @inline private[this] final def advanceBuffer[WhatEver](whatever: WhatEver): WhatEver = {
     readbuffer.limit(limitmark)
     if (-1 < positionmark) { readbuffer.position(positionmark); positionmark = -1 }
-    a
+    whatever
   }
 
   @inline private[this] final def lowerAlphabet(a: Array[Byte], offset: Int, length: Int): Array[Byte] = {

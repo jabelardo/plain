@@ -64,7 +64,7 @@ package object os
 
   @volatile private[plain] final var hostResolved = false
 
-  scheduleOnce(200) {
+  scheduleOnce(50) {
     val logger = createLogger(this)
     val (_, millis) = timeMillis {
       hostname = try InetAddress.getLocalHost.getHostName catch {
