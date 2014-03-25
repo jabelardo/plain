@@ -9,28 +9,17 @@ import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel, AsynchronousServerSocketChannel ⇒ ServerChannel, AsynchronousSocketChannel ⇒ SocketChannel, CompletionHandler ⇒ Handler }
 import java.nio.charset.Charset
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.Arrays
+
+import com.ibm.plain.aio.Iteratee.Error
 
 import scala.math.min
 
+import Exchange.{ debug, warn }
+import Input.{ Elem, Empty, Eof }
+import Iteratee.{ Cont, Done, Error }
 import logging.Logger
-import Input._
-import Iteratee._
-
-/**
- * An Exchange starts with an accept on a AsynchronousSocketChannel. It is initialized with the corresponding AsychronousSocketChannel.
- * An Exchanges consists of Read, Process and Write operations. It will always start with a Read operation and (except in error situations) will
- * end with a Write operation. All operations Read, Process and Write can happen simultanously. An Exchange transports Messages to and from the channel
- * endpoints. Both endpoints can be sender and receiver. A Message send from the initiator of the Exchange, the Client, is called an InMessage, a Message send
- * from the accepting endpoint of the Exchange, the Server, is called an OutMessage. A typical example for Http is a Request for an InMessage and a Response for
- * an OutMessage. The underlying AsynchronousSocketChannel is by default kept open and allows the Exchange to read, process and write many Messages, until one of
- * the Endpoints requests a Close on the Exchange. In this case the running read, process, write operation will be completed and the underlying Channel will
- * be closed then.
- */
-
-/**
- *
- */
-import Exchange.{ ExchangeHandler, ReadIteratee, warn, debug, emptyString, emptyArray }
+import Exchange.{ ReadIteratee, ExchangeHandler, emptyArray, emptyString }
 
 /**
  *
@@ -129,9 +118,43 @@ final class Exchange private (
    * Privates.
    */
 
-  @inline private final def apply(input: Input[Exchange]): (Iteratee[Exchange, _], Input[Exchange]) = {
-    readbuffer.flip
-    iteratee(input)
+  @inline private final def apply(input: Input[Exchange]): (Iteratee[Exchange, _], Input[Exchange]) = input match {
+    case Elem(_) ⇒
+      readbuffer.flip
+      val fromcache = if (null == cachedarray) {
+        readbuffer.mark
+        false
+      } else if (readbuffer.remaining >= cachedarray.length) {
+        readbuffer.mark
+        readbuffer.get(peekarray)
+        if (Arrays.equals(cachedarray, peekarray)) {
+          true
+        } else {
+          readbuffer.rewind
+          setCachedArray(0)
+          false
+        }
+      } else {
+        false
+      }
+      if (fromcache) (cachediteratee, Elem(this)) else iteratee(input)
+    case _ ⇒
+      readbuffer.flip
+      iteratee(input)
+  }
+
+  /**
+   * This one is very clever...
+   */
+  @inline private final def cache(cachediteratee: Done[Exchange, _]) = {
+    if (null == cachedarray) {
+      this.cachediteratee = cachediteratee
+      var len = readbuffer.position
+      readbuffer.rewind
+      len -= readbuffer.position
+      setCachedArray(len)
+      readbuffer.get(cachedarray)
+    }
   }
 
   @inline private final def read(handler: ExchangeHandler) = {
@@ -178,11 +201,25 @@ final class Exchange private (
     if (channel.isOpen) channel.close
   }
 
+  @inline private[this] final def setCachedArray(length: Int) = if (0 < length) {
+    cachedarray = new Array[Byte](length)
+    peekarray = new Array[Byte](length)
+  } else {
+    cachedarray = null
+    peekarray = null
+  }
+
   private[this] final var released = new AtomicBoolean(false)
 
   private[this] final var keepalive = true
 
   private[this] final var iteratee: ReadIteratee = readiteratee
+
+  private[this] final var cachediteratee: ReadIteratee = null
+
+  private[this] final var cachedarray: Array[Byte] = null
+
+  private[this] final var peekarray: Array[Byte] = null
 
 }
 
@@ -219,6 +256,19 @@ object Exchange
   final val emptyString = new String
 
   final val emptyArray = new Array[Byte](0)
+
+  final val defaultresponse = {
+    val buf = ByteBuffer.allocateDirect(1000)
+    buf.put("""HTTP/1.1 200 OK
+Server: plain 1.0.0
+Date: Sun, 23 Mar 2014 17:10:48 GMT
+Content-Type: text/plain; charset=UTF-8
+Content-Length: 5
+
+pong!""".getBytes)
+    buf.flip
+    buf
+  }
 
   /**
    * Helpers.
@@ -289,6 +339,7 @@ object Exchange
             case (cont @ Cont(_), Empty) ⇒
               read(exchange ++ cont)
             case (e @ Done(_), Elem(exchange)) ⇒
+              exchange.cache(e)
               process(exchange ++ e)
             case (e @ Error(_), Elem(exchange)) ⇒
               exchange.clear
@@ -334,23 +385,10 @@ object Exchange
     @inline def write(exchange: Exchange, flip: Boolean = true) = exchange.write(WriteHandler, flip)
 
     /**
-     * Now let's get started.
+     * Now, let's get started.
      */
     accept
 
   } // loop
-
-  final val defaultresponse = {
-    val buf = ByteBuffer.allocateDirect(1000)
-    buf.put("""HTTP/1.1 200 OK
-Server: plain 1.0.0
-Date: Sun, 23 Mar 2014 17:10:48 GMT
-Content-Type: text/plain; charset=UTF-8
-Content-Length: 5
-
-pong!""".getBytes)
-    buf.flip
-    buf
-  }
 
 }

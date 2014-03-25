@@ -29,7 +29,7 @@ sealed trait IoHandler
 /**
  * Io represents the context of an asynchronous i/o operation.
  */
-final class Io private (
+@Deprecated final class Io private (
 
   var channel: Channel,
 
@@ -223,7 +223,7 @@ final class Io private (
 /**
  * The Io object contains all the complex continuations stuff, it is sort of an 'Io' monad. Not anymore, back to callbacks.
  */
-object Io
+@Deprecated object Io
 
   extends Logger
 
@@ -527,7 +527,7 @@ object Io
     }
 
     def process(io: Io): Unit = {
-      processor.doProcess(io, ProcessHandler)
+      //processor.doProcess(io, ProcessHandler)
     }
 
     @inline def write(io: Io, flip: Boolean = true): Unit = {
