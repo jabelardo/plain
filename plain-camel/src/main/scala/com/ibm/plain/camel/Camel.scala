@@ -58,15 +58,15 @@ final class Camel
     //
     //    }
     //
-    //    val b = new Route {
-    //
-    //      val myendpoint = actorsystem.actorOf(Props[MyEndpoint])
-    //      camel.activationFutureFor(myendpoint)(actorInvocationTimeout, actorsystem.dispatcher)
-    //
-    //      from("file:/tmp/inbox?noop=true&delay=5000").
-    //        convertBodyTo(classOf[String], "UTF-8").
-    //        to(myendpoint)
-    //    }
+    val b = new Route {
+
+      val myendpoint = actorsystem.actorOf(Props[MyEndpoint])
+      camel.activationFutureFor(myendpoint)(actorInvocationTimeout, actorsystem.dispatcher)
+
+      from("file:/tmp/inbox?noop=true&delay=5000").
+        convertBodyTo(classOf[String], "UTF-8").
+        to(myendpoint)
+    }
 
     new Route {
 
