@@ -15,11 +15,10 @@ import com.ibm.plain.aio.Iteratee.Error
 
 import scala.math.min
 
-import Exchange.{ debug, warn }
 import Input.{ Elem, Empty, Eof }
 import Iteratee.{ Cont, Done, Error }
 import logging.Logger
-import Exchange.{ ReadIteratee, ExchangeHandler, emptyArray, emptyString }
+import Exchange.{ ReadIteratee, ExchangeHandler, emptyArray, emptyString, debug, warn }
 
 /**
  *
@@ -33,6 +32,15 @@ final class Exchange private (
   private[this] final val readbuffer: ByteBuffer,
 
   private[this] final val writebuffer: ByteBuffer) {
+
+  /**
+   * Getters.
+   */
+  @inline final def inMessage = inmessage
+
+  @inline final def outMessage = outmessage
+
+  @inline final def length: Int = readbuffer.remaining
 
   /**
    * Low level io.
@@ -52,8 +60,6 @@ final class Exchange private (
       case 0 ⇒ Io.emptyArray
       case n ⇒ readBytes(n)
     })
-
-  @inline final def length: Int = readbuffer.remaining
 
   @inline final def take(n: Int): Exchange = {
     markLimit
@@ -89,8 +95,6 @@ final class Exchange private (
     (i - pos, l - i)
   }
 
-  @inline final def remaining = readbuffer.remaining
-
   @inline private[this] final def readBytes(n: Int): Array[Byte] = if (n <= StringPool.maxStringLength) { readbuffer.get(array, 0, n); array } else Array.fill(n)(readbuffer.get)
 
   @inline private[this] final def markLimit: Unit = limitmark = readbuffer.limit
@@ -115,7 +119,7 @@ final class Exchange private (
   private[this] final val array = new Array[Byte](StringPool.maxStringLength)
 
   /**
-   * Privates.
+   * Exchange internals.
    */
 
   @inline private final def apply(input: Input[Exchange]): (Iteratee[Exchange, _], Input[Exchange]) = input match {
@@ -172,11 +176,18 @@ final class Exchange private (
 
   @inline private final def written = 0 == writebuffer.remaining
 
+  /**
+   * "Elegant" setters.
+   */
   @inline final def ++(that: Exchange) = if (this eq that) that else { throw new NotImplementedError("this ne that") }
 
   @inline private final def ++(iteratee: ReadIteratee) = { this.iteratee = iteratee; this }
 
   @inline private final def ++(responsebuffer: ByteBuffer) = { this.writebuffer.put(responsebuffer); this }
+
+  @inline private final def ++(inmessage: InMessage) = { this.inmessage = inmessage; this }
+
+  @inline private final def ++(outmessage: OutMessage) = { this.outmessage = outmessage; this }
 
   @inline private final def close = keepalive = false
 
@@ -220,6 +231,10 @@ final class Exchange private (
   private[this] final var cachedarray: Array[Byte] = null
 
   private[this] final var peekarray: Array[Byte] = null
+
+  private[this] final var inmessage: InMessage = null
+
+  private[this] final var outmessage: OutMessage = null
 
 }
 
@@ -286,7 +301,7 @@ pong!""".getBytes)
 
     readiteratee: ReadIteratee,
 
-    processor: Any): Unit = {
+    processor: AsynchronousProcessor): Unit = {
 
     /**
      * The AIO handlers.
@@ -355,6 +370,18 @@ pong!""".getBytes)
     }
 
     /**
+     * Processing InMessage to OutMessage.
+     */
+    object ProcessHandler
+
+      extends ReleaseHandler {
+
+      @inline final def completed(processed: Integer, exchange: Exchange) = try {
+      } catch { case e: Throwable ⇒ exchange.release(e) }
+
+    }
+
+    /**
      * Handling writes.
      */
     object WriteHandler
@@ -380,7 +407,7 @@ pong!""".getBytes)
 
     @inline def read(exchange: Exchange) = exchange.read(ReadHandler)
 
-    @inline def process(exchange: Exchange): Unit = { exchange ++ defaultresponse.duplicate; write(exchange, true) }
+    @inline def process(exchange: Exchange): Unit = processor.process(exchange, ProcessHandler)
 
     @inline def write(exchange: Exchange, flip: Boolean = true) = exchange.write(WriteHandler, flip)
 

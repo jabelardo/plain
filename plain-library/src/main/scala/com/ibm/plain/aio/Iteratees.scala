@@ -67,7 +67,7 @@ object Iteratees {
 
     def cont(input: Input[Exchange]): (Iteratee[Exchange, Boolean], Input[Exchange]) =
       input match {
-        case Elem(more) if 0 < more.remaining ⇒ (Done(false), Elem(more))
+        case Elem(more) if 0 < more.length ⇒ (Done(false), Elem(more))
         case _ ⇒ (Done(true), Eof)
       }
 

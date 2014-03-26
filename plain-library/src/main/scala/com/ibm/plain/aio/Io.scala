@@ -527,7 +527,7 @@ sealed trait IoHandler
     }
 
     def process(io: Io): Unit = {
-      //processor.doProcess(io, ProcessHandler)
+      processor.doProcess(io, ProcessHandler)
     }
 
     @inline def write(io: Io, flip: Boolean = true): Unit = {
