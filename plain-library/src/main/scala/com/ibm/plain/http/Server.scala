@@ -176,7 +176,7 @@ object Server {
     def createDispatcher = {
       val dconfig = config.settings.getConfig(getString("dispatcher")).withFallback(config.settings.getConfig("plain.rest.default-dispatcher"))
 
-      val dispatcher = dconfig.getInstanceFromClassName[Dispatcher]("class-name")
+      val dispatcher = dconfig.getInstanceFromClassName[HttpDispatcher]("class-name")
       dispatcher.name_ = dconfig.getString("display-name", getString("dispatcher"))
       dispatcher.config_ = dconfig
       dispatcher.init

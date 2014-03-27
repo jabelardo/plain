@@ -11,14 +11,12 @@ import java.nio.charset.Charset
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.Arrays
 
-import com.ibm.plain.aio.Iteratee.Error
-
 import scala.math.min
 
 import Input.{ Elem, Empty, Eof }
 import Iteratee.{ Cont, Done, Error }
 import logging.Logger
-import Exchange.{ ReadIteratee, ExchangeHandler, emptyArray, emptyString, debug, warn }
+import Exchange.{ ExchangeIteratee, ExchangeHandler, emptyArray, emptyString, debug, warn }
 
 /**
  *
@@ -27,7 +25,7 @@ final class Exchange private (
 
   private[this] final val channel: Channel,
 
-  private[this] final val readiteratee: ReadIteratee,
+  private[this] final val readiteratee: ExchangeIteratee,
 
   private[this] final val readbuffer: ByteBuffer,
 
@@ -36,11 +34,28 @@ final class Exchange private (
   /**
    * Getters.
    */
+  @inline final def socketChannel = channel
+
   @inline final def inMessage = inmessage
 
   @inline final def outMessage = outmessage
 
+  @inline final def asynchronousTransfer = transfer
+
   @inline final def length: Int = readbuffer.remaining
+
+  @inline final def available: Int = writebuffer.remaining
+
+  @inline final def keepAlive = null == inmessage || inmessage.keepalive
+
+  final def encode(encoder: Encoder, length: Int) = {
+    writebuffer.limit(writebuffer.position)
+    writebuffer.position(writebuffer.position - length)
+    encoder.encode(writebuffer)
+    encoder.finish(writebuffer)
+    writebuffer.position(writebuffer.limit)
+    writebuffer.limit(writebuffer.capacity)
+  }
 
   /**
    * Low level io.
@@ -57,7 +72,7 @@ final class Exchange private (
 
   @inline final def consume: Array[Byte] = advanceBuffer(
     readbuffer.remaining match {
-      case 0 ⇒ Io.emptyArray
+      case 0 ⇒ emptyArray
       case n ⇒ readBytes(n)
     })
 
@@ -162,14 +177,15 @@ final class Exchange private (
   }
 
   @inline private final def read(handler: ExchangeHandler) = {
-    clear
+    readbuffer.clear
     iteratee = readiteratee
     channel.read(readbuffer, this, handler)
   }
 
   @inline private final def write(handler: ExchangeHandler, flip: Boolean) = {
-    if (flip) writebuffer.flip
-    channel.write(writebuffer, this, handler)
+    val buffer = if (null == outerbuffer) writebuffer else outerbuffer
+    if (flip) buffer.flip
+    channel.write(buffer, this, handler)
   }
 
   @inline private final def hasError = iteratee.isInstanceOf[Error[_]]
@@ -177,25 +193,32 @@ final class Exchange private (
   @inline private final def written = 0 == writebuffer.remaining
 
   /**
-   * "Elegant" setters.
+   * ++ setters.
    */
   @inline final def ++(that: Exchange) = if (this eq that) that else { throw new NotImplementedError("this ne that") }
 
-  @inline private final def ++(iteratee: ReadIteratee) = { this.iteratee = iteratee; this }
+  @inline final def ++(iteratee: ExchangeIteratee) = { this.iteratee = iteratee; this }
 
-  @inline private final def ++(responsebuffer: ByteBuffer) = { this.writebuffer.put(responsebuffer); this }
+  @inline final def ++(transfer: AsynchronousTransfer) = { this.transfer = transfer; this }
 
   @inline private final def ++(inmessage: InMessage) = { this.inmessage = inmessage; this }
 
   @inline private final def ++(outmessage: OutMessage) = { this.outmessage = outmessage; this }
 
+  @inline final def swap(buffer: ByteBuffer) = { if (null != outerbuffer) releaseByteBuffer(outerbuffer); outerbuffer = buffer; this }
+
+  /**
+   * Internals.
+   */
+
   @inline private final def close = keepalive = false
 
-  @inline private final def keepAlive = keepalive
-
-  @inline private final def clear = {
+  @inline private final def reset = {
     readbuffer.clear
     writebuffer.clear
+    iteratee = null
+    transfer = null
+    swap(null)
   }
 
   @inline private final def release(e: Throwable) = if (released.compareAndSet(false, true)) {
@@ -209,6 +232,7 @@ final class Exchange private (
     }
     releaseByteBuffer(readbuffer)
     releaseByteBuffer(writebuffer)
+    swap(null)
     if (channel.isOpen) channel.close
   }
 
@@ -224,9 +248,9 @@ final class Exchange private (
 
   private[this] final var keepalive = true
 
-  private[this] final var iteratee: ReadIteratee = readiteratee
+  private[this] final var iteratee: ExchangeIteratee = readiteratee
 
-  private[this] final var cachediteratee: ReadIteratee = null
+  private[this] final var cachediteratee: ExchangeIteratee = null
 
   private[this] final var cachedarray: Array[Byte] = null
 
@@ -236,10 +260,14 @@ final class Exchange private (
 
   private[this] final var outmessage: OutMessage = null
 
+  private[this] final var transfer: AsynchronousTransfer = null
+
+  private[this] final var outerbuffer: ByteBuffer = null
+
 }
 
 /**
- *
+ * ******************************************************************************************************************
  */
 object Exchange
 
@@ -248,7 +276,7 @@ object Exchange
   /**
    * Type definitions.
    */
-  type ReadIteratee = Iteratee[Exchange, _]
+  type ExchangeIteratee = Iteratee[Exchange, _]
 
   type ExchangeHandler = Handler[Integer, Exchange]
 
@@ -259,7 +287,7 @@ object Exchange
 
     channel: Channel,
 
-    readiteratee: ReadIteratee,
+    readiteratee: ExchangeIteratee,
 
     readbuffer: ByteBuffer,
 
@@ -299,7 +327,7 @@ pong!""".getBytes)
 
     serverchannel: ServerChannel,
 
-    readiteratee: ReadIteratee,
+    readiteratee: ExchangeIteratee,
 
     processor: AsynchronousProcessor): Unit = {
 
@@ -357,7 +385,7 @@ pong!""".getBytes)
               exchange.cache(e)
               process(exchange ++ e)
             case (e @ Error(_), Elem(exchange)) ⇒
-              exchange.clear
+              exchange.reset
               process(exchange ++ e)
             case (_, Eof) ⇒
               ignore
@@ -377,6 +405,13 @@ pong!""".getBytes)
       extends ReleaseHandler {
 
       @inline final def completed(processed: Integer, exchange: Exchange) = try {
+        if (0 > processed) {
+          exchange.release(null)
+        } else {
+          exchange(if (0 == processed) Eof else Elem(exchange)) match {
+            case e ⇒ unhandled(e)
+          }
+        }
       } catch { case e: Throwable ⇒ exchange.release(e) }
 
     }

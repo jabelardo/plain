@@ -9,20 +9,21 @@ import javax.servlet.http.Cookie
 
 import scala.language.implicitConversions
 
-import aio.{ Transfer, Encoder, Io, OutMessage, RenderableRoot, releaseByteBuffer, tooTinyToCareSize }
+import aio.{ AsynchronousTransfer, Encoder, Exchange, OutMessage, releaseByteBuffer, tooTinyToCareSize }
 import aio.Iteratee.{ Cont, Done }
+import aio.Exchange.ExchangeIteratee
 import aio.Renderable._
 import text.`UTF-8`
-import time.{ now, rfc1123bytearray }
+import time.{ now, rfc1123 }
 import Entity.{ ArrayEntity, AsynchronousByteChannelEntity, ByteBufferEntity }
 import Message.Headers
 
 /**
  * The classic http response.
  */
-final case class Response private (
+final class Response private (
 
-  request: Request,
+  private[this] final val bytebuffer: ByteBuffer,
 
   version: Version,
 
@@ -34,76 +35,72 @@ final case class Response private (
 
   var entity: Option[Entity])
 
-  extends Message
-
-  with OutMessage
-
-  with RenderableRoot {
+  extends OutMessage {
 
   import Response._
 
-  type Type = Response
+  implicit private[this] final val buffer = bytebuffer
 
-  @inline final def ++(status: Status): Type = { this.status = status; this }
+  @inline final def ++(status: Status) = { this.status = status; this }
 
-  @inline final def ++(headers: Headers): Type = { this.headers = headers; this }
+  @inline final def ++(headers: Headers) = { this.headers = headers; this }
 
-  @inline final def ++(cookie: Cookie): Type = { this.cookie = cookie; this }
+  @inline final def ++(entity: Entity) = { this.entity = Some(entity); this }
 
-  @inline final def renderHeader(io: Io): Io = {
-    implicit val _ = io
-    bytebuffer = io.writebuffer
+  @inline final def ++(cookie: Cookie) = { this.cookie = cookie; this }
+
+  /**
+   * Called first and always.
+   */
+  final def renderHeader(exchange: Exchange): ExchangeIteratee = {
     renderVersion
     renderMandatory
     renderHeaders
     renderCookie
-    renderKeepAlive(io)
-    renderContent
-    renderEntity(io)
+    renderKeepAlive(exchange)
+    renderContentHeaders(exchange)
+    renderEntity(exchange)
   }
 
-  @inline final def renderBody(io: Io): Io = {
-    import io._
-    @inline def encode = {
-      encoding match {
-        case Some(enc) ⇒
-          enc.encode(writebuffer)
-          enc.finish(writebuffer)
-        case _ ⇒
-      }
-      io ++ Done[Io, Boolean](keepalive)
-    }
+  /**
+   * Called second if first return Cont.
+   */
+  final def renderBody(exchange: Exchange): ExchangeIteratee = {
     entity match {
       case Some(entity: AsynchronousByteChannelEntity) ⇒
-        io ++ Transfer(entity.channel, channel, encoding) ++ Done[Io, Boolean](keepalive)
+        exchange ++ AsynchronousTransfer(entity.channel, exchange.socketChannel, encoder)
+        exchange ++ cont
+        cont
       case Some(entity: ByteBufferEntity) ⇒
-        markbuffer = writebuffer
-        writebuffer = entity.buffer
-        encode
-      case Some(ArrayEntity(array, offset, length, _)) ⇒
-        markbuffer = writebuffer
-        writebuffer = ByteBuffer.wrap(array, offset, length.toInt)
-        encode
+        exchange.swap(entity.buffer)
+        encode(exchange, entity)
+      case Some(entity @ ArrayEntity(array, offset, length, _)) ⇒
+        exchange.swap(ByteBuffer.wrap(array, offset, length.toInt))
+        encode(exchange, entity)
       case _ ⇒ unsupported
     }
+    null
   }
 
-  @inline final def renderFooter(io: Io): Io = {
-    import io._
-    if (null != markbuffer) {
-      releaseByteBuffer(writebuffer)
-      writebuffer = markbuffer
-      markbuffer = null
-    }
-    io
+  /**
+   * Called last if and only if second was called and return a Cont.
+   */
+  final def renderFooter(exchange: Exchange): ExchangeIteratee = {
+    exchange.swap(null)
+    exchange ++ done
+    done
   }
+
+  /**
+   * Privates.
+   */
 
   @inline private[this] final def renderVersion = {
     version + ` ` + status + `\r\n` + ^
   }
 
   @inline private[this] final def renderMandatory = {
-    r(`Server: xyz`) + r(`Date: `) + r(rfc1123bytearray) + `\r\n` + ^
+    r(`Server: server`) + r(`Date: `) + r(rfc1123) + `\r\n` + ^
   }
 
   @inline private[this] final def renderHeaders = if (null != headers) headers.foreach {
@@ -114,23 +111,24 @@ final case class Response private (
     r(`Set-Cookie: `) + rc(cookie) + `\r\n` + ^
   }
 
-  @inline private[this] final def renderKeepAlive(io: Io) = {
-    val keepalive = null == request || request.keepalive
-    io ++ keepalive
-    if (!keepalive) r(`Connection: close`) + ^
+  @inline private[this] final def renderKeepAlive(exchange: Exchange) = {
+    if (!exchange.keepAlive) r(`Connection: close`) + ^
   }
 
-  @inline private[this] final def renderContent: Unit = {
-    encoding = entity match {
-      case Some(entity) if entity.contenttype.mimetype.encodable && entity.length > tooTinyToCareSize ⇒ request.transferEncoding
+  @inline private[this] final def renderContentHeaders(exchange: Exchange): Unit = {
+    encoder = entity match {
+      case Some(entity) if entity.contenttype.mimetype.encodable && entity.length > tooTinyToCareSize ⇒ exchange.inMessage match {
+        case request: Request ⇒ request.transferEncoding
+        case _ ⇒ None
+      }
       case _ ⇒ None
     }
     entity match {
       case Some(entity) ⇒
         r(`Content-Type: `) + entity.contenttype + `\r\n` + ^
-        encoding match {
-          case Some(encoding) ⇒
-            r(`Content-Encoding: `) + r(encoding.text) + `\r\n` + ^
+        encoder match {
+          case Some(encoder) ⇒
+            r(`Content-Encoding: `) + r(encoder.text) + `\r\n` + ^
             r(`Transfer-Encoding: chunked`) + ^
           case _ ⇒
             r(`Content-Length: `) + r(entity.length) + `\r\n` + `\r\n` + ^
@@ -139,43 +137,40 @@ final case class Response private (
     }
   }
 
-  @inline private[this] final def renderEntity(io: Io): Io = {
-    import io._
-    @inline def encode(entity: Entity) = {
-      encoding match {
-        case Some(enc) ⇒
-          writebuffer.limit(writebuffer.position)
-          writebuffer.position(writebuffer.position - entity.length.toInt)
-          enc.encode(writebuffer)
-          enc.finish(writebuffer)
-          writebuffer.position(writebuffer.limit)
-          writebuffer.limit(writebuffer.capacity)
-        case _ ⇒
-      }
-      io ++ Done[Io, Boolean](keepalive)
-    }
+  @inline private[this] final def renderEntity(exchange: Exchange): ExchangeIteratee = {
+
     entity match {
-      case Some(entity: ByteBufferEntity) if entity.length <= writebuffer.remaining ⇒
+      case Some(entity: ByteBufferEntity) if entity.length <= exchange.available ⇒
         rb(entity.buffer) + ^
         releaseByteBuffer(entity.buffer)
-        encode(entity)
-      case Some(entity @ ArrayEntity(array, offset, length, _)) if length <= writebuffer.remaining ⇒
+        encode(exchange, entity)
+      case Some(entity @ ArrayEntity(array, offset, length, _)) if length <= exchange.available ⇒
         r(array, offset, length.toInt) + ^
-        encode(entity)
+        encode(exchange, entity)
       case Some(_) ⇒
-        io ++ Cont[Io, Boolean](null)
+        exchange ++ cont
+        cont
       case None ⇒
-        io ++ Done[Io, Boolean](keepalive)
+        exchange ++ done
+        done
     }
   }
 
-  private[this] final def rc(cookie: Cookie) = r((cookie.getName + "=" + cookie.getValue + (cookie.getPath match { case null ⇒ "" case path ⇒ "; Path=" + path }) + (if (cookie.isHttpOnly) "; HttpOnly" else "")).getBytes(`UTF-8`))
+  @inline private[this] final def encode(exchange: Exchange, entity: Entity) = {
+    encoder match {
+      case Some(encoder) ⇒ exchange.encode(encoder, entity.length.toInt)
+      case _ ⇒
+    }
+    exchange ++ done
+    done
+  }
 
-  private[this] final var encoding: Option[Encoder] = None
+  /**
+   * What was this for?
+   */
+  @inline private[this] final def rc(cookie: Cookie) = r((cookie.getName + "=" + cookie.getValue + (cookie.getPath match { case null ⇒ "" case path ⇒ "; Path=" + path }) + (if (cookie.isHttpOnly) "; HttpOnly" else "")).getBytes(`UTF-8`))
 
-  private[this] final var markbuffer: ByteBuffer = null
-
-  private[this] final implicit var bytebuffer: ByteBuffer = null
+  private[this] final var encoder: Option[Encoder] = None
 
 }
 
@@ -184,9 +179,9 @@ final case class Response private (
  */
 object Response {
 
-  final def apply(request: Request, status: Status) = new Response(request, Version.`HTTP/1.1`, status, null, null, None)
+  final def apply(bytebuffer: ByteBuffer, status: Status) = new Response(bytebuffer, Version.`HTTP/1.1`, status, null, null, None)
 
-  final def apply(request: Request, status: Status, headers: Headers) = new Response(request, Version.`HTTP/1.1`, status, headers, null, None)
+  final def apply(bytebuffer: ByteBuffer, status: Status, headers: Headers) = new Response(bytebuffer, Version.`HTTP/1.1`, status, headers, null, None)
 
   private final val `Connection: keep-alive` = "Connection: keep-alive\r\n".getBytes
 
@@ -202,13 +197,17 @@ object Response {
 
   private final val `Transfer-Encoding: chunked` = "Transfer-Encoding: chunked\r\n".getBytes
 
-  private final val `Server: xyz` = ("Server: plain " + config.version + "\r\n").getBytes
+  private final val `Server: server` = ("Server: plain.io " + config.version + "\r\n").getBytes
 
   private final val `Date: ` = "Date: ".getBytes
 
   private final val `Path=` = "Path=".getBytes
 
   private final val `HttpOnly` = "HttpOnly".getBytes
+
+  private final val done = Done[Exchange, Option[Nothing]](None)
+
+  private final val cont = Cont[Exchange, Null](null)
 
 }
 

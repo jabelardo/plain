@@ -8,7 +8,6 @@ import java.nio.ByteBuffer
 
 import reflect.{ scalifiedName, subClasses }
 
-import aio.Io
 import aio.Renderable
 import aio.Renderable._
 import Status.ClientError.`415`

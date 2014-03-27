@@ -6,7 +6,7 @@ package rest
 
 import com.typesafe.config.Config
 
-import aio.Io
+import aio.Exchange
 import http.{ Request, Response }
 import http.Request.{ Path, Variables }
 import Resource.MethodBody
@@ -16,7 +16,7 @@ import Resource.MethodBody
  */
 final class Context private (
 
-  val io: Io,
+  val exchange: Exchange,
 
   var config: Config,
 
@@ -38,7 +38,7 @@ final class Context private (
 
   @inline final def ++(remainder: Path) = { this.remainder = remainder; this }
 
-  @inline final def ++(request: Request) = { this.request = request; io ++ request; this }
+  @inline final def ++(request: Request) = { this.request = request; exchange ++ request; this }
 
   @inline final def ++(response: Response) = { this.response = response; this }
 

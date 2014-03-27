@@ -39,7 +39,7 @@ final case class Request(
     case Some(q) ⇒ Some(q.replace("_escaped_fragment_=", ""))
   }
 
-  final def keepalive = `Connection`(headers) match {
+  final val keepalive = `Connection`(headers) match {
     case Some(value) if value.exists(_.equalsIgnoreCase("close")) ⇒ false
     case _ ⇒ true
   }

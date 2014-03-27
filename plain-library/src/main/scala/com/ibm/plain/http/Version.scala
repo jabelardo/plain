@@ -6,7 +6,6 @@ package http
 
 import java.nio.ByteBuffer
 
-import aio.Io
 import aio.Renderable
 import aio.Renderable._
 import Status.ClientError.`400`
@@ -24,6 +23,9 @@ sealed abstract class Version
 
 }
 
+/**
+ *
+ */
 object Version {
 
   final def apply(version: String, server: Server): Version = version match {

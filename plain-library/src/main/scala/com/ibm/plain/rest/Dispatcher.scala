@@ -9,8 +9,7 @@ import scala.collection.concurrent.TrieMap
 import scala.collection.JavaConversions._
 import aio.Io
 import config._
-import http.{ Entity, Request, Response }
-import http.{ Dispatcher ⇒ HttpDispatcher }
+import http.{ Entity, HttpDispatcher, Request, Response }
 import http.Entity.ContentEntity
 import http.Status.{ ClientError, ServerError }
 import servlet.ServletContainer
