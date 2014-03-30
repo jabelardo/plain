@@ -5,7 +5,7 @@ import AssemblyKeys._
 
 object Camel {
 
-	def camelVersion = "2.12.3"
+	def camelVersion = "2.13.0"
 
 	def akkaVersion = "2.3.0"
 
@@ -41,7 +41,6 @@ object Camel {
         )
 
         def networking = Seq(
-                "org.apache-extras.camel-extra" % "camel-jcifs" % camelVersion,
                 "org.apache.camel" % "camel-jsch" % camelVersion,
                 "org.apache.camel" % "camel-ldap" % camelVersion,
                 "org.apache.camel" % "camel-netty" % camelVersion,
