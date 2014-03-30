@@ -35,27 +35,22 @@ abstract class Dispatcher
         exchange ++ Some(context)
         context ++ request
     }
-    if (null != resource) {
-      resource.process(exchange, handler)
-    } else {
-      templates.get(request.method, request.path) match {
-        case Some((resourceclass, config, variables, remainder)) ⇒
-          staticresources.getOrElse(resourceclass, resourceclass.newInstance) match {
-            case resource: BaseResource ⇒
-              request.entity match {
-                case None ⇒
-                case Some(Entity(_)) if request.method.entityallowed ⇒
-                case Some(Entity(_, length, _)) if !request.method.entityallowed && length < aio.defaultBufferSize ⇒
-                case Some(_) if !request.method.entityallowed ⇒ throw ClientError.`413`
-                case _ ⇒
-              }
-              context ++ config ++ variables.getOrElse(emptyvariables) ++ remainder
-              this.resource = resource
-              resource.process(exchange, handler)
-            case _ ⇒ throw ServerError.`500`
-          }
-        case _ ⇒ throw ClientError.`404`
-      }
+    templates.get(request.method, request.path) match {
+      case Some((resourceclass, config, variables, remainder)) ⇒
+        staticresources.getOrElse(resourceclass, resourceclass.newInstance) match {
+          case resource: BaseResource ⇒
+            request.entity match {
+              case None ⇒
+              case Some(Entity(_)) if request.method.entityallowed ⇒
+              case Some(Entity(_, length, _)) if !request.method.entityallowed && length < aio.defaultBufferSize ⇒
+              case Some(_) if !request.method.entityallowed ⇒ throw ClientError.`413`
+              case _ ⇒
+            }
+            context ++ config ++ variables.getOrElse(emptyvariables) ++ remainder
+            resource.process(exchange, handler)
+          case _ ⇒ throw ServerError.`500`
+        }
+      case _ ⇒ throw ClientError.`404`
     }
   }
 
@@ -97,10 +92,6 @@ abstract class Dispatcher
   private[this] final var templates: Templates = null
 
   private[this] final var staticresources: Map[Class[_], StaticResource] = null
-
-  private[this] final val requestresources = new TrieMap[Request, BaseResource]
-
-  private[this] final var resource: BaseResource = null
 
 }
 
