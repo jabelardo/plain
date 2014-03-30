@@ -345,9 +345,6 @@ object Exchange
 
     processor: AsynchronousProcessor[A]): Unit = {
 
-    var count: Long = 0
-    var nanos: Long = 0
-
     /**
      * The AIO handlers.
      */
@@ -400,8 +397,6 @@ object Exchange
               read(exchange ++ cont)
             case (e @ Done(in: InMessage), Elem(exchange)) ⇒
               exchange.cache(e)
-              nanos = time.nowNanos
-              count += 1
               process(exchange ++ in)
             case (e @ Error(_), Elem(exchange)) ⇒
               exchange.reset
@@ -424,7 +419,6 @@ object Exchange
       extends ReleaseHandler {
 
       @inline final def completed(processed: Integer, exchange: Exchange[A]) = try {
-        if (0 == count % 100000) println("process : " + (time.nowNanos - nanos))
         if (0 > processed) {
           exchange.release(null)
         } else {

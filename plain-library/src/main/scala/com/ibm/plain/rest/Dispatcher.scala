@@ -99,7 +99,7 @@ abstract class Dispatcher
 
   private[this] final var staticresources: Map[Class[_], StaticResource] = null
 
-  private[this] final val requestresources = new scala.collection.mutable.OpenHashMap[Request, BaseResource]
+  private[this] final val requestresources = new TrieMap[Request, BaseResource]
 
 }
 
