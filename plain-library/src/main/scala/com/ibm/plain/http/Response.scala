@@ -51,7 +51,7 @@ final case class Response(
   /**
    * Called first and always.
    */
-  final def renderHeader[A](exchange: Exchange[A]): ExchangeIteratee[A] = {
+  final def renderMessageHeader[A](exchange: Exchange[A]): ExchangeIteratee[A] = {
     renderVersion
     renderMandatory
     renderHeaders
@@ -64,7 +64,7 @@ final case class Response(
   /**
    * Called second if first return Cont.
    */
-  final def renderBody[A](exchange: Exchange[A]): ExchangeIteratee[A] = {
+  final def renderMessageBody[A](exchange: Exchange[A]): ExchangeIteratee[A] = {
     entity match {
       case Some(entity: AsynchronousByteChannelEntity) ⇒
         exchange ++ AsynchronousTransfer(entity.channel, exchange.socketChannel, encoder)
@@ -83,7 +83,7 @@ final case class Response(
   /**
    * Called last if and only if second was called and return a Cont.
    */
-  final def renderFooter[A](exchange: Exchange[A]): ExchangeIteratee[A] = {
+  final def renderMessageFooter[A](exchange: Exchange[A]): ExchangeIteratee[A] = {
     exchange.swap(null)
     exchange ++ done[A]
     done[A]

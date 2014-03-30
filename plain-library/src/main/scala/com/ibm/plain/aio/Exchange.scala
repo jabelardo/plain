@@ -56,6 +56,8 @@ final class Exchange[A] private (
 
   @inline final def available: Int = writebuffer.remaining
 
+  @inline final def cached = null != cachedarray
+
   @inline final def keepAlive = null == inmessage || inmessage.keepalive
 
   final def encode(encoder: Encoder, length: Int) = {
@@ -420,9 +422,13 @@ object Exchange
         } else {
           exchange.iteratee match {
             case Done(_) ⇒
-              exchange.outMessage.renderHeader(exchange) match {
+              exchange.outMessage.renderMessageHeader(exchange) match {
                 case Done(_) ⇒
-                  if (0 < exchange.length) ReadHandler.completed(Int.MaxValue, exchange) else write(exchange)
+                  if (0 < exchange.length) {
+                    ReadHandler.completed(Int.MaxValue, exchange)
+                  } else {
+                    write(exchange)
+                  }
                 case e ⇒ unsupported
               }
             case e ⇒ unhandled(e)

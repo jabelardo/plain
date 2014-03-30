@@ -27,11 +27,11 @@ trait OutMessage
 
   extends Message {
 
-  def renderHeader[A](exchange: Exchange[A]): Iteratee[Exchange[A], _]
+  def renderMessageHeader[A](exchange: Exchange[A]): Iteratee[Exchange[A], _]
 
-  def renderBody[A](exchange: Exchange[A]): Iteratee[Exchange[A], _]
+  def renderMessageBody[A](exchange: Exchange[A]): Iteratee[Exchange[A], _]
 
-  def renderFooter[A](exchange: Exchange[A]): Iteratee[Exchange[A], _]
+  def renderMessageFooter[A](exchange: Exchange[A]): Iteratee[Exchange[A], _]
 
 }
 
