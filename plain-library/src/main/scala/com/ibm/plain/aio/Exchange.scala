@@ -190,7 +190,7 @@ final class Exchange[A] private (
     true
   }
 
-  @inline private final def cacheOut = {
+  @inline private final def cacheOutX = {
     val len = writebuffer.position
     val limit = writebuffer.limit
     writebuffer.position(0)
@@ -202,7 +202,7 @@ final class Exchange[A] private (
     writebuffer.limit(limit)
   }
 
-  @inline private final def cacheReset = {
+  @inline private final def cacheResetX = {
     setCachedArray(0)
     outbuffer = null
   }
@@ -433,15 +433,8 @@ object Exchange
             case (cont @ Cont(_), Empty) ⇒
               read(exchange ++ cont)
             case (e @ Done(in: InMessage), Elem(exchange)) ⇒
-              if (exchange.cacheIn(e)) {
-                if (0 < exchange.cachedWrite) {
-                  completed(Int.MaxValue, exchange)
-                } else {
-                  write(exchange)
-                }
-              } else {
-                process(exchange ++ in)
-              }
+              exchange.cacheIn(e)
+              process(exchange ++ in)
             case (e @ Error(_), Elem(exchange)) ⇒
               exchange.reset
               process(exchange ++ e)
@@ -471,10 +464,10 @@ object Exchange
               exchange.outMessage.renderMessageHeader(exchange) match {
                 case Done(_) ⇒
                   if (0 < exchange.length) {
-                    exchange.cacheOut
+                    // exchange.cacheOut
                     ReadHandler.completed(Int.MaxValue, exchange)
                   } else {
-                    exchange.cacheReset
+                    // exchange.cacheReset
                     write(exchange)
                   }
                 case e ⇒ unsupported
