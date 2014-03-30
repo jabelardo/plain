@@ -177,7 +177,7 @@ final class Exchange[A] private (
   /**
    * This one is too clever...
    */
-  @inline private final def cache(cachediteratee: Done[Exchange[A], _]) = if (null == cachedarray) {
+  @inline private final def cacheIn(cachediteratee: Done[Exchange[A], _]) = if (null == cachedarray) {
     this.cachediteratee = cachediteratee
     var len = readbuffer.position
     readbuffer.rewind
@@ -190,16 +190,21 @@ final class Exchange[A] private (
     true
   }
 
-  @inline private final def cacheResponse = {
+  @inline private final def cacheOut = {
     val len = writebuffer.position
     val limit = writebuffer.limit
     writebuffer.position(0)
     writebuffer.limit(len)
-    responsebuffer = ByteBuffer.allocate(len)
-    responsebuffer.put(writebuffer)
-    responsebuffer.flip
+    outbuffer = ByteBuffer.allocate(len)
+    outbuffer.put(writebuffer)
+    outbuffer.flip
     writebuffer.position(len)
     writebuffer.limit(limit)
+  }
+
+  @inline private final def cacheReset = {
+    setCachedArray(0)
+    outbuffer = null
   }
 
   @inline private final def read(handler: ExchangeHandler[A]) = {
@@ -216,7 +221,7 @@ final class Exchange[A] private (
   }
 
   @inline private final def cachedWrite = if (0 < pipelining) {
-    writebuffer.put(responsebuffer.duplicate)
+    writebuffer.put(outbuffer.duplicate)
     pipelining -= 1
     if (0 == pipelining) {
       pipelining = 16
@@ -295,9 +300,10 @@ outer $outerbuffer
     cachedarray = new Array[Byte](length)
     peekarray = new Array[Byte](length)
   } else {
+    cachediteratee = null
     cachedarray = null
     peekarray = null
-    responsebuffer = null
+    outbuffer = null
     pipelining = 0
   }
 
@@ -315,7 +321,7 @@ outer $outerbuffer
 
   private[this] final var peekarray: Array[Byte] = null
 
-  private[this] final var responsebuffer: ByteBuffer = null
+  private[this] final var outbuffer: ByteBuffer = null
 
   private[this] final var inmessage: InMessage = null
 
@@ -427,7 +433,7 @@ object Exchange
             case (cont @ Cont(_), Empty) ⇒
               read(exchange ++ cont)
             case (e @ Done(in: InMessage), Elem(exchange)) ⇒
-              if (exchange.cache(e)) {
+              if (exchange.cacheIn(e)) {
                 if (0 < exchange.cachedWrite) {
                   completed(Int.MaxValue, exchange)
                 } else {
@@ -465,10 +471,10 @@ object Exchange
               exchange.outMessage.renderMessageHeader(exchange) match {
                 case Done(_) ⇒
                   if (0 < exchange.length) {
-                    exchange.cacheResponse
+                    exchange.cacheOut
                     ReadHandler.completed(Int.MaxValue, exchange)
                   } else {
-
+                    exchange.cacheReset
                     write(exchange)
                   }
                 case e ⇒ unsupported
