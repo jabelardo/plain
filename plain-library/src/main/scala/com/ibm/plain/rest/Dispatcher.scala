@@ -8,11 +8,8 @@ import com.ibm.plain.aio.{ Exchange, ExchangeHandler }
 import com.ibm.plain.http.HttpDispatcher
 import com.typesafe.config.{ Config, ConfigFactory }
 
-import scala.collection.concurrent.TrieMap
-
-import aio.{ Exchange, ExchangeHandler }
 import config.config2RichConfig
-import http.{ Entity, HttpDispatcher, Request }
+import http.{ Entity, Request }
 import http.Status.{ ClientError, ServerError }
 import servlet.ServletContainer
 import servlet.http.HttpServletResource
