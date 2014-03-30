@@ -38,6 +38,8 @@ final class Exchange[A] private (
    */
   @inline final def attachment = attachmnt
 
+  @inline final def pipel = pipelining
+
   @inline final def socketChannel = channel
 
   @inline final def iteratee = currentiteratee
@@ -433,15 +435,16 @@ object Exchange
             case (cont @ Cont(_), Empty) ⇒
               read(exchange ++ cont)
             case (e @ Done(in: InMessage), Elem(exchange)) ⇒
-              if (exchange.cacheIn(e)) {
-                if (0 < exchange.cachedWrite) {
-                  completed(Int.MaxValue, exchange)
-                } else {
-                  write(exchange)
-                }
-              } else {
-                process(exchange ++ in)
-              }
+              //              if (exchange.cacheIn(e)) {
+              //                if (0 < exchange.cachedWrite) {
+              //                  completed(Int.MaxValue, exchange)
+              //                } else {
+              //                  write(exchange)
+              //                }
+              //              } else {
+              exchange.cacheIn(e)
+              process(exchange ++ in)
+            //              }
             case (e @ Error(_), Elem(exchange)) ⇒
               exchange.reset
               process(exchange ++ e)
@@ -468,16 +471,21 @@ object Exchange
         } else {
           exchange.iteratee match {
             case Done(_) ⇒
-              exchange.outMessage.renderMessageHeader(exchange) match {
-                case Done(_) ⇒
-                  if (0 < exchange.length) {
-                    exchange.cacheOut
-                    ReadHandler.completed(Int.MaxValue, exchange)
-                  } else {
-                    exchange.cacheReset
-                    write(exchange)
-                  }
-                case e ⇒ unsupported
+              if (15 != exchange.pipel) {
+                exchange.cachedWrite
+                ReadHandler.completed(Int.MaxValue, exchange)
+              } else {
+                exchange.outMessage.renderMessageHeader(exchange) match {
+                  case Done(_) ⇒
+                    if (0 < exchange.length) {
+                      exchange.cacheOut
+                      ReadHandler.completed(Int.MaxValue, exchange)
+                    } else {
+                      exchange.cacheReset
+                      write(exchange)
+                    }
+                  case e ⇒ unsupported
+                }
               }
             case e ⇒ unhandled(e)
           }
