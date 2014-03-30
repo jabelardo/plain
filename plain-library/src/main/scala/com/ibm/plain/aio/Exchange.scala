@@ -177,15 +177,29 @@ final class Exchange[A] private (
   /**
    * This one is too clever...
    */
-  @inline private final def cache(cachediteratee: Done[Exchange[A], _]) = {
-    if (null == cachedarray) {
-      this.cachediteratee = cachediteratee
-      var len = readbuffer.position
-      readbuffer.rewind
-      len -= readbuffer.position
-      setCachedArray(len)
-      readbuffer.get(cachedarray)
-    }
+  @inline private final def cache(cachediteratee: Done[Exchange[A], _]) = if (null == cachedarray) {
+    this.cachediteratee = cachediteratee
+    var len = readbuffer.position
+    readbuffer.rewind
+    len -= readbuffer.position
+    pipelining = (readbuffer.limit / len) - 1
+    setCachedArray(len)
+    readbuffer.get(cachedarray)
+    false
+  } else {
+    true
+  }
+
+  @inline private final def cacheResponse = {
+    val len = writebuffer.position
+    val limit = writebuffer.limit
+    writebuffer.position(0)
+    writebuffer.limit(len)
+    responsebuffer = ByteBuffer.allocate(len)
+    responsebuffer.put(writebuffer)
+    responsebuffer.flip
+    writebuffer.position(len)
+    writebuffer.limit(limit)
   }
 
   @inline private final def read(handler: ExchangeHandler[A]) = {
@@ -199,6 +213,19 @@ final class Exchange[A] private (
     val buffer = if (null == outerbuffer) writebuffer else outerbuffer
     if (flip) buffer.flip
     channel.write(buffer, this, handler)
+  }
+
+  @inline private final def cachedWrite = if (0 < pipelining) {
+    writebuffer.put(responsebuffer.duplicate)
+    pipelining -= 1
+    if (0 == pipelining) {
+      pipelining = 16
+      0
+    } else {
+      pipelining
+    }
+  } else {
+    0
   }
 
   @inline private final def hasError = currentiteratee.isInstanceOf[Error[_]]
@@ -270,6 +297,8 @@ outer $outerbuffer
   } else {
     cachedarray = null
     peekarray = null
+    responsebuffer = null
+    pipelining = 0
   }
 
   private[this] final var released = new AtomicBoolean(false)
@@ -286,6 +315,8 @@ outer $outerbuffer
 
   private[this] final var peekarray: Array[Byte] = null
 
+  private[this] final var responsebuffer: ByteBuffer = null
+
   private[this] final var inmessage: InMessage = null
 
   private[this] final var outmessage: OutMessage = null
@@ -295,6 +326,8 @@ outer $outerbuffer
   private[this] final var outerbuffer: ByteBuffer = null
 
   private[this] final var printwriter: PrintWriter = null
+
+  private[this] final var pipelining = 0
 
 }
 
@@ -394,8 +427,15 @@ object Exchange
             case (cont @ Cont(_), Empty) ⇒
               read(exchange ++ cont)
             case (e @ Done(in: InMessage), Elem(exchange)) ⇒
-              exchange.cache(e)
-              process(exchange ++ in)
+              if (exchange.cache(e)) {
+                if (0 < exchange.cachedWrite) {
+                  completed(Int.MaxValue, exchange)
+                } else {
+                  write(exchange)
+                }
+              } else {
+                process(exchange ++ in)
+              }
             case (e @ Error(_), Elem(exchange)) ⇒
               exchange.reset
               process(exchange ++ e)
@@ -425,8 +465,10 @@ object Exchange
               exchange.outMessage.renderMessageHeader(exchange) match {
                 case Done(_) ⇒
                   if (0 < exchange.length) {
+                    exchange.cacheResponse
                     ReadHandler.completed(Int.MaxValue, exchange)
                   } else {
+
                     write(exchange)
                   }
                 case e ⇒ unsupported
