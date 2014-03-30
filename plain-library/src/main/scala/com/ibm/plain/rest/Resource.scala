@@ -6,19 +6,18 @@ package rest
 
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.{ Type, TypeTag, typeOf }
-import scala.util.continuations.{ reify, suspendable }
 
 import com.typesafe.config.Config
 
 import reflect.tryBoolean
-import aio.{ AsynchronousByteArrayChannel, AsynchronousFixedLengthChannel, Exchange, ExchangeHandler }
+import aio.{ Exchange, ExchangeHandler }
 import http.{ Request, Response, Status, Entity, Method, MimeType, Accept }
 import http.Entity._
-import http.MimeType._
+import http.MimeType.{ `application/x-scala-unit`, `*/*` }
 import http.Method.{ DELETE, GET, HEAD, POST, PUT }
 import http.Status.{ ClientError, ServerError, Success }
 import http.Header.Request.{ `Accept` ⇒ AcceptHeader }
-import Matching._
+import Matching.{ Encoder, Decoder, MarshaledDecoder }
 
 /**
  *
