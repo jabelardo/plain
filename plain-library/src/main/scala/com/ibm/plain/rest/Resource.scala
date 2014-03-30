@@ -6,6 +6,7 @@ package rest
 
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.{ Type, TypeTag, typeOf }
+import scala.collection.concurrent.TrieMap
 
 import com.typesafe.config.Config
 
@@ -143,10 +144,6 @@ trait Resource
     add[E, Unit](HEAD, typeOf[E], typeOf[Unit], (c: Context) ⇒ (e: E) ⇒ { body(c)(e); () })
   }
 
-  var count = 0L
-
-  var cachedentity: Option[Entity] = None
-
   /**
    * The most important method in this class.
    */
@@ -159,52 +156,50 @@ trait Resource
     resourcepriorities: ResourcePriorities) = {
 
     exchange.attachment match {
-      case Some(context) ⇒ if (0 < count) {
-
-        context.response ++ cachedentity
-        completed(exchange, handler)
-
-      } else {
-
-        count += 1
-
+      case Some(context) ⇒
         val request = context.request
-        val inentity: Option[Entity] = request.entity
-        val inmimetype: MimeType = inentity match { case Some(entity: Entity) ⇒ entity.contenttype.mimetype case _ ⇒ `application/x-scala-unit` }
-        val outmimetypes: List[MimeType] = AcceptHeader(request.headers) match {
-          case Some(Accept(mimetypes)) ⇒ mimetypes
-          case _ ⇒ List(`*/*`)
-        }
-
-        var innerinput: Option[(Any, AnyRef)] = None
-
-        def tryDecode(in: Type, decode: AnyRef): Boolean = {
-          if (innerinput.isDefined && innerinput.get._2 == decode) return true // avoid unnecessary calls, decode can be expensive
-          decode match {
-            case decode: Decoder[_] ⇒ tryBoolean(innerinput = Some((decode(inentity), decode)))
-            case decode: MarshaledDecoder[_] ⇒ tryBoolean(innerinput = Some((decode(inentity, ClassTag(Class.forName(in.toString))), decode)))
-            case _ ⇒ false
-          }
-        }
-
-        (for {
-          o ← outmimetypes
-          r ← resourcepriorities
-        } yield (o, r)).collectFirst {
-          case (outmimetype, (inoutmimetype, (in, methodbody), (decode, encode))) if (inoutmimetype == ((inmimetype, outmimetype))) && (tryDecode(in, decode)) ⇒
-            (methodbody, encode)
-        } match {
-          case Some((methodbody, encode)) ⇒
-            context ++ methodbody
-            context.response ++ encode(innerinput match {
-              case Some((input, _)) ⇒ methodbody.body(context)(input)
-              case _ ⇒ throw ServerError.`501`
-            })
-            cachedentity = context.response.entity
+        requestmethods.get(request) match {
+          case Some((methodbody, input, encode)) ⇒
+            context.response ++ encode(methodbody.body(context)(input))
             completed(exchange, handler)
-          case _ ⇒ throw ClientError.`415`
+          case _ ⇒
+            val inentity: Option[Entity] = request.entity
+            val inmimetype: MimeType = inentity match { case Some(entity: Entity) ⇒ entity.contenttype.mimetype case _ ⇒ `application/x-scala-unit` }
+            val outmimetypes: List[MimeType] = AcceptHeader(request.headers) match {
+              case Some(Accept(mimetypes)) ⇒ mimetypes
+              case _ ⇒ List(`*/*`)
+            }
+
+            var innerinput: Option[(Any, AnyRef)] = None
+
+            def tryDecode(in: Type, decode: AnyRef): Boolean = {
+              if (innerinput.isDefined && innerinput.get._2 == decode) return true // avoid unnecessary calls, decode can be expensive
+              decode match {
+                case decode: Decoder[_] ⇒ tryBoolean(innerinput = Some((decode(inentity), decode)))
+                case decode: MarshaledDecoder[_] ⇒ tryBoolean(innerinput = Some((decode(inentity, ClassTag(Class.forName(in.toString))), decode)))
+                case _ ⇒ false
+              }
+            }
+
+            (for {
+              o ← outmimetypes
+              r ← resourcepriorities
+            } yield (o, r)).collectFirst {
+              case (outmimetype, (inoutmimetype, (in, methodbody), (decode, encode))) if (inoutmimetype == ((inmimetype, outmimetype))) && (tryDecode(in, decode)) ⇒
+                (methodbody, encode)
+            } match {
+              case Some((methodbody, encode)) ⇒
+                context ++ methodbody
+                context.response ++ encode(innerinput match {
+                  case Some((input, _)) ⇒
+                    requestmethods.put(request, (methodbody, input, encode))
+                    methodbody.body(context)(input)
+                  case _ ⇒ throw ServerError.`501`
+                })
+                completed(exchange, handler)
+              case _ ⇒ throw ClientError.`415`
+            }
         }
-      }
       case _ ⇒ throw ServerError.`500`
     }
   }
@@ -234,6 +229,8 @@ trait Resource
   }
 
   private[this] final var methods: Methods = null
+
+  private[this] final val requestmethods = new TrieMap[Request, (MethodBody, Any, Any ⇒ Option[Entity])]
 
 }
 
