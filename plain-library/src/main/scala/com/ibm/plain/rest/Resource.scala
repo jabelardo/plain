@@ -57,26 +57,6 @@ trait Resource
     case _ ⇒ throw ServerError.`500`
   }
 
-  override final def completed(exchange: Exchange[Context], handler: ExchangeHandler[Context]) = exchange.attachment match {
-    case Some(context) ⇒
-      if (null != context.methodbody) context.methodbody.funCompleted match {
-        case Some(completed) ⇒ completed(context.response)
-        case _ ⇒
-      }
-      super.completed(exchange, handler)
-    case _ ⇒ throw ServerError.`500`
-  }
-
-  override final def failed(e: Throwable, exchange: Exchange[Context]) = exchange.attachment match {
-    case Some(context) ⇒
-      if (null != context.methodbody) context.methodbody.funFailed match {
-        case Some(failed) ⇒ failed(e)
-        case _ ⇒
-      }
-      super.failed(e, exchange)
-    case _ ⇒ throw ServerError.`500`
-  }
-
   /**
    * DSL implementation methods.
    */
@@ -163,14 +143,13 @@ trait Resource
             context.response ++ encode(methodbody.body(context)(input))
             completed(exchange, handler)
           case _ ⇒
+            var innerinput: Option[(Any, AnyRef)] = None
             val inentity: Option[Entity] = request.entity
             val inmimetype: MimeType = inentity match { case Some(entity: Entity) ⇒ entity.contenttype.mimetype case _ ⇒ `application/x-scala-unit` }
             val outmimetypes: List[MimeType] = AcceptHeader(request.headers) match {
               case Some(Accept(mimetypes)) ⇒ mimetypes
               case _ ⇒ List(`*/*`)
             }
-
-            var innerinput: Option[(Any, AnyRef)] = None
 
             def tryDecode(in: Type, decode: AnyRef): Boolean = {
               if (innerinput.isDefined && innerinput.get._2 == decode) return true // avoid unnecessary calls, decode can be expensive
@@ -189,7 +168,6 @@ trait Resource
                 (methodbody, encode)
             } match {
               case Some((methodbody, encode)) ⇒
-                context ++ methodbody
                 context.response ++ encode(innerinput match {
                   case Some((input, _)) ⇒
                     requestmethods.put(request, (methodbody, input, encode))
@@ -241,21 +219,13 @@ object Resource {
 
   final class MethodBody private (
 
-    val body: Body[Any, Any],
+    val body: Body[Any, Any])
 
-    var funCompleted: Option[Response ⇒ Any],
-
-    var funFailed: Option[Throwable ⇒ Any]) {
-
-    @inline final def onComplete(body: Response ⇒ Any) = { funCompleted = Some(body); this }
-
-    @inline final def onFailure(body: Throwable ⇒ Any) = { funFailed = Some(body); this }
-
-  }
+    extends AnyVal
 
   object MethodBody {
 
-    @inline def apply(body: Body[Any, Any]) = new MethodBody(body, None, None)
+    @inline def apply(body: Body[Any, Any]) = new MethodBody(body)
 
   }
 

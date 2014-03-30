@@ -23,11 +23,7 @@ final class Context private (
 
   var request: Request,
 
-  var response: Response,
-
-  var throwable: Throwable,
-
-  var methodbody: MethodBody) {
+  var response: Response) {
 
   @inline final def ++(config: Config) = { this.config = config; this }
 
@@ -39,10 +35,6 @@ final class Context private (
 
   @inline final def ++(response: Response) = { this.response = response; this }
 
-  @inline final def ++(throwable: Throwable) = { this.throwable = throwable; this }
-
-  @inline final def ++(methodbody: MethodBody) = { this.methodbody = methodbody; this }
-
 }
 
 /**
@@ -50,6 +42,6 @@ final class Context private (
  */
 object Context {
 
-  @inline def apply() = new Context(null, null, null, null, null, null, null)
+  @inline def apply() = new Context(null, null, null, null, null)
 
 }
