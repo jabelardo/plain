@@ -8,7 +8,6 @@ package resource
 
 import java.nio.file.{ Path, Paths }
 import java.nio.file.Files.{ exists ⇒ fexists, isDirectory, isRegularFile, size }
-import java.nio.channels.{ CompletionHandler ⇒ Handler }
 
 import scala.collection.JavaConversions.asScalaBuffer
 
@@ -35,26 +34,18 @@ class DirectoryResource
 
   import DirectoryResource._
 
-  Get { get(context.config.getStringList("roots"), context.remainder.mkString("/")) }
+  Get { context: Context ⇒ get(context.config.getStringList("roots"), context.remainder.mkString("/")) }
 
-  Get { _: String ⇒ get(context.config.getStringList("roots"), context.remainder.mkString("/")) }
+  Get { context: Context ⇒ _: String ⇒ get(context.config.getStringList("roots"), context.remainder.mkString("/")) }
 
-  Delete { val path = context.remainder.mkString("/"); println(path); println(context.request.query); path }
+  Delete { context: Context ⇒ val path = context.remainder.mkString("/"); println(path); println(context.request.query); path }
 
-  Delete { form: Form ⇒ val path = context.remainder.mkString("/"); println(form); println(path); println(context.request.query); path }
+  Delete { context: Context ⇒ form: Form ⇒ val path = context.remainder.mkString("/"); println(form); println(path); println(context.request.query); path }
 
-  Put { entity: Entity ⇒
-    val filename = "/tmp/test/blabla.bin"
-    println("PUT" + entity + " " + entity.length + " " + filename)
-    AsynchronousFileByteChannel.forWriting(filename).transferFrom(
-      AsynchronousFixedLengthChannel(context.io.channel, 0, entity.length),
-      context.io.writebuffer,
-      filename,
-      new Handler[Integer, String] {
-        def completed(processed: Integer, filename: String) = "Thank you, " + filename
-        def failed(e: Throwable, filename: String) = "Sorry, failed " + filename + " : " + e
-      })
-      Thread.sleep(20000)
+  Put { context: Context ⇒
+    entity: Entity ⇒
+      val filename = "/tmp/test/blabla.bin"
+      println("PUT" + entity + " " + entity.length + " " + filename)
       "Thank you!"
   }
 

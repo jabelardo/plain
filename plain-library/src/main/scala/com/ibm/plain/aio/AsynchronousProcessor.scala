@@ -4,13 +4,13 @@ package plain
 
 package aio
 
-import Exchange.ExchangeHandler
+import java.nio.channels.{ CompletionHandler ⇒ Handler }
 
 /**
  *
  */
-trait AsynchronousProcessor {
+trait AsynchronousProcessor[A] {
 
-  def process(exchange: Exchange, handler: ExchangeHandler)
+  def process(exchange: Exchange[A], handler: Handler[Integer, Exchange[A]])
 
 }

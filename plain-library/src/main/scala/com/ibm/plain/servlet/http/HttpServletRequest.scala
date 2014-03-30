@@ -11,6 +11,7 @@ import java.util.{ Enumeration, Locale, Map ⇒ JMap }
 import javax.{ servlet ⇒ js }
 import scala.collection.JavaConversions.{ asJavaEnumeration, mapAsJavaMap, mapAsScalaMap }
 import scala.collection.mutable.HashMap
+import aio.Exchange
 import text.`UTF-8`
 import rest.Context
 import rest.Matching.default.decodeForm
@@ -25,7 +26,7 @@ final class HttpServletRequest(
 
   private[this] final val request: Request,
 
-  private[this] final val context: Context,
+  private[this] final val exchange: Exchange[Context],
 
   private[this] final val servletcontext: ServletContext,
 
@@ -268,9 +269,9 @@ final class HttpServletRequest(
     }, new java.util.HashMap[String, Array[String]])
   else new java.util.HashMap[String, Array[String]]
 
-  final lazy val localaddress = context.io.channel.asInstanceOf[aio.SocketChannelWithTimeout].channel.getLocalAddress.asInstanceOf[java.net.InetSocketAddress]
+  final lazy val localaddress = exchange.socketChannel.asInstanceOf[aio.SocketChannelWithTimeout].channel.getLocalAddress.asInstanceOf[java.net.InetSocketAddress]
 
-  final lazy val remoteaddress = context.io.channel.asInstanceOf[aio.SocketChannelWithTimeout].channel.getRemoteAddress.asInstanceOf[java.net.InetSocketAddress]
+  final lazy val remoteaddress = exchange.socketChannel.asInstanceOf[aio.SocketChannelWithTimeout].channel.getRemoteAddress.asInstanceOf[java.net.InetSocketAddress]
 
 }
 

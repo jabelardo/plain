@@ -16,31 +16,41 @@ import scala.math.min
 import Input.{ Elem, Empty, Eof }
 import Iteratee.{ Cont, Done, Error }
 import logging.Logger
-import Exchange.{ ExchangeIteratee, ExchangeHandler, emptyArray, emptyString, debug, warn }
+import io.PrintWriter
 
 /**
  *
  */
-final class Exchange private (
+final class Exchange[A] private (
 
   private[this] final val channel: Channel,
 
-  private[this] final val readiteratee: ExchangeIteratee,
+  private[this] final val readiteratee: ExchangeIteratee[A],
 
   private[this] final val readbuffer: ByteBuffer,
 
   private[this] final val writebuffer: ByteBuffer) {
 
+  import Exchange._
+
   /**
    * Getters.
    */
+  @inline final def attachment = attachmnt
+
   @inline final def socketChannel = channel
+
+  @inline final def iteratee = currentiteratee
+
+  @inline final def writeBuffer = writebuffer
 
   @inline final def inMessage = inmessage
 
   @inline final def outMessage = outmessage
 
   @inline final def asynchronousTransfer = transfer
+
+  @inline final def printWriter = printwriter
 
   @inline final def length: Int = readbuffer.remaining
 
@@ -76,20 +86,20 @@ final class Exchange private (
       case n ⇒ readBytes(n)
     })
 
-  @inline final def take(n: Int): Exchange = {
+  @inline final def take(n: Int): Exchange[A] = {
     markLimit
     readbuffer.limit(min(readbuffer.limit, readbuffer.position + n))
     this
   }
 
-  @inline final def peek(n: Int): Exchange = {
+  @inline final def peek(n: Int): Exchange[A] = {
     markPosition
     take(n)
   }
 
   @inline final def peek: Byte = readbuffer.get(readbuffer.position)
 
-  @inline final def drop(n: Int): Exchange = {
+  @inline final def drop(n: Int): Exchange[A] = {
     readbuffer.position(min(readbuffer.limit, readbuffer.position + n))
     this
   }
@@ -134,12 +144,12 @@ final class Exchange private (
   private[this] final val array = new Array[Byte](StringPool.maxStringLength)
 
   /**
-   * Exchange internals.
+   * Exchange[A] internals.
    */
 
-  @inline private final def apply(input: Input[Exchange]): (Iteratee[Exchange, _], Input[Exchange]) = input match {
+  @inline private final def apply(input: Input[Exchange[A]], flip: Boolean): (ExchangeIteratee[A], Input[Exchange[A]]) = input match {
     case Elem(_) ⇒
-      readbuffer.flip
+      if (flip) readbuffer.flip
       val fromcache = if (null == cachedarray) {
         readbuffer.mark
         false
@@ -156,16 +166,16 @@ final class Exchange private (
       } else {
         false
       }
-      if (fromcache) (cachediteratee, Elem(this)) else iteratee(input)
+      if (fromcache) (cachediteratee, Elem(this)) else currentiteratee(input)
     case _ ⇒
       readbuffer.flip
-      iteratee(input)
+      currentiteratee(input)
   }
 
   /**
-   * This one is very clever...
+   * This one is too clever...
    */
-  @inline private final def cache(cachediteratee: Done[Exchange, _]) = {
+  @inline private final def cache(cachediteratee: Done[Exchange[A], _]) = {
     if (null == cachedarray) {
       this.cachediteratee = cachediteratee
       var len = readbuffer.position
@@ -176,36 +186,52 @@ final class Exchange private (
     }
   }
 
-  @inline private final def read(handler: ExchangeHandler) = {
+  @inline private final def read(handler: ExchangeHandler[A]) = {
     readbuffer.clear
-    iteratee = readiteratee
+    writebuffer.clear
+    currentiteratee = readiteratee
     channel.read(readbuffer, this, handler)
   }
 
-  @inline private final def write(handler: ExchangeHandler, flip: Boolean) = {
+  @inline private final def write(handler: ExchangeHandler[A], flip: Boolean) = {
     val buffer = if (null == outerbuffer) writebuffer else outerbuffer
     if (flip) buffer.flip
     channel.write(buffer, this, handler)
   }
 
-  @inline private final def hasError = iteratee.isInstanceOf[Error[_]]
+  @inline private final def hasError = currentiteratee.isInstanceOf[Error[_]]
 
   @inline private final def written = 0 == writebuffer.remaining
 
   /**
    * ++ setters.
    */
-  @inline final def ++(that: Exchange) = if (this eq that) that else { throw new NotImplementedError("this ne that") }
+  @inline final def ++(that: Exchange[A]) = if (this eq that) that else { throw new NotImplementedError("this ne that") }
 
-  @inline final def ++(iteratee: ExchangeIteratee) = { this.iteratee = iteratee; this }
+  @inline final def ++(attachment: Option[A]) = { this.attachmnt = attachment; this }
+
+  @inline final def ++(iteratee: ExchangeIteratee[A]) = { this.currentiteratee = iteratee; this }
 
   @inline final def ++(transfer: AsynchronousTransfer) = { this.transfer = transfer; this }
 
-  @inline private final def ++(inmessage: InMessage) = { this.inmessage = inmessage; this }
+  @inline final def ++(inmessage: InMessage) = { this.inmessage = inmessage; this }
 
-  @inline private final def ++(outmessage: OutMessage) = { this.outmessage = outmessage; this }
+  @inline final def ++(outmessage: OutMessage) = { this.outmessage = outmessage; this }
+
+  @inline final def ++(printwriter: PrintWriter) = { this.printwriter = printwriter; this }
 
   @inline final def swap(buffer: ByteBuffer) = { if (null != outerbuffer) releaseByteBuffer(outerbuffer); outerbuffer = buffer; this }
+
+  override final def toString = s"""
+read $readbuffer
+write $writebuffer
+in $inMessage 
+out $outMessage
+transfer $asynchronousTransfer
+writer $printWriter
+iteratee $currentiteratee
+outer $outerbuffer
+  """
 
   /**
    * Internals.
@@ -216,7 +242,7 @@ final class Exchange private (
   @inline private final def reset = {
     readbuffer.clear
     writebuffer.clear
-    iteratee = null
+    currentiteratee = null
     transfer = null
     swap(null)
   }
@@ -248,9 +274,11 @@ final class Exchange private (
 
   private[this] final var keepalive = true
 
-  private[this] final var iteratee: ExchangeIteratee = readiteratee
+  private[this] final var currentiteratee: ExchangeIteratee[A] = readiteratee
 
-  private[this] final var cachediteratee: ExchangeIteratee = null
+  private[this] final var attachmnt: Option[A] = None
+
+  private[this] final var cachediteratee: ExchangeIteratee[A] = null
 
   private[this] final var cachedarray: Array[Byte] = null
 
@@ -264,6 +292,8 @@ final class Exchange private (
 
   private[this] final var outerbuffer: ByteBuffer = null
 
+  private[this] final var printwriter: PrintWriter = null
+
 }
 
 /**
@@ -274,24 +304,17 @@ object Exchange
   extends Logger {
 
   /**
-   * Type definitions.
-   */
-  type ExchangeIteratee = Iteratee[Exchange, _]
-
-  type ExchangeHandler = Handler[Integer, Exchange]
-
-  /**
    * Constructors.
    */
-  final def apply(
+  final def apply[A](
 
     channel: Channel,
 
-    readiteratee: ExchangeIteratee,
+    readiteratee: ExchangeIteratee[A],
 
     readbuffer: ByteBuffer,
 
-    writebuffer: ByteBuffer) = new Exchange(channel, readiteratee, readbuffer, writebuffer)
+    writebuffer: ByteBuffer) = new Exchange[A](channel, readiteratee, readbuffer, writebuffer)
 
   /**
    * Constants.
@@ -299,19 +322,6 @@ object Exchange
   final val emptyString = new String
 
   final val emptyArray = new Array[Byte](0)
-
-  final val defaultresponse = {
-    val buf = ByteBuffer.allocateDirect(1000)
-    buf.put("""HTTP/1.1 200 OK
-Server: plain 1.0.0
-Date: Sun, 23 Mar 2014 17:10:48 GMT
-Content-Type: text/plain; charset=UTF-8
-Content-Length: 5
-
-pong!""".getBytes)
-    buf.flip
-    buf
-  }
 
   /**
    * Helpers.
@@ -323,13 +333,13 @@ pong!""".getBytes)
   /**
    * The core of all asynchronous IO starting with an Accept at the very bottom.
    */
-  final def loop(
+  final def loop[A](
 
     serverchannel: ServerChannel,
 
-    readiteratee: ExchangeIteratee,
+    readiteratee: ExchangeIteratee[A],
 
-    processor: AsynchronousProcessor): Unit = {
+    processor: AsynchronousProcessor[A]): Unit = {
 
     /**
      * The AIO handlers.
@@ -344,7 +354,7 @@ pong!""".getBytes)
 
       @inline final def completed(socketchannel: SocketChannel, ignore: Null) = {
         accept
-        read(Exchange(SocketChannelWithTimeout(socketchannel), readiteratee, defaultByteBuffer, defaultByteBuffer))
+        read(Exchange[A](SocketChannelWithTimeout(socketchannel), readiteratee, defaultByteBuffer, defaultByteBuffer))
       }
 
       @inline final def failed(e: Throwable, ignore: Null) = {
@@ -361,9 +371,9 @@ pong!""".getBytes)
 
     sealed abstract class ReleaseHandler
 
-      extends ExchangeHandler {
+      extends ExchangeHandler[A] {
 
-      @inline def failed(e: Throwable, exchange: Exchange) = exchange.release(e)
+      @inline def failed(e: Throwable, exchange: Exchange[A]) = exchange.release(e)
 
     }
 
@@ -374,16 +384,16 @@ pong!""".getBytes)
 
       extends ReleaseHandler {
 
-      @inline final def completed(processed: Integer, exchange: Exchange) = try {
+      @inline final def completed(processed: Integer, exchange: Exchange[A]) = try {
         if (0 > processed) {
           exchange.release(null)
         } else {
-          exchange(if (0 == processed) Eof else Elem(exchange)) match {
+          exchange(if (0 == processed) Eof else Elem(exchange), processed != Int.MaxValue) match {
             case (cont @ Cont(_), Empty) ⇒
               read(exchange ++ cont)
-            case (e @ Done(_), Elem(exchange)) ⇒
+            case (e @ Done(in: InMessage), Elem(exchange)) ⇒
               exchange.cache(e)
-              process(exchange ++ e)
+              process(exchange ++ in)
             case (e @ Error(_), Elem(exchange)) ⇒
               exchange.reset
               process(exchange ++ e)
@@ -404,11 +414,17 @@ pong!""".getBytes)
 
       extends ReleaseHandler {
 
-      @inline final def completed(processed: Integer, exchange: Exchange) = try {
+      @inline final def completed(processed: Integer, exchange: Exchange[A]) = try {
         if (0 > processed) {
           exchange.release(null)
         } else {
-          exchange(if (0 == processed) Eof else Elem(exchange)) match {
+          exchange.iteratee match {
+            case Done(_) ⇒
+              exchange.outMessage.renderHeader(exchange) match {
+                case Done(_) ⇒
+                  if (0 < exchange.length) ReadHandler.completed(Int.MaxValue, exchange) else write(exchange)
+                case e ⇒ unsupported
+              }
             case e ⇒ unhandled(e)
           }
         }
@@ -423,7 +439,7 @@ pong!""".getBytes)
 
       extends ReleaseHandler {
 
-      @inline final def completed(processed: Integer, exchange: Exchange) = try {
+      @inline final def completed(processed: Integer, exchange: Exchange[A]) = try {
         if (0 > processed) {
           exchange.release(null)
         } else if (exchange.written || exchange.hasError) {
@@ -440,11 +456,11 @@ pong!""".getBytes)
      */
     @inline def accept = serverchannel.accept(null, AcceptHandler)
 
-    @inline def read(exchange: Exchange) = exchange.read(ReadHandler)
+    @inline def read(exchange: Exchange[A]) = exchange.read(ReadHandler)
 
-    @inline def process(exchange: Exchange): Unit = processor.process(exchange, ProcessHandler)
+    @inline def process(exchange: Exchange[A]): Unit = processor.process(exchange, ProcessHandler)
 
-    @inline def write(exchange: Exchange, flip: Boolean = true) = exchange.write(WriteHandler, flip)
+    @inline def write(exchange: Exchange[A], flip: Boolean = true) = exchange.write(WriteHandler, flip)
 
     /**
      * Now, let's get started.

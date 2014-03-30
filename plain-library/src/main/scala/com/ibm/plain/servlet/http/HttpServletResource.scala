@@ -12,7 +12,7 @@ import javax.servlet.ServletConfig
 
 import scala.collection.mutable.HashMap
 
-import aio.Io
+import aio.{ Exchange, ExchangeHandler }
 import io.{ ByteArrayOutputStream, PrintWriter }
 import plain.http.Response
 import plain.http.Status.Success
@@ -26,45 +26,40 @@ final class HttpServletResource(
 
   with StaticResource {
 
-  final def completed(context: Context) = super.completed(context.response, context.io)
-
-  final def failed(e: Throwable, context: Context) = {
-    super.failed(e, context.io ++ context.response.asInstanceOf[aio.Message])
-  }
-
-  final def process(io: Io) = unsupported
-
-  final def handle(context: Context) = try {
-    if (null == servlet) servlet = servletwrapper match {
-      case (Right(servlet), servletconfig, _) ⇒
-        servlet.init(servletconfig)
-        servlet
-      case (Left((_, servlet)), _, _) ⇒ servlet
-    }
-    val request = context.request
-    val response = Response(request, Success.`200`, new HashMap[String, String])
-    context ++ response
-    import context.io.printwriter
-    if (null == printwriter) context.io ++ PrintWriter(ByteArrayOutputStream(io.defaultBufferSize)) else printwriter.outputstream.reset
-    val parentloader = Thread.currentThread.getContextClassLoader
-    Thread.currentThread.setContextClassLoader(servletcontext.getClassLoader)
-    try {
-      val httpservletrequest = new HttpServletRequest(request, context, servletcontext, servlet)
-      val httpservletresponse = new HttpServletResponse(response, servletcontext, printwriter, servlet)
-      servlet.service(httpservletrequest, httpservletresponse)
-      response ++ httpservletresponse.getEntity
-      if (httpservletrequest.hasSession) httpservletrequest.getSession match {
-        case session if session.isNew ⇒
-          val cookie = new Cookie("JSESSIONID", session.getId)
-          cookie.setPath(request.path.take(2).mkString("/", "/", "/"))
-          cookie.setHttpOnly(true)
-          response ++ cookie
-        case _ ⇒
+  final def process(exchange: Exchange[Context], handler: ExchangeHandler[Context]) = exchange.attachment match {
+    case Some(context) ⇒ try {
+      if (null == servlet) servlet = servletwrapper match {
+        case (Right(servlet), servletconfig, _) ⇒
+          servlet.init(servletconfig)
+          servlet
+        case (Left((_, servlet)), _, _) ⇒ servlet
       }
-      completed(context)
-    } finally Thread.currentThread.setContextClassLoader(parentloader)
-  } catch {
-    case e: Throwable ⇒ failed(e, context)
+      val request = context.request
+      val response = Response(exchange.writeBuffer, Success.`200`, new HashMap[String, String])
+      context ++ response
+      val printwriter = exchange.printWriter
+      if (null == printwriter) exchange ++ PrintWriter(ByteArrayOutputStream(io.defaultBufferSize)) else printwriter.outputstream.reset
+      val parentloader = Thread.currentThread.getContextClassLoader
+      Thread.currentThread.setContextClassLoader(servletcontext.getClassLoader)
+      try {
+        val httpservletrequest = new HttpServletRequest(request, exchange, servletcontext, servlet)
+        val httpservletresponse = new HttpServletResponse(response, servletcontext, printwriter, servlet)
+        servlet.service(httpservletrequest, httpservletresponse)
+        response ++ Some(httpservletresponse.getEntity)
+        if (httpservletrequest.hasSession) httpservletrequest.getSession match {
+          case session if session.isNew ⇒
+            val cookie = new Cookie("JSESSIONID", session.getId)
+            cookie.setPath(request.path.take(2).mkString("/", "/", "/"))
+            cookie.setHttpOnly(true)
+            response ++ cookie
+          case _ ⇒
+        }
+        completed(exchange, handler)
+      } finally Thread.currentThread.setContextClassLoader(parentloader)
+    } catch {
+      case e: Throwable ⇒ failed(e, exchange)
+    }
+    case _ ⇒
   }
 
   private[this] final var servlet: HttpServlet = servletwrapper match {

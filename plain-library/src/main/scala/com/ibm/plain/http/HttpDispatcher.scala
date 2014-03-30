@@ -9,19 +9,24 @@ import com.typesafe.config.Config
 /**
  *
  */
-abstract class HttpDispatcher
+abstract class HttpDispatcher[A]
 
-  extends HttpProcessor {
+  extends HttpProcessor[A] {
 
-  def name = name_
+  def init: HttpDispatcher[A]
 
-  def config = config_
+  def name = localname
 
-  def init
+  def config = localconfig
 
-  private[http] final var name_ : String = null
+  def init(name: String, config: Config) = {
+    localname = name
+    localconfig = config
+  }
 
-  private[http] final var config_ : Config = null
+  private[this] final var localname: String = null
+
+  private[this] final var localconfig: Config = null
 
 }
 

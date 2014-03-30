@@ -6,7 +6,6 @@ package rest
 
 import com.typesafe.config.Config
 
-import aio.Exchange
 import http.{ Request, Response }
 import http.Request.{ Path, Variables }
 import Resource.MethodBody
@@ -15,8 +14,6 @@ import Resource.MethodBody
  * A wrapper to hold shared context among Uniforms.
  */
 final class Context private (
-
-  val exchange: Exchange,
 
   var config: Config,
 
@@ -38,7 +35,7 @@ final class Context private (
 
   @inline final def ++(remainder: Path) = { this.remainder = remainder; this }
 
-  @inline final def ++(request: Request) = { this.request = request; exchange ++ request; this }
+  @inline final def ++(request: Request) = { this.request = request; this }
 
   @inline final def ++(response: Response) = { this.response = response; this }
 
@@ -53,6 +50,6 @@ final class Context private (
  */
 object Context {
 
-  @inline def apply(io: Io) = new Context(io, null, null, null, null, null, null, null)
+  @inline def apply() = new Context(null, null, null, null, null, null, null)
 
 }

@@ -173,14 +173,11 @@ object Server {
 
     require(0 < portRange.size, "You must at least specify one port for 'port-range'.")
 
-    def createDispatcher = {
+    def createDispatcher[A] = {
       val dconfig = config.settings.getConfig(getString("dispatcher")).withFallback(config.settings.getConfig("plain.rest.default-dispatcher"))
-
-      val dispatcher = dconfig.getInstanceFromClassName[HttpDispatcher]("class-name")
-      dispatcher.name_ = dconfig.getString("display-name", getString("dispatcher"))
-      dispatcher.config_ = dconfig
+      val dispatcher = dconfig.getInstanceFromClassName[HttpDispatcher[A]]("class-name")
+      dispatcher.init(dconfig.getString("display-name", getString("dispatcher")), dconfig)
       dispatcher.init
-      dispatcher
     }
 
   }

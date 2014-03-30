@@ -9,9 +9,8 @@ import javax.servlet.http.Cookie
 
 import scala.language.implicitConversions
 
-import aio.{ AsynchronousTransfer, Encoder, Exchange, OutMessage, releaseByteBuffer, tooTinyToCareSize }
+import aio.{ AsynchronousTransfer, Encoder, Exchange, ExchangeIteratee, OutMessage, releaseByteBuffer, tooTinyToCareSize }
 import aio.Iteratee.{ Cont, Done }
-import aio.Exchange.ExchangeIteratee
 import aio.Renderable._
 import text.`UTF-8`
 import time.{ now, rfc1123 }
@@ -21,9 +20,9 @@ import Message.Headers
 /**
  * The classic http response.
  */
-final class Response private (
+final case class Response(
 
-  private[this] final val bytebuffer: ByteBuffer,
+  private final val bytebuffer: ByteBuffer,
 
   version: Version,
 
@@ -39,20 +38,20 @@ final class Response private (
 
   import Response._
 
-  implicit private[this] final val buffer = bytebuffer
+  implicit private[this] final val renderbuffer = bytebuffer
 
   @inline final def ++(status: Status) = { this.status = status; this }
 
   @inline final def ++(headers: Headers) = { this.headers = headers; this }
 
-  @inline final def ++(entity: Entity) = { this.entity = Some(entity); this }
+  @inline final def ++(entity: Option[Entity]) = { this.entity = entity; this }
 
   @inline final def ++(cookie: Cookie) = { this.cookie = cookie; this }
 
   /**
    * Called first and always.
    */
-  final def renderHeader(exchange: Exchange): ExchangeIteratee = {
+  final def renderHeader[A](exchange: Exchange[A]): ExchangeIteratee[A] = {
     renderVersion
     renderMandatory
     renderHeaders
@@ -65,12 +64,12 @@ final class Response private (
   /**
    * Called second if first return Cont.
    */
-  final def renderBody(exchange: Exchange): ExchangeIteratee = {
+  final def renderBody[A](exchange: Exchange[A]): ExchangeIteratee[A] = {
     entity match {
       case Some(entity: AsynchronousByteChannelEntity) ⇒
         exchange ++ AsynchronousTransfer(entity.channel, exchange.socketChannel, encoder)
-        exchange ++ cont
-        cont
+        exchange ++ cont[A]
+        cont[A]
       case Some(entity: ByteBufferEntity) ⇒
         exchange.swap(entity.buffer)
         encode(exchange, entity)
@@ -79,16 +78,15 @@ final class Response private (
         encode(exchange, entity)
       case _ ⇒ unsupported
     }
-    null
   }
 
   /**
    * Called last if and only if second was called and return a Cont.
    */
-  final def renderFooter(exchange: Exchange): ExchangeIteratee = {
+  final def renderFooter[A](exchange: Exchange[A]): ExchangeIteratee[A] = {
     exchange.swap(null)
-    exchange ++ done
-    done
+    exchange ++ done[A]
+    done[A]
   }
 
   /**
@@ -111,11 +109,11 @@ final class Response private (
     r(`Set-Cookie: `) + rc(cookie) + `\r\n` + ^
   }
 
-  @inline private[this] final def renderKeepAlive(exchange: Exchange) = {
+  @inline private[this] final def renderKeepAlive[A](exchange: Exchange[A]) = {
     if (!exchange.keepAlive) r(`Connection: close`) + ^
   }
 
-  @inline private[this] final def renderContentHeaders(exchange: Exchange): Unit = {
+  @inline private[this] final def renderContentHeaders[A](exchange: Exchange[A]): Unit = {
     encoder = entity match {
       case Some(entity) if entity.contenttype.mimetype.encodable && entity.length > tooTinyToCareSize ⇒ exchange.inMessage match {
         case request: Request ⇒ request.transferEncoding
@@ -137,7 +135,7 @@ final class Response private (
     }
   }
 
-  @inline private[this] final def renderEntity(exchange: Exchange): ExchangeIteratee = {
+  @inline private[this] final def renderEntity[A](exchange: Exchange[A]): ExchangeIteratee[A] = {
 
     entity match {
       case Some(entity: ByteBufferEntity) if entity.length <= exchange.available ⇒
@@ -148,21 +146,21 @@ final class Response private (
         r(array, offset, length.toInt) + ^
         encode(exchange, entity)
       case Some(_) ⇒
-        exchange ++ cont
-        cont
+        exchange ++ cont[A]
+        cont[A]
       case None ⇒
-        exchange ++ done
-        done
+        exchange ++ done[A]
+        done[A]
     }
   }
 
-  @inline private[this] final def encode(exchange: Exchange, entity: Entity) = {
+  @inline private[this] final def encode[A](exchange: Exchange[A], entity: Entity) = {
     encoder match {
       case Some(encoder) ⇒ exchange.encode(encoder, entity.length.toInt)
       case _ ⇒
     }
-    exchange ++ done
-    done
+    exchange ++ done[A]
+    done[A]
   }
 
   /**
@@ -205,9 +203,9 @@ object Response {
 
   private final val `HttpOnly` = "HttpOnly".getBytes
 
-  private final val done = Done[Exchange, Option[Nothing]](None)
+  private final def done[A]: ExchangeIteratee[A] = Done[Exchange[A], Option[Nothing]](None)
 
-  private final val cont = Cont[Exchange, Null](null)
+  private final def cont[A]: ExchangeIteratee[A] = Cont[Exchange[A], Null](null)
 
 }
 

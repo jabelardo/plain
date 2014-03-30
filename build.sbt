@@ -9,7 +9,7 @@ name := "plain.io"
 
 organization in ThisBuild := "com.ibm"
 
-scalaVersion in ThisBuild := "2.10.3"
+scalaVersion in ThisBuild := "2.10.4"
 
 version in ThisBuild := "1.0.0-SNAPSHOT"
 

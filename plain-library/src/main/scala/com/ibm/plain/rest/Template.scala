@@ -88,7 +88,7 @@ final case class Templates(
   resource: Option[(Class[_ <: BaseResource], Config)],
 
   branch: Option[Either[(String, Templates), Map[String, Templates]]]) {
-
+  
   final def get(method: Method, path: Path): Option[(Class[_ <: BaseResource], Config, Option[Variables], Path)] = {
 
     @inline @tailrec

@@ -29,11 +29,11 @@ object RequestIteratee {
 
   import RequestConstants._
 
-  private[this] final def readRequestLine(settings: ServerConfiguration, server: Server): Iteratee[Exchange, (Method, Path, Option[String], Version)] = {
+  private[this] final def readRequestLine[A](settings: ServerConfiguration, server: Server): Iteratee[Exchange[A], (Method, Path, Option[String], Version)] = {
 
     val characterset = settings.defaultCharacterSet
 
-    val readMethod: Iteratee[Exchange, Method] = peek flatMap {
+    val readMethod: Iteratee[Exchange[A], Method] = peek flatMap {
       case `G` ⇒ for (_ ← drop(4)) yield Method.GET
       case `H` ⇒ for (_ ← drop(5)) yield Method.HEAD
       case `D` ⇒ for (_ ← drop(7)) yield Method.DELETE
@@ -43,9 +43,9 @@ object RequestIteratee {
       case _ ⇒ for (name ← takeUntil(` `, characterset, false)) yield Method(name)
     }
 
-    val readRequestUri: Iteratee[Exchange, (Path, Option[String])] = {
+    val readRequestUri: Iteratee[Exchange[A], (Path, Option[String])] = {
 
-      def readUriSegment(allowed: Set[Int], nodecoding: Boolean): Iteratee[Exchange, String] = for {
+      def readUriSegment(allowed: Set[Int], nodecoding: Boolean): Iteratee[Exchange[A], String] = for {
         segment ← takeWhile(allowed, characterset, false)
       } yield if (nodecoding) segment else utf8Codec.decode(segment)
 
@@ -53,9 +53,9 @@ object RequestIteratee {
 
       val readQuerySegment = readUriSegment(query, false)
 
-      val readPath: Iteratee[Exchange, Path] = {
+      val readPath: Iteratee[Exchange[A], Path] = {
 
-        def cont(segments: List[String]): Iteratee[Exchange, Path] = peek flatMap {
+        def cont(segments: List[String]): Iteratee[Exchange[A], Path] = peek flatMap {
           case `/` ⇒ for {
             _ ← drop(1)
             segment ← readPathSegment
@@ -67,7 +67,7 @@ object RequestIteratee {
         cont(Nil)
       }
 
-      val readQuery: Iteratee[Exchange, Option[String]] = peek flatMap {
+      val readQuery: Iteratee[Exchange[A], Option[String]] = peek flatMap {
         case `?` ⇒ for {
           _ ← drop(1)
           query ← readQuerySegment
@@ -92,11 +92,11 @@ object RequestIteratee {
     } yield (method, uri._1, uri._2, Version(version, server))
   }
 
-  private[this] final def readHeaders(characterset: Charset): Iteratee[Exchange, Headers] = {
+  private[this] final def readHeaders[A](characterset: Charset): Iteratee[Exchange[A], Headers] = {
 
-    val readHeader: Iteratee[Exchange, (String, String)] = {
+    val readHeader: Iteratee[Exchange[A], (String, String)] = {
 
-      def cont(lines: String): Iteratee[Exchange, String] = peek flatMap {
+      def cont(lines: String): Iteratee[Exchange[A], String] = peek flatMap {
         case ` ` | `\t` ⇒ for {
           _ ← drop(1)
           line ← takeUntilCrLf(characterset, false)
@@ -116,7 +116,7 @@ object RequestIteratee {
       } yield (name, value)
     }
 
-    @inline def cont(headers: List[(String, String)]): Iteratee[Exchange, Headers] = peek flatMap {
+    @inline def cont(headers: List[(String, String)]): Iteratee[Exchange[A], Headers] = peek flatMap {
       case `\r` ⇒ for {
         _ ← drop(2)
         done ← Done(headers.toMap)
@@ -130,7 +130,7 @@ object RequestIteratee {
     cont(Nil)
   }
 
-  @inline private[this] final def readEntity(headers: Headers, query: Option[String], settings: ServerConfiguration): Iteratee[Exchange, Option[Entity]] =
+  @inline private[this] final def readEntity[A](headers: Headers, query: Option[String], settings: ServerConfiguration): Iteratee[Exchange[A], Option[Entity]] =
     `Content-Type`(headers) match {
       case Some(contenttype) ⇒
         `Transfer-Encoding`(headers) match {
@@ -154,7 +154,7 @@ object RequestIteratee {
         }
     }
 
-  final def readRequest(server: Server): Iteratee[Exchange, Request] = {
+  final def readRequest[A](server: Server): Iteratee[Exchange[A], Request] = {
     val settings = server.getSettings
     for {
       mpqv ← readRequestLine(settings, server)

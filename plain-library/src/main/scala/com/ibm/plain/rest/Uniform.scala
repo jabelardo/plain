@@ -6,39 +6,22 @@ package rest
 
 import com.typesafe.config.Config
 
-import aio.Io
-import http.{ Request, Response, Processor ⇒ HttpProcessor }
+import http.{ Request, Response, HttpProcessor }
 
 /**
- * As postulated by Roy Fielding, but it works asynchronously.
+ * Marker to indicste that there is only one instance of this resource which is also thread-safe.
  */
-trait Uniform {
+trait StaticResource {
 
-  def handle(context: Context)
-
-  def completed(context: Context)
-
-  def failed(e: Throwable, context: Context)
+  private[rest] def init(config: Config) = ()
 
 }
 
 /**
- * Indicates that there is only one instance of this resource which is also thread-safe.
- */
-trait StaticResource
-
-  extends Uniform {
-
-  def init(config: Config) = ()
-
-}
-
-/**
- * A basic implementation for Uniform for correct exception handling.
+ * A basic implementation for Uniform using Http.
  */
 trait BaseResource
 
-  extends HttpProcessor
+  extends HttpProcessor[Context]
 
-  with Uniform
 

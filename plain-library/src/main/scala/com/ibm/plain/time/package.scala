@@ -35,7 +35,7 @@ package object time
 
   final def rfc1123 = rfc1123bytearray
 
-  @volatile private[this] final var rfc1123bytearray: Array[Byte] = null
+  @volatile private[time] final var rfc1123bytearray: Array[Byte] = null
 
   // prevent "false sharing"
   @volatile final var padding1: Array[Byte] = null

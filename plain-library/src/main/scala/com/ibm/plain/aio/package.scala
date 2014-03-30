@@ -3,25 +3,28 @@ package com.ibm
 package plain
 
 import java.nio.ByteBuffer
+import java.nio.channels.{ CompletionHandler ⇒ Handler }
 
-import scala.annotation.tailrec
 import scala.language.implicitConversions
 import scala.util.control.ControlThrowable
 
-import config.CheckedConfig
 import logging.createLogger
 
 package object aio
 
-  extends CheckedConfig {
+  extends config.CheckedConfig {
 
   import config._
   import config.settings._
 
   /**
-   * Thrown to indicate that async Io has been started and is running in a separate control flow now.
+   * Thrown to indicate that async exchange has been started and is running in a separate control flow now.
    */
-  object IoControl extends ControlThrowable
+  object ExchangeControl extends ControlThrowable
+
+  final type ExchangeIteratee[A] = Iteratee[Exchange[A], _]
+
+  final type ExchangeHandler[A] = Handler[Integer, Exchange[A]]
 
   final def bestFitByteBuffer(length: Int) = {
     if (length <= tinyBufferSize)

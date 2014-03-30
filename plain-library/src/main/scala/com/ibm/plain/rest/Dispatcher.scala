@@ -7,7 +7,7 @@ package rest
 import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
 import scala.collection.concurrent.TrieMap
 import scala.collection.JavaConversions._
-import aio.Io
+import aio.{ Exchange, ExchangeHandler }
 import config._
 import http.{ Entity, HttpDispatcher, Request, Response }
 import http.Entity.ContentEntity
@@ -21,12 +21,13 @@ import org.apache.commons.io.FilenameUtils
  */
 abstract class Dispatcher
 
-  extends HttpDispatcher {
+  extends HttpDispatcher[Context] {
 
-  @inline final def dispatch(request: Request, io: Io) = handle(Context(io) ++ request)
-
-  final def handle(context: Context) = {
-    import context.request
+  final def process(exchange: Exchange[Context], handler: ExchangeHandler[Context]) = {
+    val request = exchange.inMessage.asInstanceOf[Request]
+    val context = Context()
+    exchange ++ Some(context)
+    context ++ request
     templates.get(request.method, request.path) match {
       case Some((resourceclass, config, variables, remainder)) ⇒
         staticresources.getOrElse(resourceclass, resourceclass.newInstance) match {
@@ -38,7 +39,8 @@ abstract class Dispatcher
               case Some(_) if !request.method.entityallowed ⇒ throw ClientError.`413`
               case _ ⇒
             }
-            resource.handle(context ++ config ++ variables.getOrElse(Dispatcher.emptyvariables) ++ remainder)
+            context ++ config ++ variables.getOrElse(Dispatcher.emptyvariables) ++ remainder
+            resource.process(exchange, handler)
           case _ ⇒ throw ServerError.`500`
         }
       case _ ⇒ throw ClientError.`404`
@@ -74,7 +76,8 @@ abstract class Dispatcher
     }).filter(_._1 != null).toMap
 
     debug("name = " + name + " " + staticresources)
-    if (null != templates) templates.toString.split("\n").filter(0 < _.length).foreach(r ⇒ debug("route = " + r))
+    if (null != templates) templates.toString.split("\n").filter(0 < _.length).foreach(r ⇒ debug("route = " + r)) else warn("No routes defined.")
+    this
   }
 
   @inline private[this] final def isStatic(resourceclass: Class[_]) = classOf[StaticResource].isAssignableFrom(resourceclass)

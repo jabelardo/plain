@@ -4,8 +4,6 @@ package plain
 
 package aio
 
-import Exchange.ExchangeIteratee
-
 /**
  *
  */
@@ -29,11 +27,11 @@ trait OutMessage
 
   extends Message {
 
-  def renderHeader(exchange: Exchange): ExchangeIteratee
+  def renderHeader[A](exchange: Exchange[A]): Iteratee[Exchange[A], _]
 
-  def renderBody(exchange: Exchange): ExchangeIteratee
+  def renderBody[A](exchange: Exchange[A]): Iteratee[Exchange[A], _]
 
-  def renderFooter(exchange: Exchange): ExchangeIteratee
+  def renderFooter[A](exchange: Exchange[A]): Iteratee[Exchange[A], _]
 
 }
 
