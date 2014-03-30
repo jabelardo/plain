@@ -4,17 +4,18 @@ package plain
 
 package rest
 
-import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
+import com.ibm.plain.aio.{ Exchange, ExchangeHandler }
+import com.ibm.plain.http.HttpDispatcher
+import com.typesafe.config.{ Config, ConfigFactory }
+
 import scala.collection.concurrent.TrieMap
-import scala.collection.JavaConversions._
+
 import aio.{ Exchange, ExchangeHandler }
-import config._
-import http.{ Entity, HttpDispatcher, Request, Response }
-import http.Entity.ContentEntity
+import config.config2RichConfig
+import http.{ Entity, HttpDispatcher, Request }
 import http.Status.{ ClientError, ServerError }
 import servlet.ServletContainer
 import servlet.http.HttpServletResource
-import org.apache.commons.io.FilenameUtils
 
 /**
  * The base class for all client rest dispatchers. The client rest dispatchers will be instantiated using their class name from the configuration via reflection.
@@ -23,27 +24,39 @@ abstract class Dispatcher
 
   extends HttpDispatcher[Context] {
 
+  import Dispatcher._
+
   final def process(exchange: Exchange[Context], handler: ExchangeHandler[Context]) = {
     val request = exchange.inMessage.asInstanceOf[Request]
-    val context = Context()
-    exchange ++ Some(context)
-    context ++ request
-    templates.get(request.method, request.path) match {
-      case Some((resourceclass, config, variables, remainder)) ⇒
-        staticresources.getOrElse(resourceclass, resourceclass.newInstance) match {
-          case resource: BaseResource ⇒
-            request.entity match {
-              case None ⇒
-              case Some(Entity(_)) if request.method.entityallowed ⇒
-              case Some(Entity(_, length, _)) if !request.method.entityallowed && length < aio.defaultBufferSize ⇒
-              case Some(_) if !request.method.entityallowed ⇒ throw ClientError.`413`
-              case _ ⇒
+    val context = exchange.attachment match {
+      case Some(context) ⇒ context
+      case _ ⇒
+        val context = Context()
+        exchange ++ Some(context)
+        context ++ request
+    }
+    requestresources.get(request) match {
+      case Some(resource) ⇒
+        resource.process(exchange, handler)
+      case _ ⇒
+        templates.get(request.method, request.path) match {
+          case Some((resourceclass, config, variables, remainder)) ⇒
+            staticresources.getOrElse(resourceclass, resourceclass.newInstance) match {
+              case resource: BaseResource ⇒
+                request.entity match {
+                  case None ⇒
+                  case Some(Entity(_)) if request.method.entityallowed ⇒
+                  case Some(Entity(_, length, _)) if !request.method.entityallowed && length < aio.defaultBufferSize ⇒
+                  case Some(_) if !request.method.entityallowed ⇒ throw ClientError.`413`
+                  case _ ⇒
+                }
+                context ++ config ++ variables.getOrElse(emptyvariables) ++ remainder
+                requestresources.put(request, resource)
+                resource.process(exchange, handler)
+              case _ ⇒ throw ServerError.`500`
             }
-            context ++ config ++ variables.getOrElse(Dispatcher.emptyvariables) ++ remainder
-            resource.process(exchange, handler)
-          case _ ⇒ throw ServerError.`500`
+          case _ ⇒ throw ClientError.`404`
         }
-      case _ ⇒ throw ClientError.`404`
     }
   }
 
@@ -86,6 +99,8 @@ abstract class Dispatcher
 
   private[this] final var staticresources: Map[Class[_], StaticResource] = null
 
+  private[this] final val requestresources = new TrieMap[Request, BaseResource]
+
 }
 
 /**
@@ -93,7 +108,7 @@ abstract class Dispatcher
  */
 object Dispatcher {
 
-  final val emptyvariables: http.Request.Variables = Map.empty
+  private final val emptyvariables: http.Request.Variables = Map.empty
 
 }
 

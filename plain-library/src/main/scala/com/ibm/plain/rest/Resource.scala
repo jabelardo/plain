@@ -54,7 +54,7 @@ trait Resource
     } catch {
       case e: Throwable ⇒ failed(e, exchange)
     }
-    case _ ⇒ throw ServerError.`500`
+    case e ⇒ println("wrong " + e); throw ServerError.`500`
   }
 
   override final def completed(exchange: Exchange[Context], handler: ExchangeHandler[Context]) = exchange.attachment match {

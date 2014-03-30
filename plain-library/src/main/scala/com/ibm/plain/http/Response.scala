@@ -51,7 +51,7 @@ final case class Response(
   /**
    * Called first and always.
    */
-  final def renderMessageHeader[A](exchange: Exchange[A]): ExchangeIteratee[A] = if (null == responsebuffer) {
+  final def renderMessageHeader[A](exchange: Exchange[A]): ExchangeIteratee[A] = {
     renderVersion
     renderMandatory
     renderHeaders
@@ -59,20 +59,6 @@ final case class Response(
     renderKeepAlive(exchange)
     renderContentHeaders(exchange)
     renderEntity(exchange)
-    val len = renderbuffer.position
-    val limit = renderbuffer.limit
-    renderbuffer.position(0)
-    renderbuffer.limit(len)
-    responsebuffer = ByteBuffer.allocate(len)
-    responsebuffer.put(renderbuffer)
-    responsebuffer.flip
-    renderbuffer.position(len)
-    renderbuffer.limit(limit)
-    done[A]
-  } else {
-    bytebuffer.put(responsebuffer.duplicate)
-    exchange ++ done[A]
-    done[A]
   }
 
   /**
@@ -220,8 +206,6 @@ object Response {
   private final def done[A]: ExchangeIteratee[A] = Done[Exchange[A], Option[Nothing]](None)
 
   private final def cont[A]: ExchangeIteratee[A] = Cont[Exchange[A], Null](null)
-
-  private final var responsebuffer: ByteBuffer = null
 
 }
 
