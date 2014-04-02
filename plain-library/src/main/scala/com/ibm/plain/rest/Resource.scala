@@ -139,10 +139,7 @@ trait Resource
         requestmethods.get(request) match {
           case Some((methodbody, input, encode)) ⇒
             context.response ++ encode {
-              try {
-                threadlocal.set(context)
-                methodbody.body(input)
-              } finally threadlocal.remove
+              methodbody.body(input)
             }
             completed(exchange, handler)
           case _ ⇒
@@ -173,12 +170,8 @@ trait Resource
               case Some((methodbody, encode)) ⇒
                 context.response ++ encode(innerinput match {
                   case Some((input, _)) ⇒
-                    if (requestmethods.size > 64) requestmethods.clear // :TODO:
                     requestmethods.put(request, (methodbody, input, encode))
-                    try {
-                      threadlocal.set(context)
-                      methodbody.body(input)
-                    } finally threadlocal.remove
+                    methodbody.body(input)
                   case _ ⇒ throw ServerError.`501`
                 })
                 completed(exchange, handler)
