@@ -64,65 +64,63 @@ trait Resource
   /**
    * Post.
    */
-  final def Post[E: TypeTag, A: TypeTag](body: Context ⇒ E ⇒ A): MethodBody = {
+  final def Post[E: TypeTag, A: TypeTag](body: E ⇒ A): MethodBody = {
     add[E, A](POST, typeOf[E], typeOf[A], body)
   }
 
-  final def Post[A: TypeTag](body: Context ⇒ A): MethodBody = {
-    add[A, A](POST, typeOf[A], typeOf[A], body ⇒ a ⇒ a)
-  }
-
   final def Post[A: TypeTag](body: ⇒ A): MethodBody = {
-    add[Unit, A](POST, typeOf[Unit], typeOf[A], (_: Context) ⇒ (_: Unit) ⇒ body)
+    add[Unit, A](POST, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
   }
 
   /**
-   *
+   * Put.
    */
-  final def Put[E: TypeTag, A: TypeTag](body: Context ⇒ E ⇒ A): MethodBody = {
+  final def Put[E: TypeTag, A: TypeTag](body: E ⇒ A): MethodBody = {
     add[E, A](PUT, typeOf[E], typeOf[A], body)
   }
 
+  final def Put[A: TypeTag](body: ⇒ A): MethodBody = {
+    add[Unit, A](PUT, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
+  }
+
   /**
-   *
+   * Delete.
    */
   final def Delete[A: TypeTag](body: ⇒ A): MethodBody = {
-    add[Unit, A](DELETE, typeOf[Unit], typeOf[A], (_: Context) ⇒ (_: Unit) ⇒ body)
+    add[Unit, A](DELETE, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
   }
 
-  final def Delete[A: TypeTag](body: Context ⇒ A): MethodBody = {
-    add[A, A](DELETE, typeOf[A], typeOf[A], body ⇒ a ⇒ a)
-  }
-
-  final def Delete[E: TypeTag, A: TypeTag](body: Context ⇒ E ⇒ A): MethodBody = {
+  final def Delete[E: TypeTag, A: TypeTag](body: E ⇒ A): MethodBody = {
     add[E, A](DELETE, typeOf[E], typeOf[A], body)
   }
 
   /**
-   *
+   * Get.
    */
   final def Get[A: TypeTag](body: ⇒ A): MethodBody = {
-    add[Unit, A](GET, typeOf[Unit], typeOf[A], (_: Context) ⇒ (_: Unit) ⇒ body)
+    add[Unit, A](GET, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
   }
 
-  final def Get[A: TypeTag](body: Context ⇒ A): MethodBody = {
-    add[A, A](GET, typeOf[A], typeOf[A], body ⇒ a ⇒ a)
-  }
-
-  final def Get[E: TypeTag, A: TypeTag](body: Context ⇒ E ⇒ A): MethodBody = {
+  final def Get[E: TypeTag, A: TypeTag](body: E ⇒ A): MethodBody = {
     add[E, A](GET, typeOf[E], typeOf[A], body)
   }
 
   /**
-   *
+   * Head.
    */
   final def Head(body: ⇒ Any): MethodBody = {
-    add[Unit, Unit](HEAD, typeOf[Unit], typeOf[Unit], (_: Context) ⇒ (_: Unit) ⇒ { body; () })
+    add[Unit, Unit](HEAD, typeOf[Unit], typeOf[Unit], (_: Unit) ⇒ { body; () })
   }
 
-  final def Head[E: TypeTag](body: Context ⇒ E ⇒ Any): MethodBody = {
-    add[E, Unit](HEAD, typeOf[E], typeOf[Unit], (c: Context) ⇒ (e: E) ⇒ { body(c)(e); () })
+  final def Head[E: TypeTag](body: E ⇒ Any): MethodBody = {
+    add[E, Unit](HEAD, typeOf[E], typeOf[Unit], (e: E) ⇒ { body(e); () })
   }
+
+  protected[this] final def request = threadlocal.get.request
+
+  protected[this] final def response = threadlocal.get.response
+
+  protected[this] final def context = threadlocal.get
 
   /**
    * The most important method in this class.
@@ -140,7 +138,12 @@ trait Resource
         val request = context.request
         requestmethods.get(request) match {
           case Some((methodbody, input, encode)) ⇒
-            context.response ++ encode(methodbody.body(context)(input))
+            context.response ++ encode {
+              try {
+                threadlocal.set(context)
+                methodbody.body(input)
+              } finally threadlocal.remove
+            }
             completed(exchange, handler)
           case _ ⇒
             var innerinput: Option[(Any, AnyRef)] = None
@@ -152,7 +155,7 @@ trait Resource
             }
 
             def tryDecode(in: Type, decode: AnyRef): Boolean = {
-              if (innerinput.isDefined && innerinput.get._2 == decode) return true // avoid unnecessary calls, decode can be expensive
+              if (innerinput.isDefined && innerinput.get._2 == decode) return true
               decode match {
                 case decode: Decoder[_] ⇒ tryBoolean(innerinput = Some((decode(inentity), decode)))
                 case decode: MarshaledDecoder[_] ⇒ tryBoolean(innerinput = Some((decode(inentity, ClassTag(Class.forName(in.toString))), decode)))
@@ -171,7 +174,10 @@ trait Resource
                 context.response ++ encode(innerinput match {
                   case Some((input, _)) ⇒
                     requestmethods.put(request, (methodbody, input, encode))
-                    methodbody.body(context)(input)
+                    try {
+                      threadlocal.set(context)
+                      methodbody.body(input)
+                    } finally threadlocal.remove
                   case _ ⇒ throw ServerError.`501`
                 })
                 completed(exchange, handler)
@@ -229,7 +235,7 @@ object Resource {
 
   }
 
-  private type Body[E, A] = Context ⇒ E ⇒ A
+  private type Body[E, A] = E ⇒ A
 
   private type Methods = Map[Method, Either[MethodBodies, ResourcePriorities]]
 
@@ -238,6 +244,8 @@ object Resource {
   private type ResourcePriority = ((MimeType, MimeType), (Type, MethodBody), (AnyRef, Encoder))
 
   private type ResourcePriorities = Array[ResourcePriority]
+
+  private final val threadlocal = new ThreadLocal[Context]
 
   private final var resourcemethods: Map[Class[_ <: Resource], Methods] = Map.empty
 

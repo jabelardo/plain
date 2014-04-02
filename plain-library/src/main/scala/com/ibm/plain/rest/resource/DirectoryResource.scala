@@ -7,7 +7,7 @@ package rest
 package resource
 
 import java.nio.file.{ Path, Paths }
-import java.nio.file.Files.{ exists ⇒ fexists, isDirectory, isRegularFile, size }
+import java.nio.file.Files.{ createDirectories, exists ⇒ fexists, isDirectory, isRegularFile, size }
 
 import scala.collection.JavaConversions.asScalaBuffer
 
@@ -21,41 +21,64 @@ import aio.AsynchronousFileByteChannel.{ forReading, forWriting }
 import logging.Logger
 import http.ContentType
 import http.Entity
-import http.Entity.{ AsynchronousByteChannelEntity, ArrayEntity }
+import http.Entity.{ AsynchronousByteChannelEntity, ArrayEntity, ContentEntity }
 import http.MimeType.{ `application/octet-stream`, forExtension }
-import http.Status.{ ClientError, ServerError }
+import http.Status.{ ClientError, ServerError, Success }
 
 /**
  *
  */
 class DirectoryResource
 
-  extends Resource {
+  extends Resource
+
+  with StaticResource {
 
   import DirectoryResource._
 
-  Get { context: Context ⇒ get(context.config.getStringList("roots"), context.remainder.mkString("/")) }
+  Get { get(context.config.getStringList("roots"), context.remainder.mkString("/")) }
 
-  Get { context: Context ⇒ _: String ⇒ get(context.config.getStringList("roots"), context.remainder.mkString("/")) }
+  Get { _: String ⇒ get(context.config.getStringList("roots"), context.remainder.mkString("/")) }
 
-  Delete { context: Context ⇒ val path = context.remainder.mkString("/"); println(path); println(context.request.query); path }
+  Delete { val path = context.remainder.mkString("/"); path }
 
-  Delete { context: Context ⇒ form: Form ⇒ val path = context.remainder.mkString("/"); println(form); println(path); println(context.request.query); path }
+  Delete { form: Form ⇒ val path = context.remainder.mkString("/"); path }
 
-  Put { context: Context ⇒
-    entity: Entity ⇒
-      val filename = "/tmp/test/blabla.bin"
-      println("PUT" + entity + " " + entity.length + " " + filename)
-      "Thank you!"
+  /**
+   * Creates a directory with the remainder as path relative to the first root. All intermediate directories are also created if necessary.
+   */
+  Put {
+    put(context.config.getStringList("roots").head, context.remainder.mkString("/"))
+    context.response ++ Success.`201`
+    ""
+  }
+
+  Put { entity: Entity ⇒
+    val filename = "/tmp/test/blabla.bin"
+    println("PUT " + entity + " " + entity.length + " " + filename)
+    entity match {
+      case ArrayEntity(array, offset, length, contenttype) ⇒
+      case Entity(contenttype, length, encodable) ⇒
+        println(encodable + " " + length + " " + contenttype)
+        AsynchronousByteChannelEntity(
+          forWriting(filename),
+          contenttype,
+          length,
+          contenttype.mimetype.encodable)
+    }
+    ""
   }
 
 }
 
+/**
+ *
+ */
 object DirectoryResource
 
   extends Logger {
 
-  def get(list: Seq[String], remainder: String) = {
+  final def get(list: Seq[String], remainder: String) = {
     val roots = list.iterator
     var found = false
     var result: AsynchronousByteChannelEntity = null
@@ -95,7 +118,7 @@ object DirectoryResource
     }
   }
 
-  def exists(config: Config, remainder: List[String]): Boolean = {
+  final def exists(config: Config, remainder: List[String]): Boolean = {
     val roots = config.getStringList("roots").iterator
     var found = false
 
@@ -113,6 +136,13 @@ object DirectoryResource
     }
 
     found
+  }
+
+  final def put(root: String, remainder: String): Unit = Paths.get(root).toAbsolutePath.resolve(remainder) match {
+    case path if path.toString.contains("..") ⇒ throw ClientError.`401`
+    case path if fexists(path) && isRegularFile(path) ⇒ throw ClientError.`409`
+    case path if fexists(path) && isDirectory(path) ⇒
+    case path ⇒ try { val x = createDirectories(path); println(x) } catch { case e: Throwable ⇒ throw ServerError.`503` }
   }
 
   private[this] final val welcomefiles = "([iI]ndex\\.((htm[l]*)|(jsp)))|([dD]efault\\.((htm[l]*)|(jsp)))"

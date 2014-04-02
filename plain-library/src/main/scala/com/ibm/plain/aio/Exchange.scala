@@ -48,8 +48,6 @@ final class Exchange[A] private (
 
   @inline final def outMessage = outmessage
 
-  @inline final def asynchronousTransfer = transfer
-
   @inline final def printWriter = printwriter
 
   @inline final def length: Int = readbuffer.remaining
@@ -215,8 +213,6 @@ final class Exchange[A] private (
 
   @inline final def ++(iteratee: ExchangeIteratee[A]) = { this.currentiteratee = iteratee; this }
 
-  @inline final def ++(transfer: AsynchronousTransfer) = { this.transfer = transfer; this }
-
   @inline final def ++(inmessage: InMessage) = { this.inmessage = inmessage; this }
 
   @inline final def ++(outmessage: OutMessage) = { this.outmessage = outmessage; this }
@@ -230,7 +226,6 @@ read $readbuffer
 write $writebuffer
 in $inMessage 
 out $outMessage
-transfer $asynchronousTransfer
 writer $printWriter
 iteratee $currentiteratee
 outer $outerbuffer
@@ -246,7 +241,6 @@ outer $outerbuffer
     readbuffer.clear
     writebuffer.clear
     currentiteratee = null
-    transfer = null
     swap(null)
   }
 
@@ -291,8 +285,6 @@ outer $outerbuffer
   private[this] final var inmessage: InMessage = null
 
   private[this] final var outmessage: OutMessage = null
-
-  private[this] final var transfer: AsynchronousTransfer = null
 
   private[this] final var outerbuffer: ByteBuffer = null
 

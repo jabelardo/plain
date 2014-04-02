@@ -16,6 +16,8 @@ final class PingResource
 
   Get { pong }
 
+  Get { _: String ⇒ pong }
+
   //  Get { Json(Map("Hello" -> "world!")) }
 
   //  Get { f: Form ⇒ json.Json(f) }

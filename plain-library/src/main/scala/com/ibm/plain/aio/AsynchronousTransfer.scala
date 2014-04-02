@@ -9,4 +9,9 @@ import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel }
 /**
  *
  */
-final case class AsynchronousTransfer(source: Channel, destination: Channel, encoder: Option[Encoder])
+final case class AsynchronousTransferTo(source: Channel, destination: Channel, encoder: Option[Encoder])
+
+/**
+ *
+ */
+final case class AsynchronousTransferFrom(source: Channel, destination: Channel, decoder: Any)

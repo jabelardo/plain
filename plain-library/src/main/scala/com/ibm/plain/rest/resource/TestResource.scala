@@ -30,9 +30,9 @@ class TestResource extends Resource {
 
   Put { context: Context ⇒ in: JObject ⇒ Json.parse("[1, 2, 3, " + Json.build(in) + "]") }
 
-  Get[JArray] { context: Context ⇒ println(context.request); Json(List(context.request.query.getOrElse("no query").reverse)).asArray }
+  Get[JArray] { println(context.request); Json(List(context.request.query.getOrElse("no query").reverse)).asArray }
 
-  Get[JObject] { context: Context ⇒ Json(context.variables).asObject }
+  Get[JObject] { Json(context.variables).asObject }
 
   Get { "pong!".getBytes(text.`US-ASCII`) }
 

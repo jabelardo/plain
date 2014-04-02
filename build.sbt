@@ -30,6 +30,7 @@ scalacOptions in ThisBuild ++= Seq(
 	"-deprecation", 
 	"-feature", 
 	"-Yinline-warnings",
+	"-Yno-generic-signatures",
 	"-optimize",
 	"-unchecked"
 )

@@ -83,9 +83,7 @@ final class AsynchronousFileByteChannel private (
     extends Handler[Integer, A] {
 
     @inline def completed(processed: Integer, attachment: A) = {
-      println("read " + processed)
       buffer.flip
-      println("after read " + buffer)
       target.write(buffer, attachment, writecompletionhandler)
     }
 
@@ -118,11 +116,9 @@ final class AsynchronousFileByteChannel private (
 
     @inline def completed(processed: Integer, attachment: A) = if (0 < processed) {
       position += processed
-      println("written " + processed + " pos " + position + " buf " + buffer)
       buffer.clear
       source.read(buffer, attachment, readcompletionhandler)
     } else {
-      println("finished transfer " + position)
       outerhandler.completed(processed, attachment)
     }
 

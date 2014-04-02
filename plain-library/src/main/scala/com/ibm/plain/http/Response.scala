@@ -9,7 +9,7 @@ import javax.servlet.http.Cookie
 
 import scala.language.implicitConversions
 
-import aio.{ AsynchronousTransfer, Encoder, Exchange, ExchangeIteratee, OutMessage, releaseByteBuffer, tooTinyToCareSize }
+import aio.{ Encoder, Exchange, ExchangeIteratee, OutMessage, releaseByteBuffer, tooTinyToCareSize }
 import aio.Iteratee.{ Cont, Done }
 import aio.Renderable._
 import text.`UTF-8`
@@ -67,7 +67,7 @@ final case class Response(
   final def renderMessageBody[A](exchange: Exchange[A]): ExchangeIteratee[A] = {
     entity match {
       case Some(entity: AsynchronousByteChannelEntity) ⇒
-        exchange ++ AsynchronousTransfer(entity.channel, exchange.socketChannel, encoder)
+        //       exchange ++ AsynchronousTransfer(entity.channel, exchange.socketChannel, encoder)
         exchange ++ cont[A]
         cont[A]
       case Some(entity: ByteBufferEntity) ⇒
