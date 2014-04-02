@@ -6,11 +6,11 @@ package rest
 
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.{ Type, TypeTag, typeOf }
+import scala.collection.concurrent.TrieMap
 
 import com.typesafe.config.Config
 
 import reflect.tryBoolean
-import collection.mutable.LeastRecentlyUsedCache
 import aio.{ Exchange, ExchangeHandler }
 import http.{ Request, Response, Status, Entity, Method, MimeType, Accept }
 import http.Entity._
@@ -116,11 +116,11 @@ trait Resource
     add[E, Unit](HEAD, typeOf[E], typeOf[Unit], (e: E) ⇒ { body(e); () })
   }
 
-  protected[this] final def request = threadlocal.get.request
+  @inline protected[this] final def request = threadlocal.get.request
 
-  protected[this] final def response = threadlocal.get.response
+  @inline protected[this] final def response = threadlocal.get.response
 
-  protected[this] final def context = threadlocal.get
+  @inline protected[this] final def context = threadlocal.get
 
   /**
    * The most important method in this class.
@@ -173,6 +173,7 @@ trait Resource
               case Some((methodbody, encode)) ⇒
                 context.response ++ encode(innerinput match {
                   case Some((input, _)) ⇒
+                    if (requestmethods.size > 64) requestmethods.clear // :TODO:
                     requestmethods.put(request, (methodbody, input, encode))
                     try {
                       threadlocal.set(context)
@@ -214,7 +215,7 @@ trait Resource
 
   private[this] final var methods: Methods = null
 
-  private[this] final val requestmethods = LeastRecentlyUsedCache[(MethodBody, Any, Any ⇒ Option[Entity])](64)
+  private[this] final val requestmethods = new TrieMap[Request, (MethodBody, Any, Any ⇒ Option[Entity])]
 
 }
 
