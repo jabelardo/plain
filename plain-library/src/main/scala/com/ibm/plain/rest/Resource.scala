@@ -6,11 +6,11 @@ package rest
 
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.{ Type, TypeTag, typeOf }
-import scala.collection.concurrent.TrieMap
 
 import com.typesafe.config.Config
 
 import reflect.tryBoolean
+import collection.mutable.LeastRecentlyUsedCache
 import aio.{ Exchange, ExchangeHandler }
 import http.{ Request, Response, Status, Entity, Method, MimeType, Accept }
 import http.Entity._
@@ -214,7 +214,7 @@ trait Resource
 
   private[this] final var methods: Methods = null
 
-  private[this] final val requestmethods = new TrieMap[Request, (MethodBody, Any, Any ⇒ Option[Entity])]
+  private[this] final val requestmethods = LeastRecentlyUsedCache[(MethodBody, Any, Any ⇒ Option[Entity])](64)
 
 }
 
