@@ -16,7 +16,7 @@ import aio.{ Exchange, ExchangeHandler }
 import io.{ ByteArrayOutputStream, PrintWriter }
 import plain.http.Response
 import plain.http.Status.Success
-import rest.{ BaseResource, Context, StaticResource }
+import rest.{ BaseResource, Context, IsStatic }
 
 final class HttpServletResource(
 
@@ -24,7 +24,7 @@ final class HttpServletResource(
 
   extends BaseResource
 
-  with StaticResource {
+  with IsStatic {
 
   final def process(exchange: Exchange[Context], handler: ExchangeHandler[Context]) = exchange.attachment match {
     case Some(context) ⇒ try {

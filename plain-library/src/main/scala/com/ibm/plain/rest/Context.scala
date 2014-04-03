@@ -13,7 +13,7 @@ import Resource.MethodBody
 /**
  * A wrapper to hold shared context among Uniforms.
  */
-final class Context private (
+final case class Context(
 
   var config: Config,
 
@@ -24,6 +24,10 @@ final class Context private (
   var request: Request,
 
   var response: Response) {
+  
+  def this(request: Request) = this(null, null, null, request, null)
+
+  def this() = this(null, null, null, null, null)
 
   @inline final def ++(config: Config) = { this.config = config; this }
 
@@ -34,14 +38,5 @@ final class Context private (
   @inline final def ++(request: Request) = { this.request = request; this }
 
   @inline final def ++(response: Response) = { this.response = response; this }
-
-}
-
-/**
- *
- */
-object Context {
-
-  @inline def apply() = new Context(null, null, null, null, null)
 
 }

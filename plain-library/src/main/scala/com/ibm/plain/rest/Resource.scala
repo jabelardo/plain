@@ -6,7 +6,6 @@ package rest
 
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.{ Type, TypeTag, typeOf }
-import scala.collection.concurrent.TrieMap
 
 import com.typesafe.config.Config
 
@@ -31,7 +30,7 @@ trait Resource
 
   import Resource._
 
-  override final def delayedInit(initialize: ⇒ Unit): Unit = {
+  final def delayedInit(initialize: ⇒ Unit): Unit = {
     resourcemethods.get(getClass) match {
       case Some(methods) ⇒ this.methods = methods
       case None ⇒
@@ -116,16 +115,20 @@ trait Resource
     add[E, Unit](HEAD, typeOf[E], typeOf[Unit], (e: E) ⇒ { body(e); () })
   }
 
-  @inline protected[this] final def request = threadlocal.get.request
+  protected[this] final def request = threadlocal.get.request
 
-  @inline protected[this] final def response = threadlocal.get.response
+  protected[this] final def response = threadlocal.get.response
 
-  @inline protected[this] final def context = threadlocal.get
+  protected[this] final def context = threadlocal.get
+
+  protected[this] def fromCache(request: Request): Option[CachedMethod] = None
+
+  protected[this] def toCache(request: Request, cachedmethod: CachedMethod) = ()
 
   /**
    * The most important method in this class.
    */
-  private[this] final def execute(
+  protected[this] def execute(
 
     exchange: Exchange[Context],
 
@@ -136,10 +139,13 @@ trait Resource
     exchange.attachment match {
       case Some(context) ⇒
         val request = context.request
-        requestmethods.get(request) match {
+        fromCache(request) match {
           case Some((methodbody, input, encode)) ⇒
             context.response ++ encode {
-              methodbody.body(input)
+              try {
+                threadlocal.set(context)
+                methodbody.body(input)
+              } finally threadlocal.remove
             }
             completed(exchange, handler)
           case _ ⇒
@@ -170,8 +176,11 @@ trait Resource
               case Some((methodbody, encode)) ⇒
                 context.response ++ encode(innerinput match {
                   case Some((input, _)) ⇒
-                    requestmethods.put(request, (methodbody, input, encode))
-                    methodbody.body(input)
+                    toCache(request, (methodbody, input, encode))
+                    try {
+                      threadlocal.set(context)
+                      methodbody.body(input)
+                    } finally threadlocal.remove
                   case _ ⇒ throw ServerError.`501`
                 })
                 completed(exchange, handler)
@@ -208,8 +217,6 @@ trait Resource
 
   private[this] final var methods: Methods = null
 
-  private[this] final val requestmethods = new TrieMap[Request, (MethodBody, Any, Any ⇒ Option[Entity])]
-
 }
 
 /**
@@ -229,6 +236,10 @@ object Resource {
 
   }
 
+  type ResourcePriorities = Array[ResourcePriority]
+
+  type CachedMethod = (MethodBody, Any, Any ⇒ Option[Entity])
+
   private type Body[E, A] = E ⇒ A
 
   private type Methods = Map[Method, Either[MethodBodies, ResourcePriorities]]
@@ -236,8 +247,6 @@ object Resource {
   private type MethodBodies = Array[((Type, Type), MethodBody)]
 
   private type ResourcePriority = ((MimeType, MimeType), (Type, MethodBody), (AnyRef, Encoder))
-
-  private type ResourcePriorities = Array[ResourcePriority]
 
   private final val threadlocal = new ThreadLocal[Context]
 

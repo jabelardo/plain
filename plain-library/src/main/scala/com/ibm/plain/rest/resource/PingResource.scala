@@ -8,9 +8,7 @@ package resource
 
 final class PingResource
 
-  extends Resource
-
-  with StaticResource {
+  extends StaticResource {
 
   import PingResource._
 

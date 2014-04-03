@@ -30,9 +30,7 @@ import http.Status.{ ClientError, ServerError, Success }
  */
 class DirectoryResource
 
-  extends Resource
-
-  with StaticResource {
+  extends Resource {
 
   import DirectoryResource._
 

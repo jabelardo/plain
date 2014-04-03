@@ -28,9 +28,9 @@ abstract class Dispatcher
     val context = exchange.attachment match {
       case Some(context) ⇒ context
       case _ ⇒
-        val context = Context()
+        val context = new Context(request)
         exchange ++ Some(context)
-        context ++ request
+        context
     }
     templates.get(request.method, request.path) match {
       case Some((resourceclass, config, variables, remainder)) ⇒
@@ -69,7 +69,7 @@ abstract class Dispatcher
     staticresources = (config.getConfigList("routes", List.empty).map { c: Config ⇒
       val resourceclass = Class.forName(c.getString("resource-class-name"))
       if (isStatic(resourceclass)) {
-        val resource = resourceclass.newInstance.asInstanceOf[StaticResource]
+        val resource = resourceclass.newInstance.asInstanceOf[IsStatic]
         resource.init(c.getConfig("resource-config", ConfigFactory.empty))
         (resourceclass, resource)
       } else (null, null)
@@ -79,16 +79,17 @@ abstract class Dispatcher
       }
     }).filter(_._1 != null).toMap
 
-    debug("name = " + name + " " + staticresources)
+    debug("name = " + name)
+    debug("staticresources = " + staticresources.keySet)
     if (null != templates) templates.toString.split("\n").filter(0 < _.length).foreach(r ⇒ debug("route = " + r)) else warn("No routes defined.")
     this
   }
 
-  @inline private[this] final def isStatic(resourceclass: Class[_]) = classOf[StaticResource].isAssignableFrom(resourceclass)
+  @inline private[this] final def isStatic(resourceclass: Class[_]) = classOf[IsStatic].isAssignableFrom(resourceclass)
 
   private[this] final var templates: Templates = null
 
-  private[this] final var staticresources: Map[Class[_], StaticResource] = null
+  private[this] final var staticresources: Map[Class[_], IsStatic] = null
 
 }
 
