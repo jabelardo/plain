@@ -113,7 +113,7 @@ final case class Response(
     if (!exchange.keepAlive) r(`Connection: close`) + ^
   }
 
-  @inline private[this] final def renderContentHeaders[A](exchange: Exchange[A]): Unit = {
+    private[this] final def renderContentHeaders[A](exchange: Exchange[A]): Unit = {
     encoder = entity match {
       case Some(entity) if entity.contenttype.mimetype.encodable && entity.length > tooTinyToCareSize ⇒ exchange.inMessage match {
         case request: Request ⇒ request.transferEncoding
@@ -135,26 +135,23 @@ final case class Response(
     }
   }
 
-  @inline private[this] final def renderEntity[A](exchange: Exchange[A]): ExchangeIteratee[A] = {
-
-    entity match {
-      case Some(entity: ByteBufferEntity) if entity.length <= exchange.available ⇒
-        rb(entity.buffer) + ^
-        releaseByteBuffer(entity.buffer)
-        encode(exchange, entity)
-      case Some(entity @ ArrayEntity(array, offset, length, _)) if length <= exchange.available ⇒
-        r(array, offset, length.toInt) + ^
-        encode(exchange, entity)
-      case Some(_) ⇒
-        exchange ++ cont[A]
-        cont[A]
-      case None ⇒
-        exchange ++ done[A]
-        done[A]
-    }
+  @inline private[this] final def renderEntity[A](exchange: Exchange[A]): ExchangeIteratee[A] = entity match {
+    case Some(entity: ByteBufferEntity) if entity.length <= exchange.available ⇒
+      rb(entity.buffer) + ^
+      releaseByteBuffer(entity.buffer)
+      encode(exchange, entity)
+    case Some(entity @ ArrayEntity(array, offset, length, _)) if length <= exchange.available ⇒
+      r(array, offset, length.toInt) + ^
+      encode(exchange, entity)
+    case Some(_) ⇒
+      exchange ++ cont[A]
+      cont[A]
+    case None ⇒
+      exchange ++ done[A]
+      done[A]
   }
 
-  @inline private[this] final def encode[A](exchange: Exchange[A], entity: Entity) = {
+  private[this] final def encode[A](exchange: Exchange[A], entity: Entity) = {
     encoder match {
       case Some(encoder) ⇒ exchange.encode(encoder, entity.length.toInt)
       case _ ⇒

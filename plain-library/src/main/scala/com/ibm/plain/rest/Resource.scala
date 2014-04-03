@@ -119,17 +119,17 @@ trait Resource
     add[E, Unit](HEAD, typeOf[E], typeOf[Unit], (e: E) ⇒ { body(e); () })
   }
 
-  protected[this] def contextRequired = true
+  protected[this] final def context = threadlocal.get
 
   protected[this] final def request = threadlocal.get.request
 
   protected[this] final def response = threadlocal.get.response
 
-  protected[this] final def context = threadlocal.get
-
   protected[this] def fromCache(request: Request): Option[CachedMethod] = None
 
   protected[this] def toCache(request: Request, cachedmethod: CachedMethod) = ()
+
+  protected[this] def contextRequired = true
 
   /**
    * The most important method in this class.

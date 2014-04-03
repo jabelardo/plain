@@ -22,10 +22,12 @@ trait StaticResource
 
   import Resource._
 
-  @inline override protected[this] final def fromCache(request: Request): Option[CachedMethod] = requestmethods.get(request)
+  @inline override protected[this] final def fromCache(request: Request): Option[CachedMethod] = Some(requestmethods) // .get(request)
 
-  @inline override protected[this] final def toCache(request: Request, cachedmethod: CachedMethod) = requestmethods.put(request, cachedmethod)
+  @inline override protected[this] final def toCache(request: Request, cachedmethod: CachedMethod) = requestmethods = cachedmethod // .put(request, cachedmethod)
 
-  private[this] final val requestmethods = new TrieMap[Request, (MethodBody, Any, Any ⇒ Option[Entity])]
+  // private[this] final val requestmethods = new TrieMap[Request, (MethodBody, Any, Any ⇒ Option[Entity])]
+
+  private[this] final var requestmethods: (MethodBody, Any, Any ⇒ Option[Entity]) = null
 
 }

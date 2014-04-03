@@ -33,7 +33,7 @@ package object time
     f
   }
 
-  final val rfc1123 = "blabla".getBytes
+  @inline final def rfc1123 = rfc1123bytearray
 
   @volatile private[time] final var rfc1123bytearray: Array[Byte] = null
 
