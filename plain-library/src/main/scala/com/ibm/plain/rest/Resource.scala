@@ -24,7 +24,7 @@ import Matching.{ Encoder, Decoder, MarshaledDecoder }
  */
 trait Resource
 
-  extends BaseResource
+  extends Uniform
 
   with DelayedInit {
 
@@ -115,6 +115,8 @@ trait Resource
     add[E, Unit](HEAD, typeOf[E], typeOf[Unit], (e: E) ⇒ { body(e); () })
   }
 
+  protected[this] def contextRequired = true
+
   protected[this] final def request = threadlocal.get.request
 
   protected[this] final def response = threadlocal.get.response
@@ -128,7 +130,7 @@ trait Resource
   /**
    * The most important method in this class.
    */
-  protected[this] def execute(
+  private[this] final def execute(
 
     exchange: Exchange[Context],
 
@@ -143,9 +145,9 @@ trait Resource
           case Some((methodbody, input, encode)) ⇒
             context.response ++ encode {
               try {
-                threadlocal.set(context)
+                if (contextRequired) threadlocal.set(context)
                 methodbody.body(input)
-              } finally threadlocal.remove
+              } finally if (contextRequired) threadlocal.remove
             }
             completed(exchange, handler)
           case _ ⇒
@@ -178,9 +180,9 @@ trait Resource
                   case Some((input, _)) ⇒
                     toCache(request, (methodbody, input, encode))
                     try {
-                      threadlocal.set(context)
+                      if (contextRequired) threadlocal.set(context)
                       methodbody.body(input)
-                    } finally threadlocal.remove
+                    } finally if (contextRequired) threadlocal.remove
                   case _ ⇒ throw ServerError.`501`
                 })
                 completed(exchange, handler)

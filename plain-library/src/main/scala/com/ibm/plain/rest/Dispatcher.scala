@@ -35,7 +35,7 @@ abstract class Dispatcher
     templates.get(request.method, request.path) match {
       case Some((resourceclass, config, variables, remainder)) ⇒
         staticresources.getOrElse(resourceclass, resourceclass.newInstance) match {
-          case resource: BaseResource ⇒
+          case resource: Uniform ⇒
             request.entity match {
               case None ⇒
               case Some(Entity(_)) if request.method.entityallowed ⇒

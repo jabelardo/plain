@@ -11,7 +11,7 @@ import http.{ Request, Response, HttpProcessor }
 /**
  *
  */
-trait BaseResource
+trait Uniform
 
   extends HttpProcessor[Context]
 
@@ -20,7 +20,7 @@ trait BaseResource
  */
 trait IsStatic
 
-  extends BaseResource {
+  extends Uniform {
 
   private[rest] def init(config: Config) = ()
 

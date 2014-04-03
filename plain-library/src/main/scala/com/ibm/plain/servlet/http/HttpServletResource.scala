@@ -16,13 +16,13 @@ import aio.{ Exchange, ExchangeHandler }
 import io.{ ByteArrayOutputStream, PrintWriter }
 import plain.http.Response
 import plain.http.Status.Success
-import rest.{ BaseResource, Context, IsStatic }
+import rest.{ Uniform, Context, IsStatic }
 
 final class HttpServletResource(
 
   private[this] final val servletwrapper: (Either[(Int, HttpServlet), HttpServlet], ServletConfig, ServletContext))
 
-  extends BaseResource
+  extends Uniform
 
   with IsStatic {
 
