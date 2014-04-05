@@ -12,7 +12,9 @@ import Input.Eof
 /**
  * An Iteratee consumes elements of type Input[E] and produces a result of type A.
  */
-sealed trait Iteratee[E, +A] {
+sealed trait Iteratee[E, +A]
+
+  extends Any {
 
   import Iteratee._
 
@@ -34,7 +36,7 @@ object Iteratee {
 
   final class Done[E, A] private (val a: A)
 
-    extends Iteratee[E, A] {
+    extends  Iteratee[E, A] {
 
     @inline final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = (this, input)
 
@@ -54,7 +56,9 @@ object Iteratee {
 
   final class Error[E] private (val e: Throwable)
 
-    extends Iteratee[E, Nothing] {
+    extends AnyVal
+
+    with Iteratee[E, Nothing] {
 
     @inline final def apply(input: Input[E]): (Iteratee[E, Nothing], Input[E]) = (this, input)
 
@@ -74,7 +78,9 @@ object Iteratee {
 
   final class Cont[E, A] private (val k: Input[E] ⇒ (Iteratee[E, A], Input[E]))
 
-    extends Iteratee[E, A] {
+    extends AnyVal
+
+    with Iteratee[E, A] {
 
     @inline final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = k(input)
 
@@ -83,7 +89,7 @@ object Iteratee {
       case k ⇒ Cont(new Compose(k, f.asInstanceOf[Any ⇒ Iteratee[E, _]] :: Nil, Nil))
     }
 
-    @inline final def map[B](f: A ⇒ B): Iteratee[E, B] = flatMap(a ⇒ Done(f(a)))
+    final def map[B](f: A ⇒ B): Iteratee[E, B] = flatMap(a ⇒ Done[E, B](f(a)))
 
   }
 

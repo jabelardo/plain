@@ -18,7 +18,7 @@ trait StaticResource
 
   extends Resource
 
-  with IsStatic {
+  with StaticUniform {
 
   import Resource._
 

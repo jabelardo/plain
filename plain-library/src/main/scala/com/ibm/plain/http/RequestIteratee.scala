@@ -4,6 +4,7 @@ package plain
 
 package http
 
+import java.nio.ByteBuffer
 import java.nio.charset.Charset
 
 import aio._
@@ -16,16 +17,20 @@ import Request.Path
 import Status.ClientError.`400`
 import Header.Entity.{ `Content-Length`, `Content-Type` }
 import Header.General.`Transfer-Encoding`
+import Header.Request.`Expect`
 import Version.`HTTP/1.1`
 import ContentType.fromMimeType
 import Entity.{ ArrayEntity, ContentEntity, TransferEncodedEntity }
 import MimeType.{ `text/plain`, `application/octet-stream` }
 import Server.ServerConfiguration
+import logging.Logger
 
 /**
  * Consuming the input stream to produce a Request.
  */
-object RequestIteratee {
+object RequestIteratee
+
+  extends Logger {
 
   import RequestConstants._
 
@@ -130,29 +135,74 @@ object RequestIteratee {
     cont(Nil)
   }
 
-  @inline private[this] final def readEntity[A](headers: Headers, query: Option[String], settings: ServerConfiguration): Iteratee[Exchange[A], Option[Entity]] =
-    `Content-Type`(headers) match {
-      case Some(contenttype) ⇒
-        `Transfer-Encoding`(headers) match {
-          case Some(value) ⇒ Done(Some(TransferEncodedEntity(value, contenttype)))
-          case None ⇒ `Content-Length`(headers) match {
-            case Some(length) if length <= settings.maxEntityBufferSize ⇒ for (array ← takeBytes(length.toInt)) yield Some(ArrayEntity(array, 0, length, contenttype))
-            case Some(length) ⇒ Done(Some(ContentEntity(contenttype, length)))
-            case None ⇒ Done(None)
-          }
+  private[this] final def readEntity[A](headers: Headers, query: Option[String], settings: ServerConfiguration): Iteratee[Exchange[A], Option[Entity]] = {
+
+    def `100-continue`[A](n: Int): Iteratee[Exchange[A], Array[Byte]] = {
+
+      object ContinueWriteHandler
+
+        extends java.nio.channels.CompletionHandler[Integer, Exchange[A]] {
+
+        @inline final def completed(processed: Integer, exchange: Exchange[A]) = trace("Replied to 100-continue.")
+
+        @inline final def failed(e: Throwable, exchange: Exchange[A]) = ()
+
+        @inline final def response = responsebuffer.duplicate
+
+        private[this] final val responsebuffer = {
+          val response = "HTTP/1.1 100 Continue\r\n\r\n".getBytes
+          val buffer = ByteBuffer.allocateDirect(response.length)
+          buffer.put(response)
+          buffer.flip
+          buffer
         }
-      case None ⇒
-        `Content-Length`(headers) match {
-          case Some(length) if length <= settings.maxEntityBufferSize ⇒
-            for (array ← takeBytes(length.toInt)) yield Some(ArrayEntity(array, 0, length, `application/octet-stream`))
-          case Some(length) ⇒
-            for { _ ← takeBytes(0); done ← Done(Some(ContentEntity(`application/octet-stream`, length))) } yield done
-          case None ⇒ query match {
-            case Some(query) ⇒ Done(Some(ArrayEntity(query.getBytes(defaultCharacterSet), `text/plain`)))
-            case None ⇒ Done(None)
-          }
+      }
+
+      def cont(taken: Exchange[A])(input: Input[Exchange[A]]): (Iteratee[Exchange[A], Array[Byte]], Input[Exchange[A]]) = {
+        input match {
+          case Elem(more) ⇒
+            val in = if (null == taken) more else taken ++ more
+            if (0 == in.length) {
+              println("#1 " + this + " " + n + " " + this.hashCode)
+              in.socketChannel.write(ContinueWriteHandler.response, in, ContinueWriteHandler)
+              (Cont(cont(in)), Empty)
+            } else {
+              println("#2 " + this)
+              if (in.length < n) {
+                (Cont(cont(in)), Empty)
+              } else {
+                (Done(in.take(n).consume), Elem(in))
+              }
+            }
+          case Failure(e) ⇒ (Error(e), input)
+          case _ ⇒ (Error(null), input)
         }
+      }
+
+      Cont(cont(null) _)
     }
+
+    `Content-Type`(headers) match {
+      case Some(contenttype) ⇒ `Transfer-Encoding`(headers) match {
+        case Some(value) ⇒ Done(Some(TransferEncodedEntity(value, contenttype)))
+        case None ⇒ `Content-Length`(headers) match {
+          case Some(length) if length <= settings.maxEntityBufferSize ⇒ for (array ← `100-continue`(length.toInt)) yield Some(ArrayEntity(array, 0, length, contenttype))
+          case Some(length) ⇒ Done(Some(ContentEntity(contenttype, length)))
+          case None ⇒ Done(None)
+        }
+      }
+      case None ⇒ `Content-Length`(headers) match {
+        case Some(length) if length <= settings.maxEntityBufferSize ⇒
+          for (array ← `100-continue`(length.toInt)) yield Some(ArrayEntity(array, 0, length, `application/octet-stream`))
+        case Some(length) ⇒
+          for { _ ← `100-continue`(0); done ← Done(Some(ContentEntity(`application/octet-stream`, length))) } yield done
+        case None ⇒ query match {
+          case Some(query) ⇒ Done(Some(ArrayEntity(query.getBytes(defaultCharacterSet), `text/plain`)))
+          case None ⇒ Done(None)
+        }
+      }
+    }
+  }
 
   final def readRequest[A](server: Server): Iteratee[Exchange[A], Request] = {
     val settings = server.getSettings

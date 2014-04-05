@@ -80,7 +80,7 @@ final class Exchange[A] private (
       }
     })
 
-  @inline final def consume: Array[Byte] = advanceBuffer(
+  final def consume: Array[Byte] = advanceBuffer(
     readbuffer.remaining match {
       case 0 ⇒ emptyArray
       case n ⇒ readBytes(n)
@@ -423,7 +423,7 @@ object Exchange
                   } else {
                     write(exchange)
                   }
-                case e ⇒ unsupported
+                case e ⇒ unhandled(e)
               }
             case e ⇒ unhandled(e)
           }

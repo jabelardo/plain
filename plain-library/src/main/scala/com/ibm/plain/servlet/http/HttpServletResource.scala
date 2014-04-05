@@ -16,7 +16,7 @@ import aio.{ Exchange, ExchangeHandler }
 import io.{ ByteArrayOutputStream, PrintWriter }
 import plain.http.Response
 import plain.http.Status.Success
-import rest.{ Uniform, Context, IsStatic }
+import rest.{ Uniform, Context, StaticUniform }
 
 final class HttpServletResource(
 
@@ -24,7 +24,7 @@ final class HttpServletResource(
 
   extends Uniform
 
-  with IsStatic {
+  with StaticUniform {
 
   final def process(exchange: Exchange[Context], handler: ExchangeHandler[Context]) = exchange.attachment match {
     case Some(context) ⇒ try {
@@ -57,7 +57,7 @@ final class HttpServletResource(
         completed(exchange, handler)
       } finally Thread.currentThread.setContextClassLoader(parentloader)
     } catch {
-      case e: Throwable ⇒ failed(e, exchange)
+      case e: Throwable ⇒ failed(e, exchange, handler)
     }
     case _ ⇒
   }

@@ -113,7 +113,7 @@ final case class Response(
     if (!exchange.keepAlive) r(`Connection: close`) + ^
   }
 
-    private[this] final def renderContentHeaders[A](exchange: Exchange[A]): Unit = {
+  private[this] final def renderContentHeaders[A](exchange: Exchange[A]): Unit = {
     encoder = entity match {
       case Some(entity) if entity.contenttype.mimetype.encodable && entity.length > tooTinyToCareSize ⇒ exchange.inMessage match {
         case request: Request ⇒ request.transferEncoding
@@ -131,7 +131,8 @@ final case class Response(
           case _ ⇒
             r(`Content-Length: `) + r(entity.length) + `\r\n` + `\r\n` + ^
         }
-      case _ ⇒ `\r\n` + ^
+      case _ ⇒ r(`Content-Length: `) + r(0) + `\r\n` + `\r\n` + ^
+
     }
   }
 

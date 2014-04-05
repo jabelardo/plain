@@ -12,8 +12,6 @@ final class PingResource
 
   import PingResource._
 
-  override final def contextRequired = false
-
   Get { pong }
 
   Get { _: String ⇒ pong }

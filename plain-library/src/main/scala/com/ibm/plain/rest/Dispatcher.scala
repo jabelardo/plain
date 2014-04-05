@@ -69,7 +69,7 @@ abstract class Dispatcher
     staticresources = (config.getConfigList("routes", List.empty).map { c: Config ⇒
       val resourceclass = Class.forName(c.getString("resource-class-name"))
       if (isStatic(resourceclass)) {
-        val resource = resourceclass.newInstance.asInstanceOf[IsStatic]
+        val resource = resourceclass.newInstance.asInstanceOf[StaticUniform]
         resource.init(c.getConfig("resource-config", ConfigFactory.empty))
         (resourceclass, resource)
       } else (null, null)
@@ -85,11 +85,11 @@ abstract class Dispatcher
     this
   }
 
-  @inline private[this] final def isStatic(resourceclass: Class[_]) = classOf[IsStatic].isAssignableFrom(resourceclass)
+  @inline private[this] final def isStatic(resourceclass: Class[_]) = classOf[StaticUniform].isAssignableFrom(resourceclass)
 
   private[this] final var templates: Templates = null
 
-  private[this] final var staticresources: Map[Class[_], IsStatic] = null
+  private[this] final var staticresources: Map[Class[_], StaticUniform] = null
 
 }
 

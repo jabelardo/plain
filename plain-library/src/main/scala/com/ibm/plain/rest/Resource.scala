@@ -55,7 +55,7 @@ trait Resource
         case _ ⇒ throw ClientError.`405`
       }
     } catch {
-      case e: Throwable ⇒ failed(e, exchange)
+      case e: Throwable ⇒ failed(e, exchange, handler)
     }
     case _ ⇒ throw ServerError.`500`
   }
@@ -129,8 +129,6 @@ trait Resource
 
   protected[this] def toCache(request: Request, cachedmethod: CachedMethod) = ()
 
-  protected[this] def contextRequired = true
-
   /**
    * The most important method in this class.
    */
@@ -149,9 +147,9 @@ trait Resource
           case Some((methodbody, input, encode)) ⇒
             context.response ++ encode {
               try {
-                if (contextRequired) threadlocal.set(context)
+                threadlocal.set(context)
                 methodbody.body(input)
-              } finally if (contextRequired) threadlocal.remove
+              } finally threadlocal.remove
             }
             completed(exchange, handler)
           case _ ⇒
@@ -180,15 +178,16 @@ trait Resource
                 (methodbody, encode)
             } match {
               case Some((methodbody, encode)) ⇒
-                context.response ++ encode(innerinput match {
+                val e = encode(innerinput match {
                   case Some((input, _)) ⇒
                     toCache(request, (methodbody, input, encode))
                     try {
-                      if (contextRequired) threadlocal.set(context)
+                      threadlocal.set(context)
                       methodbody.body(input)
-                    } finally if (contextRequired) threadlocal.remove
+                    } finally threadlocal.remove
                   case _ ⇒ throw ServerError.`501`
                 })
+                context.response ++ e
                 completed(exchange, handler)
               case _ ⇒ throw ClientError.`415`
             }

@@ -7,7 +7,7 @@ package rest
 package resource
 
 import java.nio.file.{ Path, Paths }
-import java.nio.file.Files.{ createDirectories, exists ⇒ fexists, isDirectory, isRegularFile, size }
+import java.nio.file.Files.{ createDirectories, exists ⇒ fexists, isDirectory, isRegularFile, size, write }
 
 import scala.collection.JavaConversions.asScalaBuffer
 
@@ -46,26 +46,24 @@ class DirectoryResource
    * Creates a directory with the remainder as path relative to the first root. All intermediate directories are also created if necessary.
    */
   Put {
-    put(context.config.getStringList("roots").head, context.remainder.mkString("/"))
-    context.response ++ Success.`201`
-    ""
+    response ++ put(context.config.getStringList("roots").head, context.remainder.mkString("/")); ()
   }
 
+  /**
+   * Upload a file.
+   */
   Put { entity: Entity ⇒
-    val filename = "/tmp/test/blabla.bin"
-    println("PUT " + entity + " " + entity.length + " " + filename)
     entity match {
       case ArrayEntity(array, offset, length, contenttype) ⇒
+        val root = context.config.getStringList("roots").head
+        val path = context.remainder.mkString("/")
+        response ++ put(root, path, array, offset, length, contenttype); ()
       case Entity(contenttype, length, encodable) ⇒
-        println(encodable + " " + length + " " + contenttype)
-        AsynchronousByteChannelEntity(
-          forWriting(filename),
-          contenttype,
-          length,
-          contenttype.mimetype.encodable)
+        println("async not handled")
     }
-    ""
   }
+
+  Post { e: Entity ⇒ println("not yet implemented " + e) }
 
 }
 
@@ -136,11 +134,31 @@ object DirectoryResource
     found
   }
 
-  final def put(root: String, remainder: String): Unit = Paths.get(root).toAbsolutePath.resolve(remainder) match {
-    case path if path.toString.contains("..") ⇒ throw ClientError.`401`
-    case path if fexists(path) && isRegularFile(path) ⇒ throw ClientError.`409`
-    case path if fexists(path) && isDirectory(path) ⇒
-    case path ⇒ try { val x = createDirectories(path); println(x) } catch { case e: Throwable ⇒ throw ServerError.`503` }
+  /**
+   * Put a file synchronously.
+   */
+  private final def put(root: String, remainder: String, array: Array[Byte], offset: Int, length: Long, contenttype: ContentType): Success = {
+    Paths.get(root).toAbsolutePath.resolve(remainder) match {
+      case path if path.toString.contains("..") ⇒ throw ClientError.`401`
+      case path if fexists(path) && isDirectory(path) ⇒ throw ClientError.`409`
+      case path ⇒ try {
+        println(array.length + " " + offset + " length")
+        write(path, array)
+        Success.`201`
+      } catch { case e: Throwable ⇒ throw ServerError.`503` }
+    }
+  }
+
+  /**
+   * Create directories.
+   */
+  private final def put(root: String, remainder: String): Success = {
+    Paths.get(root).toAbsolutePath.resolve(remainder) match {
+      case path if path.toString.contains("..") ⇒ throw ClientError.`401`
+      case path if fexists(path) && isRegularFile(path) ⇒ throw ClientError.`409`
+      case path if fexists(path) && isDirectory(path) ⇒ Success.`201`
+      case path ⇒ try { createDirectories(path); Success.`201` } catch { case _: Throwable ⇒ throw ServerError.`503` }
+    }
   }
 
   private[this] final val welcomefiles = "([iI]ndex\\.((htm[l]*)|(jsp)))|([dD]efault\\.((htm[l]*)|(jsp)))"

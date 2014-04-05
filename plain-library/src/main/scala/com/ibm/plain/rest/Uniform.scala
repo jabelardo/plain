@@ -18,7 +18,7 @@ trait Uniform
 /**
  *
  */
-trait IsStatic
+trait StaticUniform
 
   extends Uniform {
 
