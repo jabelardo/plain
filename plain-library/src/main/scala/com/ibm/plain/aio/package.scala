@@ -20,7 +20,7 @@ package object aio
   /**
    * Thrown to indicate that async exchange has been started and is running in a separate control flow now.
    */
-  object ExchangeControl extends ControlThrowable
+  case object ExchangeControl extends ControlThrowable
 
   final type ExchangeIteratee[A] = Iteratee[Exchange[A], _]
 

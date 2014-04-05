@@ -22,7 +22,7 @@ object Iteratees {
         case Elem(more) ⇒
           val in = if (null == taken) more else taken ++ more
           if (in.length < n) {
-            (Cont(cont(in)), Empty)
+            (Cont(cont(in) ), Empty)
           } else {
             (Done(in.take(n).decode(characterset, lowercase)), Elem(in))
           }

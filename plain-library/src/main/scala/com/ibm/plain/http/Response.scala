@@ -71,10 +71,10 @@ final case class Response(
         exchange ++ cont[A]
         cont[A]
       case Some(entity: ByteBufferEntity) ⇒
-        exchange.swap(entity.buffer)
+        //exchange.swap(entity.buffer)
         encode(exchange, entity)
       case Some(entity @ ArrayEntity(array, offset, length, _)) ⇒
-        exchange.swap(ByteBuffer.wrap(array, offset, length.toInt))
+        //exchange.swap(ByteBuffer.wrap(array, offset, length.toInt))
         encode(exchange, entity)
       case _ ⇒ unsupported
     }
@@ -84,7 +84,7 @@ final case class Response(
    * Called last if and only if second was called and return a Cont.
    */
   final def renderMessageFooter[A](exchange: Exchange[A]): ExchangeIteratee[A] = {
-    exchange.swap(null)
+    //exchange.swap(null)
     exchange ++ done[A]
     done[A]
   }

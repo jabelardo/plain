@@ -62,11 +62,11 @@ final class AsynchronousFileByteChannel private (
 
   }
 
+  // :TODO:
   final def transferFrom[A](source: AsynchronousByteChannel, buffer: ByteBuffer, attachment: A, handler: Handler[Integer, _ >: A]) = {
     val target: AsynchronousByteChannel = this
     val readcompletionhandler = ReadCompletionHandler[A](buffer, source, target, handler)
     readcompletionhandler.writecompletionhandler = WriteCompletionHandler[A](buffer, source, target, readcompletionhandler, handler)
-    println("first buf " + buffer)
     source.read(buffer, attachment, readcompletionhandler)
   }
 

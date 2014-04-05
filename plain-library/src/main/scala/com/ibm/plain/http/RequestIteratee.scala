@@ -6,6 +6,7 @@ package http
 
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
+import java.nio.channels.{ CompletionHandler ⇒ Handler }
 
 import aio._
 import aio.Iteratee._
@@ -141,9 +142,9 @@ object RequestIteratee
 
       object ContinueWriteHandler
 
-        extends java.nio.channels.CompletionHandler[Integer, Exchange[A]] {
+        extends Handler[Integer, Exchange[A]] {
 
-        @inline final def completed(processed: Integer, exchange: Exchange[A]) = trace("Replied to 100-continue.")
+        @inline final def completed(processed: Integer, exchange: Exchange[A]) = () // trace("Replied to 100-continue.")
 
         @inline final def failed(e: Throwable, exchange: Exchange[A]) = ()
 
@@ -163,11 +164,9 @@ object RequestIteratee
           case Elem(more) ⇒
             val in = if (null == taken) more else taken ++ more
             if (0 == in.length) {
-              println("#1 " + this + " " + n + " " + this.hashCode)
               in.socketChannel.write(ContinueWriteHandler.response, in, ContinueWriteHandler)
               (Cont(cont(in)), Empty)
             } else {
-              println("#2 " + this)
               if (in.length < n) {
                 (Cont(cont(in)), Empty)
               } else {

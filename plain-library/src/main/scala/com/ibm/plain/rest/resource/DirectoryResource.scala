@@ -16,7 +16,7 @@ import org.apache.commons.io.filefilter.RegexFileFilter
 
 import com.typesafe.config.Config
 
-import aio.{ AsynchronousFileByteChannel, AsynchronousFixedLengthChannel }
+import aio.{ AsynchronousFileByteChannel, AsynchronousFixedLengthChannel, Exchange }
 import aio.AsynchronousFileByteChannel.{ forReading, forWriting }
 import logging.Logger
 import http.ContentType
@@ -45,21 +45,19 @@ class DirectoryResource
   /**
    * Creates a directory with the remainder as path relative to the first root. All intermediate directories are also created if necessary.
    */
-  Put {
-    response ++ put(context.config.getStringList("roots").head, context.remainder.mkString("/")); ()
-  }
+  Put { response ++ put(context.config.getStringList("roots").head, context.remainder.mkString("/")); () }
 
   /**
    * Upload a file.
    */
   Put { entity: Entity ⇒
+    val root = context.config.getStringList("roots").head
+    val path = context.remainder.mkString("/")
     entity match {
       case ArrayEntity(array, offset, length, contenttype) ⇒
-        val root = context.config.getStringList("roots").head
-        val path = context.remainder.mkString("/")
-        response ++ put(root, path, array, offset, length, contenttype); ()
+        response ++ put(check(root, path), array, offset, length, contenttype); ()
       case Entity(contenttype, length, encodable) ⇒
-        println("async not handled")
+        exchange.transferTo(forWriting(check(root, path), length), () ⇒ response ++ Success.`201`)
     }
   }
 
@@ -93,7 +91,7 @@ object DirectoryResource
       val root = roots.next
       trace("root=" + Paths.get(root).toAbsolutePath + " file=" + remainder)
       result = Paths.get(root).toAbsolutePath.resolve(remainder) match {
-        case path if path.toString.contains("..") ⇒ throw ClientError.`401`
+        case path if path.toString.contains("..") ⇒ throw ClientError.`406`
         case path if fexists(path) && isRegularFile(path) ⇒ entity(path)
         case path if fexists(path) && isDirectory(path) ⇒
           path.toFile.listFiles(welcomefilter).filter(f ⇒ f.exists && f.isFile).headOption match {
@@ -137,16 +135,25 @@ object DirectoryResource
   /**
    * Put a file synchronously.
    */
-  private final def put(root: String, remainder: String, array: Array[Byte], offset: Int, length: Long, contenttype: ContentType): Success = {
+  private final def put(path: Path, array: Array[Byte], offset: Int, length: Long, contenttype: ContentType): Success = try {
+    write(path, array)
+    Success.`201`
+  } catch { case e: Throwable ⇒ throw ServerError.`500` }
+
+  /**
+   * Check paths.
+   */
+  private final def check(root: String, remainder: String): Path = {
     Paths.get(root).toAbsolutePath.resolve(remainder) match {
-      case path if path.toString.contains("..") ⇒ throw ClientError.`401`
+      case path if path.toString.contains("..") ⇒ throw ClientError.`406`
       case path if fexists(path) && isDirectory(path) ⇒ throw ClientError.`409`
       case path ⇒ try {
-        println(array.length + " " + offset + " length")
-        write(path, array)
-        Success.`201`
-      } catch { case e: Throwable ⇒ throw ServerError.`503` }
+        if (!fexists(path.getParent))
+          createDirectories(path.getParent)
+        path
+      } catch { case e: Throwable ⇒ throw ServerError.`500` }
     }
+
   }
 
   /**
@@ -154,10 +161,10 @@ object DirectoryResource
    */
   private final def put(root: String, remainder: String): Success = {
     Paths.get(root).toAbsolutePath.resolve(remainder) match {
-      case path if path.toString.contains("..") ⇒ throw ClientError.`401`
+      case path if path.toString.contains("..") ⇒ throw ClientError.`406`
       case path if fexists(path) && isRegularFile(path) ⇒ throw ClientError.`409`
       case path if fexists(path) && isDirectory(path) ⇒ Success.`201`
-      case path ⇒ try { createDirectories(path); Success.`201` } catch { case _: Throwable ⇒ throw ServerError.`503` }
+      case path ⇒ try { createDirectories(path); Success.`201` } catch { case _: Throwable ⇒ throw ServerError.`500` }
     }
   }
 

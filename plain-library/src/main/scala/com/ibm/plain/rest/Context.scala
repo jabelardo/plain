@@ -6,6 +6,7 @@ package rest
 
 import com.typesafe.config.Config
 
+import aio.Exchange
 import http.{ Request, Response }
 import http.Request.{ Path, Variables }
 import Resource.MethodBody
@@ -24,10 +25,8 @@ final case class Context(
   var request: Request,
 
   var response: Response) {
-  
-  def this(request: Request) = this(null, null, null, request, null)
 
-  def this() = this(null, null, null, null, null)
+  def this(request: Request) = this(null, null, null, request, null)
 
   @inline final def ++(config: Config) = { this.config = config; this }
 
