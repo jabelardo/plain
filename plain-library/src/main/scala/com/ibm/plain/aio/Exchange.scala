@@ -40,8 +40,6 @@ final class Exchange[A] private (
 
   @inline final def socketChannel = channel
 
-  @inline final def destinationChannel = destination
-
   @inline final def iteratee = currentiteratee
 
   @inline private[plain] final def writeBuffer = writebuffer
@@ -69,8 +67,9 @@ final class Exchange[A] private (
     writebuffer.limit(writebuffer.capacity)
   }
 
-  final def transferTo(destination: Channel, completed: () ⇒ Unit): Nothing = {
-    this.destination = destination
+  final def transferTo(destination: Channel, length: Long, completed: A ⇒ Unit): Nothing = {
+    this.transfersource = AsynchronousFixedLengthChannel(channel, readbuffer.remaining, length)
+    this.transferdestination = destination
     this.transfercompleted = completed
     throw ExchangeControl
   }
@@ -197,10 +196,14 @@ final class Exchange[A] private (
   /**
    * Io methods.
    */
+
   @inline private final def read(handler: ExchangeHandler[A]) = {
-    println("in read " + readbuffer)
-    readbuffer.clear
-    println("in read2 " + readbuffer)
+    if (0 == readbuffer.position && 0 < (readbuffer.capacity - readbuffer.limit)) { // there is still capacity
+      readbuffer.position(readbuffer.limit)
+      readbuffer.limit(readbuffer.capacity)
+    } else {
+      readbuffer.clear
+    }
     channel.read(readbuffer, this, handler)
   }
 
@@ -209,10 +212,27 @@ final class Exchange[A] private (
     channel.write(writebuffer, this, handler)
   }
 
-  @inline private final def transfer(handler: ExchangeHandler[A], flip: Boolean) = {
+  /**
+   * Internals for transfer.
+   */
+
+  @inline private final def transferRead(handler: ExchangeHandler[A]) = {
+    readbuffer.clear
+    transfersource.read(readbuffer, this, handler)
+  }
+
+  @inline private final def transferWrite(handler: ExchangeHandler[A], flip: Boolean) = {
     if (flip) readbuffer.flip
-    println("in transfer " + readbuffer)
-    destination.write(readbuffer, this, handler)
+    transferdestination.write(readbuffer, this, handler)
+  }
+
+  @inline private final def transferClose = {
+    transferdestination.close
+    transfercompleted(attachment.get)
+    transfersource = null
+    transferdestination = null
+    transfercompleted = null
+    currentiteratee = Done[Exchange[A], Null](null)
   }
 
   @inline private final def hasError = currentiteratee.isInstanceOf[Error[_]]
@@ -222,7 +242,10 @@ final class Exchange[A] private (
   /**
    * ++ setters.
    */
-  @inline final def ++(that: Exchange[A]) = if (this eq that) that else { throw new NotImplementedError("this ne that") }
+
+  @inline final def ++(that: Exchange[A]) = {
+    if (this eq that) that else unsupported
+  }
 
   @inline final def ++(attachment: Option[A]) = { this.attachmnt = attachment; this }
 
@@ -235,11 +258,7 @@ final class Exchange[A] private (
   @inline final def ++(printwriter: PrintWriter) = { this.printwriter = printwriter; this }
 
   override final def toString = s"""read $readbuffer
-write $writebuffer
-in $inMessage 
-out $outMessage
-writer $printWriter
-iteratee $currentiteratee"""
+write $writebuffer"""
 
   /**
    * Internals.
@@ -296,9 +315,11 @@ iteratee $currentiteratee"""
 
   private[this] final var printwriter: PrintWriter = null
 
-  private[this] final var destination: Channel = null
+  private[this] final var transfersource: Channel = null
 
-  private[this] final var transfercompleted: () ⇒ Unit = null
+  private[this] final var transferdestination: Channel = null
+
+  private[this] final var transfercompleted: A ⇒ Unit = null
 
 }
 
@@ -471,13 +492,17 @@ object Exchange
 
       extends ReleaseHandler {
 
-      var readb = 0L
-
       @inline final def completed(processed: Integer, exchange: Exchange[A]) = try {
-        println("read " + processed)
-        readb += processed; println("r " + readb)
-        if (0 > processed) exchange.release(null) else exchange.transfer(TransferWriteHandler, true)
-      } catch { case e: Throwable ⇒ println(e); exchange.release(e) }
+        if (0 > processed) {
+          exchange.release(null)
+        } else {
+          if (0 == processed) {
+            exchange.transferWrite(TransferCloseHandler, true)
+          } else {
+            exchange.transferWrite(TransferWriteHandler, true)
+          }
+        }
+      } catch { case e: Throwable ⇒ exchange.release(e) }
 
     }
 
@@ -485,14 +510,36 @@ object Exchange
 
       extends ReleaseHandler {
 
-      var written = 0L
+      @inline final def completed(processed: Integer, exchange: Exchange[A]) = try {
+        if (0 > processed) {
+          exchange.release(null)
+        } else {
+          if (0 < exchange.length) {
+            exchange.transferWrite(this, false)
+          } else {
+            exchange.transferRead(TransferReadHandler)
+          }
+        }
+      } catch { case e: Throwable ⇒ exchange.release(e) }
+
+    }
+
+    object TransferCloseHandler
+
+      extends ReleaseHandler {
 
       @inline final def completed(processed: Integer, exchange: Exchange[A]) = try {
-        println("write " + processed)
-        written += processed; println("w " + written)
-        if (0 > processed) exchange.release(null) else if (0 < exchange.length) exchange.transfer(this, false) else exchange.read(TransferReadHandler)
-      } catch { case e: Throwable ⇒ println(e); exchange.release(e) }
-
+        if (0 > processed) {
+          exchange.release(null)
+        } else {
+          if (0 < exchange.length) {
+            exchange.transferWrite(this, false)
+          } else {
+            exchange.transferClose
+            ProcessHandler.completed(0, exchange)
+          }
+        }
+      } catch { case e: Throwable ⇒ exchange.release(e) }
     }
 
     /**
@@ -506,7 +553,9 @@ object Exchange
 
     @inline def write(exchange: Exchange[A], flip: Boolean = true) = exchange.write(WriteHandler, flip)
 
-    @inline def transfer(exchange: Exchange[A]) = exchange.transfer(TransferWriteHandler, false)
+    @inline def transfer(exchange: Exchange[A]) = {
+      exchange.transferWrite(TransferWriteHandler, false)
+    }
 
     /**
      * Now, let's get started.

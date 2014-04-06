@@ -9,6 +9,9 @@ import java.util.zip.{ Deflater, CRC32 }
 
 import aio.Encoder
 
+/**
+ *
+ */
 abstract sealed class BaseEncoder(
 
   compressionlevel: Int,
@@ -21,7 +24,7 @@ abstract sealed class BaseEncoder(
 
   final def finish(buffer: ByteBuffer) = {
     deflater.finish
-    val a = new Array[Byte](16)
+    val a = new Array[Byte](16) // a placeholder
     val written = deflater.deflate(a, 0, a.length, Deflater.FULL_FLUSH)
     buffer.put("\r\n%x\r\n".format(written + footerlength).getBytes)
     buffer.put(a, 0, written)

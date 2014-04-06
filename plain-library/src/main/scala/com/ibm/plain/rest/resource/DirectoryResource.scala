@@ -9,15 +9,20 @@ package resource
 import java.nio.file.{ Path, Paths }
 import java.nio.file.Files.{ createDirectories, exists ⇒ fexists, isDirectory, isRegularFile, size, write }
 
-import scala.collection.JavaConversions.asScalaBuffer
-
 import org.apache.commons.io.FilenameUtils.getExtension
 import org.apache.commons.io.filefilter.RegexFileFilter
 
+import com.ibm.plain.rest.Resource
 import com.typesafe.config.Config
+
+import scala.collection.JavaConversions.asScalaBuffer
+import scala.language.implicitConversions
+import scala.reflect.runtime.universe
+import scala.reflect.runtime.universe.TypeTag.Unit
 
 import aio.{ AsynchronousFileByteChannel, AsynchronousFixedLengthChannel, Exchange }
 import aio.AsynchronousFileByteChannel.{ forReading, forWriting }
+import concurrent.ioexecutor
 import logging.Logger
 import http.ContentType
 import http.Entity
@@ -56,12 +61,13 @@ class DirectoryResource
     entity match {
       case ArrayEntity(array, offset, length, contenttype) ⇒
         response ++ put(check(root, path), array, offset, length, contenttype); ()
-      case Entity(contenttype, length, encodable) ⇒
-        exchange.transferTo(forWriting(check(root, path), length), () ⇒ response ++ Success.`201`)
+      case e @ Entity(contenttype, length, encodable) if 0 < length ⇒
+        exchange.transferTo(forWriting(check(root, path), length), length, context ⇒ {
+          context.response ++ Success.`201`
+        })
+      case e ⇒ throw ServerError.`501`
     }
   }
-
-  Post { e: Entity ⇒ println("not yet implemented " + e) }
 
 }
 
@@ -148,8 +154,7 @@ object DirectoryResource
       case path if path.toString.contains("..") ⇒ throw ClientError.`406`
       case path if fexists(path) && isDirectory(path) ⇒ throw ClientError.`409`
       case path ⇒ try {
-        if (!fexists(path.getParent))
-          createDirectories(path.getParent)
+        if (!fexists(path.getParent)) createDirectories(path.getParent)
         path
       } catch { case e: Throwable ⇒ throw ServerError.`500` }
     }
