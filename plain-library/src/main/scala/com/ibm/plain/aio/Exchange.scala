@@ -198,7 +198,7 @@ final class Exchange[A] private (
    */
 
   @inline private final def read(handler: ExchangeHandler[A]) = {
-    if (0 == readbuffer.position && 0 < (readbuffer.capacity - readbuffer.limit)) { // there is still capacity
+    if (0 < (readbuffer.capacity - readbuffer.limit) && 0 == readbuffer.position) {
       readbuffer.position(readbuffer.limit)
       readbuffer.limit(readbuffer.capacity)
     } else {

@@ -149,7 +149,7 @@ trait Resource
           case Some((methodbody, input, encode)) ⇒
             context.response ++ encode {
               try {
-                threadlocal.set((context, exchange))
+                // threadlocal.set((context, exchange))
                 methodbody.body(input)
               } finally threadlocal.remove
             }
@@ -184,7 +184,7 @@ trait Resource
                   case Some((input, _)) ⇒
                     toCache(request, (methodbody, input, encode))
                     try {
-                      threadlocal.set((context, exchange))
+                      // threadlocal.set((context, exchange))
                       methodbody.body(input)
                     } finally threadlocal.remove
                   case _ ⇒ throw ServerError.`501`
