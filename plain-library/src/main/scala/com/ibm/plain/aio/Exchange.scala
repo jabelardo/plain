@@ -58,7 +58,7 @@ final class Exchange[A] private (
 
   @inline final def keepAlive = null == inmessage || inmessage.keepalive
 
-  final def encode(encoder: Encoder, length: Int) = {
+  final def encodeOnce(encoder: Encoder, length: Int) = {
     writebuffer.limit(writebuffer.position)
     writebuffer.position(writebuffer.position - length)
     encoder.encode(writebuffer)
@@ -67,10 +67,16 @@ final class Exchange[A] private (
     writebuffer.limit(writebuffer.capacity)
   }
 
+  final def transferFrom(source: Channel): Unit = {
+    transfersource = source
+    transferdestination = channel
+    transfercompleted = null
+  }
+
   final def transferTo(destination: Channel, length: Long, completed: A ⇒ Unit): Nothing = {
-    this.transfersource = AsynchronousFixedLengthChannel(channel, readbuffer.remaining, length)
-    this.transferdestination = destination
-    this.transfercompleted = completed
+    transfersource = AsynchronousFixedLengthChannel(channel, readbuffer.remaining, length)
+    transferdestination = destination
+    transfercompleted = completed
     throw ExchangeControl
   }
 
@@ -216,19 +222,41 @@ final class Exchange[A] private (
    * Internals for transfer.
    */
 
-  @inline private final def transferRead(handler: ExchangeHandler[A]) = {
+  @inline private final def readDecoding(handler: ExchangeHandler[A]) = {
     readbuffer.clear
     transfersource.read(readbuffer, this, handler)
   }
 
-  @inline private final def transferWrite(handler: ExchangeHandler[A], flip: Boolean) = {
+  @inline private final def writeDecoding(handler: ExchangeHandler[A], flip: Boolean) = {
     if (flip) readbuffer.flip
     transferdestination.write(readbuffer, this, handler)
   }
 
+  @inline private final def readEncoding(handler: ExchangeHandler[A]) = {
+    writebuffer.clear
+    transfersource.read(writebuffer, this, handler)
+  }
+
+  @inline private final def writeEncoding(handler: ExchangeHandler[A], flip: Boolean, encode: Int) = {
+    if (flip) writebuffer.flip
+    outmessage.encoder match {
+      case Some(encoder) ⇒ encode match {
+        case -1 ⇒
+          writebuffer.clear
+          encoder.finish(writebuffer)
+        case 0 ⇒
+        case 1 ⇒
+          encoder.encode(writebuffer)
+          writebuffer.flip
+      }
+      case _ ⇒
+    }
+    transferdestination.write(writebuffer, this, handler)
+  }
+
   @inline private final def transferClose = {
-    transferdestination.close
-    transfercompleted(attachment.get)
+    if (channel ne transferdestination) transferdestination.close
+    if (null != transfercompleted) transfercompleted(attachment.get)
     transfersource = null
     transferdestination = null
     transfercompleted = null
@@ -447,17 +475,19 @@ object Exchange
         } else {
           exchange.iteratee match {
             case Done(_) ⇒
-              exchange.outMessage.renderMessageHeader(exchange) match {
+              exchange.outMessage.renderHeader(exchange) match {
                 case Done(_) ⇒
                   if (0 < exchange.length) {
                     ReadHandler.completed(Int.MaxValue, exchange)
                   } else {
                     write(exchange)
                   }
+                case Cont(_) ⇒
+                  transferFrom(exchange)
                 case e ⇒ unhandled(e)
               }
             case Cont(_) ⇒
-              transfer(exchange)
+              transferTo(exchange)
             case e ⇒ unhandled(e)
           }
         }
@@ -486,9 +516,9 @@ object Exchange
     }
 
     /**
-     * Handling tranfers.
+     * Handling tranfers from the channel TO a destination, eventually with decoding.
      */
-    object TransferReadHandler
+    object DecodeReadHandler
 
       extends ReleaseHandler {
 
@@ -497,16 +527,16 @@ object Exchange
           exchange.release(null)
         } else {
           if (0 == processed) {
-            exchange.transferWrite(TransferCloseHandler, true)
+            exchange.writeDecoding(DecodeCloseHandler, true)
           } else {
-            exchange.transferWrite(TransferWriteHandler, true)
+            exchange.writeDecoding(DecodeWriteHandler, true)
           }
         }
       } catch { case e: Throwable ⇒ exchange.release(e) }
 
     }
 
-    object TransferWriteHandler
+    object DecodeWriteHandler
 
       extends ReleaseHandler {
 
@@ -515,16 +545,16 @@ object Exchange
           exchange.release(null)
         } else {
           if (0 < exchange.length) {
-            exchange.transferWrite(this, false)
+            exchange.writeDecoding(this, false)
           } else {
-            exchange.transferRead(TransferReadHandler)
+            exchange.readDecoding(DecodeReadHandler)
           }
         }
       } catch { case e: Throwable ⇒ exchange.release(e) }
 
     }
 
-    object TransferCloseHandler
+    object DecodeCloseHandler
 
       extends ReleaseHandler {
 
@@ -533,13 +563,67 @@ object Exchange
           exchange.release(null)
         } else {
           if (0 < exchange.length) {
-            exchange.transferWrite(this, false)
+            exchange.writeDecoding(this, false)
           } else {
             exchange.transferClose
             ProcessHandler.completed(0, exchange)
           }
         }
       } catch { case e: Throwable ⇒ exchange.release(e) }
+    }
+
+    /**
+     * Handling tranfers FROM a source to the channel, eventually with encoding.
+     */
+    object EncodeReadHandler
+
+      extends ReleaseHandler {
+
+      @inline final def completed(processed: Integer, exchange: Exchange[A]) = try {
+        if (0 > processed) {
+          exchange.writeEncoding(EncodeCloseHandler, true, -1)
+        } else {
+          exchange.writeEncoding(EncodeWriteHandler, true, 1)
+        }
+      } catch { case e: Throwable ⇒ exchange.release(e) }
+
+    }
+
+    object EncodeWriteHandler
+
+      extends ReleaseHandler {
+
+      @inline final def completed(processed: Integer, exchange: Exchange[A]) = try {
+        if (0 > processed) {
+          exchange.release(null)
+        } else {
+          if (0 < exchange.available) {
+            exchange.writeEncoding(this, false, 0)
+          } else {
+            exchange.readEncoding(EncodeReadHandler)
+          }
+        }
+      } catch { case e: Throwable ⇒ exchange.release(e) }
+
+    }
+
+    object EncodeCloseHandler
+
+      extends ReleaseHandler {
+
+      @inline final def completed(processed: Integer, exchange: Exchange[A]) = try {
+        if (0 > processed) {
+          exchange.release(null)
+        } else {
+          if (0 < exchange.available) {
+            exchange.writeEncoding(this, false, 0)
+          } else {
+            exchange.transferClose
+            read(exchange) // next please
+          }
+        }
+      } catch { case e: Throwable ⇒ exchange.release(e) }
+
     }
 
     /**
@@ -553,9 +637,9 @@ object Exchange
 
     @inline def write(exchange: Exchange[A], flip: Boolean = true) = exchange.write(WriteHandler, flip)
 
-    @inline def transfer(exchange: Exchange[A]) = {
-      exchange.transferWrite(TransferWriteHandler, false)
-    }
+    @inline def transferTo(exchange: Exchange[A]) = exchange.writeDecoding(DecodeWriteHandler, false)
+
+    @inline def transferFrom(exchange: Exchange[A]) = exchange.writeEncoding(EncodeWriteHandler, true, 0)
 
     /**
      * Now, let's get started.

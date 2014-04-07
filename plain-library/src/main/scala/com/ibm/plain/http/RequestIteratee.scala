@@ -209,7 +209,7 @@ object RequestIteratee
       mpqv ← readRequestLine(settings, server)
       headers ← readHeaders(settings.defaultCharacterSet)
       entity ← readEntity(headers, mpqv._3, settings)
-    } yield Request(mpqv._1, mpqv._2, mpqv._3, mpqv._4, headers, entity)
+    } yield Request(mpqv._1, mpqv._2, mpqv._3, mpqv._4, headers, entity, None)
   }
 
 }

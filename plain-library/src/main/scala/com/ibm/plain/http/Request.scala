@@ -6,7 +6,7 @@ package http
 
 import java.util.zip.Deflater
 
-import aio.{ Encoder, InMessage }
+import aio.{ Decoder, Encoder, InMessage }
 import Message.Headers
 import Header.General.`Connection`
 import Header.Request.`Accept-Encoding`
@@ -26,7 +26,9 @@ final case class Request(
 
   headers: Headers,
 
-  var entity: Option[Entity])
+  var entity: Option[Entity],
+
+  var decoder: Option[Decoder])
 
   extends Message
 
@@ -61,6 +63,6 @@ object Request {
 
   type Variables = scala.collection.Map[String, String]
 
-  final def Get(path: String): Request = Request(Method.GET, path.split("/").toList.filter(0 < _.length), None, Version.`HTTP/1.1`, null, None)
+  final def Get(path: String): Request = Request(Method.GET, path.split("/").toList.filter(0 < _.length), None, Version.`HTTP/1.1`, null, None, None)
 
 }
