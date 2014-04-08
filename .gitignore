@@ -1,6 +1,5 @@
 target/
-**/target/
-**/webapps/
+webapps/
 build/
 bin/
 logs/
@@ -30,5 +29,3 @@ project/plugins/project/
 .DS_Store
 .idea/
 
-
-medium.txt
