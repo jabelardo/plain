@@ -49,7 +49,7 @@ lazy val library = project in file("plain-library") settings(plainSettings: _*)
 
 lazy val hybriddb = project in file("plain-hybriddb") dependsOn library settings(jdbcSettings: _*)
 
-lazy val samples = project in file("plain-samples") aggregate(helloworld, jdbc, camelhelloworld)  
+lazy val samples = project in file("plain-samples") aggregate(helloworld, jdbc, camelhelloworld, preparation)  
 
 lazy val helloworld = project in file("plain-samples/plain-sample-hello-world") dependsOn library settings(assemblySettings: _*)
 
@@ -62,5 +62,7 @@ lazy val benchmark = project in file("plain-benchmark") dependsOn library settin
 lazy val camel = project in file("plain-camel") dependsOn library settings(camelSettings: _*)
 
 lazy val camelhelloworld = project in file("plain-samples/plain-camel-hello-world") dependsOn camel settings(assemblySettings: _*) 
+
+lazy val preparation = project in file("plain-samples/preparation") dependsOn library settings(assemblySettings: _*)
 
 
