@@ -9,12 +9,12 @@ import java.nio.charset.CoderResult.OVERFLOW
 import java.nio.charset.Charset
 import java.nio.channels.AsynchronousByteChannel
 
-import aio.{ bestFitByteBuffer, releaseByteBuffer }
+import aio.{ bestFitByteBuffer, releaseByteBuffer, Exchange, ExchangeHandler }
 import text.`UTF-8`
 import Status._
 
 /**
- * Base class for the Entity of an Http request and/or response.
+ * Base class for the Entity of an Http request and/or response. An Entity can be read or written. (That doesn't make it easier.)
  */
 sealed abstract class Entity {
 

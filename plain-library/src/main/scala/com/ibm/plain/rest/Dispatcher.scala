@@ -4,34 +4,38 @@ package plain
 
 package rest
 
-import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
-import scala.collection.concurrent.TrieMap
-import scala.collection.JavaConversions._
-import aio.Io
-import config._
-import http.{ Entity, Request, Response }
-import http.{ Dispatcher ⇒ HttpDispatcher }
-import http.Entity.ContentEntity
+import com.ibm.plain.aio.{ Exchange, ExchangeHandler }
+import com.ibm.plain.http.HttpDispatcher
+import com.typesafe.config.{ Config, ConfigFactory }
+
+import config.config2RichConfig
+import http.{ Entity, Request }
 import http.Status.{ ClientError, ServerError }
 import servlet.ServletContainer
 import servlet.http.HttpServletResource
-import org.apache.commons.io.FilenameUtils
 
 /**
  * The base class for all client rest dispatchers. The client rest dispatchers will be instantiated using their class name from the configuration via reflection.
  */
 abstract class Dispatcher
 
-  extends HttpDispatcher {
+  extends HttpDispatcher[Context] {
 
-  @inline final def dispatch(request: Request, io: Io) = handle(Context(io) ++ request)
+  import Dispatcher._
 
-  final def handle(context: Context) = {
-    import context.request
+  final def process(exchange: Exchange[Context], handler: ExchangeHandler[Context]) = {
+    val request = exchange.inMessage.asInstanceOf[Request]
+    val context = exchange.attachment match {
+      case Some(context) ⇒ context
+      case _ ⇒
+        val context = new Context(request)
+        exchange ++ Some(context)
+        context
+    }
     templates.get(request.method, request.path) match {
       case Some((resourceclass, config, variables, remainder)) ⇒
         staticresources.getOrElse(resourceclass, resourceclass.newInstance) match {
-          case resource: BaseResource ⇒
+          case resource: Uniform ⇒
             request.entity match {
               case None ⇒
               case Some(Entity(_)) if request.method.entityallowed ⇒
@@ -39,7 +43,8 @@ abstract class Dispatcher
               case Some(_) if !request.method.entityallowed ⇒ throw ClientError.`413`
               case _ ⇒
             }
-            resource.handle(context ++ config ++ variables.getOrElse(Dispatcher.emptyvariables) ++ remainder)
+            context ++ config ++ variables.getOrElse(emptyvariables) ++ remainder
+            resource.process(exchange, handler)
           case _ ⇒ throw ServerError.`500`
         }
       case _ ⇒ throw ClientError.`404`
@@ -64,7 +69,7 @@ abstract class Dispatcher
     staticresources = (config.getConfigList("routes", List.empty).map { c: Config ⇒
       val resourceclass = Class.forName(c.getString("resource-class-name"))
       if (isStatic(resourceclass)) {
-        val resource = resourceclass.newInstance.asInstanceOf[StaticResource]
+        val resource = resourceclass.newInstance.asInstanceOf[StaticUniform]
         resource.init(c.getConfig("resource-config", ConfigFactory.empty))
         (resourceclass, resource)
       } else (null, null)
@@ -74,15 +79,17 @@ abstract class Dispatcher
       }
     }).filter(_._1 != null).toMap
 
-    debug("name = " + name + " " + staticresources)
-    if (null != templates) templates.toString.split("\n").filter(0 < _.length).foreach(r ⇒ debug("route = " + r))
+    debug("name = " + name)
+    debug("staticresources = " + staticresources.keySet)
+    if (null != templates) templates.toString.split("\n").filter(0 < _.length).foreach(r ⇒ debug("route = " + r)) else warn("No routes defined.")
+    this
   }
 
-  @inline private[this] final def isStatic(resourceclass: Class[_]) = classOf[StaticResource].isAssignableFrom(resourceclass)
+  @inline private[this] final def isStatic(resourceclass: Class[_]) = classOf[StaticUniform].isAssignableFrom(resourceclass)
 
   private[this] final var templates: Templates = null
 
-  private[this] final var staticresources: Map[Class[_], StaticResource] = null
+  private[this] final var staticresources: Map[Class[_], StaticUniform] = null
 
 }
 
@@ -91,7 +98,7 @@ abstract class Dispatcher
  */
 object Dispatcher {
 
-  final val emptyvariables: http.Request.Variables = Map.empty
+  private final val emptyvariables: http.Request.Variables = Map.empty
 
 }
 

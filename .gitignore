@@ -20,6 +20,7 @@ project/plugins/project/
 *.settings
 */.settings
 */.prefs
+**/big.txt
 *.prefs
 *.log
 */.DS_Store
@@ -29,3 +30,5 @@ project/plugins/project/
 .DS_Store
 .idea/
 
+
+medium.txt

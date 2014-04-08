@@ -16,10 +16,11 @@ import scala.collection.mutable.HashMap
 import com.ibm.plain.bootstrap.BaseComponent
 import com.typesafe.config.{ Config, ConfigFactory }
 
-import aio.Io.loop
+import aio.Exchange.loop
 import bootstrap.Application
 import config.{ CheckedConfig, config2RichConfig }
 import logging.Logger
+import RequestIteratee.readRequest
 
 /**
  *
@@ -53,7 +54,7 @@ final case class Server(
         serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
         serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(aio.sendReceiveBufferSize))
         serverChannel.bind(bindaddress, backlog)
-        loop(serverChannel, RequestIteratee(this).readRequest, dispatcher)
+        loop(serverChannel, readRequest(this), dispatcher)
       }
 
       application match {
@@ -95,6 +96,8 @@ final case class Server(
     (if (settings.loadBalancingEnable && application.isDefined) ", load-balancing-path=" + settings.loadBalancingBalancingPath else "") +
     ")"
 
+  final def characterset = getSettings.defaultCharacterSet
+
   final def getSettings = settings
 
   private[this] var serverChannel: ServerChannel = null
@@ -119,7 +122,7 @@ final case class Server(
 object Server {
 
   private final val channelGroup = channelGroupThreadPoolType match {
-    // case 0 handled in line 50
+    case 0 ⇒ throw new IllegalArgumentException("Default value is handled in line 50.")
     case 1 ⇒ Group.withFixedThreadPool(concurrent.cores, defaultThreadFactory)
     case 2 ⇒ Group.withFixedThreadPool(concurrent.parallelism, defaultThreadFactory)
     case _ ⇒ Group.withThreadPool(concurrent.ioexecutor)
@@ -170,14 +173,11 @@ object Server {
 
     require(0 < portRange.size, "You must at least specify one port for 'port-range'.")
 
-    def createDispatcher = {
+    def createDispatcher[A] = {
       val dconfig = config.settings.getConfig(getString("dispatcher")).withFallback(config.settings.getConfig("plain.rest.default-dispatcher"))
-
-      val dispatcher = dconfig.getInstanceFromClassName[Dispatcher]("class-name")
-      dispatcher.name_ = dconfig.getString("display-name", getString("dispatcher"))
-      dispatcher.config_ = dconfig
+      val dispatcher = dconfig.getInstanceFromClassName[HttpDispatcher[A]]("class-name")
+      dispatcher.init(dconfig.getString("display-name", getString("dispatcher")), dconfig)
       dispatcher.init
-      dispatcher
     }
 
   }
@@ -190,13 +190,13 @@ object Server {
 	
     address = "*"
 	
-    port-range = [ 7500, 7501, 7502 ]
+    port-range = [ 8080 ]
 
-    backlog = 10000
+    backlog = 32K
 
     load-balancing {
     
-		enable = on
+		enable = off
      
 		balancing-path = /
     
@@ -208,15 +208,15 @@ object Server {
         
         pause-between-accepts = 0
 	
-		allow-version-1-0-but-treat-it-like-1-1 = on
+				allow-version-1-0-but-treat-it-like-1-1 = off
 	
-		allow-any-version-but-treat-it-like-1-1 = off
+				allow-any-version-but-treat-it-like-1-1 = off
 		
-		default-character-set = ISO-8859-15
+				default-character-set = ISO-8859-15
 		
-		disable-url-decoding = off
+				disable-url-decoding = off
 		
-		max-entity-buffer-size = 16K
+				max-entity-buffer-size = 64K
 
     }""")
 

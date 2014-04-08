@@ -6,7 +6,7 @@ package http
 
 import java.util.zip.Deflater
 
-import aio.Encoder
+import aio.{ Decoder, Encoder, InMessage }
 import Message.Headers
 import Header.General.`Connection`
 import Header.Request.`Accept-Encoding`
@@ -26,9 +26,13 @@ final case class Request(
 
   headers: Headers,
 
-  var entity: Option[Entity])
+  var entity: Option[Entity],
 
-  extends Message {
+  var decoder: Option[Decoder])
+
+  extends Message
+
+  with aio.InMessage {
 
   type Type = Request
 
@@ -37,7 +41,7 @@ final case class Request(
     case Some(q) ⇒ Some(q.replace("_escaped_fragment_=", ""))
   }
 
-  final def keepalive = `Connection`(headers) match {
+  final val keepalive = `Connection`(headers) match {
     case Some(value) if value.exists(_.equalsIgnoreCase("close")) ⇒ false
     case _ ⇒ true
   }
@@ -59,6 +63,6 @@ object Request {
 
   type Variables = scala.collection.Map[String, String]
 
-  final def Get(path: String): Request = Request(Method.GET, path.split("/").toList.filter(0 < _.length), None, Version.`HTTP/1.1`, null, None)
+  final def Get(path: String): Request = Request(Method.GET, path.split("/").toList.filter(0 < _.length), None, Version.`HTTP/1.1`, null, None, None)
 
 }

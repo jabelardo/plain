@@ -12,16 +12,18 @@ import Input.Eof
 /**
  * An Iteratee consumes elements of type Input[E] and produces a result of type A.
  */
-sealed trait Iteratee[E, +A] {
+sealed trait Iteratee[E, +A]
+
+  extends Any {
 
   import Iteratee._
 
   def apply(input: Input[E]): (Iteratee[E, A], Input[E])
 
-  final def result: A = this(Eof) match {
+  @inline final def result: A = this(Eof) match {
     case (Done(a), _) ⇒ a
     case (Error(e), _) ⇒ throw e
-    case _ ⇒ throw illegalstate
+    case _ ⇒ throw IllegalState
   }
 
   def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B]
@@ -34,13 +36,13 @@ object Iteratee {
 
   final class Done[E, A] private (val a: A)
 
-    extends Iteratee[E, A] {
+    extends  Iteratee[E, A] {
 
-    final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = (this, input)
+    @inline final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = (this, input)
 
-    final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = f(a)
+    @inline final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = f(a)
 
-    final def map[B](f: A ⇒ B): Iteratee[E, B] = Done(f(a))
+    @inline final def map[B](f: A ⇒ B): Iteratee[E, B] = Done(f(a))
 
   }
 
@@ -54,13 +56,15 @@ object Iteratee {
 
   final class Error[E] private (val e: Throwable)
 
-    extends Iteratee[E, Nothing] {
+    extends AnyVal
 
-    final def apply(input: Input[E]): (Iteratee[E, Nothing], Input[E]) = (this, input)
+    with Iteratee[E, Nothing] {
 
-    final def flatMap[B](f: Nothing ⇒ Iteratee[E, B]): Iteratee[E, B] = this
+    @inline final def apply(input: Input[E]): (Iteratee[E, Nothing], Input[E]) = (this, input)
 
-    final def map[B](f: Nothing ⇒ B): Iteratee[E, B] = this
+    @inline final def flatMap[B](f: Nothing ⇒ Iteratee[E, B]): Iteratee[E, B] = this
+
+    @inline final def map[B](f: Nothing ⇒ B): Iteratee[E, B] = this
 
   }
 
@@ -74,16 +78,18 @@ object Iteratee {
 
   final class Cont[E, A] private (val k: Input[E] ⇒ (Iteratee[E, A], Input[E]))
 
-    extends Iteratee[E, A] {
+    extends AnyVal
 
-    final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = k(input)
+    with Iteratee[E, A] {
+
+    @inline final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = k(input)
 
     final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = k match {
       case comp: Compose[E, B] ⇒ Cont(comp.clone(f.asInstanceOf[Any ⇒ Iteratee[E, _]]))
       case k ⇒ Cont(new Compose(k, f.asInstanceOf[Any ⇒ Iteratee[E, _]] :: Nil, Nil))
     }
 
-    final def map[B](f: A ⇒ B): Iteratee[E, B] = flatMap(a ⇒ Done(f(a)))
+    final def map[B](f: A ⇒ B): Iteratee[E, B] = flatMap(a ⇒ Done[E, B](f(a)))
 
   }
 
@@ -108,7 +114,7 @@ object Iteratee {
     @inline final def clone(f: Any ⇒ Iteratee[E, _]) = { new Compose(k, out, f :: in) }
 
     final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = {
-      @tailrec def run(
+      @inline @tailrec def run(
         result: (Iteratee[E, _], Input[E]),
         out: List[Any ⇒ Iteratee[E, _]],
         in: List[Any ⇒ Iteratee[E, _]]): (Iteratee[E, _], Input[E]) = {
@@ -120,11 +126,10 @@ object Iteratee {
           }
         } else {
           result match {
-            case (Done(value), remaining) ⇒
-              out.head(value) match {
-                case Cont(k) ⇒ run(k(remaining), out.tail, in)
-                case e ⇒ run((e, remaining), out.tail, in)
-              }
+            case (Done(value), remaining) ⇒ out.head(value) match {
+              case Cont(k) ⇒ run(k(remaining), out.tail, in)
+              case e ⇒ run((e, remaining), out.tail, in)
+            }
             case (Cont(k), remaining) ⇒ (Cont(new Compose(k, out, in)), remaining)
             case _ ⇒ result
           }
@@ -138,6 +143,6 @@ object Iteratee {
 
   private final type R[E, A] = Input[E] ⇒ (Iteratee[E, A], Input[E])
 
-  private final val illegalstate = new IllegalStateException with ControlThrowable
+  private final val IllegalState = new IllegalStateException with ControlThrowable
 
 }

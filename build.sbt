@@ -9,7 +9,7 @@ name := "plain.io"
 
 organization in ThisBuild := "com.ibm"
 
-scalaVersion in ThisBuild := "2.10.3"
+scalaVersion in ThisBuild := "2.10.4"
 
 version in ThisBuild := "1.0.0-SNAPSHOT"
 
@@ -21,12 +21,16 @@ eclipseOutput in ThisBuild := Some("target")
 
 withSource in ThisBuild:= true
 
+scalacOptions in (doc) := Seq("-diagrams", "-doc-title plain.io")
+
 scalacOptions in ThisBuild ++= Seq(
 	"-g:vars",
 	"-encoding", "UTF-8", 
 	"-target:jvm-1.7", 
 	"-deprecation", 
 	"-feature", 
+	"-Yinline-warnings",
+	"-Yno-generic-signatures",
 	"-optimize",
 	"-unchecked"
 )
@@ -45,7 +49,7 @@ lazy val library = project in file("plain-library") settings(plainSettings: _*)
 
 lazy val hybriddb = project in file("plain-hybriddb") dependsOn library settings(jdbcSettings: _*)
 
-lazy val samples = project in file("plain-samples") aggregate(helloworld, jdbc, camelhelloworld)  
+lazy val samples = project in file("plain-samples") aggregate(helloworld, jdbc, camelhelloworld, preparation)  
 
 lazy val helloworld = project in file("plain-samples/plain-sample-hello-world") dependsOn library settings(assemblySettings: _*)
 
@@ -58,5 +62,7 @@ lazy val benchmark = project in file("plain-benchmark") dependsOn library settin
 lazy val camel = project in file("plain-camel") dependsOn library settings(camelSettings: _*)
 
 lazy val camelhelloworld = project in file("plain-samples/plain-camel-hello-world") dependsOn camel settings(assemblySettings: _*) 
+
+lazy val preparation = project in file("plain-samples/preparation") dependsOn library settings(assemblySettings: _*)
 
 

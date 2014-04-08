@@ -4,10 +4,10 @@ package plain
 
 package aio
 
-import java.util.Arrays
-import java.nio.charset.Charset
 import java.nio.ByteBuffer
+import java.nio.charset.Charset
 
+import scala.collection.immutable.Map
 import scala.collection.mutable.HashMap
 
 /**
@@ -15,25 +15,20 @@ import scala.collection.mutable.HashMap
  */
 object StringPool {
 
-  final def get(array: Array[Byte], length: Int)(implicit cset: Charset): String = {
+  final val maxStringLength = 128
+
+  final def arraySize = maxStringLength
+
+  final def get(array: Array[Byte], length: Int, characterset: Charset): String = {
     strings.get(hash(array, length)) match {
       case Some(s) if length <= maxLength ⇒ s
-      case _ ⇒ new String(array, 0, length, cset)
+      case _ ⇒ new String(array, 0, length, characterset)
     }
   }
 
-  final val arraySize = 256
-
-  @inline private[this] final def hash(array: Array[Byte], length: Int): Int = {
-    var h = 1
-    var i = 0
-    while (i < length) { h = h * 31 + array(i); i += 1 }
-    h
-  }
-
-  private[this] final val strings: scala.collection.Map[Int, String] = {
+  private[this] final val strings: Map[Int, String] = {
     val map = new HashMap[Int, String]
-    val buf = ByteBuffer.wrap(new Array[Byte](arraySize))
+    val buf = ByteBuffer.wrap(new Array[Byte](maxStringLength))
 
     def add(s: String) = {
       buf.clear
@@ -60,7 +55,12 @@ object StringPool {
     add("TRACE")
     add("HTTP/1.1")
     add("HTTP/1.0")
-    add("Connection")
+    add("Server")
+    add("server")
+    add("Date")
+    add("date")
+    add("Content-Type")
+    add("Content-Encoding")
     add("connection")
     add("Keep-Alive")
     add("Keep-alive")
@@ -72,6 +72,8 @@ object StringPool {
     add("Wget/1.14 (darwin12.1.0)")
     add("Host")
     add("host")
+    add("Expect")
+    add("expect")
     add("Accept")
     add("accept")
     add("Accept-Encoding")
@@ -113,13 +115,22 @@ object StringPool {
     }
     add("plaintext")
     add("json")
-    add("ping")
+    add("fortunes")
+    add("db")
+    add("update")
     add("text/plain,text/html;q=0.9,application/xhtml+xml;q=0.9,application/xml;q=0.8,*/*;q=0.7")
 
     map.toMap
   }
 
-  final val maxLength = strings.values.maxBy(_.length).length
+  @inline private[this] final def hash(array: Array[Byte], length: Int): Int = {
+    var h = 1
+    var i = 0
+    while (i < length) { h = h * 31 + array(i); i += 1 }
+    h
+  }
+
+  private[this] final val maxLength = strings.values.maxBy(_.length).length
 
 }
 

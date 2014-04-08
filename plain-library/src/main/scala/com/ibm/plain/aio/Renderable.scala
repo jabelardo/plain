@@ -7,19 +7,6 @@ package aio
 import java.nio.ByteBuffer
 
 /**
- *
- */
-trait RenderableRoot {
-
-  def renderHeader(io: Io): Io
-
-  def renderBody(io: Io): Io
-
-  def renderFooter(io: Io): Io
-
-}
-
-/**
  * A Renderable can put its content or fields into an implicitly provided ByteBuffer.
  */
 trait Renderable

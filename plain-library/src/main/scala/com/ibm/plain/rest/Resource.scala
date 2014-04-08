@@ -4,36 +4,33 @@ package plain
 
 package rest
 
-import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel }
-
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.{ Type, TypeTag, typeOf }
-import scala.util.continuations.{ reify, suspendable }
 
 import com.typesafe.config.Config
 
 import reflect.tryBoolean
-import aio.{ AsynchronousByteArrayChannel, AsynchronousFixedLengthChannel, Io, Transfer }
+import aio.{ Exchange, ExchangeHandler }
 import http.{ Request, Response, Status, Entity, Method, MimeType, Accept }
 import http.Entity._
-import http.MimeType._
+import http.MimeType.{ `application/x-scala-unit`, `*/*` }
 import http.Method.{ DELETE, GET, HEAD, POST, PUT }
 import http.Status.{ ClientError, ServerError, Success }
 import http.Header.Request.{ `Accept` ⇒ AcceptHeader }
-import Matching._
+import Matching.{ Encoder, Decoder, MarshaledDecoder }
 
 /**
  *
  */
 trait Resource
 
-  extends BaseResource
+  extends Uniform
 
   with DelayedInit {
 
   import Resource._
 
-  override final def delayedInit(initialize: ⇒ Unit): Unit = {
+  final def delayedInit(initialize: ⇒ Unit): Unit = {
     resourcemethods.get(getClass) match {
       case Some(methods) ⇒ this.methods = methods
       case None ⇒
@@ -44,44 +41,32 @@ trait Resource
     }
   }
 
-  final def completed(context: Context) = {
-    try {
-      threadlocal.set(context)
-      if (null != context.methodbody) context.methodbody.completed match {
-        case Some(completed) ⇒ completed(context.response)
+  final def process(exchange: Exchange[Context], handler: ExchangeHandler[Context]) = exchange.attachment match {
+    case Some(context) ⇒ try {
+      exchange.outMessage match {
+        case null ⇒
+          val response = Response(exchange.writeBuffer, Success.`200`)
+          exchange ++ response
+          context ++ response
         case _ ⇒
       }
-      super.completed(context.response, context.io)
-    } finally {
-      threadlocal.remove
-    }
-  }
-
-  final def failed(e: Throwable, context: Context) = {
-    try {
-      threadlocal.set(context ++ e)
-      if (null != context.methodbody) context.methodbody.failed match {
-        case Some(failed) ⇒ failed(e)
-        case _ ⇒
+      methods.get(context.request.method) match {
+        case Some(Right(resourcepriorities)) ⇒ execute(exchange, handler, resourcepriorities)
+        case _ ⇒ throw ClientError.`405`
       }
-      super.failed(e, context.io ++ context.response.asInstanceOf[aio.Message])
-    } finally {
-      threadlocal.remove
+    } catch {
+      case e: Throwable ⇒ failed(e, exchange, handler)
     }
+    case _ ⇒ throw ServerError.`500`
   }
 
-  final def process(io: Io) = unsupported
+  /**
+   * DSL implementation methods.
+   */
 
-  final def handle(context: Context) = try {
-    context ++ Response(context.request, Success.`200`)
-    methods.get(context.request.method) match {
-      case Some(Right(resourcepriorities)) ⇒ execute(context, resourcepriorities)
-      case _ ⇒ throw ClientError.`405`
-    }
-  } catch {
-    case e: Throwable ⇒ failed(e, context)
-  }
-
+  /**
+   * Post.
+   */
   final def Post[E: TypeTag, A: TypeTag](body: E ⇒ A): MethodBody = {
     add[E, A](POST, typeOf[E], typeOf[A], body)
   }
@@ -90,10 +75,20 @@ trait Resource
     add[Unit, A](POST, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
   }
 
+  /**
+   * Put.
+   */
   final def Put[E: TypeTag, A: TypeTag](body: E ⇒ A): MethodBody = {
     add[E, A](PUT, typeOf[E], typeOf[A], body)
   }
 
+  final def Put[A: TypeTag](body: ⇒ A): MethodBody = {
+    add[Unit, A](PUT, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
+  }
+
+  /**
+   * Delete.
+   */
   final def Delete[A: TypeTag](body: ⇒ A): MethodBody = {
     add[Unit, A](DELETE, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
   }
@@ -102,6 +97,9 @@ trait Resource
     add[E, A](DELETE, typeOf[E], typeOf[A], body)
   }
 
+  /**
+   * Get.
+   */
   final def Get[A: TypeTag](body: ⇒ A): MethodBody = {
     add[Unit, A](GET, typeOf[Unit], typeOf[A], (_: Unit) ⇒ body)
   }
@@ -110,6 +108,9 @@ trait Resource
     add[E, A](GET, typeOf[E], typeOf[A], body)
   }
 
+  /**
+   * Head.
+   */
   final def Head(body: ⇒ Any): MethodBody = {
     add[Unit, Unit](HEAD, typeOf[Unit], typeOf[Unit], (_: Unit) ⇒ { body; () })
   }
@@ -118,61 +119,84 @@ trait Resource
     add[E, Unit](HEAD, typeOf[E], typeOf[Unit], (e: E) ⇒ { body(e); () })
   }
 
-  protected[this] final def request = threadlocal.get.request
+  protected[this] final def context: Context = threadlocal.get._1
 
-  protected[this] final def response = threadlocal.get.response
+  protected[this] final def exchange: Exchange[Context] = threadlocal.get._2
 
-  protected[this] final def context = threadlocal.get
+  protected[this] final def request: Request = threadlocal.get._1.request
 
-  protected[this] final def transfer(entity: Entity, destination: Channel) = {
-    entity match {
-      case entity: ContentEntity ⇒ context.io ++ Transfer(AsynchronousFixedLengthChannel(context.io.channel, context.io.readbuffer.remaining, entity.length), destination, None)
-      case entity: ArrayEntity ⇒ context.io ++ Transfer(AsynchronousByteArrayChannel(entity.array), destination, None)
-      case _ ⇒ unsupported
-    }
-  }
+  protected[this] final def response: Response = threadlocal.get._1.response
+
+  protected[this] def fromCache(request: Request): Option[CachedMethod] = None
+
+  protected[this] def toCache(request: Request, cachedmethod: CachedMethod) = ()
 
   /**
    * The most important method in this class.
    */
-  private[this] final def execute(context: Context, resourcepriorities: ResourcePriorities) = try {
-    threadlocal.set(context)
+  private[this] final def execute(
 
-    val inentity: Option[Entity] = request.entity
-    val inmimetype: MimeType = inentity match { case Some(entity: Entity) ⇒ entity.contenttype.mimetype case _ ⇒ `application/x-scala-unit` }
-    val outmimetypes: List[MimeType] = AcceptHeader(request.headers) match {
-      case Some(Accept(mimetypes)) ⇒ mimetypes
-      case _ ⇒ List(`*/*`)
+    exchange: Exchange[Context],
+
+    handler: ExchangeHandler[Context],
+
+    resourcepriorities: ResourcePriorities) = {
+
+    exchange.attachment match {
+      case Some(context) ⇒
+        val request = context.request
+        fromCache(request) match {
+          case Some((methodbody, input, encode)) ⇒
+            context.response ++ encode {
+              try {
+                threadlocal.set((context, exchange))
+                methodbody.body(input)
+              } finally threadlocal.remove
+            }
+            completed(exchange, handler)
+          case _ ⇒
+            var innerinput: Option[(Any, AnyRef)] = None
+            val inentity: Option[Entity] = request.entity
+            val inmimetype: MimeType = inentity match { case Some(entity: Entity) ⇒ entity.contenttype.mimetype case _ ⇒ `application/x-scala-unit` }
+            val outmimetypes: List[MimeType] = AcceptHeader(request.headers) match {
+              case Some(Accept(mimetypes)) ⇒ mimetypes
+              case _ ⇒ List(`*/*`)
+            }
+
+            def tryDecode(in: Type, decode: AnyRef): Boolean = {
+              if (innerinput.isDefined && innerinput.get._2 == decode) return true
+              decode match {
+                case decode: Decoder[_] ⇒ tryBoolean(innerinput = Some((decode(inentity), decode)))
+                case decode: MarshaledDecoder[_] ⇒ tryBoolean(innerinput = Some((decode(inentity, ClassTag(Class.forName(in.toString))), decode)))
+                case _ ⇒ false
+              }
+            }
+
+            (for {
+              o ← outmimetypes
+              r ← resourcepriorities
+            } yield (o, r)).collectFirst {
+              case (outmimetype, (inoutmimetype, (in, methodbody), (decode, encode))) if (inoutmimetype == ((inmimetype, outmimetype))) && (tryDecode(in, decode)) ⇒
+                (methodbody, encode)
+            } match {
+              case Some((methodbody, encode)) ⇒
+                val e = encode(innerinput match {
+                  case Some((input, _)) ⇒
+                    toCache(request, (methodbody, input, encode))
+                    try {
+                      threadlocal.set((context, exchange))
+                      methodbody.body(input)
+                    } finally threadlocal.remove
+                  case _ ⇒ throw ServerError.`501`
+                })
+                context.response ++ e
+                completed(exchange, handler)
+              case _ ⇒ throw ClientError.`415`
+            }
+        }
+      case _ ⇒ throw ServerError.`500`
     }
-
-    var innerinput: Option[(Any, AnyRef)] = None
-
-    def tryDecode(in: Type, decode: AnyRef): Boolean = {
-      if (innerinput.isDefined && innerinput.get._2 == decode) return true // avoid unnecessary calls, decode can be expensive
-      decode match {
-        case decode: Decoder[_] ⇒ tryBoolean(innerinput = Some((decode(inentity), decode)))
-        case decode: MarshaledDecoder[_] ⇒ tryBoolean(innerinput = Some((decode(inentity, ClassTag(Class.forName(in.toString))), decode)))
-        case _ ⇒ false
-      }
-    }
-
-    (for {
-      o ← outmimetypes
-      r ← resourcepriorities
-    } yield (o, r)).collectFirst {
-      case (outmimetype, (inoutmimetype, (in, methodbody), (decode, encode))) if (inoutmimetype == ((inmimetype, outmimetype))) && (tryDecode(in, decode)) ⇒
-        (methodbody, encode)
-    } match {
-      case Some((methodbody, encode)) ⇒
-        context ++ methodbody
-        context.response ++ encode(innerinput match {
-          case Some((input, _)) ⇒ methodbody.body(input)
-          case _ ⇒ throw ServerError.`501`
-        })
-        completed(context)
-      case _ ⇒ throw ClientError.`415`
-    }
-  } finally threadlocal.remove
+  }
 
   /**
    * This is ugly, but it's only called once per Resource and Method, the resulting data structure is very efficient.
@@ -209,23 +233,19 @@ object Resource {
 
   final class MethodBody private (
 
-    val body: Body[Any, Any],
+    val body: Body[Any, Any])
 
-    var completed: Option[Response ⇒ Any],
-
-    var failed: Option[Throwable ⇒ Any]) {
-
-    @inline final def onComplete(body: Response ⇒ Any) = { completed = Some(body); this }
-
-    @inline final def onFailure(body: Throwable ⇒ Any) = { failed = Some(body); this }
-
-  }
+    extends AnyVal
 
   object MethodBody {
 
-    @inline def apply(body: Body[Any, Any]) = new MethodBody(body, None, None)
+    @inline def apply(body: Body[Any, Any]) = new MethodBody(body)
 
   }
+
+  type ResourcePriorities = Array[ResourcePriority]
+
+  type CachedMethod = (MethodBody, Any, Any ⇒ Option[Entity])
 
   private type Body[E, A] = E ⇒ A
 
@@ -235,10 +255,8 @@ object Resource {
 
   private type ResourcePriority = ((MimeType, MimeType), (Type, MethodBody), (AnyRef, Encoder))
 
-  private type ResourcePriorities = Array[ResourcePriority]
+  private final val threadlocal = new ThreadLocal[(Context, Exchange[Context])]
 
   private final var resourcemethods: Map[Class[_ <: Resource], Methods] = Map.empty
-
-  private final val threadlocal = new ThreadLocal[Context]
 
 }

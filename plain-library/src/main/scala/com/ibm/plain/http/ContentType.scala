@@ -9,7 +9,7 @@ import java.nio.charset.Charset
 
 import language.implicitConversions
 
-import aio.{ Io, Renderable }
+import aio.Renderable
 import aio.Renderable._
 import text.{ fastSplit, `UTF-8` }
 import Status.ClientError

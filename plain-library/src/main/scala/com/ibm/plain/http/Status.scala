@@ -8,7 +8,6 @@ import java.nio.ByteBuffer
 
 import scala.util.control.ControlThrowable
 
-import aio.Io
 import aio.Renderable
 import aio.Renderable._
 

@@ -42,6 +42,9 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
     get
   }
 
+  /**
+   * Todo: Remove check to prevent double releases, it's expensive.
+   */
   @tailrec final def release(buffer: ByteBuffer): Unit = if (trylock) {
     try {
       if (!pool.exists(_ eq buffer)) {
