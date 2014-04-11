@@ -2,9 +2,9 @@ package com.ibm
 
 package plain
 
-package rest
+package integration
 
-package resource
+package spaces
 
 import java.nio.file.{ Path, Paths }
 import java.nio.file.Files.{ createDirectories, exists ⇒ fexists, isDirectory, isRegularFile, size ⇒ fsize, write ⇒ fwrite, readAllBytes, delete ⇒ fdelete }
@@ -13,7 +13,7 @@ import org.apache.commons.io.FilenameUtils.getExtension
 import org.apache.commons.io.filefilter.RegexFileFilter
 import org.apache.commons.io.FileUtils.deleteDirectory
 
-import com.typesafe.config.Config
+import _root_.com.typesafe.config.Config
 
 import scala.collection.JavaConversions.asScalaBuffer
 import scala.language.implicitConversions
@@ -29,15 +29,16 @@ import http.Entity
 import http.Entity.{ AsynchronousByteChannelEntity, ArrayEntity, ContentEntity }
 import http.MimeType.{ `application/octet-stream`, forExtension }
 import http.Status.{ ClientError, ServerError, Success }
+import rest._
 
 /**
  *
  */
-final class DirectoryResource
+final class Space
 
-  extends Resource {
+  extends StaticResource {
 
-  import DirectoryResource._
+  import Space._
 
   /**
    * Download a file or an entire directory as a zip file.
@@ -84,7 +85,7 @@ final class DirectoryResource
 /**
  *
  */
-object DirectoryResource
+object Space
 
   extends Logger {
 

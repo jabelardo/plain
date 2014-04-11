@@ -5,11 +5,11 @@ package plain
 package config
 
 import java.util.concurrent.TimeUnit.MILLISECONDS
-
 import scala.collection.JavaConversions.{ asScalaBuffer, asScalaSet }
 import scala.concurrent.duration.Duration
+import com.typesafe.config.ConfigList
+import com.typesafe.config.Config
 
-import com.typesafe.config._
 
 /**
  * Add a couple of helpers to Config eg. get with default.
