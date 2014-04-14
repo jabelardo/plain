@@ -10,6 +10,8 @@ import javax.servlet.http.HttpServlet
 import javax.servlet.http.Cookie
 import javax.servlet.ServletConfig
 
+import com.typesafe.config.Config
+
 import scala.collection.mutable.HashMap
 
 import aio.{ Exchange, ExchangeHandler }
@@ -25,6 +27,8 @@ final class HttpServletResource(
   extends Uniform
 
   with StaticUniform {
+
+  final def init(config: Config) = ()
 
   final def process(exchange: Exchange[Context], handler: ExchangeHandler[Context]) = exchange.attachment match {
     case Some(context) ⇒ try {

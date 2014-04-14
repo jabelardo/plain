@@ -5,41 +5,42 @@ package plain
 package aio
 
 import java.nio.ByteBuffer
-import java.nio.channels.{ AsynchronousByteChannel, AsynchronousFileChannel, CompletionHandler ⇒ Handler }
+import java.nio.channels.{ AsynchronousByteChannel, CompletionHandler ⇒ Handler }
 import java.nio.file.{ Path, Paths }
-import java.nio.file.StandardOpenOption.{ CREATE, READ, TRUNCATE_EXISTING, WRITE }
 
+import org.apache.commons.io.FileUtils
+import org.apache.commons.io.filefilter.TrueFileFilter
+import org.apache.commons.compress.archivers.tar._
+
+import scala.collection.JavaConversions.collectionAsScalaIterable
 import scala.language.implicitConversions
-import scala.collection.JavaConversions._
+import scala.annotation.tailrec
 
 /**
- * Turns an AsynchronousFileChannel into an AsynchronousByteChannel to be used as source or destination for an asynchronous transfer.
+ * Turns a folder of files into an AsynchronousByteChannel to be used as read-only(!) for an asynchronous transfer.
  */
-final class AsynchronousFileByteChannel private (
+final class AsynchronousTarArchiveChannel private (
 
-  filechannel: AsynchronousFileChannel)
+  folder: Path)
 
   extends AsynchronousByteChannel {
 
   private final type Integer = java.lang.Integer
 
+  final val length: Long = -1
+
   final def read(buffer: ByteBuffer): java.util.concurrent.Future[Integer] = throw FutureNotSupported
 
   final def write(buffer: ByteBuffer): java.util.concurrent.Future[Integer] = throw FutureNotSupported
 
-  override protected final def finalize = if (filechannel.isOpen) filechannel.close
+  final def close = ()
 
-  final def close = filechannel.close
-
-  final def isOpen = filechannel.isOpen
+  final def isOpen = true
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[Integer, _ >: A]) = {
-    filechannel.read(buffer, position, attachment, InnerCompletionHandler(handler))
   }
 
-  final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[Integer, _ >: A]) = {
-    filechannel.write(buffer, position, attachment, InnerCompletionHandler(handler))
-  }
+  final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[Integer, _ >: A]) = unsupported
 
   private[this] final class InnerCompletionHandler[A] private (
 
@@ -126,36 +127,43 @@ final class AsynchronousFileByteChannel private (
 
   }
 
+  // private[this] final val files = FileUtils.listFilesAndDirs(folder.toFile, TrueFileFilter.TRUE, TrueFileFilter.TRUE).toList
+
   private[this] final var position = 0L
+
+  {
+
+    //   println("TarFile " + length + " " + files.size + " dirs " + files.filter(_.isDirectory).size)
+    val out = new TarArchiveOutputStream(new java.io.FileOutputStream("/tmp/test2/test2.tar"), 64 * 1024)
+    out.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_STAR);
+    out.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU);
+
+    def addFiles(file: java.io.File): Unit = {
+      //      println(folder.relativize(file.toPath))
+      out.putArchiveEntry(new TarArchiveEntry(file, folder.relativize(file.toPath).toString))
+      if (file.isFile) {
+        java.nio.file.Files.copy(file.toPath, out)
+        out.closeArchiveEntry
+      } else if (file.isDirectory) {
+        out.closeArchiveEntry
+        file.listFiles.foreach(addFiles)
+      }
+    }
+
+    addFiles(folder.toFile)
+    out.close
+  }
 
 }
 
 /**
  *
  */
-object AsynchronousFileByteChannel {
+object AsynchronousTarArchiveChannel {
 
-  final def apply(filechannel: AsynchronousFileChannel): AsynchronousFileByteChannel = new AsynchronousFileByteChannel(filechannel)
+  final def apply(folder: Path): AsynchronousTarArchiveChannel = new AsynchronousTarArchiveChannel(folder)
 
-  final def forReading(path: Path): AsynchronousFileByteChannel = apply(AsynchronousFileChannel.open(path, Set(READ), concurrent.ioexecutor))
-
-  final def forWriting(path: Path): AsynchronousFileByteChannel = apply(AsynchronousFileChannel.open(path, Set(CREATE, TRUNCATE_EXISTING, WRITE), concurrent.ioexecutor))
-
-  /**
-   * This is very fast and should, therefore, be preferred, it also fails if there is not enough space in the file system.
-   */
-  final def forWriting(path: Path, length: Long): AsynchronousFileByteChannel = {
-    val f = new java.io.RandomAccessFile(path.toString, "rw")
-    f.setLength(length)
-    f.close
-    apply(AsynchronousFileChannel.open(path, Set(WRITE), concurrent.ioexecutor))
-  }
-
-  final def forReading(path: String): AsynchronousFileByteChannel = forReading(Paths.get(path))
-
-  final def forWriting(path: String): AsynchronousFileByteChannel = forWriting(Paths.get(path))
-
-  final def forWriting(path: String, length: Long): AsynchronousFileByteChannel = forWriting(Paths.get(path), length)
+  final def apply(folder: String): AsynchronousTarArchiveChannel = new AsynchronousTarArchiveChannel(Paths.get(folder))
 
 }
 

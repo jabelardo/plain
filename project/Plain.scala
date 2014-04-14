@@ -18,7 +18,9 @@ object Plain {
 		"org.apache.commons" % "commons-compress" % "1.8",
 		"commons-io" % "commons-io" % "2.4",
 		"commons-net" % "commons-net" % "3.3",
-		"commons-codec" % "commons-codec" % "1.9"
+		"commons-codec" % "commons-codec" % "1.9",
+		"org.apache.httpcomponents" % "httpclient" % "4.3.3"
+            
 	) 
 
 	def reflection = Seq(

@@ -6,6 +6,8 @@ package rest
 
 import scala.collection.concurrent.TrieMap
 
+import com.typesafe.config.Config
+
 import Resource.{ CachedMethod, MethodBody }
 import http.{ Entity, Request }
 
@@ -19,6 +21,8 @@ trait StaticResource
   with StaticUniform {
 
   import Resource._
+
+  @inline def init(config: Config) = ()
 
   @inline override protected[this] final def fromCache(request: Request): Option[CachedMethod] = requestmethods.get(request)
 

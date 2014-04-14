@@ -77,6 +77,7 @@ object Camel {
 		"servlet-api-2.4.jar",
 		"servlet-api-2.5-20081211.jar",
 		"servlet-api-2.5-6.1.14.jar",
+		"geronimo-servlet_3.0_spec-1.0.jar",
 		"javax.servlet-2.5.0.v201103041518.jar"
 	)
 

@@ -6,7 +6,7 @@ package rest
 
 import com.typesafe.config.Config
 
-import http.{ Request, Response, HttpProcessor }
+import http.HttpProcessor
 
 /**
  *
@@ -22,6 +22,6 @@ trait StaticUniform
 
   extends Uniform {
 
-  private[rest] def init(config: Config) = ()
+  def init(config: Config)
 
 }

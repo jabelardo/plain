@@ -44,7 +44,7 @@ final class DirectoryResource
    */
   Get { get(context.config.getStringList("roots"), context.remainder.mkString("/"), exchange) }
 
-  Get { _: String ⇒ get(context.config.getStringList("roots"), context.remainder.mkString("/"), exchange) }
+  Get { _: String ⇒ getZipFile(exchange) }
 
   /**
    * Delete a file or a directory.
@@ -88,7 +88,7 @@ object DirectoryResource
 
   extends Logger {
 
-  final def get(list: Seq[String], remainder: String, exchange: Exchange[Context]) = {
+  private final def get(list: Seq[String], remainder: String, exchange: Exchange[Context]) = {
     val roots = list.iterator
     var found = false
     var result: Entity = null
@@ -133,7 +133,7 @@ object DirectoryResource
     }
   }
 
-  final def exists(config: Config, remainder: List[String]): Boolean = {
+  private final def exists(config: Config, remainder: List[String]): Boolean = {
     val roots = config.getStringList("roots").iterator
     var found = false
     while (!found && roots.hasNext) {
@@ -149,6 +149,13 @@ object DirectoryResource
       }
     }
     found
+  }
+
+  private final def getZipFile(exchange: Exchange[Context]) = {
+    import aio.AsynchronousTarArchiveChannel
+
+    val source = AsynchronousTarArchiveChannel("/tmp/test1")
+
   }
 
   private final def delete(root: String, remainder: String): Success = {
