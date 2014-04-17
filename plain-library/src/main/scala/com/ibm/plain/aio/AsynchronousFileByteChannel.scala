@@ -4,6 +4,7 @@ package plain
 
 package aio
 
+import java.io.File
 import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousByteChannel, AsynchronousFileChannel, CompletionHandler ⇒ Handler }
 import java.nio.file.{ Path, Paths }
@@ -151,9 +152,15 @@ object AsynchronousFileByteChannel {
     apply(AsynchronousFileChannel.open(path, Set(WRITE), concurrent.ioexecutor))
   }
 
+  final def forReading(file: File): AsynchronousFileByteChannel = forReading(file.toPath)
+
   final def forReading(path: String): AsynchronousFileByteChannel = forReading(Paths.get(path))
 
+  final def forWriting(file: File): AsynchronousFileByteChannel = forWriting(file.toPath)
+
   final def forWriting(path: String): AsynchronousFileByteChannel = forWriting(Paths.get(path))
+
+  final def forWriting(file: File, length: Long): AsynchronousFileByteChannel = forWriting(file.toPath, length)
 
   final def forWriting(path: String, length: Long): AsynchronousFileByteChannel = forWriting(Paths.get(path), length)
 

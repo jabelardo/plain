@@ -89,7 +89,7 @@ final case class Response(
 
   private[this] final def renderContentHeaders[A](exchange: Exchange[A]): Unit = {
     encoder = entity match {
-      case Some(entity) if entity.contenttype.mimetype.encodable && entity.length > tooTinyToCareSize ⇒ exchange.inMessage match {
+      case Some(entity) if entity.contenttype.mimetype.encodable && (0 > entity.length || entity.length > tooTinyToCareSize) ⇒ exchange.inMessage match {
         case request: Request ⇒ request.transferEncoding
         case _ ⇒ None
       }

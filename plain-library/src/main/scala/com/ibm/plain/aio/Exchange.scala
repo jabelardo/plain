@@ -234,6 +234,7 @@ final class Exchange[A] private (
 
   @inline private final def readEncoding(handler: ExchangeHandler[A]) = {
     writebuffer.clear
+    writebuffer.limit(writebuffer.limit - encodingSpareBufferSize)
     transfersource.read(writebuffer, this, handler)
   }
 
@@ -516,7 +517,7 @@ object Exchange
     }
 
     /**
-     * Handling tranfers from the channel TO a destination, eventually with decoding.
+     * Handling tranfers from the channel "to" a destination, eventually with decoding.
      */
     object DecodeReadHandler
 
@@ -573,7 +574,7 @@ object Exchange
     }
 
     /**
-     * Handling tranfers FROM a source to the channel, eventually with encoding.
+     * Handling tranfers "from" a source to the channel, eventually with encoding.
      */
     object EncodeReadHandler
 

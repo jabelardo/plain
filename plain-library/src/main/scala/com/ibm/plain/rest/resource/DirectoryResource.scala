@@ -27,7 +27,7 @@ import logging.Logger
 import http.ContentType
 import http.Entity
 import http.Entity.{ AsynchronousByteChannelEntity, ArrayEntity, ContentEntity }
-import http.MimeType.{ `application/octet-stream`, forExtension }
+import http.MimeType.{ `application/octet-stream`, `application/tar`, forExtension }
 import http.Status.{ ClientError, ServerError, Success }
 
 /**
@@ -152,9 +152,14 @@ object DirectoryResource
   }
 
   private final def getZipFile(exchange: Exchange[Context]) = {
-    import aio.AsynchronousTarArchiveChannel
-
-    val source = AsynchronousTarArchiveChannel("/tmp/test1")
+    val source = aio.AsynchronousTarArchiveChannel("/Users/guido/Development/Others")
+    val contenttype = ContentType(`application/tar`)
+    exchange.transferFrom(source)
+    AsynchronousByteChannelEntity(
+      source,
+      contenttype,
+      -1,
+      contenttype.mimetype.encodable)
 
   }
 

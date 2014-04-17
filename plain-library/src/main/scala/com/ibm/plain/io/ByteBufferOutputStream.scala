@@ -38,9 +38,9 @@ final class ByteBufferOutputStream(
     position += length
   }
 
-  private[this] final var position = 0
+  private[this] final var position = buffer.position
 
-  private[this] final val limit = buffer.capacity
+  private[this] final val limit = buffer.limit
 
 }
 

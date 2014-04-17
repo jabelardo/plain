@@ -25,6 +25,8 @@ final class Camel
   extends ExternalComponent[Camel]("plain-integration-camel")
 
   with Logger {
+  
+  override def isEnabled = false
 
   override def order = bootstrapOrder
 

@@ -40,7 +40,7 @@ package object config
   /**
    * Must match the version string provided by the *.conf files.
    */
-  final val requiredVersion = "1.0.0"
+  final val requiredVersion = "1.0"
 
   final val home = rconfig.getString("plain.config.home", System.getenv("PLAIN_HOME"))
 

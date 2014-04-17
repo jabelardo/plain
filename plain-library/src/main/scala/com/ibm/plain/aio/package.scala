@@ -77,6 +77,8 @@ package object aio
 
   final val tinyBufferPoolSize = getBytes("plain.aio.tiny-buffer-pool-size", 10000).toInt
 
+  final val encodingSpareBufferSize = getBytes("plain.aio.encoding-spare-buffer-space", 128).toInt
+
   /**
    * Should be large enough to make an SSL packet fit into it.
    */
