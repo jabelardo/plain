@@ -43,13 +43,6 @@ trait Resource
 
   final def process(exchange: Exchange[Context], handler: ExchangeHandler[Context]) = exchange.attachment match {
     case Some(context) ⇒ try {
-      exchange.outMessage match {
-        case null ⇒
-          val response = Response(exchange.writeBuffer, Success.`200`)
-          exchange ++ response
-          context ++ response
-        case _ ⇒
-      }
       methods.get(context.request.method) match {
         case Some(Right(resourcepriorities)) ⇒ execute(exchange, handler, resourcepriorities)
         case _ ⇒ throw ClientError.`405`

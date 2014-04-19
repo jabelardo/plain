@@ -187,16 +187,13 @@ final class Exchange[A] private (
   /**
    * This one is too clever...
    */
-  @inline private final def cache(cachediteratee: Done[Exchange[A], _]) = if (0 < readbuffer.position && null == cachedarray) {
+  @inline private final def cache(cachediteratee: Done[Exchange[A], _]): Unit = if (0 < readbuffer.remaining && null == cachedarray) {
     this.cachediteratee = cachediteratee
     var len = readbuffer.position
     readbuffer.rewind
     len -= readbuffer.position
     setCachedArray(len)
     readbuffer.get(cachedarray)
-    false
-  } else {
-    true
   }
 
   /**
@@ -261,7 +258,8 @@ final class Exchange[A] private (
     transfersource = null
     transferdestination = null
     transfercompleted = null
-    currentiteratee = Done[Exchange[A], Null](null)
+    currentiteratee = readiteratee
+    writebuffer.clear
   }
 
   @inline private final def hasError = currentiteratee.isInstanceOf[Error[_]]
@@ -286,9 +284,6 @@ final class Exchange[A] private (
 
   @inline final def ++(printwriter: PrintWriter) = { this.printwriter = printwriter; this }
 
-  override final def toString = s"""read $readbuffer
-write $writebuffer"""
-
   /**
    * Internals.
    */
@@ -305,10 +300,8 @@ write $writebuffer"""
     e match {
       case null ⇒
       case _: java.io.IOException ⇒
-      case _: java.lang.IllegalStateException ⇒ warn(e.toString)
-      case e ⇒
-        debug(text.stackTraceToString(e))
-        warn(e.toString)
+      case _: java.lang.IllegalStateException ⇒ warn("release: " + e)
+      case _ ⇒ error("release: " + e)
     }
     releaseByteBuffer(readbuffer)
     releaseByteBuffer(writebuffer)
@@ -382,7 +375,13 @@ object Exchange
   /**
    * Helpers.
    */
-  @inline def unhandled(e: Any) = error("Unhandled, may need attention : " + e)
+  @inline def unhandled(e: Any) = {
+    e match {
+      case e: Throwable ⇒ e.printStackTrace
+      case _ ⇒
+    }
+    error("Unhandled, may need attention : " + e)
+  }
 
   @inline private def ignore = debug("Ignored.")
 
@@ -429,7 +428,31 @@ object Exchange
 
       extends ExchangeHandler[A] {
 
-      @inline def failed(e: Throwable, exchange: Exchange[A]) = exchange.release(e)
+      @inline final def failed(e: Throwable, exchange: Exchange[A]) = {
+        e match {
+          case e: IOException ⇒
+          case e ⇒ e.printStackTrace
+        }
+        exchange.release(e)
+      }
+
+      @inline def completed(processed: Integer, exchange: Exchange[A]) = try {
+        if (0 > processed) {
+          isEof
+        } else {
+          doComplete(processed, exchange)
+        }
+      } catch { case e: Throwable ⇒ failed(e, exchange) }
+
+      protected[this] def doComplete(processed: Integer, exchange: Exchange[A]): Unit
+
+      @inline final def isEof = throw ReleaseHandler.eof
+
+    }
+
+    object ReleaseHandler {
+
+      final val eof = new java.io.EOFException
 
     }
 
@@ -440,26 +463,22 @@ object Exchange
 
       extends ReleaseHandler {
 
-      @inline final def completed(processed: Integer, exchange: Exchange[A]) = try {
-        if (0 > processed) {
-          exchange.release(null)
-        } else {
-          exchange(if (0 == processed) Eof else Elem(exchange), processed != Int.MaxValue) match {
-            case (cont @ Cont(_), Empty) ⇒
-              read(exchange ++ cont)
-            case (e @ Done(in: InMessage), Elem(exchange)) ⇒
-              exchange.cache(e)
-              process(exchange ++ in)
-            case (e @ Error(_), Elem(exchange)) ⇒
-              exchange.reset
-              process(exchange ++ e)
-            case (_, Eof) ⇒
-              ignore
-            case e ⇒
-              unhandled(e)
-          }
+      @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
+        exchange(if (0 == processed) Eof else Elem(exchange), processed != Int.MaxValue) match {
+          case (cont @ Cont(_), Empty) ⇒
+            read(exchange ++ cont)
+          case (e @ Done(in: InMessage), Elem(exchange)) ⇒
+            exchange.cache(e)
+            process(exchange ++ in)
+          case (e @ Error(_), Elem(exchange)) ⇒
+            exchange.reset
+            process(exchange ++ e)
+          case (_, Eof) ⇒
+            ignore
+          case e ⇒
+            unhandled(e)
         }
-      } catch { case e: Throwable ⇒ exchange.release(e) }
+      }
 
     }
 
@@ -470,29 +489,25 @@ object Exchange
 
       extends ReleaseHandler {
 
-      @inline final def completed(processed: Integer, exchange: Exchange[A]) = try {
-        if (0 > processed) {
-          exchange.release(null)
-        } else {
-          exchange.iteratee match {
-            case Done(_) ⇒
-              exchange.outMessage.renderHeader(exchange) match {
-                case Done(_) ⇒
-                  if (0 < exchange.length) {
-                    ReadHandler.completed(Int.MaxValue, exchange)
-                  } else {
-                    write(exchange)
-                  }
-                case Cont(_) ⇒
-                  transferFrom(exchange)
-                case e ⇒ unhandled(e)
-              }
-            case Cont(_) ⇒
-              transferTo(exchange)
-            case e ⇒ unhandled(e)
-          }
+      @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
+        exchange.iteratee match {
+          case Done(_) ⇒
+            exchange.outMessage.renderHeader(exchange) match {
+              case Done(_) ⇒
+                if (0 < exchange.length) {
+                  ReadHandler.completed(Int.MaxValue, exchange)
+                } else {
+                  write(exchange)
+                }
+              case Cont(_) ⇒
+                transferFrom(exchange)
+              case e ⇒ unhandled(e)
+            }
+          case Cont(_) ⇒
+            transferTo(exchange)
+          case e ⇒ unhandled(e)
         }
-      } catch { case e: Throwable ⇒ exchange.release(e) }
+      }
 
     }
 
@@ -503,16 +518,14 @@ object Exchange
 
       extends ReleaseHandler {
 
-      @inline final def completed(processed: Integer, exchange: Exchange[A]) = try {
-        if (0 > processed) {
-          exchange.release(null)
-        } else if (exchange.written || exchange.hasError) {
+      @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
+        if (exchange.written || exchange.hasError) {
           exchange.reset
           read(exchange)
         } else {
           write(exchange, false)
         }
-      } catch { case e: Throwable ⇒ exchange.release(e) }
+      }
 
     }
 
@@ -523,17 +536,13 @@ object Exchange
 
       extends ReleaseHandler {
 
-      @inline final def completed(processed: Integer, exchange: Exchange[A]) = try {
-        if (0 > processed) {
-          exchange.release(null)
+      @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
+        if (0 == processed) {
+          exchange.writeDecoding(DecodeCloseHandler, true)
         } else {
-          if (0 == processed) {
-            exchange.writeDecoding(DecodeCloseHandler, true)
-          } else {
-            exchange.writeDecoding(DecodeWriteHandler, true)
-          }
+          exchange.writeDecoding(DecodeWriteHandler, true)
         }
-      } catch { case e: Throwable ⇒ exchange.release(e) }
+      }
 
     }
 
@@ -541,36 +550,27 @@ object Exchange
 
       extends ReleaseHandler {
 
-      @inline final def completed(processed: Integer, exchange: Exchange[A]) = try {
-        if (0 > processed) {
-          exchange.release(null)
+      @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
+        if (0 < exchange.length) {
+          exchange.writeDecoding(this, false)
         } else {
-          if (0 < exchange.length) {
-            exchange.writeDecoding(this, false)
-          } else {
-            exchange.readDecoding(DecodeReadHandler)
-          }
+          exchange.readDecoding(DecodeReadHandler)
         }
-      } catch { case e: Throwable ⇒ exchange.release(e) }
-
+      }
     }
 
     object DecodeCloseHandler
 
       extends ReleaseHandler {
 
-      @inline final def completed(processed: Integer, exchange: Exchange[A]) = try {
-        if (0 > processed) {
-          exchange.release(null)
+      @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
+        if (0 < exchange.length) {
+          exchange.writeDecoding(this, false)
         } else {
-          if (0 < exchange.length) {
-            exchange.writeDecoding(this, false)
-          } else {
-            exchange.transferClose
-            ProcessHandler.completed(0, exchange)
-          }
+          exchange.transferClose
+          ProcessHandler.completed(0, exchange)
         }
-      } catch { case e: Throwable ⇒ exchange.release(e) }
+      }
     }
 
     /**
@@ -580,13 +580,17 @@ object Exchange
 
       extends ReleaseHandler {
 
-      @inline final def completed(processed: Integer, exchange: Exchange[A]) = try {
+      @inline override final def completed(processed: Integer, exchange: Exchange[A]) = try {
+        doComplete(processed, exchange)
+      } catch { case e: Throwable ⇒ failed(e, exchange) }
+
+      @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
         if (0 > processed) {
           exchange.writeEncoding(EncodeCloseHandler, true, -1)
         } else {
           exchange.writeEncoding(EncodeWriteHandler, true, 1)
         }
-      } catch { case e: Throwable ⇒ exchange.release(e) }
+      }
 
     }
 
@@ -594,37 +598,27 @@ object Exchange
 
       extends ReleaseHandler {
 
-      @inline final def completed(processed: Integer, exchange: Exchange[A]) = try {
-        if (0 > processed) {
-          exchange.release(null)
+      @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
+        if (0 < exchange.available) {
+          exchange.writeEncoding(this, false, 0)
         } else {
-          if (0 < exchange.available) {
-            exchange.writeEncoding(this, false, 0)
-          } else {
-            exchange.readEncoding(EncodeReadHandler)
-          }
+          exchange.readEncoding(EncodeReadHandler)
         }
-      } catch { case e: Throwable ⇒ exchange.release(e) }
-
+      }
     }
 
     object EncodeCloseHandler
 
       extends ReleaseHandler {
 
-      @inline final def completed(processed: Integer, exchange: Exchange[A]) = try {
-        if (0 > processed) {
-          exchange.release(null)
+      @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
+        if (0 < exchange.available) {
+          exchange.writeEncoding(this, false, 0)
         } else {
-          if (0 < exchange.available) {
-            exchange.writeEncoding(this, false, 0)
-          } else {
-            exchange.transferClose
-            read(exchange) // next please
-          }
+          exchange.transferClose
+          read(exchange) // next please
         }
-      } catch { case e: Throwable ⇒ exchange.release(e) }
-
+      }
     }
 
     /**
@@ -638,9 +632,9 @@ object Exchange
 
     @inline def write(exchange: Exchange[A], flip: Boolean = true) = exchange.write(WriteHandler, flip)
 
-    @inline def transferTo(exchange: Exchange[A]) = exchange.writeDecoding(DecodeWriteHandler, false)
-
     @inline def transferFrom(exchange: Exchange[A]) = exchange.writeEncoding(EncodeWriteHandler, true, 0)
+
+    @inline def transferTo(exchange: Exchange[A]) = exchange.writeDecoding(DecodeWriteHandler, false)
 
     /**
      * Now, let's get started.

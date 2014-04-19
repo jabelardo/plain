@@ -15,18 +15,18 @@ abstract class HttpDispatcher[A]
 
   def init: HttpDispatcher[A]
 
-  def name = localname
+  def name = n
 
-  def config = localconfig
+  def config = c
 
   def init(name: String, config: Config) = {
-    localname = name
-    localconfig = config
+    n = name
+    c = config
   }
 
-  private[this] final var localname: String = null
+  private[this] final var n: String = null
 
-  private[this] final var localconfig: Config = null
+  private[this] final var c: Config = null
 
 }
 

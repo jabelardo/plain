@@ -6,14 +6,14 @@ package integration
 
 package camel
 
-import org.apache.camel.scala.dsl.builder.RouteBuilder
+import java.io.{ ByteArrayInputStream, FileOutputStream }
+import java.util.jar.JarOutputStream
+import java.util.zip.ZipEntry
 
 import scala.concurrent.duration.Duration
-import scala.language.{ implicitConversions, postfixOps }
 
-import akka.actor.{ Actor, ActorSystem, Props }
-import akka.camel.{ Camel ⇒ AkkaCamel, CamelExtension, CamelMessage, Consumer, Producer, toActorRouteDefinition }
-import akka.util.Timeout.intToTimeout
+import akka.actor.ActorSystem
+import akka.camel.{ Camel ⇒ AkkaCamel, CamelExtension }
 import bootstrap.ExternalComponent
 import logging.Logger
 
@@ -25,8 +25,8 @@ final class Camel
   extends ExternalComponent[Camel]("plain-integration-camel")
 
   with Logger {
-  
-  override def isEnabled = false
+
+  import Camel._
 
   override def order = bootstrapOrder
 
@@ -35,7 +35,6 @@ final class Camel
       actorsystem = ActorSystem(actorSystemName, defaultExecutionContext = Some(concurrent.executor))
       camel = CamelExtension(actorsystem)
       camelextension = camel
-      routes
     }
     this
   }
@@ -51,69 +50,40 @@ final class Camel
     this
   }
 
-  lazy val routes = {
-
-    //    val a = new Route {
-    //
-    //      from("file:/tmp/inbox?delete=true&delay=5000").
-    //        convertBodyTo(classOf[String], "UTF-8").
-    //        transform(body).
-    //        to("file:/tmp/outbox")
-    //
-    //    }
-    //
-    val b = new Route {
-
-      val myendpoint = actorsystem.actorOf(Props[MyEndpoint])
-      camel.activationFutureFor(myendpoint)(actorInvocationTimeout, actorsystem.dispatcher)
-
-      from("file:/tmp/inbox?noop=true&delay=5000").
-        convertBodyTo(classOf[String], "UTF-8").
-        to(myendpoint)
-    }
-
-    new Route {
-
-      val myendpoint = actorsystem.actorOf(Props[MyEndpoint])
-
-      from("servlet:/services/one?matchOnUriPrefix=true").
-        convertBodyTo(classOf[String], "UTF-8").
-        to(myendpoint)
-
-      from("servlet:/services/two?matchOnUriPrefix=true").
-        convertBodyTo(classOf[String], "UTF-8").
-        to(myendpoint)
-
-      from("direct:abc").to(myendpoint)
-
-    }
-
-    new RouteBuilder {
-
-      "servlet:/services/three?matchOnUriPrefix=true" routeId "three" convertBodyTo (classOf[String], "UTF-8") to "direct:abc"
-
-    }.addRoutesToCamelContext(camel.context)
-
-  }
-
   override final def awaitTermination(timeout: Duration) = actorsystem.awaitTermination(timeout)
 
   private[this] final var actorsystem: ActorSystem = null
 
   private[this] final var camel: AkkaCamel = null
 
+  createWarFile
+
 }
 
-/**
- *
- */
-class MyEndpoint extends Actor with Producer {
+object Camel {
 
-  def endpointUri = "file:/tmp/outbox"
-
-  override def transformOutgoingMessage(msg: Any) = msg match {
-    case msg: CamelMessage ⇒ msg.mapBody { body: String ⇒ if (null != body) body.toUpperCase else "empty" }
+  private final def createWarFile = {
+    val out = new JarOutputStream(new FileOutputStream(servlet.webApplicationsDirectory + "/" + servletServicesRoot + ".war"))
+    out.putNextEntry(new ZipEntry("WEB-INF/web.xml"))
+    val in = new ByteArrayInputStream(webxml)
+    io.copyBytes(in, out)
+    in.close
+    out.closeEntry
+    out.close
   }
 
-}
+  private[this] final val webxml = """<web-app>
+	<servlet>
+		<servlet-name>CamelServlet</servlet-name>
+		<display-name>plain-integration-camel-servlet</display-name>
+		<servlet-class>org.apache.camel.component.servlet.CamelHttpTransportServlet
+		</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>CamelServlet</servlet-name>
+		<url-pattern>/*</url-pattern>
+	</servlet-mapping>
+</web-app>
+""".getBytes("UTF-8")
 
+}

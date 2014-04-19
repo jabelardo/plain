@@ -9,7 +9,7 @@ import javax.servlet.http.Cookie
 
 import scala.language.implicitConversions
 
-import aio.{ Encoder, Exchange, ExchangeIteratee, OutMessage, releaseByteBuffer, tooTinyToCareSize }
+import aio.{ AsynchronousByteArrayChannel, Encoder, Exchange, ExchangeIteratee, OutMessage, releaseByteBuffer, tooTinyToCareSize }
 import aio.Iteratee.{ Cont, Done }
 import aio.Renderable._
 import text.`UTF-8`
@@ -89,6 +89,8 @@ final case class Response(
 
   private[this] final def renderContentHeaders[A](exchange: Exchange[A]): Unit = {
     encoder = entity match {
+      case Some(ArrayEntity(_, _, _, _)) ⇒ None
+      case Some(ByteBufferEntity(_, _)) ⇒ None
       case Some(entity) if entity.contenttype.mimetype.encodable && (0 > entity.length || entity.length > tooTinyToCareSize) ⇒ exchange.inMessage match {
         case request: Request ⇒ request.transferEncoding
         case _ ⇒ None
@@ -106,7 +108,6 @@ final case class Response(
             r(`Content-Length: `) + r(entity.length) + `\r\n` + `\r\n` + ^
         }
       case _ ⇒ r(`Content-Length: `) + r(0) + `\r\n` + `\r\n` + ^
-
     }
   }
 
@@ -118,6 +119,14 @@ final case class Response(
     case Some(entity @ ArrayEntity(array, offset, length, _)) if length <= exchange.available ⇒
       r(array, offset, length.toInt) + ^
       encode(exchange, entity)
+    case Some(ArrayEntity(array, offset, length, _)) ⇒
+      exchange.transferFrom(AsynchronousByteArrayChannel(array, offset, length.toInt))
+      exchange ++ cont[A]
+      cont[A]
+    case Some(ByteBufferEntity(bytebuffer, _)) ⇒
+      exchange.transferFrom(AsynchronousByteArrayChannel(bytebuffer.array, 0, bytebuffer.array.length))
+      exchange ++ cont[A]
+      cont[A]
     case Some(_) ⇒
       exchange ++ cont[A]
       cont[A]
@@ -148,8 +157,6 @@ final case class Response(
 object Response {
 
   final def apply(bytebuffer: ByteBuffer, status: Status) = new Response(bytebuffer, Version.`HTTP/1.1`, status, null, null, None, None)
-
-  final def apply(bytebuffer: ByteBuffer, status: Status, headers: Headers) = new Response(bytebuffer, Version.`HTTP/1.1`, status, headers, null, None, None)
 
   private final val `Connection: keep-alive` = "Connection: keep-alive\r\n".getBytes
 

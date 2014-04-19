@@ -9,8 +9,8 @@ import com.ibm.plain.http.HttpDispatcher
 import com.typesafe.config.{ Config, ConfigFactory }
 
 import config.config2RichConfig
-import http.{ Entity, Request }
-import http.Status.{ ClientError, ServerError }
+import http.{ Entity, Request, Response }
+import http.Status.{ ClientError, ServerError, Success }
 import servlet.ServletContainer
 import servlet.http.HttpServletResource
 
@@ -25,6 +25,8 @@ abstract class Dispatcher
 
   final def process(exchange: Exchange[Context], handler: ExchangeHandler[Context]) = {
     val request = exchange.inMessage.asInstanceOf[Request]
+    val response = Response(exchange.writeBuffer, Success.`200`)
+    exchange ++ response
     val context = exchange.attachment match {
       case Some(context) ⇒ context
       case _ ⇒
@@ -32,7 +34,8 @@ abstract class Dispatcher
         exchange ++ Some(context)
         context
     }
-    templates.get(request.method, request.path) match {
+    context ++ request ++ response
+    try templates.get(request.method, request.path) match {
       case Some((resourceclass, config, variables, remainder)) ⇒
         staticresources.getOrElse(resourceclass, resourceclass.newInstance) match {
           case resource: Uniform ⇒
@@ -48,6 +51,8 @@ abstract class Dispatcher
           case _ ⇒ throw ServerError.`500`
         }
       case _ ⇒ throw ClientError.`404`
+    } catch {
+      case e: Throwable ⇒ failed(e, exchange, handler)
     }
   }
 

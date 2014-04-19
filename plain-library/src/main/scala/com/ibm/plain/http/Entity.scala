@@ -56,17 +56,7 @@ object Entity {
   object ByteBufferEntity {
 
     final def apply(s: String, contenttype: ContentType): ByteBufferEntity = {
-      var factor = 1.1
-      var buffer: ByteBuffer = null
-      while (6.0 >= factor) {
-        if (null != buffer) releaseByteBuffer(buffer)
-        buffer = bestFitByteBuffer((s.length * factor).toInt)
-        `UTF-8`.newEncoder.encode(CharBuffer.wrap(s), buffer, true) match {
-          case OVERFLOW ⇒ factor *= 2.0
-          case _ ⇒ buffer.flip; return new ByteBufferEntity(buffer, contenttype)
-        }
-      }
-      throw ServerError.`500`
+      new ByteBufferEntity(ByteBuffer.wrap(s.getBytes(contenttype.charset.toString)), contenttype)
     }
 
   }

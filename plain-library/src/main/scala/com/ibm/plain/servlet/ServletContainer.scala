@@ -24,8 +24,6 @@ abstract sealed class ServletContainer
 
   final def getServletContexts: Set[ServletContext] = if (null != webapplications) webapplications.values.toSet else Set.empty
 
-  override def isEnabled = false
-
   override def isStopped = null == webapplications || 0 == webapplications.size
 
   override def start = {

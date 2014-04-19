@@ -48,7 +48,8 @@ object Camel {
 		"org.apache.camel" % "camel-servlet" % camelVersion,
                 "org.apache.camel" % "camel-nagios" % camelVersion,
                 "org.apache.camel" % "camel-ftp" % camelVersion,
-                "org.apache.camel" % "camel-http4" % camelVersion
+                "org.apache.camel" % "camel-http4" % camelVersion,
+		"org.apache.camel" % "camel-ahc" % camelVersion
         )
 
 	def camelDependencies = core ++ akka ++ networking ++ messaging ++ persistence

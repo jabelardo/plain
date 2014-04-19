@@ -27,6 +27,8 @@ package object camel
 
   final val bootstrapOrder = getInt("plain.integration.camel.bootstrap-order", -1)
 
+  final val servletServicesRoot = getString("plain.integration.camel.servlet-services-root", "integration-services")
+
   final def camelExtension = {
     require(null != camelextension, "plain-integration-camel is not initialized.")
     camelextension

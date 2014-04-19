@@ -24,20 +24,27 @@ abstract sealed class Application
   final def render: Array[String] = components.toArray.map(_.toString)
 
   final def bootstrap = {
+    val externals = createExternals
     components.filter(_.isEnabled).foreach(_.doStart)
-    bootstrapExternals
+    bootstrapExternals(externals)
     Runtime.getRuntime.addShutdownHook(new Thread(new Runnable { def run = teardown }))
   }
 
-  final def bootstrapExternals = {
-    val externals = subClasses(classOf[ExternalComponent[_]]).map(_.newInstance).toSeq.sortWith { case (a, b) ⇒ a.order < b.order }
+  final def bootstrapExternals(externals: Seq[ExternalComponent[_]]) = {
     externals.filter(_.isEnabled).foreach(_.doStart)
     components ++= externals
   }
 
+  /**
+   * Initialize data in external components before starting the bootstrap process. See Camel for example.
+   */
+  final def createExternals = {
+    subClasses(classOf[ExternalComponent[_]]).map(_.newInstance).toSeq.sortWith { case (a, b) ⇒ a.order < b.order }
+  }
+
   final def teardown = onlyonce {
     try {
-      val shutdown = new Thread(new Runnable { def run = { Thread.sleep(15000); terminateJvm(new RuntimeException("Forcing hard shutdown now."), -1, false) } })
+      val shutdown = new Thread(new Runnable { def run = { Thread.sleep(5000); terminateJvm(new RuntimeException("Forcing hard shutdown now."), -1, false) } })
       shutdown.setDaemon(true)
       shutdown.start
       components.filter(_.isStarted).reverse.foreach { c ⇒

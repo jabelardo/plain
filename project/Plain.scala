@@ -23,6 +23,10 @@ object Plain {
             
 	) 
 
+	def net = Seq(
+		"com.ning" % "async-http-client" % "1.8.7"
+	)
+
 	def reflection = Seq(
 		"org.scala-lang" % "scala-reflect" % "2.10.3",
 		"org.reflections" % "reflections" % "0.9.8"
@@ -61,7 +65,7 @@ object Plain {
 		"com.novocode" % "junit-interface" % "0.10" % "test"
 	) 
 
-	def plainDependencies = logging ++ commons ++ reflection ++ compress ++ json ++ javax ++ test
+	def plainDependencies = logging ++ commons ++ net ++ reflection ++ compress ++ json ++ javax ++ test
 
 	def plainSettings = Defaults.defaultSettings ++ Seq(
 		libraryDependencies ++= plainDependencies
