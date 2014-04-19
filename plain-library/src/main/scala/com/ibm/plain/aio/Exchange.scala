@@ -240,6 +240,7 @@ final class Exchange[A] private (
     outmessage.encoder match {
       case Some(encoder) ⇒ encode match {
         case -1 ⇒
+
           writebuffer.clear
           encoder.finish(writebuffer)
         case 0 ⇒
