@@ -5,13 +5,6 @@ import AssemblyKeys._
 import Plain._
 import Camel._
 
-val bootstrapMain = Some("com.ibm.plain.bootstrap.Main")
-
-val runSettings = Seq(
-  mainClass in (Compile, run) := bootstrapMain,
-  fork in (Compile, run) := false
-)
-
 name := "plain.io"
 
 organization in ThisBuild := "com.ibm"
@@ -20,11 +13,18 @@ scalaVersion in ThisBuild := "2.10.4"
 
 version in ThisBuild := "1.0.0-SNAPSHOT"
 
+val bootstrapMain = Some("com.ibm.plain.bootstrap.Main")
+
+val runSettings = Seq(
+  mainClass in (Compile, run) := bootstrapMain,
+  fork in (Compile, run) := false
+)
+
 mainClass in ThisBuild := bootstrapMain
 
 createSrc in ThisBuild := EclipseCreateSrc.Default + EclipseCreateSrc.Resource
 
-eclipseOutput in ThisBuild := Some("target")
+eclipseOutput in ThisBuild := Some("target/scala-2.10/classes")
 
 withSource in ThisBuild:= true
 
@@ -52,7 +52,9 @@ javacOptions in ThisBuild ++= Seq(
 
 scalariformSettings
 
-lazy val library = project in file("plain-library") settings(plainSettings: _*)
+graphSettings
+
+lazy val library = project in file("plain-library") settings(plainSettings ++ graphSettings: _*)
 
 lazy val hybriddb = project in file("plain-hybriddb") dependsOn library settings(jdbcSettings: _*)
 
@@ -66,9 +68,9 @@ lazy val servlet = project in file("plain-samples/plain-sample-servlet") depends
 
 lazy val benchmark = project in file("plain-benchmark") dependsOn library settings(jdbcSettings: _*) settings(assemblySettings: _*)
 
-lazy val integration = project in file("plain-integration") dependsOn library settings(camelSettings: _*)
+lazy val integration = project in file("plain-integration") dependsOn library settings(camelSettings ++ graphSettings: _*)
 
-lazy val integrationhelloworld = project in file("plain-samples/plain-integration-hello-world") dependsOn integration settings(assemblySettings ++ runSettings: _*)
+lazy val integrationhelloworld = project in file("plain-samples/plain-integration-hello-world") dependsOn integration settings(assemblySettings ++ runSettings ++ scalariformSettings ++ graphSettings: _*)
 
 lazy val preparation = project in file("plain-samples/preparation") dependsOn library settings(assemblySettings: _*)
 

@@ -240,7 +240,6 @@ final class Exchange[A] private (
     outmessage.encoder match {
       case Some(encoder) ⇒ encode match {
         case -1 ⇒
-
           writebuffer.clear
           encoder.finish(writebuffer)
         case 0 ⇒
@@ -586,7 +585,7 @@ object Exchange
       } catch { case e: Throwable ⇒ failed(e, exchange) }
 
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
-        if (0 > processed) {
+        if (0 >= processed) {
           exchange.writeEncoding(EncodeCloseHandler, true, -1)
         } else {
           exchange.writeEncoding(EncodeWriteHandler, true, 1)

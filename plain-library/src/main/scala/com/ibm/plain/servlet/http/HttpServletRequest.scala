@@ -204,7 +204,7 @@ final class HttpServletRequest(
 
   final def getHeader(name: String): String = request.headers.get(name) match {
     case Some(value) ⇒ value
-    case _ ⇒ servletcontext.trace("Header not found : " + name); null
+    case _ ⇒ null
   }
 
   final def getHeaders(name: String): Enumeration[String] = List(getHeader(name)).toIterator

@@ -39,12 +39,12 @@ abstract sealed class Application
    * Initialize data in external components before starting the bootstrap process. See Camel for example.
    */
   final def createExternals = {
-    subClasses(classOf[ExternalComponent[_]]).map(_.newInstance).toSeq.sortWith { case (a, b) ⇒ a.order < b.order }
+    subClasses(classOf[ExternalComponent[_]]).map(try _.newInstance catch { case e: Throwable ⇒ e.printStackTrace; null }).toSeq.filter(null != _).sortWith { case (a, b) ⇒ a.order < b.order }
   }
 
   final def teardown = onlyonce {
     try {
-      val shutdown = new Thread(new Runnable { def run = { Thread.sleep(5000); terminateJvm(new RuntimeException("Forcing hard shutdown now."), -1, false) } })
+      val shutdown = new Thread(new Runnable { def run = { Thread.sleep(15000); terminateJvm(new RuntimeException("Forcing hard shutdown now."), -1, false) } })
       shutdown.setDaemon(true)
       shutdown.start
       components.filter(_.isStarted).reverse.foreach { c ⇒
