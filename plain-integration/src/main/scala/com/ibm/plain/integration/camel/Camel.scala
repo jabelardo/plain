@@ -10,10 +10,8 @@ import java.io.{ ByteArrayInputStream, FileOutputStream }
 import java.util.jar.JarOutputStream
 import java.util.zip.ZipEntry
 
-import scala.concurrent.duration.Duration
+import org.apache.camel.impl.DefaultCamelContext
 
-import akka.actor.ActorSystem
-import akka.camel.{ Camel ⇒ AkkaCamel, CamelExtension }
 import bootstrap.ExternalComponent
 import logging.Logger
 
@@ -26,36 +24,30 @@ final class Camel
 
   with Logger {
 
-  import Camel._
+  import Camel.createWarFile
 
   override def order = bootstrapOrder
 
   override def start = {
-    if (null == actorsystem && null == camel) {
-      actorsystem = ActorSystem(actorSystemName, defaultExecutionContext = Some(concurrent.executor))
-      camel = CamelExtension(actorsystem)
-      camelextension = camel
+    if (null == camelcontext) {
+      camelcontext = new DefaultCamelContext
+      camelcontext.start
     }
     this
   }
 
   override def stop = {
-    if (null != actorsystem && null != camel) {
-      actorsystem.shutdown
-      actorsystem = null
-      camel = null
-      camelextension = null
+    if (null != camelcontext) {
+      camelcontext.stop
+      camelcontext = null
       ignore(Thread.sleep(delayDuringShutdown))
     }
     this
   }
 
-  override final def awaitTermination(timeout: Duration) = actorsystem.awaitTermination(timeout)
-
-  private[this] final var actorsystem: ActorSystem = null
-
-  private[this] final var camel: AkkaCamel = null
-
+  /*
+   * Must be done at creation time to be used by the ServletContainer.
+   */
   createWarFile
 
 }

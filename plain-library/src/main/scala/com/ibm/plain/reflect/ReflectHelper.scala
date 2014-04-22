@@ -4,11 +4,9 @@ package plain
 
 package reflect
 
-import scala.reflect._
-import runtime._
-import universe._
 import scala.collection.Seq
 import scala.language.implicitConversions
+import scala.reflect.runtime.universe.{ Symbol, Type, TypeRef, TypeRefTag, TypeTag, termNames }
 
 /**
  *
@@ -22,7 +20,7 @@ object ReflectHelper {
   def newInstance[A: TypeTag](parameters: Seq[Any]): A = newInstance[A](typeOf[A], parameters)
 
   def newInstance[A: TypeTag](a: Type, parameters: Seq[Any]): A =
-    reflectClass(a.typeSymbol.asClass).reflectConstructor(a.declaration(nme.CONSTRUCTOR).asMethod)(parameters: _*).asInstanceOf[A]
+    reflectClass(a.typeSymbol.asClass).reflectConstructor(a.decl(termNames.CONSTRUCTOR).asMethod)(parameters: _*).asInstanceOf[A]
 
   def valsOfType[A: TypeTag, C: TypeTag]: Seq[Symbol] = valsOfType(typeOf[A], typeOf[C])
 
@@ -32,12 +30,12 @@ object ReflectHelper {
   def constructorParams[A: TypeTag]: TList = constructorParams(typeOf[A])
 
   def constructorParams(a: Type): TList =
-    TList(reflectClass(a.typeSymbol.asClass).reflectConstructor(a.declaration(nme.CONSTRUCTOR).asMethod).symbol.paramss.flatten.map(_.typeSignature))
+    TList(reflectClass(a.typeSymbol.asClass).reflectConstructor(a.decl(termNames.CONSTRUCTOR).asMethod).symbol.paramLists.flatten.map(_.typeSignature))
 
   def constructorParamsOfType[A: TypeTag, C: TypeTag]: List[Type] = constructorParamsOfType(typeOf[A], typeOf[C])
 
   def constructorParamsOfType(a: Type, c: Type): List[Type] =
-    reflectClass(a.typeSymbol.asClass).reflectConstructor(a.declaration(nme.CONSTRUCTOR).asMethod).symbol.paramss.flatten.map(_.typeSignature).filter(_ <:< c)
+    reflectClass(a.typeSymbol.asClass).reflectConstructor(a.decl(termNames.CONSTRUCTOR).asMethod).symbol.paramLists.flatten.map(_.typeSignature).filter(_ <:< c)
 
   def typeArguments[A: TypeTag]: List[Type] = typeArguments(typeOf[A])
 

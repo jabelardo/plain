@@ -159,8 +159,8 @@ trait Resource
             def tryDecode(in: Type, decode: AnyRef): Boolean = {
               if (innerinput.isDefined && innerinput.get._2 == decode) return true
               decode match {
-                case decode: Decoder[_] ⇒ tryBoolean(innerinput = Some((decode(inentity), decode)))
-                case decode: MarshaledDecoder[_] ⇒ tryBoolean(innerinput = Some((decode(inentity, ClassTag(Class.forName(in.toString))), decode)))
+                case decode if decode.isInstanceOf[Decoder[_]] ⇒ tryBoolean(innerinput = Some((decode.asInstanceOf[Decoder[_]](inentity), decode)))
+                case decode if decode.isInstanceOf[MarshaledDecoder[_]] ⇒ tryBoolean(innerinput = Some((decode.asInstanceOf[MarshaledDecoder[_]](inentity, ClassTag(Class.forName(in.toString))), decode)))
                 case _ ⇒ false
               }
             }

@@ -28,7 +28,7 @@ object Plain {
 	)
 
 	def reflection = Seq(
-		"org.scala-lang" % "scala-reflect" % "2.10.3",
+		"org.scala-lang" % "scala-reflect" % "2.11.0",
 		"org.reflections" % "reflections" % "0.9.8"
 	)
 
@@ -48,6 +48,12 @@ object Plain {
 		"com.sun.jersey" % "jersey-json" % "1.18.1"
 	) 
 
+	def modules = Seq(
+		"org.scala-lang.modules" % "scala-xml_2.11.0-M7" % "1.0.0-RC7",
+                "org.scala-lang.modules" % "scala-parser-combinators_2.11.0-M7" % "1.0.0-RC5"
+
+	)
+
 	def jdbc = Seq(
 		"mysql" % "mysql-connector-java" % "5.1.29",
 		"org.apache.derby" % "derby" % "10.10.1.1",
@@ -65,7 +71,7 @@ object Plain {
 		"com.novocode" % "junit-interface" % "0.10" % "test"
 	) 
 
-	def plainDependencies = logging ++ commons ++ net ++ reflection ++ compress ++ json ++ javax ++ test
+	def plainDependencies = logging ++ commons ++ net ++ reflection ++ compress ++ json ++ modules ++ javax ++ test
 
 	def plainSettings = Defaults.defaultSettings ++ Seq(
 		libraryDependencies ++= plainDependencies

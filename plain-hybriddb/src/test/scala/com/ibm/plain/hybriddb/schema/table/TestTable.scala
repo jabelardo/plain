@@ -86,7 +86,8 @@ object Test2 {
         case a: Boolean ⇒ if (a) 1 else 0
         case null ⇒ 0
         case None ⇒ 0
-        case a: ToInt ⇒ a.toInt
+        //case a: ToInt if a.isInstanceOf[ToInt] ⇒ a.toInt
+        case a ⇒ a.toString.toInt
       }
     }
 

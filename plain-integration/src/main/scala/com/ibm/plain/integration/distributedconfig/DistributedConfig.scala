@@ -9,7 +9,7 @@ package distributedconfig
 import org.apache.camel.scala.dsl.builder.RouteBuilder
 
 import bootstrap.ExternalComponent
-import camel.camelExtension
+import camel.context
 import logging.Logger
 
 /**
@@ -38,7 +38,7 @@ final class DistributedConfig
           convertBodyTo(classOf[String]).
           to("mock:result")
       }
-    }).addRoutesToCamelContext(camelExtension.context)
+    }).addRoutesToCamelContext(context)
     this
   }
 

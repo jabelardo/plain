@@ -9,7 +9,7 @@ name := "plain.io"
 
 organization in ThisBuild := "com.ibm"
 
-scalaVersion in ThisBuild := "2.10.4"
+scalaVersion in ThisBuild := "2.11.0"
 
 version in ThisBuild := "1.0.0-SNAPSHOT"
 
@@ -24,7 +24,7 @@ mainClass in ThisBuild := bootstrapMain
 
 createSrc in ThisBuild := EclipseCreateSrc.Default + EclipseCreateSrc.Resource
 
-eclipseOutput in ThisBuild := Some("target/scala-2.10/classes")
+eclipseOutput in ThisBuild := Some("target/scala-2.11/classes")
 
 withSource in ThisBuild:= true
 
@@ -41,6 +41,8 @@ scalacOptions in ThisBuild ++= Seq(
 	"-optimize",
 	"-unchecked"
 )
+
+incOptions := incOptions.value.withNameHashing(true) 
 
 javacOptions in ThisBuild ++= Seq(
 	"-source", "1.7",

@@ -6,10 +6,9 @@ package io
 
 import java.io.File
 
-import scala.collection.mutable.{ HashSet, SynchronizedSet }
-import scala.concurrent.duration._
-
 import org.apache.commons.io.FileUtils
+
+import scala.collection.concurrent.TrieMap
 
 import bootstrap.BaseComponent
 
@@ -25,15 +24,15 @@ abstract sealed class Io
     this
   }
 
-  def add(file: File) = files += file
+  def add(file: File) = files.put(file, null)
 
   private[this] def deleteAll = {
-    files.filter(!_.isDirectory).foreach(_.delete)
-    files.filter(_.isDirectory).foreach(FileUtils.deleteDirectory)
+    files.keySet.filter(!_.isDirectory).foreach(_.delete)
+    files.keySet.filter(_.isDirectory).foreach(FileUtils.deleteDirectory)
     files.clear
   }
 
-  private[this] val files = new HashSet[File] with SynchronizedSet[File]
+  private[this] val files = new TrieMap[File, Null]
 
 }
 

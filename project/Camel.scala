@@ -7,8 +7,6 @@ object Camel {
 
 	def camelVersion = "2.13.0"
 
-	def akkaVersion = "2.3.2"
-
 	def activemqVersion = "5.9.1"
 
 	def core = Seq(
@@ -21,10 +19,6 @@ object Camel {
                 "org.apache.camel" % "camel-test" % camelVersion,
                 "org.apache.camel" % "camel-core" % camelVersion
 	) 
-
-	def akka = Seq(
-		"com.typesafe.akka" %% "akka-camel" % akkaVersion
-	)
 
 	def messaging = Seq(
                 "org.apache.camel" % "camel-sjms" % camelVersion,
@@ -51,7 +45,7 @@ object Camel {
 		"org.apache.camel" % "camel-ahc" % camelVersion
         )
 
-	def camelDependencies = core ++ akka ++ networking ++ messaging ++ persistence
+	def camelDependencies = core ++ networking ++ messaging ++ persistence
 
 	def camelSettings = Seq(
 

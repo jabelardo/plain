@@ -13,6 +13,7 @@ import java.io._
 import scala.reflect._
 import runtime._
 import universe._
+import universe.{ typeOf ⇒ utypeOf }
 
 import column._
 import reflect.ReflectHelper._
@@ -24,8 +25,8 @@ protected trait TableHelper {
 
   protected[this] final def reflectColumns: Map[String, Column[_]] = {
     val T = reflect(this)
-    valsOfType(typeOfInstance(this), typeOf[Column[_]]).foldLeft(Map[String, Column[_]]()) { (m, c) ⇒
-      m ++ Map(c.name.decoded.trim -> T.reflectField(c.asTerm).get.asInstanceOf[Column[_]])
+    valsOfType(typeOfInstance(this), utypeOf[Column[_]]).foldLeft(Map[String, Column[_]]()) { (m, c) ⇒
+      m ++ Map(c.name.decodedName.toString.trim -> T.reflectField(c.asTerm).get.asInstanceOf[Column[_]])
     }
   }
 
@@ -37,11 +38,11 @@ protected trait TableHelper {
       val TOrdering = TType[Ordering[_]]
       val (columnclasstag, ordering) = typeArguments(c) match {
         case Nil ⇒ (null, null)
-        case ord :: Nil if ord <:< typeOf[Ordering[_]] ⇒ (null, newOrdering(ord))
+        case ord :: Nil if ord <:< utypeOf[Ordering[_]] ⇒ (null, newOrdering(ord))
         case c :: Nil ⇒ (newClassTag(c), null)
-        case c :: ord :: Nil if ord <:< typeOf[Ordering[_]] ⇒ (newClassTag(c), newOrdering(ord))
+        case c :: ord :: Nil if ord <:< utypeOf[Ordering[_]] ⇒ (newClassTag(c), newOrdering(ord))
       }
-      val builder = c.members.filter(m ⇒ m.isType && m.typeSignature <:< typeOf[ColumnBuilder[_, _]]).map(_.typeSignature).head
+      val builder = c.members.filter(m ⇒ m.isType && m.typeSignature <:< utypeOf[ColumnBuilder[_, _]]).map(_.typeSignature).head
       val parameters = constructorParams(builder) match {
         case TLong +: TNil ⇒ List(capacity)
         case TLong +: TClassTag +: TNil ⇒ List(capacity, columnclasstag)

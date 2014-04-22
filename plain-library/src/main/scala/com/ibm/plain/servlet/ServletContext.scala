@@ -63,10 +63,10 @@ final class ServletContext(
   final def declareRoles(roles: String*) = unsupported
 
   final def destroy = {
-    classloader.close
-    filters.values.map(_._1).foreach(_.destroy)
-    servlets.values.map(_._1).map(s ⇒ if (s.isLeft) s.left.get._2 else s.right.get).foreach(_.destroy)
-    listeners.foreach(_.contextDestroyed(new js.ServletContextEvent(this)))
+    ignore(classloader.close)
+    filters.values.map(_._1).foreach { f ⇒ try f.destroy catch { case e: Throwable ⇒ trace(e.toString) } }
+    servlets.values.map(_._1).map(s ⇒ if (s.isLeft) s.left.get._2 else s.right.get).foreach { s ⇒ try s.destroy catch { case e: Throwable ⇒ trace(e.toString) } }
+    listeners.foreach { l ⇒ try l.contextDestroyed(new js.ServletContextEvent(this)) catch { case e: Throwable ⇒ trace(e.toString) } }
     jsppages.cancel(true)
   }
 

@@ -41,7 +41,7 @@ abstract class Dispatcher
           case resource: Uniform ⇒
             request.entity match {
               case None ⇒
-              case Some(Entity(_)) if request.method.entityallowed ⇒
+              case Some(Entity(_, _, _)) if request.method.entityallowed ⇒
               case Some(Entity(_, length, _)) if !request.method.entityallowed && length < aio.defaultBufferSize ⇒
               case Some(_) if !request.method.entityallowed ⇒ throw ClientError.`413`
               case _ ⇒

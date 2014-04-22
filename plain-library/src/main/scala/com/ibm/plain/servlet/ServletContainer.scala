@@ -50,7 +50,7 @@ abstract sealed class ServletContainer
     this
   }
 
-  override def stop = try {
+  override def stop = {
     webapplications.values.foreach(ctx ⇒ ignore(ctx.destroy))
     webapplications = null
     this

@@ -121,9 +121,13 @@ object MimeType {
   /**
    *
    */
-  abstract sealed class PredefinedMimeType( final val encodable: Boolean, ext: Seq[String] = Seq.empty) extends MimeType {
+  abstract sealed class PredefinedMimeType(
 
-    final def this(ext: Seq[String] = Seq.empty) = this(true, ext)
+    final val encodable: Boolean,
+
+    final val ext: Seq[String] = Seq.empty) extends MimeType {
+
+    final def this(ext: Seq[String]) = this(true, ext)
 
     final val name = toString
 
@@ -143,7 +147,7 @@ object MimeType {
   abstract class `text/*`(ext: String*) extends PredefinedMimeType(ext)
   abstract class `video/*`(ext: String*) extends PredefinedMimeType(false, ext)
 
-  case object `*/*` extends PredefinedMimeType
+  case object `*/*` extends PredefinedMimeType(Seq.empty)
 
   case object `application/atom+xml` extends `application/*`(true, "xml")
   case object `application/vnd.catiav5-cgr` extends `application/*`(true, "cgr")

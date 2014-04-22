@@ -4,13 +4,13 @@ package plain
 
 package bootstrap
 
-import scala.collection.mutable.{ ArrayBuffer, SynchronizedBuffer }
+import scala.collection.JavaConversions.{ collectionAsScalaIterable, seqAsJavaList }
 import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
 
-import time.now
 import concurrent.OnlyOnce
-import reflect._
+import reflect.subClasses
+import time.now
 
 /**
  *
@@ -32,7 +32,7 @@ abstract sealed class Application
 
   final def bootstrapExternals(externals: Seq[ExternalComponent[_]]) = {
     externals.filter(_.isEnabled).foreach(_.doStart)
-    components ++= externals
+    components.addAll(externals)
   }
 
   /**
@@ -47,7 +47,7 @@ abstract sealed class Application
       val shutdown = new Thread(new Runnable { def run = { Thread.sleep(15000); terminateJvm(new RuntimeException("Forcing hard shutdown now."), -1, false) } })
       shutdown.setDaemon(true)
       shutdown.start
-      components.filter(_.isStarted).reverse.foreach { c ⇒
+      components.filter(_.isStarted).toList.reverse.foreach { c ⇒
         try c.doStop catch { case NonFatal(e) ⇒ println(c + " : " + e) }
       }
     } catch { case e: Throwable ⇒ terminateJvm(e, -1, false) }
@@ -58,15 +58,15 @@ abstract sealed class Application
     teardown
   }
 
-  final def register(component: Component[_]): Application = { components += component.asInstanceOf[BaseComponent[_]]; this }
+  final def register(component: Component[_]): Application = { components.add(component.asInstanceOf[BaseComponent[_]]); this }
 
-  final def unregister(component: Component[_]) = { components -= component.asInstanceOf[BaseComponent[_]]; this }
+  final def unregister(component: Component[_]) = { components.remove(component.asInstanceOf[BaseComponent[_]]); this }
 
   final def uptime = now - starttime
 
   final def getComponents(componentclass: Class[_ <: Component[_]]) = components.filter(_.getClass == componentclass)
 
-  private[this] final val components = new ArrayBuffer[BaseComponent[_]] with SynchronizedBuffer[BaseComponent[_]]
+  private[this] final val components = new java.util.concurrent.ArrayBlockingQueue[BaseComponent[_]](128)
 
   private[this] final val starttime = now
 
