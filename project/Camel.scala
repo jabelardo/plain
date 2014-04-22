@@ -22,7 +22,9 @@ object Camel {
 
 	def messaging = Seq(
                 "org.apache.camel" % "camel-sjms" % camelVersion,
-                "org.apache.camel" % "camel-mail" % camelVersion
+                "org.apache.camel" % "camel-mail" % camelVersion,
+		"org.apache.activemq" % "activemq-camel" % activemqVersion,
+		"org.apache.activemq" % "activemq-broker" % activemqVersion
 	)
 
         def persistence = Seq(

@@ -14,9 +14,11 @@
 			additivity="false" />
 		<Logger name="org.apache.camel.management" level="error"
 			additivity="false" />
-		<Logger name="org.apache.camel.impl" level="info"
+		<Logger name="org.apache.camel.impl" level="error"
 			additivity="false" />
-		<Logger name="akka.camel" level="info"
+		<Logger name="org.springframework" level="error"
+			additivity="false" />
+		<Logger name="akka.camel" level="error"
 			additivity="false" />
 	</Loggers>
 </Configuration>
