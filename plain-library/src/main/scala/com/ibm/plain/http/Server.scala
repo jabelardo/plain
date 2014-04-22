@@ -89,7 +89,7 @@ final case class Server(
 
   override def awaitTermination(timeout: Duration) = if (!channelGroup.isShutdown) channelGroup.awaitTermination(if (Duration.Inf == timeout) -1 else timeout.toMillis, TimeUnit.MILLISECONDS)
 
-  override final def name = "HttpServer(name=" + settings.displayName +
+  override final def name = "plain-http-server(name=" + settings.displayName +
     ", address=" + bindaddress +
     ", backlog=" + settings.backlog +
     ", dispatcher=" + { try dispatcher.name catch { case _: Throwable ⇒ "invalid" } } +

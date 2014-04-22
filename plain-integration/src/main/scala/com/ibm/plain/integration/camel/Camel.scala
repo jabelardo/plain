@@ -49,6 +49,7 @@ final class Camel
    * Must be done at creation time to be used by the ServletContainer.
    */
   createWarFile
+  trace(servlet.webApplicationsDirectory + "/" + servletServicesRoot + ".war created.")
 
 }
 

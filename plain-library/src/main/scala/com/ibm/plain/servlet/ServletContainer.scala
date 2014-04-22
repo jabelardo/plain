@@ -16,7 +16,7 @@ import logging.Logger
  */
 abstract sealed class ServletContainer
 
-  extends BaseComponent[ServletContainer]("ServletContainer")
+  extends BaseComponent[ServletContainer]("plain-servlet-container")
 
   with Logger {
 

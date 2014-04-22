@@ -84,9 +84,8 @@ abstract class Dispatcher
       }
     }).filter(_._1 != null).toMap
 
-    debug("name = " + name)
-    debug("staticresources = " + staticresources.keySet)
-    if (null != templates) templates.toString.split("\n").filter(0 < _.length).foreach(r ⇒ debug("route = " + r)) else warn("No routes defined.")
+    trace("name = " + name + ", staticresources = " + (if (0 < staticresources.keySet.size) staticresources.keySet else "none"))
+    if (null != templates) templates.toString.split("\n").filter(0 < _.length).foreach(r ⇒ trace("route = " + r)) else warn("No routes defined.")
     this
   }
 

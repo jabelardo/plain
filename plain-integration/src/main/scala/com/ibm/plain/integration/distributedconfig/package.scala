@@ -21,7 +21,9 @@ package object distributedconfig
 
   final val bootstrapOrder = getInt("plain.integration.distributed-config.bootstrap-order", -1)
 
-  final val udpPort = getInt("plain.integration.distributed-config.udp-port", 50499)
+  final val masterHost = getString("plain.integration.distributed-config.master-host", "localhost")
+
+  final val masterPort = getInt("plain.integration.distributed-config.master-port", 8080)
 
   final val isMaster = getBoolean("plain.integration.distributed-config.is-master", false)
 
