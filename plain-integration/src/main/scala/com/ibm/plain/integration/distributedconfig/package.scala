@@ -33,4 +33,11 @@ package object distributedconfig
 
   final val startDelayedTimeout = getMilliseconds("plain.integration.distributed-config.start-delayed-timeout", 5000)
 
+  final def context = {
+    require(null != configcontext, "plain-integration-distributed-config is not initialized.")
+    configcontext
+  }
+
+  @volatile private[distributedconfig] var configcontext: DistributedConfig = null
+
 }

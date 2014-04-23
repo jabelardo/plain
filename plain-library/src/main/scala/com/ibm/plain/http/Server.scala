@@ -149,7 +149,9 @@ object Server {
 
     final val address = getString("address")
 
-    final val portRange = getIntList("port-range", List.empty)
+    final val port = getInt("port", -1)
+
+    final val portRange = if (-1 < port) List(port) else getIntList("port-range", List.empty)
 
     final val backlog = getBytes("backlog").toInt
 
