@@ -28,7 +28,9 @@ final class SpacesClient private
       val handler = new ResponseHandler[String] {
         def handleResponse(response: HttpResponse): String = {
           response.getStatusLine.getStatusCode match {
-            case 200 ⇒ info(EntityUtils.toString(response.getEntity))
+            case 200 ⇒
+              info(EntityUtils.toString(response.getEntity))
+              response.getEntity().getContent
             case e ⇒ error("status code " + e)
           }
           null
