@@ -9,43 +9,53 @@ package object plain
   import config._
   import config.settings._
 
-  /**
-   * This is the central point for registering Components to the application in the correct order.
-   */
-  final lazy val application = {
-
-    val appl = bootstrap.application
-      .register(concurrent.Concurrent)
-      .register(logging.Logging)
-      .register(time.Time)
-      .register(io.Io)
-      .register(aio.Aio)
-      .register(monitor.extension.jmx.JmxMonitor)
-      .register(servlet.ServletContainer)
-
-    jdbc.startupConnectionFactories.foreach(path ⇒ appl.register(jdbc.ConnectionFactory(path)))
-
-    http.startupServers.foreach(path ⇒ appl.register(http.Server(path, Some(appl), None, None)))
-
-    appl
-  }
+  import bootstrap.Application
+  import concurrent.Concurrent
+  import logging.Logging
+  import time.Time
+  import io.Io
+  import aio.Aio
+  import monitor.extension.jmx.JmxMonitor
+  import servlet.ServletContainer
 
   final def run: Unit = run(())
 
   final def run(body: ⇒ Unit): Unit = run(Duration.fromNanos(Long.MaxValue))(body)
 
-  final def run(timeout: Duration)(body: ⇒ Unit): Unit = try {
-    application.bootstrap
-    if (!os.hostResolved) logging.createLogger(this).warn("Hostname not yet resolved, maybe some DNS problem.")
-    body
-    application.awaitTermination(timeout)
-  } catch {
-    case e: Throwable ⇒ e.printStackTrace; println("Exception during bootstrap : " + e)
-  } finally {
+  final def run(timeout: Duration)(body: ⇒ Unit): Unit = {
+    /**
+     * This is the central point for registering Components to the application in the correct order.
+     */
+    val application = {
+
+      val appl = Application.instance
+        .register(Concurrent.instance)
+        .register(Logging.instance)
+        .register(Time.instance)
+        .register(Io.instance)
+        .register(Aio.instance)
+        .register(JmxMonitor.instance)
+        .register(ServletContainer.instance)
+
+      jdbc.startupConnectionFactories.foreach(path ⇒ appl.register(jdbc.ConnectionFactory(path)))
+
+      http.startupServers.foreach(path ⇒ appl.register(http.Server(path, Some(appl), None, None)))
+
+      appl
+    }
     try {
-      application.teardown
+      application.bootstrap
+      if (!os.hostResolved) logging.createLogger(this).warn("Hostname not yet resolved, maybe some DNS problem.")
+      body
+      application.awaitTermination(timeout)
     } catch {
-      case e: Throwable ⇒ println("Exception during teardown : " + e)
+      case e: Throwable ⇒ e.printStackTrace; println("Exception during bootstrap : " + e)
+    } finally {
+      try {
+        application.teardown
+      } catch {
+        case e: Throwable ⇒ println("Exception during teardown : " + e)
+      }
     }
   }
 

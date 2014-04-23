@@ -8,33 +8,36 @@ package distributedconfig
 
 import org.apache.camel.scala.dsl.builder.RouteBuilder
 
-import bootstrap.ExternalComponent
+import bootstrap.{ Component, ExternalComponent, Singleton }
 import logging.Logger
+import camel.Camel
 
 /**
  *
  */
 final class DistributedConfig
 
-  extends ExternalComponent[DistributedConfig]("plain-integration-distributed-config")
+  extends ExternalComponent[DistributedConfig](
+
+    distributedconfig.isEnabled,
+
+    "plain-integration-distributed-config",
+
+    classOf[Camel])
 
   with Logger {
 
   override def order = bootstrapOrder
 
   override def start = {
-    if (null == configcontext) {
-      (if (isMaster) masterRoutes else slaveRoutes).addRoutesToCamelContext(camel.context)
-      configcontext = this
-    }
+    (if (isMaster) masterRoutes else slaveRoutes).addRoutesToCamelContext(Camel.instance.context)
+    DistributedConfig.instance(this)
     this
   }
 
   override def stop = {
-    if (null != configcontext) {
-      camel.context.stopRoute(if (isMaster) "distributed-config-master-routes" else "distributed-config-slave-routes")
-      configcontext = null
-    }
+    DistributedConfig.resetInstance
+    Camel.instance.context.stopRoute(if (isMaster) "distributed-config-master-routes" else "distributed-config-slave-routes")
     this
   }
 
@@ -60,4 +63,9 @@ final class DistributedConfig
 
 }
 
+/**
+ *
+ */
+object DistributedConfig
 
+  extends Singleton[DistributedConfig]

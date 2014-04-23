@@ -6,19 +6,20 @@ package servlet
 
 import java.nio.file.Path
 
-import com.ibm.plain.bootstrap.BaseComponent
-import com.ibm.plain.io.FileExtensionFilter
-
+import bootstrap.{ BaseComponent, IsSingleton, Singleton }
+import io.FileExtensionFilter
 import logging.Logger
 
 /**
  *
  */
-abstract sealed class ServletContainer
+final class ServletContainer private
 
   extends BaseComponent[ServletContainer]("plain-servlet-container")
 
-  with Logger {
+  with Logger
+
+  with IsSingleton {
 
   final def getServletContext(path: String): ServletContext = webapplications.getOrElse(path, null)
 
@@ -65,4 +66,4 @@ abstract sealed class ServletContainer
  */
 object ServletContainer
 
-  extends ServletContainer
+  extends Singleton[ServletContainer](new ServletContainer)

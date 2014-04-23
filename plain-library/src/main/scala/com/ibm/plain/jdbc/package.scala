@@ -10,6 +10,7 @@ import scala.collection.concurrent.TrieMap
 import com.ibm.plain.jdbc.{ Connection, ConnectionFactory, DataSourceWrapper }
 
 import config.{ CheckedConfig, config2RichConfig }
+import bootstrap.Application
 
 package object jdbc
 
@@ -20,8 +21,8 @@ package object jdbc
 
   final def connectionFactoryForName(name: String): Option[ConnectionFactory] = connectionfactoriescache.get(name) match {
     case e @ Some(_) ⇒ e
-    case None ⇒ bootstrap
-      .application
+    case None ⇒ Application
+      .instance
       .getComponents(classOf[ConnectionFactory])
       .find(_.asInstanceOf[ConnectionFactory].displayname == name) match {
         case Some(connectionfactory: ConnectionFactory) ⇒
@@ -43,8 +44,8 @@ package object jdbc
 
   final def connectionFactoryForJndiLookupName(name: String): Option[ConnectionFactory] = connectionfactoriescache.get(name) match {
     case e @ Some(_) ⇒ e
-    case None ⇒ bootstrap
-      .application
+    case None ⇒ Application
+      .instance
       .getComponents(classOf[ConnectionFactory])
       .find(_.asInstanceOf[ConnectionFactory].jndilookupyname == name) match {
         case Some(connectionfactory: ConnectionFactory) ⇒ Some(connectionfactory)

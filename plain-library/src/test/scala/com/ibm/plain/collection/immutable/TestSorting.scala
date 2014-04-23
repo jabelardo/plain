@@ -16,7 +16,7 @@ import scala.math.Ordering._
 final class TestSortedArray {
 
   @Test def test1 = {
-    bootstrap.application.bootstrap
+    bootstrap.Application.instance.bootstrap
     val v = Array("C", "B", "@", "A", "B", "E", "@")
     val s = Sorting.sortedIndexedSeq(v, Ordering[String])
     println(v.toList)

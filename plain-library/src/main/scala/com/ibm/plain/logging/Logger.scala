@@ -22,7 +22,7 @@ trait Logger {
 
   final def error(message: ⇒ String) = if (logger.isErrorEnabled) logger.error(message)
 
-  protected final def logger: JLogger = { if (null == jlogger) jlogger = Logging.createJLogger(loggername); jlogger }
+  protected final def logger: JLogger = { if (null == jlogger) jlogger = Logging.instance.createJLogger(loggername); jlogger }
 
   protected val loggername: String = getClass.getName.replace("$", "")
 

@@ -6,19 +6,23 @@ package concurrent
 
 import java.util.concurrent.{ Executors, ForkJoinPool, TimeUnit }
 
+import com.ibm.plain.bootstrap.{ BaseComponent, Singleton }
+
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Duration
 
-import bootstrap.BaseComponent
+import bootstrap.{ BaseComponent, IsSingleton, Singleton }
 
 /**
- * Just needed for inheritance.
+ *
  */
-abstract sealed class Concurrent
+final class Concurrent private
 
   extends BaseComponent[Concurrent]("plain-concurrent")
 
-  with OnlyOnce {
+  with OnlyOnce
+
+  with IsSingleton {
 
   override final def stop = {
     if (isStarted) {
@@ -50,4 +54,6 @@ abstract sealed class Concurrent
 /**
  * The Concurrent object.
  */
-object Concurrent extends Concurrent
+object Concurrent
+
+  extends Singleton[Concurrent](new Concurrent)

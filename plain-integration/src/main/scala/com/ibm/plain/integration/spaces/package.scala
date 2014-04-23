@@ -23,4 +23,6 @@ package object spaces
 
   final val spacesConfig = getConfigList("plain.rest.default-dispatcher.routes")
 
+  final val isEnabled = getBoolean("plain.integration.spaces.is-enabled", false)
+
 }

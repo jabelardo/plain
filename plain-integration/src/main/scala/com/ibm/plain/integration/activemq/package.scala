@@ -29,4 +29,6 @@ package object activemq
 
   final val isMaster = getBoolean("plain.integration.activemq.is-master", false)
 
+  final val isEnabled = getBoolean("plain.integration.activemq.is-enabled", false)
+
 }

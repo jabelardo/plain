@@ -4,14 +4,16 @@ package plain
 
 package aio
 
-import bootstrap.BaseComponent
+import bootstrap.{ BaseComponent, IsSingleton, Singleton }
 
 /**
- * Just needed for inheritance.
+ *
  */
-abstract sealed class Aio
+final class Aio private
 
-  extends BaseComponent[Aio]("plain-aio") {
+  extends BaseComponent[Aio]("plain-aio")
+
+  with IsSingleton {
 
   final val defaultBufferPool = ByteBufferPool(defaultBufferSize, defaultBufferPoolSize)
 
@@ -26,5 +28,7 @@ abstract sealed class Aio
 /**
  * The Aio object.
  */
-object Aio extends Aio
+object Aio
+
+  extends Singleton[Aio](new Aio)
 

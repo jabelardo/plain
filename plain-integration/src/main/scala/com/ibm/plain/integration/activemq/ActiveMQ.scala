@@ -10,16 +10,25 @@ import org.apache.camel.scala.dsl.builder.RouteBuilder
 import org.apache.activemq.camel.component.ActiveMQComponent.activeMQComponent
 import org.apache.activemq.broker.BrokerService
 
-import bootstrap.ExternalComponent
-import camel.context
+import bootstrap.{ ExternalComponent, Singleton }
 import logging.Logger
+import camel.Camel
+import distributedconfig.DistributedConfig
 
 /**
  *
  */
 final class ActiveMQ
 
-  extends ExternalComponent[ActiveMQ]("plain-integration-activemq")
+  extends ExternalComponent[ActiveMQ](
+
+    activemq.isEnabled,
+
+    "plain-integration-activemq",
+
+    classOf[Camel],
+
+    classOf[DistributedConfig])
 
   with Logger {
 
@@ -37,7 +46,7 @@ final class ActiveMQ
         broker.start
         broker.waitUntilStarted
       } else {
-        context.addComponent("activemq", activeMQComponent(brokerClientUri + ":" + brokerPort))
+        Camel.instance.context.addComponent("activemq", activeMQComponent(brokerClientUri + ":" + brokerPort))
 
         new RouteBuilder {
 
@@ -49,14 +58,16 @@ final class ActiveMQ
             to("mock:result").
             to("activemq:queue:outbox")
 
-        }.addRoutesToCamelContext(context)
+        }.addRoutesToCamelContext(Camel.instance.context)
       }
+      ActiveMQ.instance(this)
     }
     this
   }
 
   override def stop = {
     if (null != broker) {
+      ActiveMQ.resetInstance
       broker.stop
       broker.waitUntilStopped
       broker = null
@@ -64,8 +75,15 @@ final class ActiveMQ
     this
   }
 
+  final def brokerService = Option(broker)
+
   private[this] final var broker: BrokerService = null
 
 }
 
+/**
+ *
+ */
+object ActiveMQ
 
+  extends Singleton[ActiveMQ]

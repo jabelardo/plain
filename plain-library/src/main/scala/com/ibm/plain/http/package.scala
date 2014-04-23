@@ -23,6 +23,9 @@ package object http
 
   final val channelGroupThreadPoolType = getInt("plain.http.channel-group-thread-pool-type", 3)
 
+  /**
+   * Set to true in specific benchmark situations only.
+   */
   final val ignoreAcceptHeader = getBoolean("plain.http.ignore-accept-header", false)
 
 }

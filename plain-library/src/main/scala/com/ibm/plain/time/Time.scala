@@ -6,15 +6,17 @@ package time
 
 import java.util.concurrent.ScheduledFuture
 
-import bootstrap.BaseComponent
+import bootstrap.{ BaseComponent, IsSingleton, Singleton }
 import concurrent.schedule
 
 /**
  *
  */
-abstract sealed class Time
+final class Time private
 
-  extends BaseComponent[Time]("plain-time") {
+  extends BaseComponent[Time]("plain-time")
+
+  with IsSingleton {
 
   override def start = {
     if (!isStarted) formattime = schedule(2000) { rfc1123bytearray = rfc1123format.format(now).getBytes }
@@ -32,5 +34,7 @@ abstract sealed class Time
 /**
  * The Time object.
  */
-object Time extends Time
+object Time
+
+  extends Singleton[Time](new Time)
 

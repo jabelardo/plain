@@ -11,8 +11,6 @@ package object bootstrap
   import config._
   import config.settings._
 
-  final lazy val application = Application
-
   final val delayDuringTeardown = getMilliseconds("plain.bootstrap.delay-during-teardown", 20)
 
   /**
@@ -20,7 +18,7 @@ package object bootstrap
    */
   def terminateJvm(reason: Throwable, code: Int, stacktrace: Boolean = false): Nothing = try {
     if (stacktrace) reason.printStackTrace
-    try application.teardown catch { case e: Throwable ⇒ System.err.println(e) }
+    try Application.instance.teardown catch { case e: Throwable ⇒ System.err.println(e) }
     val message = """
 Error : %s
 Memory used/free/max/total (mb) : %d %d %d %d

@@ -34,26 +34,36 @@ trait Component[C] {
 
   def disable: C
 
+  def dependencies: Seq[Class[_ <: Component[_]]]
+
 }
 
 /**
  * Base implementation for a Component.
  */
-abstract class BaseComponent[C](n: String)
+abstract class BaseComponent[C](
+
+  isenabled: Boolean,
+
+  componentname: String,
+
+  dependants: Class[_ <: Component[_]]*)
 
   extends Component[C] {
 
-  def this() = this(null)
+  final def this(name: String) = this(true, name, Seq.empty: _*)
 
-  def name = n
+  final def this() = this(null)
 
-  override def toString = "Component(name:" + name + ", enabled:" + isEnabled + ", started:" + isStarted + ", stopped:" + isStopped + ")"
+  def name = componentname
 
-  def isEnabled = enabled
+  final def isEnabled = enabled
 
-  def isStarted = started
+  final def isStarted = !isStopped
 
   def isStopped = !started
+
+  def preStart = ()
 
   def start = { started = true; this.asInstanceOf[C] }
 
@@ -64,12 +74,14 @@ abstract class BaseComponent[C](n: String)
   def enable = { enabled = true; this.asInstanceOf[C] }
 
   def disable = {
-    if (isEnabled) stop
+    if (isEnabled) doStop
     enabled = false
     this.asInstanceOf[C]
   }
 
-  def doStart = try {
+  final def dependencies: Seq[Class[_ <: Component[_]]] = dependants
+
+  final def doStart = try {
     if (isEnabled && !isStarted) {
       start
       started = true
@@ -79,7 +91,7 @@ abstract class BaseComponent[C](n: String)
     case e: Throwable ⇒ System.err.println("Exception during start of Component '" + name + "' : " + e); e.printStackTrace; throw e
   }
 
-  def doStop = try {
+  final def doStop = try {
     if (isStarted) {
       stop
       started = false
@@ -90,7 +102,7 @@ abstract class BaseComponent[C](n: String)
     case e: Throwable ⇒ System.err.println("Exception during stop of Component '" + name + "' : " + e)
   }
 
-  def doAwaitTermination(timeout: Duration) = try {
+  final def doAwaitTermination(timeout: Duration) = try {
     if (isStarted) awaitTermination(timeout)
   } catch {
     case e: TimeoutException ⇒ System.err.println(name + " " + e)
@@ -117,8 +129,10 @@ abstract class BaseComponent[C](n: String)
     case _ ⇒
   }
 
-  @volatile private[this] var enabled = true
+  override def toString = "Component(name:" + name + ", enabled:" + isEnabled + ", started:" + isStarted + ", stopped:" + isStopped + ")"
 
-  @volatile private[this] var started = false
+  @volatile private[this] final var enabled = isenabled
+
+  @volatile private[this] final var started = false
 
 }
