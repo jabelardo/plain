@@ -34,18 +34,18 @@ import rest._
 /**
  *
  */
-final class Space
+final class SpacesServer
 
   extends StaticResource {
 
-  import Space._
+  import SpacesServer._
 
   /**
    * Download a file or an entire directory as a zip file.
    */
   Get { get(context.config.getStringList("roots"), context.remainder.mkString("/"), exchange) }
 
-  Get { _: String ⇒ get(context.config.getStringList("roots"), context.remainder.mkString("/"), exchange) }
+  Get { data: Form ⇒ get(context.config.getStringList("roots"), context.remainder.mkString("/"), exchange) }
 
   /**
    * Delete a file or a directory.
@@ -85,7 +85,7 @@ final class Space
 /**
  *
  */
-object Space
+object SpacesServer
 
   extends Logger {
 

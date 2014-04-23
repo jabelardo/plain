@@ -17,7 +17,7 @@ import logging.Logger
 /**
  *
  */
-final class SpaceClient private
+final class SpacesClient private
 
   extends Logger {
 
@@ -43,8 +43,8 @@ final class SpaceClient private
 /**
  *
  */
-object SpaceClient {
+object SpacesClient {
 
-  final def get(uri: String) = new SpaceClient().doGet(uri)
+  final def get(uri: String) = new SpacesClient().doGet(uri)
 
 }

@@ -13,6 +13,14 @@ import concurrent.scheduleOnce
 /**
  *
  */
+trait SpacesAPI {
+
+
+
+}
+
+
+
 final class Spaces
 
   extends ExternalComponent[Spaces]("plain-integration-spaces")
