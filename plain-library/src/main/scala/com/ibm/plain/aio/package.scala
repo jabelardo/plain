@@ -41,22 +41,22 @@ package object aio
     }
   }
 
-  @inline def defaultByteBuffer = Aio.defaultBufferPool.get
+  @inline def defaultByteBuffer = Aio.instance.defaultBufferPool.get
 
-  @inline def tinyByteBuffer = Aio.tinyBufferPool.get
+  @inline def tinyByteBuffer = Aio.instance.tinyBufferPool.get
 
-  @inline def largeByteBuffer = Aio.largeBufferPool.get
+  @inline def largeByteBuffer = Aio.instance.largeBufferPool.get
 
-  @inline def hugeByteBuffer = Aio.hugeBufferPool.get
+  @inline def hugeByteBuffer = Aio.instance.hugeBufferPool.get
 
   /**
    * Quite dangerous, never call this function on a buffer more than once or it could be later used by more than one at the same time.
    */
   final def releaseByteBuffer(buffer: ByteBuffer) = buffer.capacity match {
-    case `tinyBufferSize` ⇒ Aio.tinyBufferPool.release(buffer)
-    case `defaultBufferSize` ⇒ Aio.defaultBufferPool.release(buffer)
-    case `largeBufferSize` ⇒ Aio.largeBufferPool.release(buffer)
-    case `hugeBufferSize` ⇒ Aio.hugeBufferPool.release(buffer)
+    case `tinyBufferSize` ⇒ Aio.instance.tinyBufferPool.release(buffer)
+    case `defaultBufferSize` ⇒ Aio.instance.defaultBufferPool.release(buffer)
+    case `largeBufferSize` ⇒ Aio.instance.largeBufferPool.release(buffer)
+    case `hugeBufferSize` ⇒ Aio.instance.hugeBufferPool.release(buffer)
     case _ ⇒
   }
 

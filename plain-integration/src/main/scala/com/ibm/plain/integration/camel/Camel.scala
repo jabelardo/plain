@@ -6,13 +6,14 @@ package integration
 
 package camel
 
-import java.io.{ ByteArrayInputStream, FileOutputStream }
+import java.io.{ ByteArrayInputStream, File, FileOutputStream }
+import java.nio.file.Files
 import java.util.jar.JarOutputStream
 import java.util.zip.ZipEntry
 
 import org.apache.camel.impl.DefaultCamelContext
 
-import bootstrap.ExternalComponent
+import bootstrap.{ ExternalComponent, Singleton }
 import logging.Logger
 
 /**
@@ -20,43 +21,55 @@ import logging.Logger
  */
 final class Camel
 
-  extends ExternalComponent[Camel]("plain-integration-camel")
+  extends ExternalComponent[Camel](
+
+    camel.isEnabled,
+
+    "plain-integration-camel",
+
+    classOf[servlet.ServletContainer])
 
   with Logger {
 
-  import Camel.createWarFile
+  import Camel._
 
   override def order = bootstrapOrder
 
+  if (camel.isEnabled) enable else disable
+
+  override def preStart = {
+    createWarFile
+    trace(servlet.webApplicationsDirectory + "/" + servletServicesRoot + ".war created.")
+  }
+
   override def start = {
-    if (null == camelcontext) {
-      camelcontext = new DefaultCamelContext
-      camelcontext.start
-    }
+    context.start
+    Camel.instance(this)
     this
   }
 
   override def stop = {
-    if (null != camelcontext) {
-      camelcontext.stop
-      camelcontext = null
-      ignore(Thread.sleep(delayDuringShutdown))
-    }
+    Camel.resetInstance
+    context.stop
+    ignore(Thread.sleep(delayDuringShutdown))
     this
   }
 
-  /*
-   * Must be done at creation time to be used by the ServletContainer.
-   */
-  createWarFile
-  trace(servlet.webApplicationsDirectory + "/" + servletServicesRoot + ".war created.")
+  final val context = new DefaultCamelContext
 
 }
 
-object Camel {
+/**
+ * Don't forget to call Camel.instance(this) in the companion class.
+ */
+object Camel
+
+  extends Singleton[Camel] {
 
   private final def createWarFile = {
-    val out = new JarOutputStream(new FileOutputStream(servlet.webApplicationsDirectory + "/" + servletServicesRoot + ".war"))
+    val file = new File(servlet.webApplicationsDirectory + "/" + servletServicesRoot + ".war")
+    Files.createDirectories(file.toPath.getParent)
+    val out = new JarOutputStream(new FileOutputStream(file))
     out.putNextEntry(new ZipEntry("WEB-INF/web.xml"))
     val in = new ByteArrayInputStream(webxml)
     io.copyBytes(in, out)

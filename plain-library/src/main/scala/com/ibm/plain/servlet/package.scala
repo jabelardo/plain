@@ -17,9 +17,9 @@ package object servlet
   import config.settings._
 
   final val unpackWebApplicationsRecursively = getBoolean("plain.servlet.unpack-web-applications-recursively", true)
-  
+
   final val forceUnpackWebApplications = getBoolean("plain.servlet.force-unpack-web-applications", false)
-  
+
   final val unpackWebApplicationsToTempDirectory = getBoolean("plain.servlet.unpack-web-applications-to-temp-directory", true)
 
   final val webApplicationsDirectory = {
@@ -40,5 +40,7 @@ package object servlet
   final val precompileJspPages = getBoolean("plain.servlet.precompile-jsp-pages", true)
 
   final val precompileJspPagesStartDelay = getMilliseconds("plain.servlet.precompile-jsp-pages-start-delay", 5000)
+
+  final val isEnabled = getBoolean("plain.servlet.is-enabled", true)
 
 }

@@ -14,11 +14,11 @@ package object logging
   import config._
   import config.settings._
 
-  final def createLogger(any: Any) = Logging.createLogger(any)
+  final def createLogger(any: Any) = Logging.instance.createLogger(any)
 
-  final def createLogger(name: String) = Logging.createLogger(name)
+  final def createLogger(name: String) = Logging.instance.createLogger(name)
 
-  final def defaultLogger = Logging.createLogger(Logging.name)
+  final def defaultLogger = Logging.instance.createLogger(Logging.instance.name)
 
   /**
    * Enable "Disruptor" technology for log4j2.
@@ -33,7 +33,7 @@ package object logging
   final def setLoggingLevel(level: String): Unit = try {
     canonicalLevel(level) match {
       case value ⇒
-        Logging.setLevel(value)
+        Logging.instance.setLevel(value)
         System.setProperty("rootLevel", value)
         logginglevel = value
     }

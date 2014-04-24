@@ -9,7 +9,10 @@ package extension
 package jmx
 
 import java.lang.management.ManagementFactory
+
 import javax.management.ObjectName
+
+import bootstrap.{ IsSingleton, Singleton }
 
 /**
  * A simple JMX monitor to control a running 'plain' application.
@@ -47,14 +50,16 @@ trait JmxMonitorMBean {
 /**
  * Implementation of MonitorMBean
  */
-abstract sealed class JmxMonitor
+final class JmxMonitor private
 
   extends Monitor
 
-  with JmxMonitorMBean {
+  with JmxMonitorMBean
+
+  with IsSingleton {
 
   protected def register = server.registerMBean(
-    JmxMonitor,
+    this,
     name)
 
   protected def unregister = server.unregisterMBean(name)
@@ -70,5 +75,7 @@ abstract sealed class JmxMonitor
 /**
  * The Monitor object.
  */
-object JmxMonitor extends JmxMonitor
+object JmxMonitor
+
+  extends Singleton[JmxMonitor](new JmxMonitor)
 

@@ -41,7 +41,7 @@ final case class Server(
 
   import Server._
 
-  override def isStarted = synchronized { null != serverChannel }
+  override def isStopped = synchronized { null == serverChannel }
 
   override def start = try {
 

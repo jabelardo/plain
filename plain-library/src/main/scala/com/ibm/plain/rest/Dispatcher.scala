@@ -57,7 +57,7 @@ abstract class Dispatcher
   }
 
   final def init = {
-    val servletcontexts = ServletContainer.getServletContexts
+    val servletcontexts = ServletContainer.instance.getServletContexts
 
     templates = Templates(
       config.getConfigList("routes", List.empty).map { c: Config ⇒

@@ -21,11 +21,11 @@ package object concurrent
 
   final val parallelism = cores * 2
 
-  final def executor = Concurrent.executor
+  final def executor = Concurrent.instance.executor
 
-  final def scheduler = Concurrent.scheduler
+  final def scheduler = Concurrent.instance.scheduler
 
-  final def ioexecutor = Concurrent.ioexecutor
+  final def ioexecutor = Concurrent.instance.ioexecutor
 
   /**
    * Spawn a body: => Unit to an execution context and forget about it. Use this only if you have no need to handle errors during the execution of 'body'.

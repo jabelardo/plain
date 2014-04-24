@@ -24,7 +24,7 @@ import aio.AsynchronousFileByteChannel.forReading
 import aio.Exchange
 import http.{ ContentType, Entity }
 import http.Entity.{ ArrayEntity, AsynchronousByteChannelEntity }
-import http.MimeType.{ `application/octet-stream`, forExtension }
+import http.MimeType.{ `application/octet-stream`, `application/tar`, forExtension }
 import http.Status.ClientError
 import logging.Logger
 
@@ -39,7 +39,7 @@ final class DirectoryResource
 
   Get { get(context.config.getStringList("roots"), context.remainder.mkString("/"), exchange) }
 
-  Get { _: String ⇒ get(context.config.getStringList("roots"), context.remainder.mkString("/"), exchange) }
+  Get { _: String ⇒ getZipFile(exchange) }
 
 }
 
@@ -91,6 +91,18 @@ object DirectoryResource
     } else {
       result
     }
+  }
+
+  private final def getZipFile(exchange: Exchange[Context]) = {
+    val source = aio.AsynchronousTarArchiveChannel("/Users/guido/Development/Others/spray")
+    val contenttype = ContentType(`application/tar`)
+    exchange.transferFrom(source)
+    AsynchronousByteChannelEntity(
+      source,
+      contenttype,
+      -1,
+      contenttype.mimetype.encodable)
+
   }
 
   private[this] final val welcomefiles = "([iI]ndex\\.((htm[l]*)|(jsp)))|([dD]efault\\.((htm[l]*)|(jsp)))"

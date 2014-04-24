@@ -4,11 +4,9 @@ package plain
 
 package integration
 
-import org.apache.camel.CamelContext
-
 import scala.language.implicitConversions
 
-import config.CheckedConfig
+import config.{ CheckedConfig, config2RichConfig }
 
 /**
  *
@@ -26,11 +24,6 @@ package object camel
 
   final val servletServicesRoot = getString("plain.integration.camel.servlet-services-root", "integration-services")
 
-  final def context = {
-    require(null != camelcontext, "plain-integration-camel is not initialized.")
-    camelcontext
-  }
-
-  @volatile private[camel] var camelcontext: CamelContext = null
+  final val isEnabled = getBoolean("plain.integration.camel.is-enabled", false)
 
 }

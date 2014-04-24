@@ -4,6 +4,8 @@ package plain
 
 package bootstrap
 
+import java.util.concurrent.LinkedBlockingQueue
+
 import scala.collection.JavaConversions.{ collectionAsScalaIterable, seqAsJavaList }
 import scala.concurrent.duration.Duration
 import scala.util.control.NonFatal
@@ -15,9 +17,11 @@ import time.now
 /**
  *
  */
-abstract sealed class Application
+final class Application private
 
-  extends OnlyOnce {
+  extends OnlyOnce
+
+  with IsSingleton {
 
   override final def toString = components.toList.toString
 
@@ -25,6 +29,9 @@ abstract sealed class Application
 
   final def bootstrap = {
     createExternals
+    enableNecessaryButDisabled
+    components.foreach(println)
+    components.filter(_.isEnabled).foreach(_.preStart)
     components.filter(_.isEnabled).foreach(_.doStart)
     Runtime.getRuntime.addShutdownHook(new Thread(new Runnable { def run = teardown }))
   }
@@ -36,6 +43,22 @@ abstract sealed class Application
     components.addAll(subClasses(classOf[ExternalComponent[_]]).map(try _.newInstance catch {
       case e: Throwable ⇒ e.printStackTrace; null
     }).toSeq.filter(null != _).sortWith { case (a, b) ⇒ a.order < b.order })
+  }
+
+  /**
+   * Scan all components that other enabled components depend on and enable them in case they are disabled.
+   */
+  final def enableNecessaryButDisabled = {
+    def recurse(dependencies: List[Class[_ <: Component[_]]]): Unit = dependencies match {
+      case head :: tail ⇒
+        components.filter(_.getClass == head).foreach { c ⇒
+          c.enable
+          recurse(c.dependencies.toList)
+        }
+        recurse(tail)
+      case Nil ⇒
+    }
+    components.filter(!_.isEnabled).foreach(c ⇒ recurse(c.dependencies.toList))
   }
 
   final def teardown = onlyonce {
@@ -62,13 +85,15 @@ abstract sealed class Application
 
   final def getComponents(componentclass: Class[_ <: Component[_]]) = components.filter(_.getClass == componentclass)
 
-  private[this] final val components = new java.util.concurrent.ArrayBlockingQueue[BaseComponent[_]](128)
+  private[this] final val components = new LinkedBlockingQueue[BaseComponent[_]]
 
   private[this] final val starttime = now
 
 }
 
 /**
- * The Application object.
+ * The Application singleton.
  */
-private[plain] object Application extends Application
+private[plain] object Application
+
+  extends Singleton[Application](new Application)

@@ -4,13 +4,14 @@ package plain
 
 package monitor
 
-import scala.collection.JavaConversions.asScalaSet
-import scala.concurrent.duration._
+import com.ibm.plain.bootstrap.BaseComponent
 
-import bootstrap.{ BaseComponent, application }
-import logging.{ createLogger, loggingLevel, setLoggingLevel }
+import scala.collection.JavaConversions.asScalaSet
+
+import aio.Aio
+import bootstrap.{ Application, BaseComponent }
 import concurrent.scheduleOnce
-import aio.Aio._
+import logging.{ createLogger, loggingLevel, setLoggingLevel }
 
 /**
  * Implementation of a simple Monitor to manage a 'plain' application.
@@ -19,7 +20,7 @@ abstract class Monitor
 
   extends BaseComponent[Monitor]("plain-monitor") {
 
-  override def isStarted = isRegistered
+  override def isStopped = !isRegistered
 
   override def start = {
     if (isEnabled) register
@@ -45,25 +46,25 @@ abstract class Monitor
 
   def getMemoryMbTotal = (Runtime.getRuntime.totalMemory / (1024 * 1024)).toInt
 
-  def getBufferPoolSizeDefault = defaultBufferPool.size
+  def getBufferPoolSizeDefault = Aio.instance.defaultBufferPool.size
 
-  def getBufferPoolSizeTiny = tinyBufferPool.size
+  def getBufferPoolSizeTiny = Aio.instance.tinyBufferPool.size
 
-  def getBufferPoolSizeLarge = largeBufferPool.size
+  def getBufferPoolSizeLarge = Aio.instance.largeBufferPool.size
 
-  def getBufferPoolSizeHuge = hugeBufferPool.size
+  def getBufferPoolSizeHuge = Aio.instance.hugeBufferPool.size
 
   def getLogLevel = loggingLevel
 
   def setLogLevel(level: String) = setLoggingLevel(level)
 
-  def getUptimeInSeconds = (application.uptime / 1000).toLong
+  def getUptimeInSeconds = (Application.instance.uptime / 1000).toLong
 
-  def getComponents: Array[String] = application.render
+  def getComponents: Array[String] = Application.instance.render
 
   def shutdown(token: String): String = if (shutdownToken == token) {
     createLogger(this).warn("Application teardown was called from JMX console.")
-    scheduleOnce(200)(application.teardown)
+    scheduleOnce(200)(Application.instance.teardown)
     "Application teardown started."
   } else {
     createLogger(this).error("Application teardown was tried from JMX console, but with invalid token.")

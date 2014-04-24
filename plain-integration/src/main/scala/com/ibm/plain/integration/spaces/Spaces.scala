@@ -6,46 +6,39 @@ package integration
 
 package spaces
 
-import bootstrap.ExternalComponent
+import bootstrap.{ ExternalComponent, Singleton }
 import logging.Logger
-import concurrent.scheduleOnce
-
-/**
- *
- */
-trait SpacesAPI {
-
-
-
-}
-
-
+import distributedconfig.DistributedConfig
 
 final class Spaces
 
-  extends ExternalComponent[Spaces]("plain-integration-spaces")
+  extends ExternalComponent[Spaces](
+
+    spaces.isEnabled,
+
+    "plain-integration-spaces",
+
+    classOf[DistributedConfig])
 
   with Logger {
 
   override def order = bootstrapOrder
 
   override def start = {
+    Spaces.instance(this)
+    this
+  }
 
-//    println("spaces component")
-//
-//    println(spacesConfig.toArray.toList)
-//
-//    scheduleOnce(5000) {
-//      SpaceClient.get("http://localhost:8080/ping")
-//      SpaceClient.get("http://localhost:8080/ping")
-//      SpaceClient.get("http://localhost:8080/ping")
-//      SpaceClient.get("http://localhost:8080/ping")
-//      SpaceClient.get("http://localhost:8080/ping")
-//    }
-
+  override def stop = {
+    Spaces.resetInstance
     this
   }
 
 }
 
+/**
+ *
+ */
+object Spaces
 
+  extends Singleton[Spaces]

@@ -12,14 +12,16 @@ import org.apache.logging.log4j.core.LoggerContext
 import org.apache.logging.log4j.core.config.Configurator
 import org.slf4j.{ Logger ⇒ JLogger, LoggerFactory }
 
-import bootstrap.BaseComponent
+import bootstrap.{ BaseComponent, IsSingleton, Singleton }
 
 /**
- * Just needed for inheritance.
+ *
  */
-abstract sealed class Logging
+final class Logging private
 
-  extends BaseComponent[Logging]("plain-logging") {
+  extends BaseComponent[Logging]("plain-logging")
+
+  with IsSingleton {
 
   override final def start = {
     defaultLogger.trace("Logging started.")
@@ -58,7 +60,9 @@ abstract sealed class Logging
 }
 
 /**
- * The Logging object.
+ * The Logging singleton.
  */
-object Logging extends Logging
+object Logging
+
+  extends Singleton[Logging](new Logging)
 

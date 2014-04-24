@@ -10,14 +10,16 @@ import org.apache.commons.io.FileUtils
 
 import scala.collection.concurrent.TrieMap
 
-import bootstrap.BaseComponent
+import bootstrap.{ BaseComponent, IsSingleton, Singleton }
 
 /**
- * Just needed for inheritance.
+ *
  */
-abstract sealed class Io
+final class Io private
 
-  extends BaseComponent[Io]("plain-io") {
+  extends BaseComponent[Io]("plain-io")
+
+  with IsSingleton {
 
   override def stop = {
     if (isStarted) deleteAll
@@ -39,5 +41,7 @@ abstract sealed class Io
 /**
  * The Io object.
  */
-object Io extends Io
+object Io
+
+  extends Singleton[Io](new Io)
 
