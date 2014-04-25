@@ -12,7 +12,7 @@ import org.apache.logging.log4j.core.LoggerContext
 import org.apache.logging.log4j.core.config.Configurator
 import org.slf4j.{ Logger ⇒ JLogger, LoggerFactory }
 
-import bootstrap.{ BaseComponent, IsSingleton, Singleton }
+import bootstrap.{ Application, BaseComponent, IsSingleton, Singleton }
 
 /**
  *
@@ -25,6 +25,7 @@ final class Logging private
 
   override final def start = {
     defaultLogger.trace("Logging started.")
+    defaultLogger.debug("Components dependency graph (and bootstrap order) : " + Application.instance.getComponents(classOf[BaseComponent[_]]).filter(_.isEnabled).map(_.name).mkString(" ⇒ "))
     this
   }
 

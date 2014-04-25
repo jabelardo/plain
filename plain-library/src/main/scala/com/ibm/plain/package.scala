@@ -49,7 +49,7 @@ package object plain
       body
       application.awaitTermination(timeout)
     } catch {
-      case e: Throwable ⇒ e.printStackTrace; println("Exception during bootstrap : " + e)
+      case e: Throwable ⇒ e.printStackTrace; println("Exception during bootstrap, program will be aborted : " + e)
     } finally {
       try {
         application.teardown

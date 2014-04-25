@@ -8,7 +8,6 @@ package spaces
 
 import bootstrap.{ ExternalComponent, Singleton }
 import logging.Logger
-import distributedconfig.DistributedConfig
 
 final class Spaces
 
@@ -18,11 +17,9 @@ final class Spaces
 
     "plain-integration-spaces",
 
-    classOf[DistributedConfig])
+    classOf[infrastructure.Infrastructure])
 
   with Logger {
-
-  override def order = bootstrapOrder
 
   override def start = {
     Spaces.instance(this)

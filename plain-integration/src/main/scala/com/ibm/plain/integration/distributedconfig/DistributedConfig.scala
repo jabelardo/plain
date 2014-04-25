@@ -27,8 +27,6 @@ final class DistributedConfig
 
   with Logger {
 
-  override def order = bootstrapOrder
-
   override def start = {
     (if (isMaster) masterRoutes else slaveRoutes).addRoutesToCamelContext(Camel.instance.context)
     DistributedConfig.instance(this)

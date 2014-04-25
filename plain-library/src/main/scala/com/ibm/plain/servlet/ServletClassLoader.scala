@@ -168,7 +168,7 @@ object ServletClassLoader
       }
     }
     if (forceUnpackWebApplications || sourcepath.lastModified > target.lastModified) {
-      info("Unpacking " + sourcepath + " to " + target)
+      debug("Unpacking " + sourcepath + " to " + target)
       FileUtils.deleteDirectory(target)
       new ZipFile(sourcepath).extractAll(target.getAbsolutePath)
       if (unpackWebApplicationsRecursively) unpackJars

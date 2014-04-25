@@ -12,15 +12,13 @@ import config.settings.getConfig
 /**
  *
  */
-package object spaces
+package object infrastructure
 
   extends CheckedConfig {
 
   import config._
   import config.settings._
 
-  final val spacesConfig = getConfigList("plain.rest.default-dispatcher.routes")
-
-  final val isEnabled = getBoolean("plain.integration.spaces.is-enabled", false)
+  final val isEnabled = getBoolean("plain.integration.infrastructure.is-enabled", false)
 
 }

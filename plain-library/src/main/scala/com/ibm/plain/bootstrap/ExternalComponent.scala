@@ -22,9 +22,4 @@ abstract class ExternalComponent[C](
 
   final def this(enabled: Boolean, name: String) = this(enabled, name, Seq[Class[Component[_]]](): _*)
 
-  /**
-   * The lower the value of "order" the earlier components will be started.
-   */
-  def order = Int.MaxValue
-
 }

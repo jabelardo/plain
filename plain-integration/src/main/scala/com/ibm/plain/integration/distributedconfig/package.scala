@@ -19,8 +19,6 @@ package object distributedconfig
   import config._
   import config.settings._
 
-  final val bootstrapOrder = getInt("plain.integration.distributed-config.bootstrap-order", -1)
-
   final val masterHost = getString("plain.integration.distributed-config.master-host", "localhost")
 
   final val masterPort = getInt("plain.integration.distributed-config.master-port", 8080)

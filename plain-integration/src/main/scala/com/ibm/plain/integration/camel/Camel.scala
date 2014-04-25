@@ -25,15 +25,11 @@ final class Camel
 
     camel.isEnabled,
 
-    "plain-integration-camel",
-
-    classOf[servlet.ServletContainer])
+    "plain-integration-camel")
 
   with Logger {
 
   import Camel._
-
-  override def order = bootstrapOrder
 
   if (camel.isEnabled) enable else disable
 

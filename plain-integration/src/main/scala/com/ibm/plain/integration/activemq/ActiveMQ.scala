@@ -26,13 +26,9 @@ final class ActiveMQ
 
     "plain-integration-activemq",
 
-    classOf[Camel],
-
-    classOf[DistributedConfig])
+    classOf[infrastructure.Infrastructure])
 
   with Logger {
-
-  override def order = bootstrapOrder
 
   override def start = {
     if (null == broker) {
