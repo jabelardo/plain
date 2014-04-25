@@ -6,9 +6,12 @@ package integration
 
 package activemq
 
+import java.io.File
+
 import org.apache.camel.scala.dsl.builder.RouteBuilder
 import org.apache.activemq.camel.component.ActiveMQComponent.activeMQComponent
 import org.apache.activemq.broker.BrokerService
+import org.apache.commons.io.FileUtils.deleteDirectory
 
 import bootstrap.{ ExternalComponent, Singleton }
 import logging.Logger
@@ -34,10 +37,17 @@ final class ActiveMQ
     if (null == broker) {
       if (isMaster) {
         broker = new BrokerService
+        if (usePersistence) {
+          val directory = new File(persistenceDirectory)
+          if (purgePersistenceDirectoryOnStartup) deleteDirectory(directory)
+          broker.getPersistenceAdapter.setDirectory(directory)
+          broker.setPersistent(true)
+        } else {
+          broker.setPersistent(false)
+        }
         broker.setBrokerName(name)
         broker.setUseShutdownHook(true)
         broker.setUseJmx(true)
-        broker.setPersistent(false)
         broker.addConnector(brokerServerUri + ":" + brokerPort)
         broker.start
         broker.waitUntilStarted

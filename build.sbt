@@ -3,7 +3,7 @@ import Keys._
 import EclipseKeys._
 import AssemblyKeys._
 import Plain._
-import Camel._
+import Integration._
 
 name := "plain.io"
 
@@ -70,9 +70,9 @@ lazy val servlet = project in file("plain-samples/plain-sample-servlet") depends
 
 lazy val benchmark = project in file("plain-benchmark") dependsOn library settings(jdbcSettings: _*) settings(assemblySettings: _*)
 
-lazy val integration = project in file("plain-integration") dependsOn library settings(camelSettings ++ graphSettings: _*)
+lazy val integration = project in file("plain-integration") dependsOn library settings(integrationSettings ++ graphSettings: _*)
 
-lazy val integrationhelloworld = project in file("plain-samples/plain-integration-hello-world") dependsOn integration settings(assemblySettings ++ runSettings ++ scalariformSettings ++ graphSettings: _*)
+lazy val integrationhelloworld = project in file("plain-samples/plain-integration-hello-world") dependsOn integration settings(assemblySettings ++ runSettings ++ scalariformSettings ++ integrationSettings ++ graphSettings: _*)
 
 lazy val preparation = project in file("plain-samples/preparation") dependsOn library settings(assemblySettings: _*)
 

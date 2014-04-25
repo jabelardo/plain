@@ -3,7 +3,7 @@ import Keys._
 import sbtassembly.Plugin._
 import AssemblyKeys._
 
-object Camel {
+object Integration {
 
 	def camelVersion = "2.13.0"
 
@@ -24,10 +24,13 @@ object Camel {
                 "org.apache.camel" % "camel-sjms" % camelVersion,
                 "org.apache.camel" % "camel-mail" % camelVersion,
 		"org.apache.activemq" % "activemq-camel" % activemqVersion,
-		"org.apache.activemq" % "activemq-broker" % activemqVersion
+		"org.apache.activemq" % "activemq-broker" % activemqVersion,
+                "org.apache.activemq" % "activemq-jaas" % activemqVersion,
+		"org.apache.activemq" % "activemq-kahadb-store" % activemqVersion
 	)
 
         def persistence = Seq(
+		"org.apache.activemq.protobuf" % "activemq-protobuf" % "1.1",
                 "org.apache.camel" % "camel-jpa" % camelVersion,
                 "org.apache.camel" % "camel-mybatis" % camelVersion,
                 "org.apache.camel" % "camel-jdbc" % camelVersion,
@@ -47,20 +50,20 @@ object Camel {
 		"org.apache.camel" % "camel-ahc" % camelVersion
         )
 
-	def camelDependencies = core ++ networking ++ messaging ++ persistence
+	def integrationDependencies = core ++ networking ++ messaging ++ persistence
 
-	def camelSettings = Seq(
+	def integrationSettings = Seq(
 
 		resolvers ++= Seq(
         		"pentaho-releases" at "http://repository.pentaho.org/artifactory/repo/",
         		"fusesource-releases" at "http://repo.fusesource.com/nexus/content/groups/public/"
 		),
 
-                libraryDependencies ++= camelDependencies
+                libraryDependencies ++= integrationDependencies
 	
 	)
 
-	def excludedCamelJars = Seq(
+	def excludedIntegrationJars = Seq(
 		"xml-apis-1.4.01.jar",
 		"xmlpull-1.1.3.1.jar",
 		"geronimo-servlet_2.5_spec-1.2.jar",
