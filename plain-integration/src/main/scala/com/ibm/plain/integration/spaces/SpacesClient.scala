@@ -6,7 +6,6 @@ package integration
 
 package spaces
 
-
 import logging.Logger
 import java.io.FileOutputStream
 import java.nio.file.Path
@@ -58,7 +57,7 @@ final class SpacesClient private
 
 }
 
-case class SpacesURI(node: String, container: String = UUID.randomUUID) {
+case class SpacesURI(node: String, container: String = UUID.randomUUID.toString) {
 
   def uri = {
     s"spaces://$node/$container"
