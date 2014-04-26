@@ -23,4 +23,6 @@ package object spaces
 
   final val isEnabled = getBoolean("plain.integration.spaces.is-enabled", false)
 
+  final val downloadEncoding = getString("plain.integration.spaces.downloadEncoding", "gzip")
+
 }
