@@ -138,13 +138,23 @@ object RequestIteratee
 
   private[this] final def readEntity[A](headers: Headers, query: Option[String], settings: ServerConfiguration): Iteratee[Exchange[A], Option[Entity]] = {
 
+    val contenttype: ContentType = `Content-Type`(headers) match {
+      case Some(contenttype) ⇒ contenttype
+      case _ ⇒ `application/octet-stream`
+    }
+
+    val need100continue = `Expect`(headers) match {
+      case Some(expect) if "100-continue" == expect.toLowerCase ⇒ true
+      case _ ⇒ false
+    }
+
     def `100-continue`[A](n: Int): Iteratee[Exchange[A], Array[Byte]] = {
 
       object ContinueWriteHandler
 
         extends Handler[Integer, Exchange[A]] {
 
-        @inline final def completed(processed: Integer, exchange: Exchange[A]) = () // trace("Replied to 100-continue.")
+        @inline final def completed(processed: Integer, exchange: Exchange[A]) = ()
 
         @inline final def failed(e: Throwable, exchange: Exchange[A]) = ()
 
@@ -163,7 +173,7 @@ object RequestIteratee
         input match {
           case Elem(more) ⇒
             val in = if (null == taken) more else taken ++ more
-            if (0 == in.length) {
+            if (need100continue && 0 == in.length) {
               in.socketChannel.write(ContinueWriteHandler.response, in, ContinueWriteHandler)
               (Cont(cont(in)), Empty)
             } else {
@@ -181,20 +191,14 @@ object RequestIteratee
       Cont(cont(null) _)
     }
 
-    `Content-Type`(headers) match {
-      case Some(contenttype) ⇒ `Transfer-Encoding`(headers) match {
-        case Some(value) ⇒ Done(Some(TransferEncodedEntity(value, contenttype)))
-        case None ⇒ `Content-Length`(headers) match {
-          case Some(length) if length <= settings.maxEntityBufferSize ⇒ for (array ← `100-continue`(length.toInt)) yield Some(ArrayEntity(array, 0, length, contenttype))
-          case Some(length) ⇒ Done(Some(ContentEntity(contenttype, length)))
-          case None ⇒ Done(None)
-        }
-      }
+    `Transfer-Encoding`(headers) match {
+      case Some(value) ⇒
+        for (_ ← `100-continue`(0)) yield Some(TransferEncodedEntity(value, contenttype))
       case None ⇒ `Content-Length`(headers) match {
         case Some(length) if length <= settings.maxEntityBufferSize ⇒
-          for (array ← `100-continue`(length.toInt)) yield Some(ArrayEntity(array, 0, length, `application/octet-stream`))
+          for (array ← `100-continue`(length.toInt)) yield Some(ArrayEntity(array, 0, length, contenttype))
         case Some(length) ⇒
-          for { _ ← `100-continue`(0); done ← Done(Some(ContentEntity(`application/octet-stream`, length))) } yield done
+          for (_ ← `100-continue`(0)) yield Some(ContentEntity(contenttype, length))
         case None ⇒ query match {
           case Some(query) ⇒ Done(Some(ArrayEntity(query.getBytes(defaultCharacterSet), `text/plain`)))
           case None ⇒ Done(None)

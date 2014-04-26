@@ -45,7 +45,7 @@ final class SpacesServer
    */
   Get { get(context.config.getStringList("roots"), context.remainder.mkString("/"), exchange) }
 
-  Get { data: Form ⇒ get(context.config.getStringList("roots"), context.remainder.mkString("/"), exchange) }
+  Get { form: Form ⇒ get(context.config.getStringList("roots"), context.remainder.mkString("/"), exchange) }
 
   /**
    * Delete a file or a directory.
@@ -57,7 +57,7 @@ final class SpacesServer
   /**
    * Creates a directory with the remainder as path relative to the first root. All intermediate directories are also created if necessary.
    */
-  Put { response ++ put(context.config.getStringList("roots").head, context.remainder.mkString("/")); () }
+  Put { println(request); response ++ put(context.config.getStringList("roots").head, context.remainder.mkString("/")); () }
 
   /**
    * Upload a file.
@@ -72,7 +72,10 @@ final class SpacesServer
         exchange.transferTo(forWriting(check(root, path), length), length, context ⇒ {
           context.response ++ Success.`201`
         })
-      case e ⇒ throw ServerError.`501` // needs transfer decoding
+      case e ⇒
+        println("chunked-encoded entity " + e)
+        println(aio.format(exchange.readBuffer))
+        unsupported
     }
   }
 

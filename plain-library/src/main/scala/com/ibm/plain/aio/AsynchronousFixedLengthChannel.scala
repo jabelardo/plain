@@ -30,13 +30,11 @@ final class AsynchronousFixedLengthChannel private (
     if (position < length) channel.read(buffer, attachment, new InnerCompletionHandler[A](handler)) else handler.completed(0, attachment)
   }
 
-  final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[Integer, _ >: A]) = {
-    channel.write(buffer, attachment, new InnerCompletionHandler[A](handler))
-  }
+  final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[Integer, _ >: A]) = unsupported
 
-  final def read(buffer: ByteBuffer): java.util.concurrent.Future[Integer] = throw FutureNotSupported
+  final def read(buffer: ByteBuffer): java.util.concurrent.Future[Integer] = unsupported
 
-  final def write(buffer: ByteBuffer): java.util.concurrent.Future[Integer] = throw FutureNotSupported
+  final def write(buffer: ByteBuffer): java.util.concurrent.Future[Integer] = unsupported
 
   private[this] final class InnerCompletionHandler[A](
 

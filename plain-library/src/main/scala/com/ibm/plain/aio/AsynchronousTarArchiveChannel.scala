@@ -46,9 +46,9 @@ final class AsynchronousTarArchiveChannel private (
 
   final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[Integer, _ >: A]) = unsupported
 
-  final def read(buffer: ByteBuffer): java.util.concurrent.Future[Integer] = throw FutureNotSupported
+  final def read(buffer: ByteBuffer): java.util.concurrent.Future[Integer] = unsupported
 
-  final def write(buffer: ByteBuffer): java.util.concurrent.Future[Integer] = throw FutureNotSupported
+  final def write(buffer: ByteBuffer): java.util.concurrent.Future[Integer] = unsupported
 
   final def close = directoriestmpfile.delete
 

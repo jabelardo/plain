@@ -269,9 +269,10 @@ final class HttpServletRequest(
     }, new java.util.HashMap[String, Array[String]])
   else new java.util.HashMap[String, Array[String]]
 
-  final lazy val localaddress = exchange.socketChannel.asInstanceOf[aio.SocketChannelWithTimeout].channel.getLocalAddress.asInstanceOf[java.net.InetSocketAddress]
+  final lazy val localaddress = channel.getLocalAddress.asInstanceOf[java.net.InetSocketAddress]
 
-  final lazy val remoteaddress = exchange.socketChannel.asInstanceOf[aio.SocketChannelWithTimeout].channel.getRemoteAddress.asInstanceOf[java.net.InetSocketAddress]
+  final lazy val remoteaddress = channel.getRemoteAddress.asInstanceOf[java.net.InetSocketAddress]
 
+  private[this] final def channel = exchange.socketChannel.asInstanceOf[aio.AsynchronousSocketChannelWithTimeout].channel
 }
 

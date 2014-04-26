@@ -22,6 +22,16 @@ trait Logger {
 
   final def error(message: ⇒ String) = if (logger.isErrorEnabled) logger.error(message)
 
+  final def trace(message: Any): Unit = if (logger.isTraceEnabled) logger.trace(message.toString)
+
+  final def debug(message: Any): Unit = if (logger.isDebugEnabled) logger.debug(message.toString)
+
+  final def info(message: Any) = if (logger.isInfoEnabled) logger.info(message.toString)
+
+  final def warn(message: Any) = if (logger.isErrorEnabled) logger.warn(message.toString)
+
+  final def error(message: Any) = if (logger.isErrorEnabled) logger.error(message.toString)
+
   protected final def logger: JLogger = { if (null == jlogger) jlogger = Logging.instance.createJLogger(loggername); jlogger }
 
   protected val loggername: String = getClass.getName.replace("$", "")

@@ -42,6 +42,8 @@ final class Exchange[A] private (
 
   @inline final def iteratee = currentiteratee
 
+  @inline private[plain] final def readBuffer = readbuffer
+
   @inline private[plain] final def writeBuffer = writebuffer
 
   @inline final def inMessage = inmessage
@@ -187,13 +189,17 @@ final class Exchange[A] private (
   /**
    * This one is too clever...
    */
-  @inline private final def cache(cachediteratee: Done[Exchange[A], _]): Unit = if (0 < readbuffer.remaining && null == cachedarray) {
-    this.cachediteratee = cachediteratee
-    var len = readbuffer.position
-    readbuffer.rewind
-    len -= readbuffer.position
-    setCachedArray(len)
-    readbuffer.get(cachedarray)
+  @inline private final def cache(cachediteratee: Done[Exchange[A], _]): Unit = {
+    if (0 < readbuffer.position && 0 < readbuffer.remaining && null == cachedarray) {
+      var len = readbuffer.position
+      readbuffer.rewind
+      len -= readbuffer.position
+      if (0 < len) {
+        setCachedArray(len)
+        readbuffer.get(cachedarray)
+        this.cachediteratee = cachediteratee
+      }
+    }
   }
 
   /**
@@ -258,8 +264,8 @@ final class Exchange[A] private (
     transfersource = null
     transferdestination = null
     transfercompleted = null
-    currentiteratee = readiteratee
     writebuffer.clear
+    currentiteratee = Done[Exchange[A], Option[Nothing]](None)
   }
 
   @inline private final def hasError = currentiteratee.isInstanceOf[Error[_]]
@@ -409,7 +415,7 @@ object Exchange
 
       @inline final def completed(socketchannel: SocketChannel, ignore: Null) = {
         accept
-        read(Exchange[A](SocketChannelWithTimeout(socketchannel), readiteratee, defaultByteBuffer, defaultByteBuffer))
+        read(Exchange[A](AsynchronousSocketChannelWithTimeout(socketchannel), readiteratee, defaultByteBuffer, defaultByteBuffer))
       }
 
       @inline final def failed(e: Throwable, ignore: Null) = {
@@ -536,7 +542,10 @@ object Exchange
 
       extends ReleaseHandler {
 
+      var total = 0L
+
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
+        total += processed
         if (0 == processed) {
           exchange.writeDecoding(DecodeCloseHandler, true)
         } else {
@@ -550,7 +559,10 @@ object Exchange
 
       extends ReleaseHandler {
 
+      var total = 0L
+
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
+        total += processed
         if (0 < exchange.length) {
           exchange.writeDecoding(this, false)
         } else {

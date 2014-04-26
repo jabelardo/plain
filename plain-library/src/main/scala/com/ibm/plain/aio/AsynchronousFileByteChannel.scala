@@ -24,9 +24,9 @@ final class AsynchronousFileByteChannel private (
 
   private final type Integer = java.lang.Integer
 
-  final def read(buffer: ByteBuffer): java.util.concurrent.Future[Integer] = throw FutureNotSupported
+  final def read(buffer: ByteBuffer): java.util.concurrent.Future[Integer] = unsupported
 
-  final def write(buffer: ByteBuffer): java.util.concurrent.Future[Integer] = throw FutureNotSupported
+  final def write(buffer: ByteBuffer): java.util.concurrent.Future[Integer] = unsupported
 
   override protected final def finalize = if (filechannel.isOpen) filechannel.close
 
