@@ -12,7 +12,7 @@ import aio.Encoder
 /**
  * Prefer "deflate" over "gzip".
  */
-final class GZIPEncoder private (
+final class GzipEncoder private (
 
   compressionlevel: Int)
 
@@ -33,7 +33,7 @@ final class GZIPEncoder private (
     val written = if (header) {
       header = false
       val w = deflater.deflate(array, offset + chunklen + headerlen, length - (chunklen + headerlen), Deflater.SYNC_FLUSH)
-      Array.copy(GZIPEncoder.header, 0, array, offset + chunklen, headerlen)
+      Array.copy(GzipEncoder.header, 0, array, offset + chunklen, headerlen)
       headerlen + w
     } else {
       deflater.deflate(array, offset + chunklen, array.length - (offset + chunklen), Deflater.SYNC_FLUSH)
@@ -64,9 +64,9 @@ final class GZIPEncoder private (
 
 }
 
-object GZIPEncoder {
+object GzipEncoder {
 
-  def apply(compressionlevel: Int) = new GZIPEncoder(compressionlevel)
+  def apply(compressionlevel: Int) = new GzipEncoder(compressionlevel)
 
   private final val header = Array[Byte](0x1f, 0x8b.toByte, Deflater.DEFLATED, 0, 0, 0, 0, 0, 4, 0xff.toByte)
 

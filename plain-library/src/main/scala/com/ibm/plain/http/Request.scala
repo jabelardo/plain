@@ -8,8 +8,9 @@ import java.util.zip.Deflater
 
 import aio.{ Decoder, Encoder, InMessage }
 import Message.Headers
-import Header.General.`Connection`
-import Header.Request.`Accept-Encoding`
+import Header.General.{ `Connection`, `Transfer-Encoding` }
+import Header.Entity.{ `Content-Encoding` }
+import Header.Request.{ `Accept-Encoding` }
 
 /**
  * The classic http request.
@@ -46,9 +47,17 @@ final case class Request(
     case _ ⇒ true
   }
 
+  final def transferDecoding: Option[Decoder] = `Transfer-Encoding`(headers) match {
+    case Some(value) if value.contains("chunked") ⇒ `Content-Encoding`(headers) match {
+      case Some(value) if value.contains("deflate") ⇒ Some(DeflateDecoder.apply)
+      case Some(value) if value.contains("gzip") ⇒ Some(GzipDecoder.apply)
+      case _ ⇒ None
+    }
+  }
+
   final def transferEncoding: Option[Encoder] = `Accept-Encoding`(headers) match {
     case Some(value) if value.contains("deflate") ⇒ Some(DeflateEncoder(Deflater.BEST_SPEED))
-    case Some(value) if value.contains("gzip") ⇒ Some(GZIPEncoder(Deflater.BEST_SPEED))
+    case Some(value) if value.contains("gzip") ⇒ Some(GzipEncoder(Deflater.BEST_SPEED))
     case _ ⇒ None
   }
 

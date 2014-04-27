@@ -10,13 +10,12 @@ import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel, AsynchronousServ
 import java.nio.charset.Charset
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.Arrays
-
 import scala.math.min
-
 import Input.{ Elem, Empty, Eof }
 import Iteratee.{ Cont, Done, Error }
 import logging.Logger
 import io.PrintWriter
+import java.nio.channels.AsynchronousByteChannel
 
 /**
  *
@@ -76,7 +75,11 @@ final class Exchange[A] private (
   }
 
   final def transferTo(destination: Channel, length: Long, completed: A ⇒ Unit): Nothing = {
-    transfersource = AsynchronousFixedLengthChannel(channel, readbuffer.remaining, length)
+    transfersource = length match {
+      case len if 0 > len ⇒
+        AsynchronousFixedLengthChannel(channel, readbuffer.remaining, 100000) // :TODO:
+      case _ ⇒ AsynchronousFixedLengthChannel(channel, readbuffer.remaining, length)
+    }
     transferdestination = destination
     transfercompleted = completed
     throw ExchangeControl
@@ -227,6 +230,10 @@ final class Exchange[A] private (
 
   @inline private final def readDecoding(handler: ExchangeHandler[A]) = {
     readbuffer.clear
+    inmessage.decoder match {
+      case Some(decoder) ⇒ decoder.decode(readbuffer)
+      case _ ⇒
+    }
     transfersource.read(readbuffer, this, handler)
   }
 

@@ -13,8 +13,6 @@ trait Decoder {
 
   def name: String
 
-  def text: Array[Byte]
-
   def decode(buffer: ByteBuffer)
 
   def finish(buffer: ByteBuffer)

@@ -24,8 +24,7 @@ import aio.{ AsynchronousFileByteChannel, AsynchronousFixedLengthChannel, Encode
 import aio.AsynchronousFileByteChannel.{ forReading, forWriting }
 import concurrent.ioexecutor
 import logging.Logger
-import http.ContentType
-import http.Entity
+import http.{ ContentType, Entity, Request }
 import http.Entity.{ AsynchronousByteChannelEntity, ArrayEntity, ContentEntity }
 import http.MimeType.{ `application/octet-stream`, forExtension }
 import http.Status.{ ClientError, ServerError, Success }
@@ -68,14 +67,10 @@ final class SpacesServer
     entity match {
       case ArrayEntity(array, offset, length, contenttype) ⇒
         response ++ put(check(root, path), array, offset, length, contenttype); ()
-      case e @ Entity(contenttype, length, encodable) if 0 < length ⇒
+      case Entity(contenttype, length, encodable) ⇒
         exchange.transferTo(forWriting(check(root, path), length), length, context ⇒ {
           context.response ++ Success.`201`
         })
-      case e ⇒
-        println("chunked-encoded entity " + e)
-        println(aio.format(exchange.readBuffer))
-        unsupported
     }
   }
 

@@ -5,7 +5,7 @@ package plain
 package http
 
 import java.nio.ByteBuffer
-import java.util.zip.{ Deflater, CRC32 }
+import java.util.zip.Deflater
 
 import aio.Encoder
 
