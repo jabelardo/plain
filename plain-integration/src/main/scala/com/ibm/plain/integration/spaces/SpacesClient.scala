@@ -11,10 +11,13 @@ import java.io.FileOutputStream
 import java.nio.file.{FileSystems, FileSystem, Files, Path}
 import java.util.UUID
 import org.apache.http.impl.client.HttpClients
-import org.apache.http.client.methods.HttpGet
+import org.apache.http.client.methods.{HttpRequestBase, HttpGet}
 import org.apache.http.{HttpResponse, HttpHeaders}
 import org.apache.http.client.ResponseHandler
 import com.ibm.plain.rest.StaticResource
+import org.apache.commons.compress.compressors.CompressorStreamFactory
+import org.apache.commons.compress.archivers.tar.{TarArchiveInputStream, TarArchiveOutputStream}
+import org.apache.http.message.BasicHeader
 
 /**
  *
@@ -56,58 +59,70 @@ object SpacesClient
 
   extends Logger {
 
+  private object PredefinedHeaders {
+
+    val AcceptEncoding = new BasicHeader(HttpHeaders.ACCEPT_ENCODING, downloadEncoding)
+
+  }
+
+  import PredefinedHeaders._
+
   /**
    * Downloads a resource from the given URI.
    *
    * @param uri
    * The URI of the container which content should be downloaded.
-   * @param file
+   * @param path
    * The file where the download should be stored.
    * @param relativePath
    * The relative path of the resource within the container.
-   * @param filename
+   * @param fileName
    * Optional name of the file when it is stored on local file system. If None, the real name (served by the server) will be used.
+   * If the file already exists. It will be deleted.
    * @return
    * Unit
    */
-  final def get(uri: SpacesURI, path: Path, relativePath: Option[Path] = None, fileName: Option[String] = None) = {
-    require(Files.isDirectory(path), "The path must be an existing directory")
+  final def get(uri: SpacesURI, path: Path, relativePath: Option[Path] = None, fileName: Option[String] = None) = httpRequest(new HttpGet(url(uri, relativePath)), AcceptEncoding) {
+    case (200, response) =>
+      require(Files.isDirectory(path), "The path must be an existing directory.")
 
-    trace(s"GET $uri")
+      // Figure out the target directory
+      val localFilePath = path.resolve(fileName match {
+        case Some(name) => name
+        case None => response.getHeaders("Content-Disposition").toList.headOption match {
+          case Some(value) => value.getValue
+          case None =>
+            // TODO: Throw exception - Muss von SpacesServer mit geliefert werden.
+            "undefined"
+        }
+      })
 
-    val client = HttpClients.createDefault
-    val request = new HttpGet(url(uri, relativePath))
-    request.setHeader(HttpHeaders.ACCEPT_ENCODING, downloadEncoding)
+      // Clean & Create local directory
+      file.deleteIfExists(localFilePath)
+      Files.createDirectory(localFilePath)
 
-    val handler = new ResponseHandler[Unit] {
-      def handleResponse(response: HttpResponse): Unit = {
-        response.getStatusLine.getStatusCode match {
-          case 200 =>
-            val filePath = path.resolve(fileName match {
-              case Some(name) => name
-              case None => response.getHeaders("Content-Disposition").toList.headOption match {
-                case Some(value) => value.getValue
-                case None =>
-                  // TODO: Throw exception - Muss von SpacesServer mit geliefert werden.
-                  ""
-              }
-            })
-
-            // TODO: TAR entpacken, wenn denn dann ein TAR von SpacesServer geliefert wird ...
-            val out = new FileOutputStream(filePath.toFile)
-            val in = response.getEntity.getContent
-
-            io.copyBytesIo(in, out)
-            out.close()
-          case statusCode =>
-            // TODO: Throw exception?
-            error(s"Ach du Scheiße hier ist was schief gelaufen ... $statusCode")
+      // TAR entpcken
+      // TODO: TAR spezifisches in TAR Utils auslagern?
+      val in = new TarArchiveInputStream(response.getEntity.getContent)
+      while (in.getNextEntry != null) {
+        val entry = in.getCurrentEntry
+        val targetFile = localFilePath.resolve(entry.getName)
+        if (entry.isDirectory) {
+          debug(s"Untar directory ${targetFile.toAbsolutePath}")
+          if (!Files.exists(targetFile)) {
+            debug(s"Create directory ${targetFile.toAbsolutePath}")
+            Files.createDirectory(targetFile)
+          }
+        } else {
+          debug(s"Untar ${targetFile.toAbsolutePath}")
+          val out = new FileOutputStream(targetFile.toFile)
+          io.copyBytes(in, out)
+          out.close()
         }
       }
-    }
-
-    client.execute(request, handler)
-    client.close()
+    case (code, response) =>
+      // TODO: Throw exception
+      error(s"Unable to handle $code.")
   }
 
   /**
@@ -152,6 +167,20 @@ object SpacesClient
       case _ => ""
     })
   }
+
+  def httpRequest(request: HttpRequestBase, headers: BasicHeader *)(handler: (Int, HttpResponse) => Unit) = {
+    // Prepare Request
+    request.setHeaders(headers.toArray)
+
+    val client = HttpClients.createDefault()
+    client.execute(request, new ResponseHandler[Unit] {
+      override def handleResponse(response: HttpResponse) = {
+        handler(response.getStatusLine.getStatusCode, response)
+      }
+    })
+    client.close()
+  }
+  
 }
 
 /**
@@ -163,7 +192,8 @@ final class SpacesTestClient
 
   Get {
 
-    SpacesClient.get(SpacesURI("fcb", "PBC2013.pdf"), FileSystems.getDefault.getPath("/Users/michael/Downloads/test.tar.gz"))
+    // Ich lasse mir ein TAR schicken und tue so als ob es vom Server gepackt wird.
+    SpacesClient.get(SpacesURI("fcb", "1234-5678.tar"), FileSystems.getDefault.getPath("/Users/michael/Downloads"))
     "HelloWorld".getBytes
 
   }
