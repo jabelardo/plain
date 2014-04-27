@@ -6,29 +6,31 @@ package integration
 
 package spaces
 
-import logging.Logger
 import java.io.FileOutputStream
-import java.nio.file.{FileSystems, FileSystem, Files, Path}
+import java.nio.file.{ FileSystems, Files, Path }
 import java.util.UUID
-import org.apache.http.impl.client.HttpClients
-import org.apache.http.client.methods.{HttpRequestBase, HttpGet}
-import org.apache.http.{HttpResponse, HttpHeaders}
+
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
+import org.apache.http.{ HttpHeaders, HttpResponse }
 import org.apache.http.client.ResponseHandler
-import com.ibm.plain.rest.StaticResource
-import org.apache.commons.compress.compressors.CompressorStreamFactory
-import org.apache.commons.compress.archivers.tar.{TarArchiveInputStream, TarArchiveOutputStream}
+import org.apache.http.client.methods.{ HttpGet, HttpRequestBase }
+import org.apache.http.impl.client.HttpClients
 import org.apache.http.message.BasicHeader
+
+import rest.StaticResource
+import io.deleteDirectory
+import logging.Logger
 
 /**
  *
  */
-final class SpacesClient private
+final class SpacesClient private {
 
-  extends Logger {
+  import SpacesClient._ // just in case we need the logger methods for instance
 
 }
 
-case class SpacesURI(node: String, container: String = UUID.randomUUID.toString) {
+final case class SpacesURI(node: String, container: String = UUID.randomUUID.toString) {
 
   /** Returns the url of the server where the spaces server component is running (without trailing '/') */
   private lazy val hostSpacesURL = {
@@ -83,23 +85,23 @@ object SpacesClient
    * Unit
    */
   final def get(uri: SpacesURI, path: Path, relativePath: Option[Path] = None, fileName: Option[String] = None) = httpRequest(new HttpGet(url(uri, relativePath)), AcceptEncoding) {
-    case (200, response) =>
+    case (200, response) ⇒
       require(Files.isDirectory(path), "The path must be an existing directory.")
 
       // Figure out the target directory
       val localFilePath = path.resolve(fileName match {
-        case Some(name) => name
-        case None => response.getHeaders("Content-Disposition").toList.headOption match {
-          case Some(value) => value.getValue
-          case None =>
+        case Some(name) ⇒ name
+        case None ⇒ response.getHeaders("Content-Disposition").toList.headOption match {
+          case Some(value) ⇒ value.getValue
+          case None ⇒
             // TODO: Throw exception - Muss von SpacesServer mit geliefert werden.
             "undefined"
         }
       })
 
       // Clean & Create local directory
-      file.deleteIfExists(localFilePath)
-      Files.createDirectory(localFilePath)
+      deleteDirectory(localFilePath.toFile, false)
+      Files.createDirectories(localFilePath)
 
       // TAR entpcken
       // TODO: TAR spezifisches in TAR Utils auslagern?
@@ -120,7 +122,7 @@ object SpacesClient
           out.close()
         }
       }
-    case (code, response) =>
+    case (code, response) ⇒
       // TODO: Throw exception
       error(s"Unable to handle $code.")
   }
@@ -163,12 +165,12 @@ object SpacesClient
    */
   private def url(uri: SpacesURI, relativePath: Option[Path]): String = {
     s"${uri.url}" + (relativePath match {
-      case Some(path) => "?relativePath=" + path.toString
-      case _ => ""
+      case Some(path) ⇒ "?relativePath=" + path.toString
+      case _ ⇒ ""
     })
   }
 
-  def httpRequest(request: HttpRequestBase, headers: BasicHeader *)(handler: (Int, HttpResponse) => Unit) = {
+  def httpRequest(request: HttpRequestBase, headers: BasicHeader*)(handler: (Int, HttpResponse) ⇒ Unit) = {
     // Prepare Request
     request.setHeaders(headers.toArray)
 
@@ -180,7 +182,7 @@ object SpacesClient
     })
     client.close()
   }
-  
+
 }
 
 /**
