@@ -198,8 +198,9 @@ package object io
 
   /**
    * Delete a directory and all of its contents in a background thread. Use delete-directory-retries and delete-directory-timeout to make this method more robust.
+   * If directory is just a file it will silently be deleted.
    */
-  final def deleteDirectory(directory: File) = spawn {
+  final def deleteDirectory(directory: File, background: Boolean) = if (background && directory.isDirectory) spawn {
     try {
       if (directory.exists) FileUtils.deleteDirectory(directory)
     } catch {
@@ -214,8 +215,13 @@ package object io
             case e: IOException ⇒ retries -= 1
           }
         }
-      case e: Throwable ⇒ createLogger(this).debug("Could not delete directory : " + e)
+      case e: Throwable ⇒ createLogger(this).warn("Could not delete directory : " + e)
     }
+  }
+  else try {
+    if (directory.isFile) directory.delete else FileUtils.deleteDirectory(directory)
+  } catch {
+    case e: Throwable ⇒ createLogger(this).warn("Could not delete file : " + e)
   }
 
   /**
