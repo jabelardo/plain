@@ -36,7 +36,6 @@ abstract class HttpProcessor[A]
           case servererror: ServerError ⇒ debug("Dispatching failed : " + stackTraceToString(status))
           case _ ⇒
         }
-        val request = exchange.inMessage.asInstanceOf[Request]
         val response = exchange.outMessage.asInstanceOf[Response]
         Done[ExchangeIo[A], Response]({
           status match {
@@ -48,10 +47,9 @@ abstract class HttpProcessor[A]
       case e ⇒
         warn("Dispatching failed : " + e)
         debug(stackTraceToString(e))
+
         Done[ExchangeIo[A], Response] {
-          val e = ServerError.`500`
-          val request = try exchange.inMessage.asInstanceOf[Request] catch { case _: Throwable ⇒ null }
-          Response(null, e) ++ None
+          exchange.outMessage.asInstanceOf[Response] ++ ServerError.`500` ++ None
         }
     })
     handler.completed(0, exchange)

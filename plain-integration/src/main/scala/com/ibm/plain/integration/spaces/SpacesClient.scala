@@ -13,7 +13,7 @@ import java.util.UUID
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.http.{ HttpHeaders, HttpResponse }
 import org.apache.http.client.ResponseHandler
-import org.apache.http.client.methods.{ HttpGet, HttpRequestBase }
+import org.apache.http.client.methods.{HttpDelete, HttpGet, HttpRequestBase}
 import org.apache.http.impl.client.HttpClients
 import org.apache.http.message.BasicHeader
 
@@ -30,17 +30,18 @@ final class SpacesClient private {
 
 }
 
-final case class SpacesURI(node: String, container: String = UUID.randomUUID.toString) {
+final case class SpacesURI(space: String, container: String = UUID.randomUUID.toString) {
 
   /** Returns the url of the server where the spaces server component is running (without trailing '/') */
   private lazy val hostSpacesURL = {
     // TODO: Get the real server name via infrastructure component
     "localhost:7070/spaces"
+    s"harryklein.munich.de.ibm.com:7070/spaces/$space"
   }
 
   /** Returns the unified resource name */
   lazy val urn = {
-    s"spaces://$node/$container"
+    s"spaces://$space/$container"
   }
 
   /** Returns the unified resource location (without trailing '/') */
@@ -88,6 +89,11 @@ object SpacesClient
     case (200, response) ⇒
       require(Files.isDirectory(path), "The path must be an existing directory.")
 
+      response.getAllHeaders.toList.foreach {
+        case header =>
+          debug(header.getName + " -> " + header.getValue)
+      }
+
       // Figure out the target directory
       val localFilePath = path.resolve(fileName match {
         case Some(name) ⇒ name
@@ -106,6 +112,7 @@ object SpacesClient
       // TAR entpcken
       // TODO: TAR spezifisches in TAR Utils auslagern?
       val in = new TarArchiveInputStream(response.getEntity.getContent)
+
       while (in.getNextEntry != null) {
         val entry = in.getCurrentEntry
         val targetFile = localFilePath.resolve(entry.getName)
@@ -122,6 +129,8 @@ object SpacesClient
           out.close()
         }
       }
+
+      debug("GET Done.")
     case (code, response) ⇒
       // TODO: Throw exception
       error(s"Unable to handle $code.")
@@ -151,7 +160,12 @@ object SpacesClient
    * @return
    * Unit
    */
-  final def delete(uri: SpacesURI, relativePath: Option[Path] = None) = ???
+  final def delete(uri: SpacesURI, relativePath: Option[Path] = None) = httpRequest(new HttpDelete(url(uri, relativePath))) {
+    case (204, response) =>
+      // Alles gut.
+    case _ =>
+      // TODO throw exception ...
+  }
 
   /**
    * Creates the URL to be called.
@@ -164,10 +178,14 @@ object SpacesClient
    * The whole URL.
    */
   private def url(uri: SpacesURI, relativePath: Option[Path]): String = {
-    s"${uri.url}" + (relativePath match {
+    val result = s"${uri.url}" + (relativePath match {
       case Some(path) ⇒ "?relativePath=" + path.toString
       case _ ⇒ ""
     })
+
+    trace("Send request to : " + result)
+
+    result
   }
 
   def httpRequest(request: HttpRequestBase, headers: BasicHeader*)(handler: (Int, HttpResponse) ⇒ Unit) = {
@@ -193,9 +211,9 @@ final class SpacesTestClient
   extends StaticResource {
 
   Get {
-
+    throw new Exception("HUHU")
     // Ich lasse mir ein TAR schicken und tue so als ob es vom Server gepackt wird.
-    SpacesClient.get(SpacesURI("fcb", "1234-5678.tar"), FileSystems.getDefault.getPath("/Users/michael/Downloads"))
+    SpacesClient.get(SpacesURI("myspace"), FileSystems.getDefault.getPath("/Users/michael/Downloads"))
     "HelloWorld".getBytes
 
   }

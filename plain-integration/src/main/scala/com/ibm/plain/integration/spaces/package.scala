@@ -32,6 +32,6 @@ package object spaces
 
   final val spaceslist = getConfigList("plain.integration.spaces.spaces", List.empty).map { c ⇒ Space(c.getString("name"), c.getBytes("quota-in-bytes", -1), c.getBoolean("purge-on-startup", false)) }
 
-  final val downloadEncoding = getString("plain.integration.spaces.downloadEncoding", "gzip")
+  final val downloadEncoding = getString("plain.integration.spaces.downloadEncoding", "deflate")
 
 }
