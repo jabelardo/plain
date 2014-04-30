@@ -7,10 +7,18 @@ package http
 import java.util.zip.Deflater
 
 import aio.{ Decoder, Encoder, InMessage }
-import Message.Headers
 import Header.General.{ `Connection`, `Transfer-Encoding` }
 import Header.Entity.{ `Content-Encoding` }
 import Header.Request.{ `Accept-Encoding` }
+
+/**
+ *
+ */
+object HttpMessage {
+
+  type Headers = scala.collection.Map[String, String]
+
+}
 
 /**
  * The classic http request.
@@ -25,37 +33,27 @@ final case class Request(
 
   version: Version,
 
-  headers: Headers,
+  headers: HttpMessage.Headers,
 
-  var entity: Option[Entity],
+  entity: Option[Entity],
 
-  var decoder: Option[Decoder])
+  decoder: Option[Decoder])
 
-  extends Message
-
-  with aio.InMessage {
+  extends InMessage {
 
   type Type = Request
 
-  final val query = queryoption match {
+  final def query = queryoption match {
     case None ⇒ None
     case Some(q) ⇒ Some(q.replace("_escaped_fragment_=", ""))
   }
 
-  final val keepalive = `Connection`(headers) match {
+  final def keepalive = `Connection`(headers) match {
     case Some(value) if value.exists(_.equalsIgnoreCase("close")) ⇒ false
     case _ ⇒ true
   }
 
-  final def transferDecoding: Option[Decoder] = `Transfer-Encoding`(headers) match {
-    case Some(value) if value.contains("chunked") ⇒ `Content-Encoding`(headers) match {
-      case Some(value) if value.contains("deflate") ⇒ Some(DeflateDecoder.apply)
-      case Some(value) if value.contains("gzip") ⇒ Some(GzipDecoder.apply)
-      case _ ⇒ None
-    }
-  }
-
-  final def transferEncoding: Option[Encoder] = `Accept-Encoding`(headers) match {
+  final def acceptEncoding: Option[Encoder] = `Accept-Encoding`(headers) match {
     case Some(value) if value.contains("deflate") ⇒ Some(DeflateEncoder(Deflater.BEST_SPEED))
     case Some(value) if value.contains("gzip") ⇒ Some(GzipEncoder(Deflater.BEST_SPEED))
     case _ ⇒ None

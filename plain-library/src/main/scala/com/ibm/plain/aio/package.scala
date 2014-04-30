@@ -5,9 +5,13 @@ package plain
 import java.nio.ByteBuffer
 import java.nio.channels.{ CompletionHandler ⇒ Handler }
 
+import com.ibm.plain.aio.{ Aio, Exchange, Iteratee }
+
+import scala.concurrent.duration.{ Duration, MILLISECONDS }
 import scala.language.implicitConversions
 import scala.util.control.ControlThrowable
 
+import config.config2RichConfig
 import logging.createLogger
 
 package object aio
@@ -18,11 +22,16 @@ package object aio
   import config.settings._
 
   /**
+   * The default type of CompletionHandlers.
+   */
+  type Integer = java.lang.Integer
+
+  /**
    * Thrown to indicate that async exchange has been started and is running in a separate control flow now.
    */
   case object ExchangeControl extends ControlThrowable
 
-  final type ExchangeIteratee[A] = Iteratee[Exchange[A], _]
+  final type ExchangeIteratee[A] = Iteratee[ExchangeIo[A], _]
 
   final type ExchangeHandler[A] = Handler[Integer, Exchange[A]]
 
@@ -60,7 +69,7 @@ package object aio
     case _ ⇒
   }
 
-  final def format(buffer: ByteBuffer) = "ByteBuffer(" + System.identityHashCode(buffer) + ", pos " + buffer.position + ", remain " + buffer.remaining + ", lim " + buffer.limit + ", cap " + buffer.capacity + ", " + (if (buffer.hasArray) "heap" else "direct") + ")" + "\n" + text.hexDump(buffer, 2048)
+  final def format(buffer: ByteBuffer, limit: Int = 512) = "ByteBuffer(" + System.identityHashCode(buffer) + ", pos " + buffer.position + ", remain " + buffer.remaining + ", lim " + buffer.limit + ", cap " + buffer.capacity + ", " + (if (buffer.hasArray) "heap" else "direct") + ")" + "\n" + text.hexDump(buffer, limit)
 
   final val tooTinyToCareSize = getBytes("plain.aio.too-tiny-to-care-size", 1024).toInt
 
@@ -95,6 +104,8 @@ package object aio
    *
    */
   final val readWriteTimeout = getMilliseconds("plain.aio.read-write-timeout", 5000)
+
+  final val readWriteDuration = Duration(readWriteTimeout, MILLISECONDS)
 
   /**
    * Set on accept and connection socket for send and receive buffer size. Larger sizes perform better in LAN and fast intranets, but may waste bandwidth. Play with it.

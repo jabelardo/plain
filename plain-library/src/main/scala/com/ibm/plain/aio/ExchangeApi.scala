@@ -31,6 +31,8 @@ trait ExchangePublicApi[A] {
 
   def printWriter: PrintWriter
 
+  def remaining: Int
+
   def available: Int
 
   def keepAlive: Boolean
@@ -59,8 +61,6 @@ trait ExchangePublicApi[A] {
    * Some exception access.
    */
 
-  private[plain] def readBuffer: ByteBuffer
-
   private[plain] def writeBuffer: ByteBuffer
 
 }
@@ -74,9 +74,9 @@ private[aio] trait ExchangePrivateApi[A] {
    * Aio methods.
    */
 
-  private[aio] def apply(input: Input[Exchange[A]], flip: Boolean): (ExchangeIteratee[A], Input[Exchange[A]])
+  private[aio] def apply(input: Input[ExchangeIo[A]], flip: Boolean): (ExchangeIteratee[A], Input[ExchangeIo[A]])
 
-  private[aio] def cache(cachediteratee: Done[Exchange[A], _])
+  private[aio] def cache(cachediteratee: Done[ExchangeIo[A], _])
 
   private[aio] def read(handler: ExchangeHandler[A])
 
@@ -103,8 +103,6 @@ private[aio] trait ExchangePrivateApi[A] {
   private[aio] def release(e: Throwable)
 
   private[aio] def hasError: Boolean
-
-  private[aio] def allWritten: Boolean
 
 }
 
@@ -142,8 +140,6 @@ trait ExchangeApiImpl[A]
 
   @inline final def iteratee = currentiteratee
 
-  @inline private[plain] final def readBuffer = readbuffer
-
   @inline private[plain] final def writeBuffer = writebuffer
 
   @inline final def inMessage = inmessage
@@ -152,7 +148,7 @@ trait ExchangeApiImpl[A]
 
   @inline final def printWriter = printwriter
 
-  @inline final def length: Int = readbuffer.remaining
+  @inline final def remaining: Int = readbuffer.remaining
 
   @inline final def available: Int = writebuffer.remaining
 
@@ -176,15 +172,16 @@ trait ExchangeApiImpl[A]
   @inline final def transferTo(destination: Channel, length: Long, completed: A ⇒ Unit): Nothing = {
     transfersource = length match {
       case len if 0 > len ⇒
-        AsynchronousFixedLengthChannel(channel, readbuffer.remaining, 100000) // :TODO:
-      case _ ⇒ AsynchronousFixedLengthChannel(channel, readbuffer.remaining, length)
+        http.channels.ChunkedByteChannel(channel) // :TODO:
+      case _ ⇒
+        AsynchronousFixedLengthChannel(channel, readbuffer.remaining, length)
     }
     transferdestination = destination
     transfercompleted = completed
     throw ExchangeControl
   }
 
-  @inline final def apply(input: Input[Exchange[A]], flip: Boolean): (ExchangeIteratee[A], Input[Exchange[A]]) = input match {
+  @inline final def apply(input: Input[ExchangeIo[A]], flip: Boolean): (ExchangeIteratee[A], Input[ExchangeIo[A]]) = input match {
     case Elem(_) ⇒
       if (flip) readbuffer.flip
       val fromcache = if (null == cachedarray) {
@@ -208,7 +205,7 @@ trait ExchangeApiImpl[A]
       currentiteratee(input)
   }
 
-  @inline final def cache(cachediteratee: Done[Exchange[A], _]): Unit = {
+  @inline final def cache(cachediteratee: Done[ExchangeIo[A], _]): Unit = {
     if (0 < readbuffer.position && 0 < readbuffer.remaining && null == cachedarray) {
       var len = readbuffer.position
       readbuffer.rewind
@@ -242,15 +239,11 @@ trait ExchangeApiImpl[A]
 
   @inline final def readDecoding(handler: ExchangeHandler[A]) = {
     readbuffer.clear
-    inmessage.decoder match {
-      case Some(decoder) ⇒ decoder.decode(readbuffer)
-      case _ ⇒
-    }
     transfersource.read(readbuffer, this, handler)
   }
 
   @inline final def writeDecoding(handler: ExchangeHandler[A], flip: Boolean) = {
-    if (flip) readbuffer.flip
+    println("write ##1 " + readbuffer)
     transferdestination.write(readbuffer, this, handler)
   }
 
@@ -278,18 +271,17 @@ trait ExchangeApiImpl[A]
   }
 
   @inline final def transferClose = {
-    if (channel ne transferdestination) transferdestination.close
     if (null != transfercompleted) transfercompleted(attachment.get)
+    transfersource.close
+    transferdestination.close
     transfersource = null
     transferdestination = null
     transfercompleted = null
     writebuffer.clear
-    currentiteratee = Done[Exchange[A], Option[Nothing]](None)
+    currentiteratee = Done[ExchangeIo[A], Option[Nothing]](None)
   }
 
   @inline final def hasError = currentiteratee.isInstanceOf[Error[_]]
-
-  @inline final def allWritten = 0 == writebuffer.remaining
 
   /**
    * Internals.
@@ -312,7 +304,7 @@ trait ExchangeApiImpl[A]
     }
     releaseByteBuffer(readbuffer)
     releaseByteBuffer(writebuffer)
-    if (channel.isOpen) channel.close
+    if (channel.isOpen) channel.asInstanceOf[AsynchronousSocketChannelWithTimeout].doClose
   }
 
   @inline private[this] final def setCachedArray(length: Int) = if (0 < length) {

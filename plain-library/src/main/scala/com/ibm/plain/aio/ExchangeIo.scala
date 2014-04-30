@@ -14,32 +14,32 @@ import scala.math.min
  */
 trait ExchangeIo[A] {
 
-  def decode(characterset: Charset, lowercase: Boolean): String
+  private[aio] def length: Int
 
-  def consume: Array[Byte]
+  private[aio] def decode(characterset: Charset, lowercase: Boolean): String
 
-  def take(n: Int): Exchange[A]
+  private[aio] def consume: Array[Byte]
 
-  def peek(n: Int): Exchange[A]
+  private[aio] def take(n: Int): ExchangeIo[A]
 
-  def peek: Byte
+  private[aio] def peek(n: Int): ExchangeIo[A]
 
-  def drop(n: Int): Exchange[A]
+  private[aio] def peek: Byte
 
-  def indexOf(b: Byte): Int
+  private[aio] def drop(n: Int): ExchangeIo[A]
 
-  def span(p: Int ⇒ Boolean): (Int, Int)
+  private[aio] def indexOf(b: Byte): Int
 
-  def length: Int
+  private[aio] def span(p: Int ⇒ Boolean): (Int, Int)
 
-  def ++(that: Exchange[A]): Exchange[A]
+  private[aio] def ++(that: ExchangeIo[A]): ExchangeIo[A]
 
 }
 
 /**
  * Some statics put here.
  */
-object ExchangeIo {
+private object ExchangeIo {
 
   /**
    * Constants.
@@ -53,13 +53,13 @@ object ExchangeIo {
 /**
  *
  */
-trait ExchangeIoImpl[A]
+private[aio] trait ExchangeIoImpl[A]
 
   extends ExchangeIo[A] {
 
-  self: Exchange[A] ⇒
-
   import ExchangeIo._
+
+  final def length = readbuffer.remaining
 
   final def decode(characterset: Charset, lowercase: Boolean): String = advanceBuffer(
     readbuffer.remaining match {
@@ -76,20 +76,20 @@ trait ExchangeIoImpl[A]
       case n ⇒ readBytes(n)
     })
 
-  @inline final def take(n: Int): Exchange[A] = {
+  @inline final def take(n: Int): ExchangeIo[A] = {
     markLimit
     readbuffer.limit(min(readbuffer.limit, readbuffer.position + n))
     this
   }
 
-  @inline final def peek(n: Int): Exchange[A] = {
+  @inline final def peek(n: Int): ExchangeIo[A] = {
     markPosition
     take(n)
   }
 
   @inline final def peek: Byte = readbuffer.get(readbuffer.position)
 
-  @inline final def drop(n: Int): Exchange[A] = {
+  @inline final def drop(n: Int): ExchangeIo[A] = {
     readbuffer.position(min(readbuffer.limit, readbuffer.position + n))
     this
   }
@@ -110,7 +110,7 @@ trait ExchangeIoImpl[A]
     (i - pos, l - i)
   }
 
-  @inline final def ++(that: Exchange[A]) = {
+  @inline final def ++(that: ExchangeIo[A]): ExchangeIo[A] = {
     if (this eq that) that else unsupported
   }
 

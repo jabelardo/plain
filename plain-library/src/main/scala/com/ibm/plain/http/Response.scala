@@ -9,13 +9,13 @@ import javax.servlet.http.Cookie
 
 import scala.language.implicitConversions
 
-import aio.{ AsynchronousByteArrayChannel, Encoder, Exchange, ExchangeIteratee, OutMessage, releaseByteBuffer, tooTinyToCareSize }
+import aio.{ AsynchronousByteArrayChannel, Encoder, Exchange, ExchangeIo, ExchangeIteratee, Iteratee, OutMessage, releaseByteBuffer, tooTinyToCareSize }
 import aio.Iteratee.{ Cont, Done }
 import aio.Renderable._
 import text.`UTF-8`
 import time.{ now, rfc1123 }
 import Entity.{ ArrayEntity, AsynchronousByteChannelEntity, ByteBufferEntity }
-import Message.Headers
+import HttpMessage.Headers
 
 /**
  * The classic http response.
@@ -53,7 +53,7 @@ final case class Response(
   /**
    * Render the response header and eventually the response body if it fits into the write buffer of the Exchange.
    */
-  final def renderHeader[A](exchange: Exchange[A]): ExchangeIteratee[A] = {
+  final def render[A](exchange: Exchange[A]): ExchangeIteratee[A] = {
     renderVersion
     renderMandatory
     renderHeaders
@@ -92,7 +92,7 @@ final case class Response(
       case Some(ArrayEntity(_, _, _, _)) ⇒ None
       case Some(ByteBufferEntity(_, _)) ⇒ None
       case Some(entity) if entity.contenttype.mimetype.encodable && (0 > entity.length || entity.length > tooTinyToCareSize) ⇒ exchange.inMessage match {
-        case request: Request ⇒ request.transferEncoding
+        case request: Request ⇒ request.acceptEncoding
         case _ ⇒ None
       }
       case _ ⇒ None
@@ -180,13 +180,13 @@ object Response {
 
   private final val `HttpOnly` = "HttpOnly".getBytes
 
-  private final def done[A]: ExchangeIteratee[A] = done.asInstanceOf[ExchangeIteratee[A]]
+  private final def done[A]: Iteratee[ExchangeIo[A], _] = donevalue.asInstanceOf[Iteratee[ExchangeIo[A], _]]
 
-  private final def cont[A]: ExchangeIteratee[A] = cont.asInstanceOf[ExchangeIteratee[A]]
+  private final def cont[A]: Iteratee[ExchangeIo[A], _] = contvalue.asInstanceOf[Iteratee[ExchangeIo[A], _]]
 
-  private[this] final val done = Done[Exchange[Null], Option[Nothing]](None)
+  private[this] final val donevalue = Done[ExchangeIo[Null], Option[Nothing]](None)
 
-  private[this] final val cont = Cont[Exchange[Null], Null](null)
+  private[this] final val contvalue = Cont[ExchangeIo[Null], Null](null)
 
 }
 

@@ -28,4 +28,6 @@ package object http
    */
   final val ignoreAcceptHeader = getBoolean("plain.http.ignore-accept-header", false)
 
+  final val ignoreEntityEncoding = getBoolean("plain.http.ignore-entity-encoding", false)
+
 }

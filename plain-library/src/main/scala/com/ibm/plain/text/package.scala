@@ -21,6 +21,8 @@ package object text {
    */
   final val `US-ASCII` = US_ASCII
 
+  final val ascii = US_ASCII
+
   /**
    * The most important standard character sets.
    */
@@ -101,6 +103,10 @@ package object text {
    * Returns true if s represents a numeric value (ie. an Int, a Long or a Double)
    */
   final def isNumber(s: String): Boolean = try { val d = s.toDouble; true } catch { case _: Throwable ⇒ false }
+
+  final def isHex(c: Char) = c.isDigit || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
+
+  final def isHex(b: Byte) = (b >= '0'.toByte && b <= '9'.toByte) || (b >= 'a'.toByte && b <= 'f'.toByte) || (b >= 'A'.toByte && b <= 'F'.toByte)
 
   /**
    * Converts an UTF8 encoded string to a hex string, the hex characters are all uppercase; it is case sensitive.

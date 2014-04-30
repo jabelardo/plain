@@ -13,10 +13,10 @@ import aio.Iteratee._
 import aio.Iteratees._
 import aio.Input._
 import text.{ `US-ASCII`, utf8Codec }
-import Message.Headers
+import HttpMessage.Headers
 import Request.Path
 import Status.ClientError.`400`
-import Header.Entity.{ `Content-Length`, `Content-Type` }
+import Header.Entity.{ `Content-Encoding`, `Content-Length`, `Content-Type` }
 import Header.General.`Transfer-Encoding`
 import Header.Request.`Expect`
 import Version.`HTTP/1.1`
@@ -35,11 +35,11 @@ object RequestIteratee
 
   import RequestConstants._
 
-  private[this] final def readRequestLine[A](settings: ServerConfiguration, server: Server): Iteratee[Exchange[A], (Method, Path, Option[String], Version)] = {
+  private[this] final def readRequestLine[A](settings: ServerConfiguration, server: Server): Iteratee[ExchangeIo[A], RequestLine] = {
 
     val characterset = settings.defaultCharacterSet
 
-    val readMethod: Iteratee[Exchange[A], Method] = peek flatMap {
+    val readMethod: Iteratee[ExchangeIo[A], Method] = peek flatMap {
       case `G` ⇒ for (_ ← drop(4)) yield Method.GET
       case `H` ⇒ for (_ ← drop(5)) yield Method.HEAD
       case `D` ⇒ for (_ ← drop(7)) yield Method.DELETE
@@ -49,9 +49,9 @@ object RequestIteratee
       case _ ⇒ for (name ← takeUntil(` `, characterset, false)) yield Method(name)
     }
 
-    val readRequestUri: Iteratee[Exchange[A], (Path, Option[String])] = {
+    val readRequestUri: Iteratee[ExchangeIo[A], (Path, Option[String])] = {
 
-      def readUriSegment(allowed: Set[Int], nodecoding: Boolean): Iteratee[Exchange[A], String] = for {
+      def readUriSegment(allowed: Set[Int], nodecoding: Boolean): Iteratee[ExchangeIo[A], String] = for {
         segment ← takeWhile(allowed, characterset, false)
       } yield if (nodecoding) segment else utf8Codec.decode(segment)
 
@@ -59,9 +59,9 @@ object RequestIteratee
 
       val readQuerySegment = readUriSegment(query, false)
 
-      val readPath: Iteratee[Exchange[A], Path] = {
+      val readPath: Iteratee[ExchangeIo[A], Path] = {
 
-        def cont(segments: List[String]): Iteratee[Exchange[A], Path] = peek flatMap {
+        def cont(segments: List[String]): Iteratee[ExchangeIo[A], Path] = peek flatMap {
           case `/` ⇒ for {
             _ ← drop(1)
             segment ← readPathSegment
@@ -73,7 +73,7 @@ object RequestIteratee
         cont(Nil)
       }
 
-      val readQuery: Iteratee[Exchange[A], Option[String]] = peek flatMap {
+      val readQuery: Iteratee[ExchangeIo[A], Option[String]] = peek flatMap {
         case `?` ⇒ for {
           _ ← drop(1)
           query ← readQuerySegment
@@ -95,14 +95,14 @@ object RequestIteratee
       uri ← readRequestUri
       _ ← takeWhile(whitespace, characterset, false)
       version ← takeUntilCrLf(characterset, false)
-    } yield (method, uri._1, uri._2, Version(version, server))
+    } yield RequestLine(method, uri._1, uri._2, Version(version, server))
   }
 
-  private[this] final def readHeaders[A](characterset: Charset): Iteratee[Exchange[A], Headers] = {
+  private[this] final def readHeaders[A](characterset: Charset): Iteratee[ExchangeIo[A], Headers] = {
 
-    val readHeader: Iteratee[Exchange[A], (String, String)] = {
+    val readHeader: Iteratee[ExchangeIo[A], (String, String)] = {
 
-      def cont(lines: String): Iteratee[Exchange[A], String] = peek flatMap {
+      def cont(lines: String): Iteratee[ExchangeIo[A], String] = peek flatMap {
         case ` ` | `\t` ⇒ for {
           _ ← drop(1)
           line ← takeUntilCrLf(characterset, false)
@@ -122,7 +122,7 @@ object RequestIteratee
       } yield (name, value)
     }
 
-    @inline def cont(headers: List[(String, String)]): Iteratee[Exchange[A], Headers] = peek flatMap {
+    @inline def cont(headers: List[(String, String)]): Iteratee[ExchangeIo[A], Headers] = peek flatMap {
       case `\r` ⇒ for {
         _ ← drop(2)
         done ← Done(headers.toMap)
@@ -136,84 +136,72 @@ object RequestIteratee
     cont(Nil)
   }
 
-  private[this] final def readEntity[A](headers: Headers, query: Option[String], settings: ServerConfiguration): Iteratee[Exchange[A], Option[Entity]] = {
+  private[this] final def readEntity[A](
 
-    val contenttype: ContentType = `Content-Type`(headers) match {
+    headers: Headers,
+
+    query: Option[String],
+
+    settings: ServerConfiguration): Iteratee[ExchangeIo[A], EntityInfo] = {
+
+    def contenttype: ContentType = `Content-Type`(headers) match {
       case Some(contenttype) ⇒ contenttype
       case _ ⇒ `application/octet-stream`
     }
 
-    val need100continue = `Expect`(headers) match {
+    def need100continue = `Expect`(headers) match {
       case Some(expect) if "100-continue" == expect.toLowerCase ⇒ true
       case _ ⇒ false
     }
 
-    def `100-continue`[A](n: Int): Iteratee[Exchange[A], Array[Byte]] = {
-
-      object ContinueWriteHandler
-
-        extends Handler[Integer, Exchange[A]] {
-
-        @inline final def completed(processed: Integer, exchange: Exchange[A]) = ()
-
-        @inline final def failed(e: Throwable, exchange: Exchange[A]) = ()
-
-        @inline final def response = responsebuffer.duplicate
-
-        private[this] final val responsebuffer = {
-          val response = "HTTP/1.1 100 Continue\r\n\r\n".getBytes
-          val buffer = ByteBuffer.allocateDirect(response.length)
-          buffer.put(response)
-          buffer.flip
-          buffer
-        }
-      }
-
-      def cont(taken: Exchange[A])(input: Input[Exchange[A]]): (Iteratee[Exchange[A], Array[Byte]], Input[Exchange[A]]) = {
-        input match {
-          case Elem(more) ⇒
-            val in = if (null == taken) more else taken ++ more
-            if (need100continue && 0 == in.length) {
-              in.socketChannel.write(ContinueWriteHandler.response, in, ContinueWriteHandler)
-              (Cont(cont(in)), Empty)
+    if (ignoreEntityEncoding) {
+      Done(NoneInfo)
+    } else {
+      `Transfer-Encoding`(headers) match {
+        case Some(value) ⇒
+          for (_ ← continue(Long.MaxValue, continuebuffer.duplicate))
+            yield EntityInfo(Some(TransferEncodedEntity(value, contenttype)), `Content-Encoding`(headers) match {
+            case Some(value) if value.contains("deflate") ⇒ Some(DeflateDecoder.apply)
+            case Some(value) if value.contains("gzip") ⇒ Some(GzipDecoder.apply)
+            case _ ⇒ None
+          })
+        case None ⇒ `Content-Length`(headers) match {
+          case Some(length) ⇒
+            if (need100continue) {
+              for (_ ← continue(length, continuebuffer.duplicate)) yield EntityInfo(Some(ContentEntity(contenttype, length)), None)
             } else {
-              if (in.length < n) {
-                (Cont(cont(in)), Empty)
-              } else {
-                (Done(in.take(n).consume), Elem(in))
-              }
+              Done(EntityInfo(Some(ContentEntity(contenttype, length)), None))
             }
-          case Failure(e) ⇒ (Error(e), input)
-          case _ ⇒ (Error(null), input)
-        }
-      }
-
-      Cont(cont(null) _)
-    }
-
-    `Transfer-Encoding`(headers) match {
-      case Some(value) ⇒
-        for (_ ← `100-continue`(0)) yield Some(TransferEncodedEntity(value, contenttype))
-      case None ⇒ `Content-Length`(headers) match {
-        case Some(length) if length <= settings.maxEntityBufferSize ⇒
-          for (array ← `100-continue`(length.toInt)) yield Some(ArrayEntity(array, 0, length, contenttype))
-        case Some(length) ⇒
-          for (_ ← `100-continue`(0)) yield Some(ContentEntity(contenttype, length))
-        case None ⇒ query match {
-          case Some(query) ⇒ Done(Some(ArrayEntity(query.getBytes(defaultCharacterSet), `text/plain`)))
-          case None ⇒ Done(None)
+          case None ⇒ query match {
+            case Some(query) ⇒ Done(EntityInfo(Some(ArrayEntity(query.getBytes(defaultCharacterSet), `text/plain`)), None))
+            case None ⇒ Done(NoneInfo)
+          }
         }
       }
     }
   }
 
-  final def readRequest[A](server: Server): Iteratee[Exchange[A], Request] = {
+  final def readRequest[A](server: Server): Iteratee[ExchangeIo[A], Request] = {
     val settings = server.getSettings
     for {
-      mpqv ← readRequestLine(settings, server)
+      line ← readRequestLine(settings, server)
       headers ← readHeaders(settings.defaultCharacterSet)
-      entity ← readEntity(headers, mpqv._3, settings)
-    } yield Request(mpqv._1, mpqv._2, mpqv._3, mpqv._4, headers, entity, None)
+      body ← readEntity(headers, line.query, settings)
+    } yield Request(line.method, line.path, line.query, line.version, headers, body.entity, body.decoder)
+  }
+
+  @inline private[this] final case class RequestLine(method: Method, path: Path, query: Option[String], version: Version)
+
+  @inline private[this] case class EntityInfo(entity: Option[Entity], decoder: Option[Decoder])
+
+  @inline private[this] object NoneInfo extends EntityInfo(None, None)
+
+  @inline private[this] final val continuebuffer = {
+    val response = "HTTP/1.1 100 Continue\r\n\r\n".getBytes
+    val buffer = ByteBuffer.allocateDirect(response.length)
+    buffer.put(response)
+    buffer.flip
+    buffer
   }
 
 }

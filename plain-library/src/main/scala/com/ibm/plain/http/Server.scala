@@ -171,8 +171,6 @@ object Server {
 
     final val disableUrlDecoding = getBoolean("feature.disable-url-decoding")
 
-    final val maxEntityBufferSize = getBytes("feature.max-entity-buffer-size", 16 * 1024).toInt
-
     require(0 < portRange.size, "You must at least specify one port for 'port-range'.")
 
     def createDispatcher[A] = {
@@ -218,8 +216,6 @@ object Server {
 		
 				disable-url-decoding = off
 		
-				max-entity-buffer-size = 64K
-
     }""")
 
 }

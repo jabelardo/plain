@@ -7,7 +7,7 @@ package integration
 package spaces
 
 import java.nio.file.{ Path, Paths }
-import java.nio.file.Files.{ createDirectories, exists ⇒ fexists, isDirectory, isRegularFile, size ⇒ fsize, write ⇒ fwrite, readAllBytes, delete ⇒ fdelete }
+import java.nio.file.Files.{ createDirectories, exists ⇒ fexists, isDirectory, isRegularFile, size ⇒ fsize, write ⇒ writeAllBytes, readAllBytes, delete ⇒ fdelete }
 
 import org.apache.commons.io.FilenameUtils.getExtension
 import org.apache.commons.io.filefilter.RegexFileFilter
@@ -17,18 +17,17 @@ import _root_.com.typesafe.config.Config
 
 import scala.collection.JavaConversions.asScalaBuffer
 import scala.language.implicitConversions
-import scala.reflect.runtime.universe
-import scala.reflect.runtime.universe.TypeTag.Unit
 
 import aio.{ AsynchronousFileByteChannel, AsynchronousFixedLengthChannel, Encoder, Exchange }
 import aio.AsynchronousFileByteChannel.{ forReading, forWriting }
 import concurrent.ioexecutor
 import logging.Logger
+import crypt.Uuid
 import http.{ ContentType, Entity, Request }
 import http.Entity.{ AsynchronousByteChannelEntity, ArrayEntity, ContentEntity }
 import http.MimeType.{ `application/octet-stream`, forExtension }
 import http.Status.{ ClientError, ServerError, Success }
-import rest._
+import rest.{ Form, StaticResource, Context }
 
 /**
  *
@@ -56,27 +55,20 @@ final class SpacesServer
   /**
    * Creates a directory with the remainder as path relative to the first root. All intermediate directories are also created if necessary.
    */
-  Put { println(request); response ++ put(context.config.getStringList("roots").head, context.remainder.mkString("/")); () }
+  Put { response ++ put(context.config.getStringList("roots").head, context.remainder.mkString("/")); () }
 
   /**
    * Upload a file.
    */
   Put { entity: Entity ⇒
-    val root = context.config.getStringList("roots").head
-    val path = context.remainder.mkString("/")
     entity match {
-      case ArrayEntity(array, offset, length, contenttype) ⇒
-        response ++ put(check(root, path), array, offset, length, contenttype); ()
-      case Entity(contenttype, length, encodable) ⇒
-        exchange.transferTo(forWriting(check(root, path), length), length, context ⇒ {
-          context.response ++ Success.`201`
-        })
+      case e @ Entity(contenttype, length, _) ⇒
+        val file = computeFilePath(context)
+        exchange.transferTo(forWriting(file, length), length, context ⇒ { context.response ++ Success.`201` })
+      case _ ⇒ throw ServerError.`501`
     }
+    ()
   }
-
-  /**
-   * What's left for Post?
-   */
 
 }
 
@@ -172,7 +164,7 @@ object SpacesServer
    * Put a file synchronously.
    */
   private final def put(path: Path, array: Array[Byte], offset: Int, length: Long, contenttype: ContentType): Success = try {
-    fwrite(path, array)
+    writeAllBytes(path, array)
     Success.`201`
   } catch { case e: Throwable ⇒ throw ServerError.`500` }
 
@@ -191,6 +183,23 @@ object SpacesServer
 
   }
 
+  private final def computeFilePath(context: Context): Path = {
+    def computeDirectory(root: String, directory: String): Path = {
+      Paths.get(root).toAbsolutePath.resolve(directory) match {
+        case path if path.toString.contains("..") ⇒ throw ClientError.`406`
+        case path if fexists(path) && isRegularFile(path) ⇒ throw ClientError.`409`
+        case path if fexists(path) && isDirectory(path) ⇒ path
+        case path ⇒ createDirectories(path)
+      }
+    }
+    val root = context.config.getString("spaces-directory")
+    val space = context.variables.getOrElse("space", null)
+    val container = context.variables.getOrElse("container", null)
+    require(null != space && null != container, throw ClientError.`400`)
+    val containeruuid = try Uuid.fromString(container) catch { case e: Throwable ⇒ trace(e); throw ClientError.`400` }
+    computeDirectory(computeDirectory(root, space).toString, containeruuid).resolve("relativePath_NYI")
+  }
+
   /**
    * Create directories.
    */
@@ -199,7 +208,7 @@ object SpacesServer
       case path if path.toString.contains("..") ⇒ throw ClientError.`406`
       case path if fexists(path) && isRegularFile(path) ⇒ throw ClientError.`409`
       case path if fexists(path) && isDirectory(path) ⇒ Success.`201`
-      case path ⇒ try { createDirectories(path); Success.`201` } catch { case _: Throwable ⇒ throw ServerError.`500` }
+      case path ⇒ try { createDirectories(path); Success.`201` } catch { case _: Throwable ⇒ throw ServerError.`503` }
     }
   }
 

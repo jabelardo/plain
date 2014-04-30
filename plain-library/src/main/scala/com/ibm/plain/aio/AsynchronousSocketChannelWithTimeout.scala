@@ -18,7 +18,15 @@ final class AsynchronousSocketChannelWithTimeout private (
 
   extends Channel {
 
-  @inline final def close = channel.close
+  /**
+   * Call doClose if you really want to close the underlying channel.
+   */
+  @inline final def doClose = channel.close
+
+  /**
+   * close is ignored to avoid premature closing after reading an entity. Call doClose instead.
+   */
+  @inline final def close = ()
 
   @inline final def isOpen = channel.isOpen
 

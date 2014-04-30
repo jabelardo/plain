@@ -36,7 +36,7 @@ object Iteratee {
 
   final class Done[E, A] private (val a: A)
 
-    extends  Iteratee[E, A] {
+    extends Iteratee[E, A] {
 
     @inline final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = (this, input)
 

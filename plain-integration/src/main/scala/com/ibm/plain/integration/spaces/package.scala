@@ -9,6 +9,7 @@ import scala.language.implicitConversions
 import config.CheckedConfig
 import config.settings.getConfig
 
+import java.nio.file.{ Files, Paths }
 /**
  *
  */
@@ -22,6 +23,14 @@ package object spaces
   final val spacesConfig = getConfigList("plain.rest.default-dispatcher.routes")
 
   final val isEnabled = getBoolean("plain.integration.spaces.is-enabled", false)
+
+  final val rootDirectory = {
+    val root = Paths.get(getString("plain.integration.spaces.root-directory", "target/spaces"))
+    if (!Files.exists(root)) Files.createDirectories(root)
+    root
+  }
+
+  final val spaceslist = getConfigList("plain.integration.spaces.spaces", List.empty).map { c ⇒ Space(c.getString("name"), c.getBytes("quota-in-bytes", -1), c.getBoolean("purge-on-startup", false)) }
 
   final val downloadEncoding = getString("plain.integration.spaces.downloadEncoding", "gzip")
 

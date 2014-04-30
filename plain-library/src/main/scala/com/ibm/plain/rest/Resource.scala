@@ -9,7 +9,6 @@ import scala.reflect.runtime.universe.{ Type, TypeTag, typeOf }
 
 import com.typesafe.config.Config
 
-import reflect.tryBoolean
 import aio.{ Exchange, ExchangeHandler }
 import http.{ Request, Response, Status, Entity, Method, MimeType, Accept }
 import http.Entity._
@@ -159,8 +158,8 @@ trait Resource
             def tryDecode(in: Type, decode: AnyRef): Boolean = {
               if (innerinput.isDefined && innerinput.get._2 == decode) return true
               decode match {
-                case decode if decode.isInstanceOf[Decoder[_]] ⇒ tryBoolean(innerinput = Some((decode.asInstanceOf[Decoder[_]](inentity), decode)))
-                case decode if decode.isInstanceOf[MarshaledDecoder[_]] ⇒ tryBoolean(innerinput = Some((decode.asInstanceOf[MarshaledDecoder[_]](inentity, ClassTag(Class.forName(in.toString))), decode)))
+                case decode if decode.isInstanceOf[Decoder[_]] ⇒ try2Boolean(innerinput = Some((decode.asInstanceOf[Decoder[_]](inentity), decode)))
+                case decode if decode.isInstanceOf[MarshaledDecoder[_]] ⇒ try2Boolean(innerinput = Some((decode.asInstanceOf[MarshaledDecoder[_]](inentity, ClassTag(Class.forName(in.toString))), decode)))
                 case _ ⇒ false
               }
             }

@@ -16,7 +16,7 @@ trait InMessage
 
   extends Message {
 
-  val keepalive: Boolean
+  def keepalive: Boolean
 
   def decoder: Option[Decoder]
 
@@ -29,7 +29,7 @@ trait OutMessage
 
   extends Message {
 
-  def renderHeader[A](exchange: Exchange[A]): Iteratee[Exchange[A], _]
+  def render[A](exchange: Exchange[A]): ExchangeIteratee[A]
 
   def encoder: Option[Encoder]
 

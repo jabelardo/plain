@@ -47,7 +47,7 @@ abstract class BaseEncoder(
 
   protected[this] val footerlength: Int
 
-  @inline protected[this] final def chunk(length: Int) = "\r\n%08x\r\n".format(length).getBytes
+  @inline protected[this] final def chunk(chunklength: Int) = "\r\n%08x\r\n".format(chunklength).getBytes
 
   protected[this] final def bytesRead = deflater.getBytesRead
 

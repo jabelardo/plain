@@ -145,11 +145,13 @@ object AsynchronousFileByteChannel {
   /**
    * This is very fast and should, therefore, be preferred, it also fails if there is not enough space in the file system.
    */
-  final def forWriting(path: Path, length: Long): AsynchronousFileByteChannel = {
+  final def forWriting(path: Path, length: Long): AsynchronousFileByteChannel = if (0 < length) {
     val f = new java.io.RandomAccessFile(path.toString, "rw")
     f.setLength(length)
     f.close
     apply(AsynchronousFileChannel.open(path, Set(WRITE), concurrent.ioexecutor))
+  } else {
+    forWriting(path)
   }
 
   final def forReading(file: File): AsynchronousFileByteChannel = forReading(file.toPath)

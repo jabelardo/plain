@@ -4,7 +4,7 @@ package plain
 
 package http
 
-import Message.Headers
+import HttpMessage.Headers
 
 /**
  * A maybe not so simple Header case class hierarchy.

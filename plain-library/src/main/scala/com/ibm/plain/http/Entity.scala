@@ -81,7 +81,7 @@ object Entity {
 
   object TransferEncodedEntity {
 
-    final def apply(value: String, contenttype: ContentType): TransferEncodedEntity = value.toLowerCase match {
+    @inline final def apply(value: String, contenttype: ContentType): TransferEncodedEntity = value.toLowerCase match {
       case "identity" ⇒ `identity`(contenttype)
       case "chunked" ⇒ `chunked`(contenttype)
       case "gzip" ⇒ `gzip`(contenttype)

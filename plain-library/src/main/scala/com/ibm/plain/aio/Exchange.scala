@@ -26,6 +26,25 @@ trait Exchange[A]
 /**
  *
  */
+final class ExchangeImpl[A] private[aio] (
+
+  protected[this] final val channel: Channel,
+
+  protected[this] final val readiteratee: ExchangeIteratee[A],
+
+  protected[this] final val readbuffer: ByteBuffer,
+
+  protected[this] final val writebuffer: ByteBuffer)
+
+  extends Exchange[A]
+
+  with ExchangeApiImpl[A]
+
+  with ExchangeIoImpl[A]
+
+/**
+ *
+ */
 object Exchange
 
   extends Logger {
@@ -125,10 +144,10 @@ object Exchange
         exchange(if (0 == processed) Eof else Elem(exchange), processed != Int.MaxValue) match {
           case (cont @ Cont(_), Empty) ⇒
             read(exchange ++ cont)
-          case (e @ Done(in: InMessage), Elem(exchange)) ⇒
+          case (e @ Done(in: InMessage), Elem(_)) ⇒
             exchange.cache(e)
             process(exchange ++ in)
-          case (e @ Error(_), Elem(exchange)) ⇒
+          case (e @ Error(_), Elem(_)) ⇒
             exchange.reset
             process(exchange ++ e)
           case (_, Eof) ⇒
@@ -150,20 +169,24 @@ object Exchange
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
         exchange.iteratee match {
           case Done(_) ⇒
-            exchange.outMessage.renderHeader(exchange) match {
+            exchange.outMessage.render(exchange) match {
               case Done(_) ⇒
-                if (0 < exchange.length) {
+                if (0 < exchange.remaining) {
                   ReadHandler.completed(Int.MaxValue, exchange)
                 } else {
                   write(exchange)
                 }
               case Cont(_) ⇒
                 transferFrom(exchange)
-              case e ⇒ unhandled(e)
+              case e ⇒
+                unhandled(e)
             }
-          case Cont(_) ⇒
+          case e @ Cont(_) ⇒
             transferTo(exchange)
-          case e ⇒ unhandled(e)
+          case Error(e) ⇒
+            unhandled(e)
+          case e ⇒
+            unhandled(e)
         }
       }
 
@@ -177,7 +200,7 @@ object Exchange
       extends ReleaseHandler {
 
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
-        if (exchange.allWritten || exchange.hasError) {
+        if (0 == exchange.available || exchange.hasError) {
           exchange.reset
           read(exchange)
         } else {
@@ -198,6 +221,7 @@ object Exchange
 
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
         total += processed
+        println("read total " + total + " " + processed)
         if (0 == processed) {
           exchange.writeDecoding(DecodeCloseHandler, true)
         } else {
@@ -215,9 +239,12 @@ object Exchange
 
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
         total += processed
-        if (0 < exchange.length) {
+        println("write total " + total + " " + processed)
+        if (0 < exchange.remaining) {
+          println("###3")
           exchange.writeDecoding(this, false)
         } else {
+          println("###4")
           exchange.readDecoding(DecodeReadHandler)
         }
       }
@@ -228,7 +255,7 @@ object Exchange
       extends ReleaseHandler {
 
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
-        if (0 < exchange.length) {
+        if (0 < exchange.remaining) {
           exchange.writeDecoding(this, false)
         } else {
           exchange.transferClose
@@ -298,7 +325,7 @@ object Exchange
 
     @inline def transferFrom(exchange: Exchange[A]) = exchange.writeEncoding(EncodeWriteHandler, true, 0)
 
-    @inline def transferTo(exchange: Exchange[A]) = exchange.writeDecoding(DecodeWriteHandler, false)
+    @inline def transferTo(exchange: Exchange[A]) = exchange.readDecoding(DecodeReadHandler)
 
     /**
      * Now, let's get started.
@@ -321,23 +348,4 @@ object Exchange
   @inline private def ignore = debug("Ignored.")
 
 }
-
-/**
- *
- */
-final class ExchangeImpl[A] private[aio] (
-
-  protected[this] final val channel: Channel,
-
-  protected[this] final val readiteratee: ExchangeIteratee[A],
-
-  protected[this] final val readbuffer: ByteBuffer,
-
-  protected[this] final val writebuffer: ByteBuffer)
-
-  extends Exchange[A]
-
-  with ExchangeApiImpl[A]
-
-  with ExchangeIoImpl[A]
 

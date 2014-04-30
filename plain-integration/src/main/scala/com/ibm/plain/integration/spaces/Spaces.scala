@@ -6,6 +6,11 @@ package integration
 
 package spaces
 
+import java.nio.file.Files.{ createDirectories, exists, isDirectory, isRegularFile }
+import java.nio.file.{ Path, Paths }
+
+import org.apache.commons.io.FileUtils.deleteDirectory
+
 import bootstrap.{ ExternalComponent, Singleton }
 import logging.Logger
 
@@ -22,6 +27,32 @@ final class Spaces
   with Logger {
 
   override def start = {
+
+    spaceslist.foreach { space ⇒
+      def log(fun: String ⇒ Unit, message: String, space: Space, path: Path): Unit = fun("name: " + space.name + ", " + message + ": " + path.toAbsolutePath)
+      val (fun, message, path): (String ⇒ Unit, String, Path) = rootDirectory.resolve(space.name) match {
+        case path if !exists(path.getParent) ⇒
+          (error, "invalid root-directory", path.getParent)
+        case path if path.toString.contains("..") ⇒
+          (error, "invalid directory", path)
+        case path if exists(path) && isRegularFile(path) ⇒
+          (error, "invalid directory (is a file)", path)
+        case path if exists(path) && isDirectory(path) && space.purge ⇒
+          deleteDirectory(path.toFile)
+          createDirectories(path)
+          (trace, "directory purged", path)
+        case path if exists(path) && isDirectory(path) ⇒
+          (trace, "directory exists", path)
+        case path ⇒
+          try {
+            createDirectories(path)
+            (trace, "directory created", path)
+          } catch {
+            case e: Throwable ⇒ (error, e.getMessage, path)
+          }
+      }
+      log(fun, message, space, path)
+    }
     Spaces.instance(this)
     this
   }
