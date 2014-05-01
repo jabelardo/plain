@@ -25,7 +25,7 @@ import logging.Logger
 import crypt.Uuid
 import http.{ ContentType, Entity, Request }
 import http.Entity.{ AsynchronousByteChannelEntity, ArrayEntity, ContentEntity }
-import http.MimeType.{ `application/octet-stream`, forExtension }
+import http.MimeType.{ `application/octet-stream`, `application/tar`, forExtension }
 import http.Status.{ ClientError, ServerError, Success }
 import rest.{ Form, StaticResource, Context }
 
@@ -41,9 +41,12 @@ final class SpacesServer
   /**
    * Download a file or an entire directory as a zip file.
    */
-  Get { get(context.config.getStringList("roots"), context.remainder.mkString("/"), exchange) }
+  Get {
+    println("get tar " + request)
+    getZipFile(exchange)
+  }
 
-  Get { form: Form ⇒ get(context.config.getStringList("roots"), context.remainder.mkString("/"), exchange) }
+  Get { _: String ⇒ getZipFile(exchange) }
 
   /**
    * Delete a file or a directory.
@@ -78,6 +81,17 @@ final class SpacesServer
 object SpacesServer
 
   extends Logger {
+
+  private final def getZipFile(exchange: Exchange[Context]) = {
+    val source = aio.AsynchronousTarArchiveChannel("/Users/guido/Development/Others/squeryl")
+    val contenttype = ContentType(`application/tar`)
+    exchange.transferFrom(source)
+    AsynchronousByteChannelEntity(
+      source,
+      contenttype,
+      -1,
+      contenttype.mimetype.encodable)
+  }
 
   final def get(list: Seq[String], remainder: String, exchange: Exchange[Context]) = {
     val roots = list.iterator

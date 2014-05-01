@@ -70,6 +70,7 @@ final class AsynchronousTarArchiveChannel private (
         }
         if (files.hasNext) {
           val file = files.next
+          println("next entry " + file)
           tarArchive(new ByteBufferOutputStream(buffer)).putArchiveEntry(new TarArchiveEntry(file, relativePath(file)))
           totalperfile = 0L
           currentfilechannel = AsynchronousFileByteChannel.forReading(file)
@@ -113,6 +114,7 @@ final class AsynchronousTarArchiveChannel private (
     val recordsize = out.getRecordSize
     if (0 < directories.size) {
       directories.foreach { directory ⇒
+        println("next directory " + directory)
         out.putArchiveEntry(new TarArchiveEntry(directory, relativePath(directory)))
         out.closeArchiveEntry
       }
@@ -127,7 +129,7 @@ final class AsynchronousTarArchiveChannel private (
   private[this] final def tarArchive(outputstream: OutputStream): TarArchiveOutputStream = {
     val out = new TarArchiveOutputStream(outputstream)
     out.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX)
-    out.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX)
+    out.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU)
     out.setAddPaxHeadersForNonAsciiNames(true)
     out
   }

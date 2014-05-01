@@ -217,11 +217,7 @@ object Exchange
 
       extends ReleaseHandler {
 
-      var total = 0L
-
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
-        total += processed
-        println("read total " + total + " " + processed)
         if (0 == processed) {
           exchange.writeDecoding(DecodeCloseHandler, true)
         } else {
@@ -235,16 +231,10 @@ object Exchange
 
       extends ReleaseHandler {
 
-      var total = 0L
-
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
-        total += processed
-        println("write total " + total + " " + processed)
         if (0 < exchange.remaining) {
-          println("###3")
           exchange.writeDecoding(this, false)
         } else {
-          println("###4")
           exchange.readDecoding(DecodeReadHandler)
         }
       }

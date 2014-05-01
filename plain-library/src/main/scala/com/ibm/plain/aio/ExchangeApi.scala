@@ -243,7 +243,6 @@ trait ExchangeApiImpl[A]
   }
 
   @inline final def writeDecoding(handler: ExchangeHandler[A], flip: Boolean) = {
-    println("write ##1 " + readbuffer)
     transferdestination.write(readbuffer, this, handler)
   }
 
