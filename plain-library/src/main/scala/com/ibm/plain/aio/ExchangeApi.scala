@@ -172,7 +172,10 @@ trait ExchangeApiImpl[A]
   @inline final def transferTo(destination: Channel, length: Long, completed: A ⇒ Unit): Nothing = {
     transfersource = length match {
       case len if 0 > len ⇒
-        http.channels.ChunkedByteChannel(channel) // :TODO:
+        import aio.conduits._
+        GzipConduit(ChunkedConduit(channel))
+      //        DeflateConduit(ChunkedConduit(channel))
+      //      ChunkedConduit(channel)
       case _ ⇒
         AsynchronousFixedLengthChannel(channel, readbuffer.remaining, length)
     }
@@ -243,6 +246,7 @@ trait ExchangeApiImpl[A]
   }
 
   @inline final def writeDecoding(handler: ExchangeHandler[A], flip: Boolean) = {
+    if (flip) readbuffer.flip
     transferdestination.write(readbuffer, this, handler)
   }
 

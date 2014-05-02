@@ -25,16 +25,21 @@ sealed trait FilterConduit {
 /**
  *
  */
-sealed trait FilterSourceConduit
+trait FilterSourceConduit
 
   extends FilterConduit
 
   with SourceConduit {
 
+  /**
+   * Invariant: 0 < processed
+   */
   protected[this] def filter(processed: Integer, buffer: ByteBuffer): Integer
 
+  protected[this] def finish(buffer: ByteBuffer)
+
   @inline protected[this] final def doRead[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
-    underlyingchannel.read(conduitbuffer, attachment, new FilterSourceHandler(buffer, handler))
+    underlyingchannel.read(innerbuffer, attachment, new FilterSourceHandler(buffer, handler))
   }
 
   @inline protected[this] final def doCompleted[A](processed: Integer, buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
@@ -51,9 +56,10 @@ sealed trait FilterSourceConduit
 
     @inline def completed(processed: Integer, attachment: A) = {
       if (0 >= processed) {
+        finish(buffer)
         handler.completed(processed, attachment)
       } else {
-        conduitbuffer.flip
+        innerbuffer.flip
         handler.completed(filter(processed, buffer), attachment)
       }
     }
@@ -65,35 +71,11 @@ sealed trait FilterSourceConduit
 /**
  *
  */
-sealed trait FilterSinkConduit
+trait FilterSinkConduit
 
   extends FilterConduit
 
   with SinkConduit {
-
-}
-
-/**
- *
- */
-abstract class FilterByteChannel(
-
-  protected[this] val underlyingchannel: Channel)
-
-  extends FilterSourceConduit
-
-  with FilterSinkConduit
-
-/**
- *
- */
-final class TestFilterChannel(underlying: Channel)
-
-  extends FilterByteChannel(underlying) {
-
-  final def hasSufficient = true
-
-  final def filter(processed: Integer, buffer: ByteBuffer) = 0
 
 }
 

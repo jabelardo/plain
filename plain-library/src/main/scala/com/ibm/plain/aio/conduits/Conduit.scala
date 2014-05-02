@@ -6,8 +6,10 @@ package aio
 
 package conduits
 
-import java.nio.ByteBuffer
+import java.nio.{ BufferOverflowException, ByteBuffer }
 import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel, CompletionHandler }
+
+import scala.math.min
 
 /**
  *
@@ -22,8 +24,6 @@ sealed trait Conduit
 
   type Handler[A] = CompletionHandler[Integer, _ >: A]
 
-  protected[this] val conduitbuffer = { val b = ByteBuffer.wrap(new Array[Byte](defaultBufferSize)); b.flip; b }
-
   protected[this] abstract class BaseHandler[A](handler: Handler[A])
 
     extends CompletionHandler[Integer, A] {
@@ -31,6 +31,15 @@ sealed trait Conduit
     final def failed(e: Throwable, attachment: A) = handler.failed(e, attachment)
 
   }
+
+  protected[this] final def skip(n: Int): Int = {
+    val e = innerbuffer.position
+    val skip = min(n, innerbuffer.remaining)
+    innerbuffer.position(innerbuffer.position + skip)
+    skip
+  }
+
+  protected[this] val innerbuffer = { val b = ByteBuffer.wrap(new Array[Byte](defaultBufferSize)); b.flip; b }
 
 }
 
@@ -43,18 +52,13 @@ trait SourceConduit
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     if (isDrained) {
-      conduitbuffer.clear
+      innerbuffer.clear
       doRead(buffer, attachment, handler)
     } else {
       if (checkSufficient) {
-        doCompleted(conduitbuffer.remaining, buffer, attachment, handler)
+        doCompleted(innerbuffer.remaining, buffer, attachment, handler)
       } else {
-        val overflow = ByteBuffer.wrap(conduitbuffer.array, 0, conduitbuffer.position)
-        require(overflow.remaining >= conduitbuffer.remaining, throw new java.nio.BufferOverflowException)
-        overflow.put(conduitbuffer)
-        overflow.flip
-        conduitbuffer.position(overflow.limit)
-        conduitbuffer.limit(conduitbuffer.capacity)
+        handleOverflow
         doRead(buffer, attachment, handler)
       }
     }
@@ -67,9 +71,18 @@ trait SourceConduit
 
   protected[this] def hasSufficient: Boolean
 
-  protected[this] final def isDrained = 0 == conduitbuffer.remaining
+  protected[this] final def isDrained = 0 == innerbuffer.remaining
 
-  protected[this] final def available = conduitbuffer.remaining
+  protected[this] final def available = innerbuffer.remaining
+
+  private[this] final def handleOverflow = {
+    val overflow = ByteBuffer.wrap(innerbuffer.array, 0, innerbuffer.position)
+    require(overflow.remaining >= innerbuffer.remaining, throw new BufferOverflowException)
+    overflow.put(innerbuffer)
+    overflow.flip
+    innerbuffer.position(overflow.limit)
+    innerbuffer.limit(innerbuffer.capacity)
+  }
 
   private[this] final def checkSufficient = !isDrained && hasSufficient
 
