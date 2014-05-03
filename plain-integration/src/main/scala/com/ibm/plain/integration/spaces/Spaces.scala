@@ -37,7 +37,7 @@ final class Spaces
           (error, "invalid directory", path)
         case path if exists(path) && isRegularFile(path) ⇒
           (error, "invalid directory (is a file)", path)
-        case path if exists(path) && isDirectory(path) && space.purge ⇒
+        case path if exists(path) && isDirectory(path) && space.purgeOnStartup ⇒
           deleteDirectory(path.toFile)
           createDirectories(path)
           (trace, "directory purged", path)
@@ -51,6 +51,7 @@ final class Spaces
             case e: Throwable ⇒ (error, e.getMessage, path)
           }
       }
+      if (space.purgeOnShutdown) io.deleteOnExit(rootDirectory.resolve(space.name).toFile)
       log(fun, message, space, path)
     }
     Spaces.instance(this)

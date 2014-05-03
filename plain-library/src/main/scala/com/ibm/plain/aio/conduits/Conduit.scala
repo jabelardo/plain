@@ -28,7 +28,7 @@ sealed trait Conduit
 
     extends CompletionHandler[Integer, A] {
 
-    final def failed(e: Throwable, attachment: A) = handler.failed(e, attachment)
+    final def failed(e: Throwable, attachment: A) = { println("failed conduit " + e); handler.failed(e, attachment) }
 
   }
 

@@ -12,8 +12,10 @@ package spaces
 final case class Space(
 
   name: String,
-  
+
   quotainbytes: Long,
 
-  purge: Boolean)
+  purgeOnStartup: Boolean,
+
+  purgeOnShutdown: Boolean)
 

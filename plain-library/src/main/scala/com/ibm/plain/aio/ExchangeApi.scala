@@ -175,7 +175,7 @@ trait ExchangeApiImpl[A]
         import aio.conduits._
         GzipConduit(ChunkedConduit(channel))
       //        DeflateConduit(ChunkedConduit(channel))
-      //      ChunkedConduit(channel)
+      // ChunkedConduit(channel)
       case _ ⇒
         AsynchronousFixedLengthChannel(channel, readbuffer.remaining, length)
     }

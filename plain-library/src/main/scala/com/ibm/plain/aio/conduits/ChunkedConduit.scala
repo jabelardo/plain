@@ -58,19 +58,24 @@ sealed trait ChunkedSourceConduit
 
   protected[this] final def finish(buffer: ByteBuffer) = hasfinished = true
 
-  protected[this] final def hasSufficient = if (7 > available) false else if (7 == available) finalchunk == new String(innerbuffer.array, innerbuffer.position, 7) else 12 <= available
+  protected[this] final def hasSufficient = {
+    if (7 > available) false else if (7 == available) finalchunk == new String(innerbuffer.array, innerbuffer.position, 7) else 12 <= available
+  }
 
   private[this] final def nextChunk: Chunk = {
     val array = innerbuffer.array
     val offset = innerbuffer.position
-    "(\r\n)*[0-9a-fA-F]+\r\n(\r\n)*".r.findFirstIn(new String(array, offset, 12)) match {
+    "(\r\n)*[0-9a-fA-F]+\r\n".r.findFirstIn(new String(array, offset, 12)) match {
       case Some(header) ⇒
         val headerlen = header.length
         val chunklen = Integer.parseInt(header.trim, 16)
         val avail = min(chunklen, innerbuffer.remaining - headerlen)
         val chunk = new Chunk(ByteBuffer.wrap(array, offset + headerlen, avail), 0, chunklen)
         innerbuffer.position(chunk.chunkbuffer.limit)
-        if (0 == chunklen) hasfinished = true
+        if (0 == chunklen) {
+          skip(2)
+          hasfinished = true
+        }
         chunk
       case _ ⇒ throw new StreamCorruptedException("Invalid chunk header")
     }
@@ -100,12 +105,12 @@ abstract sealed class ChunkedConduitBase {
 
     val length: Int) {
 
-    @inline final def fill(source: ByteBuffer) = {
+    final def fill(source: ByteBuffer) = {
       chunkbuffer = ByteBuffer.wrap(source.array, source.position, length - position)
       source.position(chunkbuffer.limit)
     }
 
-    @inline final def drain(sink: ByteBuffer): Int = {
+    final def drain(sink: ByteBuffer): Int = {
       val e = sink.remaining
       sink.put(chunkbuffer)
       val len = e - sink.remaining

@@ -55,10 +55,18 @@ trait DeflateSourceConduit
         (inflatearray, 0, buffer.remaining)
       }
       val e = inflater.getRemaining
-      val len = inflater.inflate(array, offset, length)
-      skip(e - inflater.getRemaining)
-      if (!buffer.hasArray) buffer.put(array, 0, len)
-      len
+      try {
+        val len = inflater.inflate(array, offset, length)
+        skip(e - inflater.getRemaining)
+        if (!buffer.hasArray) buffer.put(array, 0, len)
+        len
+      } catch {
+        case e: Throwable ⇒
+          println("inner " + format(innerbuffer))
+          println("outer " + format(buffer))
+          println(inflater.getBytesRead + " " + inflater.getBytesWritten + " " + inflater.getRemaining)
+          throw e
+      }
     }
   }
 

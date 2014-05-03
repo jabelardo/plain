@@ -47,10 +47,12 @@ sealed trait GzipSourceConduit
     }
     val e = buffer.position
     val len = super.filter(processed, buffer)
-    if (buffer.hasArray) {
-      checksum.update(buffer.array, e, len)
-    } else {
-      checksum.update(inflatearray, 0, len)
+    if (!ignoreChecksumForGzipDecoding) {
+      if (buffer.hasArray) {
+        checksum.update(buffer.array, e, len)
+      } else {
+        checksum.update(inflatearray, 0, len)
+      }
     }
     len
   }
@@ -86,15 +88,19 @@ sealed trait GzipSourceConduit
     def nextByte = 0xff & innerbuffer.get
     def nextShort = nextByte | (nextByte << 8)
     def nextInt = nextShort | (nextShort << 16)
-    if (Int.MaxValue > checksum.getValue) {
-      require(nextInt == checksum.getValue.toInt, invalidFormat("crc32 error in trailer"))
+    if (ignoreChecksumForGzipDecoding) {
+      skip(8)
     } else {
-      skip(4)
-    }
-    if (Int.MaxValue > inflater.getBytesWritten) {
-      require(nextInt == inflater.getBytesWritten.toInt, invalidFormat("length mismatch error in trailer"))
-    } else {
-      skip(4)
+      if (Int.MaxValue > checksum.getValue) {
+        require(nextInt == checksum.getValue.toInt, invalidFormat("crc32 error in trailer"))
+      } else {
+        skip(4)
+      }
+      if (Int.MaxValue > inflater.getBytesWritten) {
+        require(nextInt == inflater.getBytesWritten.toInt, invalidFormat("length mismatch error in trailer"))
+      } else {
+        skip(4)
+      }
     }
   }
 
