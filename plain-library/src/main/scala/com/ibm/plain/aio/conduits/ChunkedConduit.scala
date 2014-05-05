@@ -41,11 +41,11 @@ sealed trait ChunkedSourceConduit
 
   extends ChunkedConduitBase
 
-  with FilterSourceConduit {
+  with FilterSourceConduit[Channel] {
 
   protected[this] final def filter(processed: Integer, buffer: ByteBuffer): Integer = {
-    if (hasfinished) {
-      0
+    if (0 >= processed) {
+      processed
     } else {
       if (null == chunk) {
         chunk = nextChunk
@@ -55,8 +55,6 @@ sealed trait ChunkedSourceConduit
       chunk.drain(buffer)
     }
   }
-
-  protected[this] final def finish(buffer: ByteBuffer) = hasfinished = true
 
   protected[this] final def hasSufficient = {
     if (7 > available) false else if (7 == available) finalchunk == new String(innerbuffer.array, innerbuffer.position, 7) else 12 <= available
@@ -74,7 +72,6 @@ sealed trait ChunkedSourceConduit
         innerbuffer.position(chunk.chunkbuffer.limit)
         if (0 == chunklen) {
           skip(2)
-          hasfinished = true
         }
         chunk
       case _ ⇒ throw new StreamCorruptedException("Invalid chunk header")
@@ -88,7 +85,9 @@ sealed trait ChunkedSourceConduit
  */
 sealed trait ChunkedSinkConduit
 
-  extends FilterSinkConduit {
+  extends ChunkedConduitBase
+
+  with FilterSinkConduit[Channel] {
 
 }
 
@@ -122,8 +121,6 @@ abstract sealed class ChunkedConduitBase {
   }
 
   protected[this] final var chunk: Chunk = null
-
-  protected[this] final var hasfinished = false
 
   protected[this] final val finalchunk = "\r\n0\r\n\r\n"
 

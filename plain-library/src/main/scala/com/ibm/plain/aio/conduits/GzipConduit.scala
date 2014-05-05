@@ -42,27 +42,25 @@ sealed trait GzipSourceConduit
   extends DeflateSourceConduit {
 
   protected[this] override def filter(processed: Integer, buffer: ByteBuffer): Integer = {
-    if (!hasstarted) {
-      readHeader
-    }
-    val e = buffer.position
-    val len = super.filter(processed, buffer)
-    if (!ignoreChecksumForGzipDecoding) {
-      if (buffer.hasArray) {
-        checksum.update(buffer.array, e, len)
-      } else {
-        checksum.update(inflatearray, 0, len)
+    if (0 >= processed) {
+      readTrailer
+      processed
+    } else {
+      if (athead) readHeader
+      val e = buffer.position
+      val len = super.filter(processed, buffer)
+      if (!ignoreChecksumForGzipDecoding) {
+        if (buffer.hasArray) {
+          checksum.update(buffer.array, e, len)
+        } else {
+          checksum.update(inflatearray, 0, len)
+        }
       }
+      len
     }
-    len
   }
 
-  protected[this] override def finish(buffer: ByteBuffer) = {
-    readFooter
-    super.finish(buffer)
-  }
-
-  protected[this] override def hasSufficient = if (!hasstarted) 10 <= available else super.hasSufficient
+  protected[this] override def hasSufficient = if (athead) 10 <= available else super.hasSufficient
 
   private[this] final def readHeader = {
     def nextByte = 0xff & innerbuffer.get
@@ -81,10 +79,10 @@ sealed trait GzipSourceConduit
     if (isSet(4)) skipString
     if (isSet(1)) require(crc16 == nextShort)
     checksum.reset
-    hasstarted = true
+    athead = false
   }
 
-  private[this] final def readFooter = {
+  private[this] final def readTrailer = {
     def nextByte = 0xff & innerbuffer.get
     def nextShort = nextByte | (nextByte << 8)
     def nextInt = nextShort | (nextShort << 16)
@@ -102,11 +100,14 @@ sealed trait GzipSourceConduit
         skip(4)
       }
     }
+    /**
+     * We do not support gzip "extensions" here. I have never actually seen them in practice.S
+     */
   }
 
   private[this] final def invalidFormat(message: String = null) = throw new DataFormatException(message)
 
-  private[this] final var hasstarted = false
+  private[this] final var athead = true
 
   private[this] final val checksum = new CRC32
 
@@ -117,7 +118,7 @@ sealed trait GzipSourceConduit
  */
 sealed trait GzipSinkConduit
 
-  extends FilterSinkConduit {
+  extends DeflateSinkConduit {
 
 }
 

@@ -7,18 +7,15 @@ package aio
 import java.io.{ File, FileOutputStream, OutputStream }
 import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousByteChannel, CompletionHandler ⇒ Handler }
-import java.nio.file.{ Path, Paths, Files }
+import java.nio.file.{ Path, Paths }
 
-import org.apache.commons.io.FileUtils
-import org.apache.commons.io.filefilter.TrueFileFilter
-import org.apache.commons.compress.archivers.tar._
+import org.apache.commons.compress.archivers.tar.{ TarArchiveEntry, TarArchiveOutputStream }
 
 import scala.collection.mutable.ArrayBuffer
-import scala.collection.JavaConversions.collectionAsScalaIterable
 import scala.language.implicitConversions
-import scala.annotation.tailrec
 
 import io.{ ByteBufferOutputStream, temporaryFile }
+import plain.unsupported
 
 /**
  * Turns a folder of files into an AsynchronousByteChannel to be used as read-only(!) for an asynchronous transfer.

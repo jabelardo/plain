@@ -13,7 +13,7 @@ import java.util.UUID
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.http.{ HttpHeaders, HttpResponse }
 import org.apache.http.client.ResponseHandler
-import org.apache.http.client.methods.{HttpDelete, HttpGet, HttpRequestBase}
+import org.apache.http.client.methods.{ HttpDelete, HttpGet, HttpRequestBase }
 import org.apache.http.impl.client.HttpClients
 import org.apache.http.message.BasicHeader
 
@@ -35,8 +35,8 @@ final case class SpacesURI(space: String, container: String = UUID.randomUUID.to
   /** Returns the url of the server where the spaces server component is running (without trailing '/') */
   private lazy val hostSpacesURL = {
     // TODO: Get the real server name via infrastructure component
-    "localhost:7070/spaces"
-    s"harryklein.munich.de.ibm.com:7070/spaces/$space"
+    // "localhost:7070/spaces"
+    "harryklein.munich.de.ibm.com:7070/spaces/$space"
   }
 
   /** Returns the unified resource name */
@@ -90,7 +90,7 @@ object SpacesClient
       require(Files.isDirectory(path), "The path must be an existing directory.")
 
       response.getAllHeaders.toList.foreach {
-        case header =>
+        case header ⇒
           debug(header.getName + " -> " + header.getValue)
       }
 
@@ -161,10 +161,10 @@ object SpacesClient
    * Unit
    */
   final def delete(uri: SpacesURI, relativePath: Option[Path] = None) = httpRequest(new HttpDelete(url(uri, relativePath))) {
-    case (204, response) =>
-      // Alles gut.
-    case _ =>
-      // TODO throw exception ...
+    case (204, response) ⇒
+    // Alles gut.
+    case _ ⇒
+    // TODO throw exception ...
   }
 
   /**

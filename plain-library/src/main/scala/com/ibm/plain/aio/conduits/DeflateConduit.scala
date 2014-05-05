@@ -39,11 +39,12 @@ object DeflateConduit {
  */
 trait DeflateSourceConduit
 
-  extends FilterSourceConduit {
+  extends FilterSourceConduit[Channel] {
 
   protected[this] def filter(processed: Integer, buffer: ByteBuffer): Integer = {
-    if (inflater.finished) {
-      0
+    if (0 >= processed) {
+      inflater.end
+      processed
     } else {
       if (inflater.needsInput) {
         inflater.setInput(innerbuffer.array, innerbuffer.position, innerbuffer.remaining)
@@ -55,22 +56,12 @@ trait DeflateSourceConduit
         (inflatearray, 0, buffer.remaining)
       }
       val e = inflater.getRemaining
-      try {
-        val len = inflater.inflate(array, offset, length)
-        skip(e - inflater.getRemaining)
-        if (!buffer.hasArray) buffer.put(array, 0, len)
-        len
-      } catch {
-        case e: Throwable ⇒
-          println("inner " + format(innerbuffer))
-          println("outer " + format(buffer))
-          println(inflater.getBytesRead + " " + inflater.getBytesWritten + " " + inflater.getRemaining)
-          throw e
-      }
+      val len = inflater.inflate(array, offset, length)
+      skip(e - inflater.getRemaining)
+      if (!buffer.hasArray) buffer.put(array, 0, len)
+      len
     }
   }
-
-  protected[this] def finish(buffer: ByteBuffer) = inflater.end
 
   protected[this] def hasSufficient = 0 < inflater.getRemaining
 
@@ -87,7 +78,7 @@ trait DeflateSourceConduit
  */
 trait DeflateSinkConduit
 
-  extends FilterSinkConduit {
+  extends FilterSinkConduit[Channel] {
 
 }
 
