@@ -47,7 +47,6 @@ abstract class HttpProcessor[A]
       case e ⇒
         warn("Dispatching failed : " + e)
         debug(stackTraceToString(e))
-
         Done[ExchangeIo[A], Response] {
           exchange.outMessage.asInstanceOf[Response] ++ ServerError.`500` ++ None
         }

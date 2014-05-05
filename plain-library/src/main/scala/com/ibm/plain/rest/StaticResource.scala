@@ -4,9 +4,9 @@ package plain
 
 package rest
 
-import scala.collection.concurrent.TrieMap
-
 import com.typesafe.config.Config
+
+import scala.collection.concurrent.TrieMap
 
 import Resource.{ CachedMethod, MethodBody }
 import http.{ Entity, Request }
