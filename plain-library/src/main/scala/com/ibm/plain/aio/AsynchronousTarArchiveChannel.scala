@@ -7,18 +7,16 @@ package aio
 import java.io.{ File, FileOutputStream, OutputStream }
 import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousByteChannel, CompletionHandler ⇒ Handler }
-import java.nio.file.{ Path, Paths, Files }
+import java.nio.file.{ Path, Paths }
 
-import org.apache.commons.io.FileUtils
-import org.apache.commons.io.filefilter.TrueFileFilter
-import org.apache.commons.compress.archivers.tar._
+import org.apache.commons.compress.archivers.tar.{ TarArchiveEntry, TarArchiveOutputStream }
 
 import scala.collection.mutable.ArrayBuffer
-import scala.collection.JavaConversions.collectionAsScalaIterable
 import scala.language.implicitConversions
-import scala.annotation.tailrec
 
 import io.{ ByteBufferOutputStream, temporaryFile }
+import conduits.FileConduit
+import conduits.FileConduit._
 
 /**
  * Turns a folder of files into an AsynchronousByteChannel to be used as read-only(!) for an asynchronous transfer.
@@ -70,9 +68,10 @@ final class AsynchronousTarArchiveChannel private (
         }
         if (files.hasNext) {
           val file = files.next
+          println("next entry " + file)
           tarArchive(new ByteBufferOutputStream(buffer)).putArchiveEntry(new TarArchiveEntry(file, relativePath(file)))
           totalperfile = 0L
-          currentfilechannel = AsynchronousFileByteChannel.forReading(file)
+          currentfilechannel = forReading(file)
           currentfilechannel.read(buffer, attachment, this)
         } else {
           currentfilechannel = null
@@ -107,17 +106,18 @@ final class AsynchronousTarArchiveChannel private (
   /**
    * Tweak TarArchive to be fit for long filenames and large files.
    */
-  private[this] final lazy val (tardirectories, tarrecordsize): (AsynchronousFileByteChannel, Int) = {
+  private[this] final lazy val (tardirectories, tarrecordsize): (FileConduit, Int) = {
     val fileout = new FileOutputStream(directoriestmpfile)
     val out = tarArchive(fileout)
     val recordsize = out.getRecordSize
     if (0 < directories.size) {
       directories.foreach { directory ⇒
+        println("next directory " + directory)
         out.putArchiveEntry(new TarArchiveEntry(directory, relativePath(directory)))
         out.closeArchiveEntry
       }
       fileout.close
-      (AsynchronousFileByteChannel.forReading(directoriestmpfile.toPath), recordsize)
+      (forReading(directoriestmpfile.toPath), recordsize)
     } else {
       out.close
       (null, recordsize)
@@ -127,7 +127,7 @@ final class AsynchronousTarArchiveChannel private (
   private[this] final def tarArchive(outputstream: OutputStream): TarArchiveOutputStream = {
     val out = new TarArchiveOutputStream(outputstream)
     out.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX)
-    out.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX)
+    out.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU)
     out.setAddPaxHeadersForNonAsciiNames(true)
     out
   }
@@ -138,11 +138,11 @@ final class AsynchronousTarArchiveChannel private (
 
   private[this] final lazy val directoriestmpfile = temporaryFile
 
-  private[this] final var currentfilechannel: AsynchronousFileByteChannel = {
+  private[this] final var currentfilechannel: FileConduit = {
     if (null == tardirectories) {
       if (files.hasNext) {
         val file = files.next
-        AsynchronousFileByteChannel.forReading(file)
+        forReading(file)
       } else {
         null
       }

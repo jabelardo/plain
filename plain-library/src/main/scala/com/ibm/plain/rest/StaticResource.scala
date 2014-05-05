@@ -4,9 +4,9 @@ package plain
 
 package rest
 
-import scala.collection.concurrent.TrieMap
-
 import com.typesafe.config.Config
+
+import scala.collection.concurrent.TrieMap
 
 import Resource.{ CachedMethod, MethodBody }
 import http.{ Entity, Request }
@@ -24,10 +24,10 @@ trait StaticResource
 
   @inline def init(config: Config) = ()
 
-  @inline override protected[this] final def fromCache(request: Request): Option[CachedMethod] = requestmethods.get(request)
+  @inline override protected[this] final def fromCache(request: Request): Option[CachedMethod] = requestmethods.get(request.path)
 
-  @inline override protected[this] final def toCache(request: Request, cachedmethod: CachedMethod) = requestmethods.put(request, cachedmethod)
+  @inline override protected[this] final def toCache(request: Request, cachedmethod: CachedMethod) = requestmethods.put(request.path, cachedmethod)
 
-  private[this] final val requestmethods = new TrieMap[Request, (MethodBody, Any, Any ⇒ Option[Entity])]
+  private[this] final val requestmethods = new TrieMap[Request.Path, (MethodBody, Any, Any ⇒ Option[Entity])]
 
 }

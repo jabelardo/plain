@@ -9,8 +9,11 @@ package http
 import java.io.{ BufferedReader, PrintWriter, InputStreamReader }
 import java.util.{ Enumeration, Locale, Map ⇒ JMap }
 import javax.{ servlet ⇒ js }
+
 import scala.collection.JavaConversions.{ asJavaEnumeration, mapAsJavaMap, mapAsScalaMap }
 import scala.collection.mutable.HashMap
+import scala.collection.convert.Wrappers.ToIteratorWrapper
+
 import aio.Exchange
 import text.`UTF-8`
 import rest.Context
@@ -20,7 +23,7 @@ import plain.http.Request
 import plain.http.Header.Request.`Cookie`
 import plain.http.Entity.ArrayEntity
 import plain.io.ByteArrayInputStream
-import scala.collection.convert.Wrappers.ToIteratorWrapper
+import aio.conduits.SocketChannelConduit
 
 final class HttpServletRequest(
 
@@ -273,6 +276,7 @@ final class HttpServletRequest(
 
   final lazy val remoteaddress = channel.getRemoteAddress.asInstanceOf[java.net.InetSocketAddress]
 
-  private[this] final def channel = exchange.socketChannel.asInstanceOf[aio.AsynchronousSocketChannelWithTimeout].channel
+  private[this] final def channel = exchange.socketChannel.asInstanceOf[SocketChannelConduit].socketChannel
+
 }
 

@@ -5,7 +5,7 @@ package plain
 package aio
 
 import java.nio.ByteBuffer
-import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel }
+import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel, AsynchronousSocketChannel ⇒ SocketChannel }
 import java.util.Arrays
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -13,6 +13,7 @@ import Iteratee.{ Done, Error }
 import Input.Elem
 import io.PrintWriter
 import logging.Logger
+import conduits._
 
 /**
  * Public interface of the aio.Exchange
@@ -21,7 +22,7 @@ trait ExchangePublicApi[A] {
 
   def attachment: Option[A]
 
-  def socketChannel: Channel
+  def socketChannel: SocketChannelConduit
 
   def iteratee: ExchangeIteratee[A]
 
@@ -136,7 +137,7 @@ trait ExchangeApiImpl[A]
 
   @inline final def attachment = innerattachment
 
-  @inline final def socketChannel = channel
+  @inline final def socketChannel = socketchannel
 
   @inline final def iteratee = currentiteratee
 
@@ -165,16 +166,20 @@ trait ExchangeApiImpl[A]
 
   @inline final def transferFrom(source: Channel): Unit = {
     transfersource = source
-    transferdestination = channel
+    transferdestination = socketchannel
     transfercompleted = null
   }
 
   @inline final def transferTo(destination: Channel, length: Long, completed: A ⇒ Unit): Nothing = {
     transfersource = length match {
       case len if 0 > len ⇒
-        http.channels.ChunkedByteChannel(channel) // :TODO:
+        import aio.conduits._
+        //  TarArchiveConduit(GzipConduit(ChunkedConduit(socketchannel)))
+        GzipConduit(ChunkedConduit(socketchannel))
+      //        DeflateConduit(ChunkedConduit(channel))
+      //ChunkedConduit(socketchannel)
       case _ ⇒
-        AsynchronousFixedLengthChannel(channel, readbuffer.remaining, length)
+        FixedLengthConduit(socketchannel, readbuffer.remaining, length)
     }
     transferdestination = destination
     transfercompleted = completed
@@ -229,12 +234,12 @@ trait ExchangeApiImpl[A]
     } else {
       readbuffer.clear
     }
-    channel.read(readbuffer, this, handler)
+    socketchannel.read(readbuffer, this, handler)
   }
 
   @inline final def write(handler: ExchangeHandler[A], flip: Boolean) = {
     if (flip) writebuffer.flip
-    channel.write(writebuffer, this, handler)
+    socketchannel.write(writebuffer, this, handler)
   }
 
   @inline final def readDecoding(handler: ExchangeHandler[A]) = {
@@ -243,7 +248,7 @@ trait ExchangeApiImpl[A]
   }
 
   @inline final def writeDecoding(handler: ExchangeHandler[A], flip: Boolean) = {
-    println("write ##1 " + readbuffer)
+    if (flip) readbuffer.flip
     transferdestination.write(readbuffer, this, handler)
   }
 
@@ -304,7 +309,7 @@ trait ExchangeApiImpl[A]
     }
     releaseByteBuffer(readbuffer)
     releaseByteBuffer(writebuffer)
-    if (channel.isOpen) channel.asInstanceOf[AsynchronousSocketChannelWithTimeout].doClose
+    if (socketchannel.isOpen) socketchannel.asInstanceOf[SocketChannelConduit].doClose
   }
 
   @inline private[this] final def setCachedArray(length: Int) = if (0 < length) {
@@ -316,7 +321,7 @@ trait ExchangeApiImpl[A]
     peekarray = null
   }
 
-  protected[this] val channel: Channel
+  protected[this] val socketchannel: SocketChannelConduit
 
   protected[this] val readiteratee: ExchangeIteratee[A]
 

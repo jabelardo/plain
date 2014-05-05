@@ -11,6 +11,7 @@ import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel, AsynchronousServ
 import Input.{ Elem, Empty, Eof }
 import Iteratee.{ Cont, Done, Error }
 import logging.Logger
+import conduits.SocketChannelConduit
 
 /**
  * Putting it all together.
@@ -28,7 +29,7 @@ trait Exchange[A]
  */
 final class ExchangeImpl[A] private[aio] (
 
-  protected[this] final val channel: Channel,
+  protected[this] final val socketchannel: SocketChannelConduit,
 
   protected[this] final val readiteratee: ExchangeIteratee[A],
 
@@ -54,13 +55,13 @@ object Exchange
    */
   final def apply[A](
 
-    channel: Channel,
+    socketchannel: SocketChannelConduit,
 
     readiteratee: ExchangeIteratee[A],
 
     readbuffer: ByteBuffer,
 
-    writebuffer: ByteBuffer) = new ExchangeImpl[A](channel, readiteratee, readbuffer, writebuffer)
+    writebuffer: ByteBuffer) = new ExchangeImpl[A](socketchannel, readiteratee, readbuffer, writebuffer)
 
   /**
    * The core of all asynchronous IO starting with an Accept at the very bottom.
@@ -71,7 +72,7 @@ object Exchange
 
     readiteratee: ExchangeIteratee[A],
 
-    processor: AsynchronousProcessor[A]): Unit = {
+    processor: Processor[A]): Unit = {
 
     /**
      * The AIO handlers.
@@ -86,7 +87,7 @@ object Exchange
 
       @inline final def completed(socketchannel: SocketChannel, ignore: Null) = {
         accept
-        read(Exchange[A](AsynchronousSocketChannelWithTimeout(socketchannel), readiteratee, defaultByteBuffer, defaultByteBuffer))
+        read(Exchange[A](SocketChannelConduit(socketchannel), readiteratee, defaultByteBuffer, defaultByteBuffer))
       }
 
       @inline final def failed(e: Throwable, ignore: Null) = {
@@ -217,11 +218,7 @@ object Exchange
 
       extends ReleaseHandler {
 
-      var total = 0L
-
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
-        total += processed
-        println("read total " + total + " " + processed)
         if (0 == processed) {
           exchange.writeDecoding(DecodeCloseHandler, true)
         } else {
@@ -235,16 +232,10 @@ object Exchange
 
       extends ReleaseHandler {
 
-      var total = 0L
-
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
-        total += processed
-        println("write total " + total + " " + processed)
         if (0 < exchange.remaining) {
-          println("###3")
           exchange.writeDecoding(this, false)
         } else {
-          println("###4")
           exchange.readDecoding(DecodeReadHandler)
         }
       }

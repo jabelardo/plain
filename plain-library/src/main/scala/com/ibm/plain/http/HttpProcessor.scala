@@ -8,7 +8,7 @@ import java.io.IOException
 import java.nio.file.FileSystemException
 import Status.{ ClientError, ServerError, ErrorStatus }
 import Entity.ArrayEntity
-import aio.{ AsynchronousProcessor, Exchange, ExchangeIo, ExchangeHandler, ExchangeControl, OutMessage }
+import aio.{ Processor, Exchange, ExchangeIo, ExchangeHandler, ExchangeControl, OutMessage }
 import aio.Iteratee.{ Cont, Done, Error }
 import logging.Logger
 import text.stackTraceToString
@@ -18,7 +18,7 @@ import text.stackTraceToString
  */
 abstract class HttpProcessor[A]
 
-  extends AsynchronousProcessor[A]
+  extends Processor[A]
 
   with Logger {
 
@@ -47,7 +47,6 @@ abstract class HttpProcessor[A]
       case e ⇒
         warn("Dispatching failed : " + e)
         debug(stackTraceToString(e))
-
         Done[ExchangeIo[A], Response] {
           exchange.outMessage.asInstanceOf[Response] ++ ServerError.`500` ++ None
         }

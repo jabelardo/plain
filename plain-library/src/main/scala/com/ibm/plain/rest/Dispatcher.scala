@@ -25,8 +25,13 @@ abstract class Dispatcher
 
   final def process(exchange: Exchange[Context], handler: ExchangeHandler[Context]) = {
     val request = exchange.inMessage.asInstanceOf[Request]
-    val response = Response(exchange.writeBuffer, Success.`200`)
-    exchange ++ response
+    val response = if (null == exchange.outMessage) {
+      val r = Response(exchange.writeBuffer, Success.`200`)
+      exchange ++ r
+      r
+    } else {
+      exchange.outMessage.asInstanceOf[Response]
+    }
     val context = exchange.attachment match {
       case Some(context) ⇒ context
       case _ ⇒

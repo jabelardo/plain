@@ -38,6 +38,8 @@ trait Logger {
 
   private[this] final var jlogger: JLogger = null
 
+  private[this] final def check(a: Any) = ""
+
 }
 
 /**
