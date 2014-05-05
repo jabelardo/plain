@@ -72,7 +72,7 @@ object Exchange
 
     readiteratee: ExchangeIteratee[A],
 
-    processor: AsynchronousProcessor[A]): Unit = {
+    processor: Processor[A]): Unit = {
 
     /**
      * The AIO handlers.

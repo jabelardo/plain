@@ -9,7 +9,7 @@ import java.nio.channels.{ CompletionHandler ⇒ Handler }
 /**
  *
  */
-trait AsynchronousProcessor[A] {
+trait Processor[A] {
 
   def process(exchange: Exchange[A], handler: Handler[Integer, Exchange[A]])
 

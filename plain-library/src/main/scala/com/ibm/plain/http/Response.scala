@@ -9,9 +9,10 @@ import javax.servlet.http.Cookie
 
 import scala.language.implicitConversions
 
-import aio.{ AsynchronousByteArrayChannel, Encoder, Exchange, ExchangeIo, ExchangeIteratee, Iteratee, OutMessage, releaseByteBuffer, tooTinyToCareSize }
+import aio.{ Encoder, Exchange, ExchangeIo, ExchangeIteratee, Iteratee, OutMessage, releaseByteBuffer, tooTinyToCareSize }
 import aio.Iteratee.{ Cont, Done }
 import aio.Renderable._
+import aio.conduits.ByteArrayConduit
 import text.`UTF-8`
 import time.{ now, rfc1123 }
 import Entity.{ ArrayEntity, AsynchronousByteChannelEntity, ByteBufferEntity }
@@ -120,11 +121,11 @@ final case class Response(
       r(array, offset, length.toInt) + ^
       encode(exchange, entity)
     case Some(ArrayEntity(array, offset, length, _)) ⇒
-      exchange.transferFrom(AsynchronousByteArrayChannel(array, offset, length.toInt))
+      exchange.transferFrom(ByteArrayConduit(array, offset, length.toInt))
       exchange ++ cont[A]
       cont[A]
     case Some(ByteBufferEntity(bytebuffer, _)) ⇒
-      exchange.transferFrom(AsynchronousByteArrayChannel(bytebuffer.array, 0, bytebuffer.array.length))
+      exchange.transferFrom(ByteArrayConduit(bytebuffer.array, 0, bytebuffer.array.length))
       exchange ++ cont[A]
       cont[A]
     case Some(_) ⇒
