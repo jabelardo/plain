@@ -75,13 +75,13 @@ trait FilterSourceConduit[C <: Channel]
 
   private[this] final class FilterSourceHandler[A](
 
-    buffer: ByteBuffer,
+    private[this] final val buffer: ByteBuffer,
 
-    handler: Handler[A])
+    private[this] final val handler: Handler[A])
 
     extends BaseHandler[A](handler) {
 
-    @inline def completed(processed: Integer, attachment: A) = {
+    final def completed(processed: Integer, attachment: A) = {
       innerbuffer.flip
       handler.completed(filter(processed, buffer), attachment)
     }

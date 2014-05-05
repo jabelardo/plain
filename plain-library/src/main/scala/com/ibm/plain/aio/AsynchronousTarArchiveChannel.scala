@@ -15,7 +15,8 @@ import scala.collection.mutable.ArrayBuffer
 import scala.language.implicitConversions
 
 import io.{ ByteBufferOutputStream, temporaryFile }
-import plain.unsupported
+import conduits.FileConduit
+import conduits.FileConduit._
 
 /**
  * Turns a folder of files into an AsynchronousByteChannel to be used as read-only(!) for an asynchronous transfer.
@@ -70,7 +71,7 @@ final class AsynchronousTarArchiveChannel private (
           println("next entry " + file)
           tarArchive(new ByteBufferOutputStream(buffer)).putArchiveEntry(new TarArchiveEntry(file, relativePath(file)))
           totalperfile = 0L
-          currentfilechannel = AsynchronousFileByteChannel.forReading(file)
+          currentfilechannel = forReading(file)
           currentfilechannel.read(buffer, attachment, this)
         } else {
           currentfilechannel = null
@@ -105,7 +106,7 @@ final class AsynchronousTarArchiveChannel private (
   /**
    * Tweak TarArchive to be fit for long filenames and large files.
    */
-  private[this] final lazy val (tardirectories, tarrecordsize): (AsynchronousFileByteChannel, Int) = {
+  private[this] final lazy val (tardirectories, tarrecordsize): (FileConduit, Int) = {
     val fileout = new FileOutputStream(directoriestmpfile)
     val out = tarArchive(fileout)
     val recordsize = out.getRecordSize
@@ -116,7 +117,7 @@ final class AsynchronousTarArchiveChannel private (
         out.closeArchiveEntry
       }
       fileout.close
-      (AsynchronousFileByteChannel.forReading(directoriestmpfile.toPath), recordsize)
+      (forReading(directoriestmpfile.toPath), recordsize)
     } else {
       out.close
       (null, recordsize)
@@ -137,11 +138,11 @@ final class AsynchronousTarArchiveChannel private (
 
   private[this] final lazy val directoriestmpfile = temporaryFile
 
-  private[this] final var currentfilechannel: AsynchronousFileByteChannel = {
+  private[this] final var currentfilechannel: FileConduit = {
     if (null == tardirectories) {
       if (files.hasNext) {
         val file = files.next
-        AsynchronousFileByteChannel.forReading(file)
+        forReading(file)
       } else {
         null
       }

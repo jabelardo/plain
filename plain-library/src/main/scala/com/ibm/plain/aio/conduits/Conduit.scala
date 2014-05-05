@@ -6,13 +6,11 @@ package aio
 
 package conduits
 
-import java.nio.{ BufferOverflowException, ByteBuffer }
+import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel, CompletionHandler }
 
-import scala.math.min
-
 /**
- * 
+ * A Conduit is an abstraction of an AsynchronousByteChannel. Note: Not of AsynchronousChannel. Classes directly derived from it need to be wrapped to become a Conduit.
  */
 trait Conduit[C <: Channel]
 
@@ -30,11 +28,13 @@ trait Conduit[C <: Channel]
 
   protected[this] def underlyingchannel: C
 
-  protected[this] abstract class BaseHandler[A](handler: Handler[A])
+  protected[this] abstract class BaseHandler[A](
+
+    private[this] final val handler: Handler[A])
 
     extends CompletionHandler[Integer, A] {
 
-    final def failed(e: Throwable, attachment: A) = handler.failed(e, attachment)
+    def failed(e: Throwable, attachment: A) = handler.failed(e, attachment)
 
   }
 
@@ -43,13 +43,9 @@ trait Conduit[C <: Channel]
 /**
  *
  */
-trait SourceConduit[C <: Channel]
-
-  extends Conduit[C]
+trait SourceConduit[C <: Channel] extends Conduit[C]
 
 /**
  *
  */
-trait SinkConduit[C <: Channel]
-
-  extends Conduit[C]
+trait SinkConduit[C <: Channel] extends Conduit[C]

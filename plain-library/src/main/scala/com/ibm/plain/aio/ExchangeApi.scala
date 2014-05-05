@@ -13,7 +13,7 @@ import Iteratee.{ Done, Error }
 import Input.Elem
 import io.PrintWriter
 import logging.Logger
-import conduits.SocketChannelConduit
+import conduits._
 
 /**
  * Public interface of the aio.Exchange
@@ -179,7 +179,7 @@ trait ExchangeApiImpl[A]
       //        DeflateConduit(ChunkedConduit(channel))
       //ChunkedConduit(socketchannel)
       case _ ⇒
-        AsynchronousFixedLengthChannel(socketchannel, readbuffer.remaining, length)
+        FixedLengthConduit(socketchannel, readbuffer.remaining, length)
     }
     transferdestination = destination
     transfercompleted = completed

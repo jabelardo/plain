@@ -18,8 +18,8 @@ import _root_.com.typesafe.config.Config
 import scala.collection.JavaConversions.asScalaBuffer
 import scala.language.implicitConversions
 
-import aio.{ AsynchronousFileByteChannel, AsynchronousFixedLengthChannel, Encoder, Exchange }
-import aio.AsynchronousFileByteChannel.{ forReading, forWriting }
+import aio.{ Encoder, Exchange }
+import aio.conduits.FileConduit.{ forReading, forWriting }
 import concurrent.ioexecutor
 import logging.Logger
 import crypt.Uuid
