@@ -111,13 +111,13 @@ trait Resource
     add[E, Unit](HEAD, typeOf[E], typeOf[Unit], (e: E) ⇒ { body(e); () })
   }
 
-  protected[this] final def context: Context = unsupported // threadlocal.get._1
+  protected[this] final def context: Context = threadlocal.get._1
 
-  protected[this] final def exchange: Exchange[Context] = unsupported // threadlocal.get._2
+  protected[this] final def exchange: Exchange[Context] = threadlocal.get._2
 
-  protected[this] final def request: Request = unsupported // threadlocal.get._1.request
+  protected[this] final def request: Request = threadlocal.get._1.request
 
-  protected[this] final def response: Response = unsupported // threadlocal.get._1.response
+  protected[this] final def response: Response = threadlocal.get._1.response
 
   protected[this] def fromCache(request: Request): Option[CachedMethod] = None
 
@@ -141,9 +141,9 @@ trait Resource
           case Some((methodbody, input, encode)) ⇒
             context.response ++ encode {
               try {
-                // threadlocal.set((context, exchange))
+                threadlocal.set((context, exchange))
                 methodbody.body(input)
-              } finally (); // threadlocal.remove
+              } finally threadlocal.remove
             }
             completed(exchange, handler)
           case _ ⇒
@@ -176,9 +176,9 @@ trait Resource
                   case Some((input, _)) ⇒
                     toCache(request, (methodbody, input, encode))
                     try {
-                      // threadlocal.set((context, exchange))
+                      threadlocal.set((context, exchange))
                       methodbody.body(input)
-                    } finally (); // threadlocal.remove
+                    } finally threadlocal.remove
                   case _ ⇒ throw ServerError.`501`
                 })
                 context.response ++ e
