@@ -13,11 +13,8 @@ import java.util.UUID
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.http.{ HttpHeaders, HttpResponse }
 import org.apache.http.client.ResponseHandler
-<<<<<<< HEAD
 import org.apache.http.client.methods.{HttpPut, HttpDelete, HttpGet, HttpRequestBase}
-=======
-import org.apache.http.client.methods.{ HttpDelete, HttpGet, HttpRequestBase }
->>>>>>> FETCH_HEAD
+
 import org.apache.http.impl.client.HttpClients
 import org.apache.http.message.BasicHeader
 
@@ -156,11 +153,8 @@ object SpacesClient
   final def put(uri: SpacesURI, file: Path, relativePath: Option[Path] = None) = {
     val request = new HttpPut(url(uri, relativePath))
 
-
-    new TarArchiveInputStream()
-
     val entity = new InputStreamEntity()
-    request.setEntity()
+    request.setEntity(
 
     httpRequest(request) {
       case (200, response) =>
