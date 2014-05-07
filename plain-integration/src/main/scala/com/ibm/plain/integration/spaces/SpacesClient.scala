@@ -6,11 +6,11 @@ package integration
 
 package spaces
 
-import java.io.FileOutputStream
+import java.io._
 import java.nio.file.{ FileSystems, Files, Path }
 import java.util.UUID
 
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
+import org.apache.commons.compress.archivers.tar.{TarArchiveEntry, TarArchiveOutputStream, TarArchiveInputStream}
 import org.apache.http.{ HttpHeaders, HttpResponse }
 import org.apache.http.client.ResponseHandler
 import org.apache.http.client.methods.{HttpPut, HttpDelete, HttpGet, HttpRequestBase}
@@ -22,6 +22,12 @@ import rest.StaticResource
 import io.deleteDirectory
 import logging.Logger
 import org.apache.http.entity.InputStreamEntity
+import java.util.concurrent.{FutureTask, Callable}
+import scala.concurrent._
+import scala.concurrent.duration._
+import org.apache.commons.compress.archivers.ArchiveEntry
+import scala.Some
+import com.ibm.plain.integration.spaces.SpacesURI
 
 /**
  *
@@ -153,12 +159,45 @@ object SpacesClient
   final def put(uri: SpacesURI, file: Path, relativePath: Option[Path] = None) = {
     val request = new HttpPut(url(uri, relativePath))
 
-    val entity = new InputStreamEntity()
-    request.setEntity(
+    val pos = new PipedOutputStream()
+    val pis = new PipedInputStream(pos)
 
-    httpRequest(request) {
-      case (200, response) =>
+    val createTar = Future {
+        val out = new TarArchiveOutputStream(pos)
+        // TODO
+    }
 
+    val startRequest = Future {
+        val entity = new InputStreamEntity(pis)
+        entity.setChunked(true)
+        request.setEntity(entity)
+
+        httpRequest(request) {
+          case (200, response) =>
+
+        }
+    }
+
+    Await.result(startRequest, 5 minutes)
+  }
+
+  /**
+   * Adds files to a Tar Archive
+   * @param out
+   * @param file
+   * @param path
+   */
+  def addFilesToTar(out: TarArchiveOutputStream, file: File, path: Path): Unit = {
+    out.putArchiveEntry(new TarArchiveEntry(file, path.resolve(file.getName).toString))
+
+    if (file.isFile) {
+      val in = new BufferedInputStream(new FileInputStream(file))
+      io.copyBytes(in, out)
+      in.close()
+      out.closeArchiveEntry()
+    } else {
+      out.closeArchiveEntry()
+      file.listFiles.toList.foreach(childFile => addFilesToTar(out, childFile, path.resolve(childFile.getName)))
     }
   }
 
