@@ -21,6 +21,12 @@ trait FilterSourceConduit[C <: Channel]
 
   with SourceConduit[C] {
 
+  /**
+   * 
+   * @param processed
+   * @param buffer
+   * @return
+   */
   protected[this] def filterIn(processed: Integer, buffer: ByteBuffer): Integer
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
@@ -81,20 +87,27 @@ trait FilterSinkConduit[C <: Channel]
 
   with SinkConduit[C] {
 
-  protected[this] def filterOut(processed: Integer, buffer: ByteBuffer): Integer
+  trait Overflow
+
+  /**
+   *    
+   * @param buffer
+   *         outer buffer.
+   * @return
+   *         Returns the number of bytes wrote during filter operation.
+   */
+  protected[this] def filterOut(buffer: ByteBuffer): Either[Integer, Overflow]
 
   final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
-    println("isFilled " + isFilled)
-    println(buffer)
-    println(innerbuffer)
-    if (isFilled) {
-      underlyingchannel.write(innerbuffer, attachment, new FilterSinkHandler(buffer, handler))
-    } else {
-      filterOut(buffer.remaining, buffer)
+    filterOut(buffer) match {
+      case Left(processed) =>
+        handler.completed(processed, attachment)
+      case Right(_) =>
+        underlyingchannel.write(innerbuffer, attachment, new FilterSinkHandler(buffer, handler))
     }
   }
 
-  protected[this] def isFilled: Boolean = 0 == innerbuffer.remaining
+  protected[this] def sFull: Boolean = 0 == innerbuffer.remaining
 
   private[this] final class FilterSinkHandler[A](
 
@@ -105,7 +118,8 @@ trait FilterSinkConduit[C <: Channel]
     extends BaseHandler[A](handler) {
 
     final def completed(processed: Integer, attachment: A) = {
-      unsupported
+      if (0 < innerbuffer.remaining) underlyingchannel.write(innerbuffer, attachment, this)
+      else write(buffer, attachment, handler)
     }
 
   }
