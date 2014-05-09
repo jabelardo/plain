@@ -41,26 +41,22 @@ sealed trait GzipSourceConduit
 
   extends DeflateSourceConduit {
 
-  protected[this] override def filter(processed: Integer, buffer: ByteBuffer): Integer = {
+  protected[this] override def filterIn(processed: Integer, buffer: ByteBuffer): Integer = {
     if (0 >= processed) {
       readTrailer
       processed
     } else {
-      if (athead) readHeader
+      if (header) readHeader
       val e = buffer.position
-      val len = super.filter(processed, buffer)
+      val len = super.filterIn(processed, buffer)
       if (!ignoreChecksumForGzipDecoding) {
-        if (buffer.hasArray) {
-          checksum.update(buffer.array, e, len)
-        } else {
-          checksum.update(inflatearray, 0, len)
-        }
+        checksum.update(buffer.array, e, len)
       }
       len
     }
   }
 
-  protected[this] override def hasSufficient = if (athead) 10 <= available else super.hasSufficient
+  protected[this] override def hasSufficient = if (header) 10 <= available else super.hasSufficient
 
   private[this] final def readHeader = {
     def nextByte = 0xff & innerbuffer.get
@@ -79,7 +75,7 @@ sealed trait GzipSourceConduit
     if (isSet(4)) skipString
     if (isSet(1)) require(crc16 == nextShort)
     checksum.reset
-    athead = false
+    header = false
   }
 
   private[this] final def readTrailer = {
@@ -107,7 +103,7 @@ sealed trait GzipSourceConduit
 
   private[this] final def invalidFormat(message: String = null) = throw new DataFormatException(message)
 
-  private[this] final var athead = true
+  private[this] final var header = true
 
   private[this] final val checksum = new CRC32
 

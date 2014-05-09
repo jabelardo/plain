@@ -12,9 +12,9 @@ import java.nio.channels.{ AsynchronousChannel ⇒ BaseChannel, CompletionHandle
 /**
  * Wrap something that is "just" an AsynchronousChannel to become an AsynchronousByteChannel.
  */
-trait WrappedConduit
+trait WrapperConduit
 
-  extends Conduit[WrappedConduit] {
+  extends Conduit[WrapperConduit] {
 
   override final def close = wrappedchannel.close
 
@@ -22,6 +22,6 @@ trait WrappedConduit
 
   protected[this] def wrappedchannel: BaseChannel
 
-  protected[this] final val underlyingchannel: WrappedConduit = this
+  protected[this] final val underlyingchannel: WrapperConduit = this
 
 }

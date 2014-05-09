@@ -15,31 +15,13 @@ import scala.math.min
 /**
  * A FilterConduit modifies or manipulates the data of its underlying channel during reads and writes.
  */
-sealed trait FilterBaseConduit[C <: Channel]
-
-  extends Conduit[C] {
-
-  protected[this] final def skip(n: Int): Int = {
-    val e = innerbuffer.position
-    val skip = min(n, innerbuffer.remaining)
-    innerbuffer.position(innerbuffer.position + skip)
-    skip
-  }
-
-  protected[this] val innerbuffer = { val b = ByteBuffer.wrap(new Array[Byte](defaultBufferSize)); b.flip; b }
-
-}
-
-/**
- *
- */
 trait FilterSourceConduit[C <: Channel]
 
   extends FilterBaseConduit[C]
 
   with SourceConduit[C] {
 
-  protected[this] def filter(processed: Integer, buffer: ByteBuffer): Integer
+  protected[this] def filterIn(processed: Integer, buffer: ByteBuffer): Integer
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     if (isDrained) {
@@ -47,7 +29,7 @@ trait FilterSourceConduit[C <: Channel]
       underlyingchannel.read(innerbuffer, attachment, new FilterSourceHandler(buffer, handler))
     } else {
       if (checkSufficient) {
-        handler.completed(filter(innerbuffer.remaining, buffer), attachment)
+        handler.completed(filterIn(innerbuffer.remaining, buffer), attachment)
       } else {
         handleOverflow
         underlyingchannel.read(innerbuffer, attachment, new FilterSourceHandler(buffer, handler))
@@ -82,8 +64,8 @@ trait FilterSourceConduit[C <: Channel]
     extends BaseHandler[A](handler) {
 
     final def completed(processed: Integer, attachment: A) = {
-      innerbuffer.flip
-      handler.completed(filter(processed, buffer), attachment)
+      if (0 < innerbuffer.position) innerbuffer.flip
+      handler.completed(filterIn(processed, buffer), attachment)
     }
 
   }
@@ -99,7 +81,52 @@ trait FilterSinkConduit[C <: Channel]
 
   with SinkConduit[C] {
 
-  final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {}
+  protected[this] def filterOut(processed: Integer, buffer: ByteBuffer): Integer
+
+  final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
+    println("isFilled " + isFilled)
+    println(buffer)
+    println(innerbuffer)
+    if (isFilled) {
+      underlyingchannel.write(innerbuffer, attachment, new FilterSinkHandler(buffer, handler))
+    } else {
+      filterOut(buffer.remaining, buffer)
+    }
+  }
+
+  protected[this] def isFilled: Boolean = 0 == innerbuffer.remaining
+
+  private[this] final class FilterSinkHandler[A](
+
+    private[this] final val buffer: ByteBuffer,
+
+    private[this] final val handler: Handler[A])
+
+    extends BaseHandler[A](handler) {
+
+    final def completed(processed: Integer, attachment: A) = {
+      unsupported
+    }
+
+  }
+
+}
+
+/**
+ *
+ */
+sealed trait FilterBaseConduit[C <: Channel]
+
+  extends Conduit[C] {
+
+  protected[this] final def skip(n: Int): Int = {
+    val e = innerbuffer.position
+    val skip = min(n, innerbuffer.remaining)
+    innerbuffer.position(innerbuffer.position + skip)
+    skip
+  }
+
+  protected[this] val innerbuffer = { val b = ByteBuffer.wrap(new Array[Byte](defaultBufferSize)); b.flip; b }
 
 }
 

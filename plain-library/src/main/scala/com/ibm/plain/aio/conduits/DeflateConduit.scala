@@ -8,7 +8,7 @@ package conduits
 
 import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel }
-import java.util.zip.Inflater
+import java.util.zip.{ Deflater, Inflater }
 
 /**
  *
@@ -41,7 +41,7 @@ trait DeflateSourceConduit
 
   extends FilterSourceConduit[Channel] {
 
-  protected[this] def filter(processed: Integer, buffer: ByteBuffer): Integer = {
+  protected[this] def filterIn(processed: Integer, buffer: ByteBuffer): Integer = {
     if (0 >= processed) {
       inflater.end
       processed
@@ -49,16 +49,10 @@ trait DeflateSourceConduit
       if (inflater.needsInput) {
         inflater.setInput(innerbuffer.array, innerbuffer.position, innerbuffer.remaining)
       }
-      val (array, offset, length) = if (buffer.hasArray) {
-        (buffer.array, buffer.position, buffer.remaining)
-      } else {
-        if (null == inflatearray) inflatearray = new Array[Byte](buffer.capacity)
-        (inflatearray, 0, buffer.remaining)
-      }
       val e = inflater.getRemaining
-      val len = inflater.inflate(array, offset, length)
+      val len = inflater.inflate(buffer.array, buffer.position, buffer.remaining)
       skip(e - inflater.getRemaining)
-      if (!buffer.hasArray) buffer.put(array, 0, len)
+      buffer.limit(buffer.position + len)
       len
     }
   }
@@ -69,8 +63,6 @@ trait DeflateSourceConduit
 
   protected[this] final val inflater = new Inflater(nowrap)
 
-  protected[this] final var inflatearray: Array[Byte] = null
-
 }
 
 /**
@@ -79,6 +71,27 @@ trait DeflateSourceConduit
 trait DeflateSinkConduit
 
   extends FilterSinkConduit[Channel] {
+
+  protected[this] def filterOut(processed: Integer, buffer: ByteBuffer): Integer = {
+    println("deflate " + processed)
+    if (0 >= processed) {
+      processed
+    } else {
+      println(format(buffer))
+      println(format(innerbuffer))
+      if (deflater.needsInput) {
+        deflater.setInput(buffer.array, buffer.position, buffer.remaining)
+      }
+      val len = deflater.deflate(innerbuffer.array, innerbuffer.position, innerbuffer.remaining)
+      println(len)
+      println(innerbuffer)
+      len
+    }
+  }
+
+  protected[this] val nowrap: Boolean
+
+  protected[this] final val deflater = new Deflater(Deflater.BEST_SPEED, nowrap)
 
 }
 

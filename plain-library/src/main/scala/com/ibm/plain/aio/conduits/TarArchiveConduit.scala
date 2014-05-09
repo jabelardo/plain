@@ -42,17 +42,13 @@ sealed trait TarArchiveSourceConduit
 
   extends FilterSourceConduit[Channel] {
 
-  protected[this] override def filter(processed: Integer, buffer: ByteBuffer): Integer = {
+  protected[this] override def filterIn(processed: Integer, buffer: ByteBuffer): Integer = {
     unsupported
   }
 
   protected[this] def hasSufficient = {
     unsupported
   }
-
-  private[this] final var archive: TarArchiveInputStream = null
-
-  private[this] final var entry: TarArchiveEntry = null
 
 }
 
@@ -62,6 +58,10 @@ sealed trait TarArchiveSourceConduit
 sealed trait TarArchiveSinkConduit
 
   extends FilterSinkConduit[Channel] {
+
+  protected[this] def filterOut(processed: Integer, buffer: ByteBuffer): Integer = {
+    -1
+  }
 
 }
 

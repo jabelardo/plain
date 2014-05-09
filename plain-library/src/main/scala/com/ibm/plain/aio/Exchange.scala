@@ -220,9 +220,9 @@ object Exchange
 
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
         if (0 == processed) {
-          exchange.writeDecoding(DecodeCloseHandler, true)
+          exchange.writeDecoding(DecodeCloseHandler, false)
         } else {
-          exchange.writeDecoding(DecodeWriteHandler, true)
+          exchange.writeDecoding(DecodeWriteHandler, false)
         }
       }
 

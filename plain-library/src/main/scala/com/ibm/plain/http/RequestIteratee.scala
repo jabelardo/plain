@@ -161,8 +161,8 @@ object RequestIteratee
         case Some(value) ⇒
           for (_ ← continue(Long.MaxValue, continuebuffer.duplicate))
             yield EntityInfo(Some(TransferEncodedEntity(value, contenttype)), `Content-Encoding`(headers) match {
-            case Some(value) if value.contains("deflate") ⇒ Some(DeflateDecoder.apply)
-            case Some(value) if value.contains("gzip") ⇒ Some(DeflateDecoder.apply) // :TODO:
+            case Some(value) if value.contains("deflate") ⇒ None
+            case Some(value) if value.contains("gzip") ⇒ None
             case _ ⇒ None
           })
         case None ⇒ `Content-Length`(headers) match {

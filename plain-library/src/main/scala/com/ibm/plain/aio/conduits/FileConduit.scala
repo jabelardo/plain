@@ -6,7 +6,7 @@ package aio
 
 package conduits
 
-import java.io.File
+import java.io.{ File, RandomAccessFile }
 import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousFileChannel ⇒ FileChannel }
 import java.nio.file.{ Path, Paths }
@@ -21,7 +21,7 @@ final class FileConduit(
 
   protected[this] final val wrappedchannel: FileChannel)
 
-  extends WrappedConduit {
+  extends WrapperConduit {
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     wrappedchannel.read(buffer, position, attachment, new FileHandler(handler))
@@ -60,7 +60,7 @@ object FileConduit {
    * This is very fast and should, therefore, be preferred, it also fails if there is not enough space in the file system.
    */
   final def forWriting(path: Path, length: Long): FileConduit = if (0 < length) {
-    val f = new java.io.RandomAccessFile(path.toString, "rw")
+    val f = new RandomAccessFile(path.toString, "rw")
     f.setLength(length)
     f.close
     apply(FileChannel.open(path, Set(WRITE), concurrent.ioexecutor))

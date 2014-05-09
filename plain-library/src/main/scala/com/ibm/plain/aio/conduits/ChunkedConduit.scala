@@ -9,6 +9,7 @@ package conduits
 import java.io.StreamCorruptedException
 import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel }
+import java.util.Arrays
 
 import scala.math.min
 
@@ -43,7 +44,7 @@ sealed trait ChunkedSourceConduit
 
   with FilterSourceConduit[Channel] {
 
-  protected[this] final def filter(processed: Integer, buffer: ByteBuffer): Integer = {
+  protected[this] final def filterIn(processed: Integer, buffer: ByteBuffer): Integer = {
     if (0 >= processed) {
       processed
     } else {
@@ -70,11 +71,9 @@ sealed trait ChunkedSourceConduit
         val avail = min(chunklen, innerbuffer.remaining - headerlen)
         val chunk = new Chunk(ByteBuffer.wrap(array, offset + headerlen, avail), 0, chunklen)
         innerbuffer.position(chunk.chunkbuffer.limit)
-        if (0 == chunklen) {
-          skip(2)
-        }
+        if (0 == chunklen) skip(2)
         chunk
-      case _ ⇒ throw new StreamCorruptedException("Invalid chunk header")
+      case _ ⇒ throw new StreamCorruptedException("Invalid chunk header : " + (new String(array, offset, 12).getBytes.toList))
     }
   }
 
@@ -88,6 +87,23 @@ sealed trait ChunkedSinkConduit
   extends ChunkedConduitBase
 
   with FilterSinkConduit[Channel] {
+
+  protected[this] final def filterOut(processed: Integer, buffer: ByteBuffer): Integer = {
+    if (0 >= processed) {
+      processed
+    } else {
+      if (null == chunk) {
+        chunk = new Chunk(buffer, 0, buffer.remaining)
+        innerbuffer.clear
+        innerbuffer.put("\r\n%x\r\n".format(buffer.remaining).getBytes)
+      }
+      chunk.drain(innerbuffer)
+      innerbuffer.flip
+      println(format(buffer))
+      println(format(innerbuffer))
+      buffer.remaining
+    }
+  }
 
 }
 
@@ -106,7 +122,7 @@ abstract sealed class ChunkedConduitBase {
 
     final def fill(source: ByteBuffer) = {
       chunkbuffer = ByteBuffer.wrap(source.array, source.position, length - position)
-      source.position(chunkbuffer.limit)
+      source.position(min(chunkbuffer.limit, source.limit))
     }
 
     final def drain(sink: ByteBuffer): Int = {

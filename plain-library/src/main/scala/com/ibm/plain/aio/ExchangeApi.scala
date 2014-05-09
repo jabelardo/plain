@@ -177,11 +177,11 @@ trait ExchangeApiImpl[A]
         //  TarArchiveConduit(GzipConduit(ChunkedConduit(socketchannel)))
         GzipConduit(ChunkedConduit(socketchannel))
       //        DeflateConduit(ChunkedConduit(channel))
-      //ChunkedConduit(socketchannel)
+      // ChunkedConduit(socketchannel)
       case _ ⇒
         FixedLengthConduit(socketchannel, readbuffer.remaining, length)
     }
-    transferdestination = destination
+    transferdestination = destination // DeflateConduit(ChunkedConduit(destination))
     transfercompleted = completed
     throw ExchangeControl
   }
@@ -243,13 +243,13 @@ trait ExchangeApiImpl[A]
   }
 
   @inline final def readDecoding(handler: ExchangeHandler[A]) = {
-    readbuffer.clear
-    transfersource.read(readbuffer, this, handler)
+    transferbuffer.clear
+    transfersource.read(transferbuffer, this, handler)
   }
 
   @inline final def writeDecoding(handler: ExchangeHandler[A], flip: Boolean) = {
-    if (flip) readbuffer.flip
-    transferdestination.write(readbuffer, this, handler)
+    if (flip) transferbuffer.flip
+    transferdestination.write(transferbuffer, this, handler)
   }
 
   @inline final def readEncoding(handler: ExchangeHandler[A]) = {
@@ -328,6 +328,8 @@ trait ExchangeApiImpl[A]
   protected[this] val readbuffer: ByteBuffer
 
   protected[this] val writebuffer: ByteBuffer
+
+  private[this] val transferbuffer = ByteBuffer.wrap(new Array[Byte](defaultBufferSize))
 
   private[this] final var released = new AtomicBoolean(false)
 
