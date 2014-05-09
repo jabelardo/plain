@@ -25,9 +25,10 @@ import org.apache.http.entity.InputStreamEntity
 import java.util.concurrent.{FutureTask, Callable}
 import scala.concurrent._
 import scala.concurrent.duration._
-import org.apache.commons.compress.archivers.ArchiveEntry
 import scala.Some
-import com.ibm.plain.integration.spaces.SpacesURI
+import ExecutionContext.Implicits.global
+import scala.language.postfixOps
+import scala.util.{Failure, Success}
 
 /**
  *
@@ -157,6 +158,8 @@ object SpacesClient
    * Unit
    */
   final def put(uri: SpacesURI, file: Path, relativePath: Option[Path] = None) = {
+    require(Files.isDirectory(file), "The path must be an existing directory.")
+
     val request = new HttpPut(url(uri, relativePath))
 
     val pos = new PipedOutputStream()
@@ -164,7 +167,8 @@ object SpacesClient
 
     val createTar = Future {
         val out = new TarArchiveOutputStream(pos)
-        // TODO
+        file.toFile.listFiles.toList.foreach(addFilesToTar(out, _, FileSystems.getDefault.getPath(".")))
+        out.close()
     }
 
     val startRequest = Future {
@@ -176,6 +180,13 @@ object SpacesClient
           case (200, response) =>
 
         }
+    }
+
+    startRequest.onComplete {
+      case Success(_) =>
+        trace("PUT was successful")
+      case Failure(t) =>
+        error("An error occured... " + t.getMessage)
     }
 
     Await.result(startRequest, 5 minutes)
@@ -264,7 +275,8 @@ final class SpacesTestClient
   Get {
     throw new Exception("HUHU")
     // Ich lasse mir ein TAR schicken und tue so als ob es vom Server gepackt wird.
-    SpacesClient.get(SpacesURI("myspace"), FileSystems.getDefault.getPath("/Users/michael/Downloads"))
+    // SpacesClient.get(SpacesURI("myspace"), FileSystems.getDefault.getPath("/Users/michael/Downloads"))
+    SpacesClient.put(SpacesURI("myspace"), FileSystems.getDefault.getPath("/Users/michael/Downloads"))
     "HelloWorld".getBytes
 
   }
