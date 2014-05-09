@@ -181,7 +181,7 @@ trait ExchangeApiImpl[A]
       case _ ⇒
         FixedLengthConduit(socketchannel, readbuffer.remaining, length)
     }
-    transferdestination = destination // DeflateConduit(ChunkedConduit(destination))
+    transferdestination = destination
     transfercompleted = completed
     throw ExchangeControl
   }
