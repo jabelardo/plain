@@ -89,6 +89,8 @@ trait FilterSinkConduit[C <: Channel]
 
   trait Overflow
 
+  trait LastCallHandler
+
   /**
    *    
    * @param buffer
@@ -105,6 +107,8 @@ trait FilterSinkConduit[C <: Channel]
       case Right(_) =>
         underlyingchannel.write(innerbuffer, attachment, new FilterSinkHandler(buffer, handler))
     }
+
+    if (handler.isInstanceOf[LastCallHandler]) underlyingchannel.write(innerbuffer, attachment, new FilterSinkHandler(buffer, handler) with LastCallHandler)
   }
 
   protected[this] def sFull: Boolean = 0 == innerbuffer.remaining
