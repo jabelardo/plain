@@ -34,8 +34,8 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
       buffer.clear
       buffer
     } else {
-      onlyonce { createLogger(this).warn("ByteBufferPool exhausted : buffer size " + buffersize + ", initial pool size " + initialpoolsize) }
-      ByteBuffer.allocateDirect(buffersize)
+      onlyonce { createLogger(this).warn("ByteBufferPool exhausted, need to create more : buffer size " + buffersize + ", initial pool size " + initialpoolsize) }
+      ByteBuffer.allocate(buffersize)
     }
   } else {
     Thread.`yield`
@@ -47,12 +47,12 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
    */
   @tailrec final def release(buffer: ByteBuffer): Unit = if (trylock) {
     try {
-      if (!pool.exists(_ eq buffer)) {
-        buffer.clear
-        pool = buffer :: pool
-      } else {
-        createLogger(this).warn("Trying to release twice (prevented) " + pool.size + ", buffer size " + buffersize + ", initial pool size " + initialpoolsize)
-      }
+      // if (!pool.exists(_ eq buffer)) {
+      buffer.clear
+      pool = buffer :: pool
+      // } else {
+      //  createLogger(this).warn("Trying to release twice (prevented) " + pool.size + ", buffer size " + buffersize + ", initial pool size " + initialpoolsize)
+      // }
     } finally unlock
   } else {
     Thread.`yield`
@@ -63,7 +63,7 @@ final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
 
   @inline private[this] final def unlock = locked.set(false)
 
-  @volatile private[this] final var pool: List[ByteBuffer] = (0 until initialpoolsize).map(_ ⇒ ByteBuffer.allocateDirect(buffersize)).toList
+  @volatile private[this] final var pool: List[ByteBuffer] = (0 until initialpoolsize).map(_ ⇒ ByteBuffer.allocate(buffersize)).toList
 
   @volatile private[this] final var watermark = initialpoolsize
 

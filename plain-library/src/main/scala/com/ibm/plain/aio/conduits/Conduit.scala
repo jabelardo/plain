@@ -43,9 +43,13 @@ trait Conduit[C <: Channel]
 /**
  *
  */
-trait SourceConduit[C <: Channel] extends Conduit[C]
+trait SourceConduit[C <: Channel]
+
+  extends Conduit[C]
 
 /**
  *
  */
-trait SinkConduit[C <: Channel] extends Conduit[C]
+trait SinkConduit[C <: Channel]
+
+  extends Conduit[C]

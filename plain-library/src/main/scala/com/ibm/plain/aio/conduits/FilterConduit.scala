@@ -9,6 +9,7 @@ package conduits
 import java.nio.ByteBuffer
 import java.nio.{ BufferOverflowException, ByteBuffer }
 import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel, CompletionHandler ⇒ Handler }
+import java.util.concurrent.atomic.AtomicBoolean
 
 import scala.math.min
 
@@ -21,12 +22,6 @@ trait FilterSourceConduit[C <: Channel]
 
   with SourceConduit[C] {
 
-  /**
-   * 
-   * @param processed
-   * @param buffer
-   * @return
-   */
   protected[this] def filterIn(processed: Integer, buffer: ByteBuffer): Integer
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
@@ -34,7 +29,7 @@ trait FilterSourceConduit[C <: Channel]
       innerbuffer.clear
       underlyingchannel.read(innerbuffer, attachment, new FilterSourceHandler(buffer, handler))
     } else {
-      if (checkSufficient) {
+      if (hasSufficient) {
         handler.completed(filterIn(innerbuffer.remaining, buffer), attachment)
       } else {
         handleOverflow
@@ -46,9 +41,9 @@ trait FilterSourceConduit[C <: Channel]
 
   protected[this] def hasSufficient: Boolean
 
-  protected[this] final def isDrained = 0 == innerbuffer.remaining
-
   protected[this] final def available = innerbuffer.remaining
+
+  private[this] final def isDrained = 0 == innerbuffer.remaining
 
   private[this] final def handleOverflow = {
     val overflow = ByteBuffer.wrap(innerbuffer.array, 0, innerbuffer.position)
@@ -58,8 +53,6 @@ trait FilterSourceConduit[C <: Channel]
     innerbuffer.position(overflow.limit)
     innerbuffer.limit(innerbuffer.capacity)
   }
-
-  private[this] final def checkSufficient = !isDrained && hasSufficient
 
   private[this] final class FilterSourceHandler[A](
 
@@ -87,31 +80,36 @@ trait FilterSinkConduit[C <: Channel]
 
   with SinkConduit[C] {
 
-  trait Overflow
-
-  trait LastCallHandler
-
-  /**
-   *    
-   * @param buffer
-   *         outer buffer.
-   * @return
-   *         Returns the number of bytes wrote during filter operation.
-   */
-  protected[this] def filterOut(buffer: ByteBuffer): Either[Integer, Overflow]
+  protected[this] def filterOut(processed: Integer, buffer: ByteBuffer): Integer
 
   final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
-    filterOut(buffer) match {
-      case Left(processed) =>
-        handler.completed(processed, attachment)
-      case Right(_) =>
-        underlyingchannel.write(innerbuffer, attachment, new FilterSinkHandler(buffer, handler))
+    if (isFilled) {
+      doWrite(attachment, new FilterSinkHandler(buffer, handler))
+    } else {
+      val len = filterOut(buffer.remaining, buffer)
+      if (0 < len) {
+        handler.completed(len, attachment)
+      } else if (0 < innerbuffer.remaining) {
+        doWrite(attachment, new FilterCloseHandler(handler))
+      } else {
+        close
+      }
     }
-
-    if (handler.isInstanceOf[LastCallHandler]) underlyingchannel.write(innerbuffer, attachment, new FilterSinkHandler(buffer, handler) with LastCallHandler)
   }
 
-  protected[this] def sFull: Boolean = 0 == innerbuffer.remaining
+  private[this] final def isFilled = {
+    if (0 == innerbuffer.remaining)
+      if (0 == innerbuffer.position && 0 == innerbuffer.limit) {
+        innerbuffer.clear
+        false
+      } else true
+    else false
+  }
+
+  private[this] final def doWrite[A](attachment: A, handler: Handler[A]) = {
+    innerbuffer.flip
+    underlyingchannel.write(innerbuffer, attachment, handler)
+  }
 
   private[this] final class FilterSinkHandler[A](
 
@@ -122,8 +120,29 @@ trait FilterSinkConduit[C <: Channel]
     extends BaseHandler[A](handler) {
 
     final def completed(processed: Integer, attachment: A) = {
-      if (0 < innerbuffer.remaining) underlyingchannel.write(innerbuffer, attachment, this)
-      else write(buffer, attachment, handler)
+      if (0 < innerbuffer.remaining) {
+        underlyingchannel.write(innerbuffer, attachment, this)
+      } else {
+        innerbuffer.clear
+        write(buffer, attachment, handler)
+      }
+    }
+
+  }
+
+  private[this] final class FilterCloseHandler[A](
+
+    private[this] final val handler: Handler[A])
+
+    extends BaseHandler[A](handler) {
+
+    final def completed(processed: Integer, attachment: A) = {
+      if (0 < innerbuffer.remaining) {
+        underlyingchannel.write(innerbuffer, attachment, this)
+      } else {
+        close
+        handler.completed(0, attachment)
+      }
     }
 
   }
@@ -137,6 +156,12 @@ sealed trait FilterBaseConduit[C <: Channel]
 
   extends Conduit[C] {
 
+  override final def close = if (!isclosed) {
+    isclosed = true
+    releaseByteBuffer(innerbuffer)
+    super.close
+  }
+
   protected[this] final def skip(n: Int): Int = {
     val e = innerbuffer.position
     val skip = min(n, innerbuffer.remaining)
@@ -144,7 +169,9 @@ sealed trait FilterBaseConduit[C <: Channel]
     skip
   }
 
-  protected[this] val innerbuffer = { val b = ByteBuffer.wrap(new Array[Byte](defaultBufferSize)); b.flip; b }
+  protected[this] val innerbuffer = { val b = defaultByteBuffer; b.flip; b }
+
+  protected[this] final var isclosed = false
 
 }
 
