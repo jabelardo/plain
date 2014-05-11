@@ -92,7 +92,7 @@ sealed trait ChunkedSinkConduit
     if (0 >= processed) {
       if (null != chunk) {
         ByteBuffer.wrap(innerbuffer.array, chunkheaderoffset, 8).put(header.format(chunk.position).getBytes)
-        require(12 <= innerbuffer.remaining, "not enough space for final chunk")
+        require(12 <= innerbuffer.remaining)
         innerbuffer.put(finalheader.getBytes)
       }
       processed

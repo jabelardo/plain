@@ -73,25 +73,25 @@ trait DeflateSinkConduit
   extends FilterSinkConduit[Channel] {
 
   protected[this] def filterOut(processed: Integer, buffer: ByteBuffer): Integer = {
-    println("deflate " + processed)
     if (0 >= processed) {
+      deflater.end
       processed
     } else {
-      println(format(buffer))
-      println(format(innerbuffer))
-      if (deflater.needsInput) {
-        deflater.setInput(buffer.array, buffer.position, buffer.remaining)
-      }
-      val len = deflater.deflate(innerbuffer.array, innerbuffer.position, innerbuffer.remaining)
-      println(len)
-      println(innerbuffer)
-      len
+      if (deflater.needsInput) deflater.setInput(buffer.array, buffer.position, buffer.remaining)
+      val len = deflater.deflate(innerbuffer.array, innerbuffer.position, innerbuffer.remaining, Deflater.SYNC_FLUSH)
+      innerbuffer.position(innerbuffer.position + len)
+      val delta = (deflater.getBytesRead - bytesread).toInt
+      bytesread = deflater.getBytesRead
+      buffer.position(buffer.position + delta)
+      delta
     }
   }
 
   protected[this] val nowrap: Boolean
 
   protected[this] final val deflater = new Deflater(Deflater.BEST_SPEED, nowrap)
+
+  private[this] final var bytesread = 0L
 
 }
 
