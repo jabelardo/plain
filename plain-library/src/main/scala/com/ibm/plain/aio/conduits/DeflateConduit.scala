@@ -74,7 +74,10 @@ trait DeflateSinkConduit
 
   protected[this] def filterOut(processed: Integer, buffer: ByteBuffer): Integer = {
     if (0 >= processed) {
+      deflater.finish
+      val len = deflater.deflate(innerbuffer.array, innerbuffer.position, innerbuffer.remaining, Deflater.FULL_FLUSH)
       deflater.end
+      innerbuffer.position(innerbuffer.position + len)
       processed
     } else {
       if (deflater.needsInput) deflater.setInput(buffer.array, buffer.position, buffer.remaining)

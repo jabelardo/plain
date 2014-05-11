@@ -174,9 +174,10 @@ sealed trait FilterBaseConduit[C <: Channel]
 
   extends Conduit[C] {
 
-  override final def isOpen = !closed.get
+  override final def isOpen = !closed
 
-  override final def close = if (closed.compareAndSet(false, true)) {
+  override final def close = if (!closed) {
+    closed = true
     releaseByteBuffer(innerbuffer)
     super.close
   }
@@ -190,7 +191,7 @@ sealed trait FilterBaseConduit[C <: Channel]
 
   protected[this] final val innerbuffer = { val b = defaultByteBuffer; b.flip; b }
 
-  private[this] final val closed = new AtomicBoolean(false)
+  private[this] final var closed = false
 
 }
 

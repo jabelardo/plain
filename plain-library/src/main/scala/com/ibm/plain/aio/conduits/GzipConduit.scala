@@ -8,7 +8,7 @@ package conduits
 
 import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel }
-import java.util.zip.{ CRC32, Inflater, DataFormatException }
+import java.util.zip.{ CRC32, DataFormatException, Deflater }
 
 /**
  *
@@ -41,10 +41,10 @@ sealed trait GzipSourceConduit
 
   extends DeflateSourceConduit {
 
-  protected[this] override def filterIn(processed: Integer, buffer: ByteBuffer): Integer = {
+  protected[this] override final def filterIn(processed: Integer, buffer: ByteBuffer): Integer = {
     if (0 >= processed) {
       readTrailer
-      processed
+      super.filterIn(processed, buffer)
     } else {
       if (header) readHeader
       val e = buffer.position
@@ -56,7 +56,7 @@ sealed trait GzipSourceConduit
     }
   }
 
-  protected[this] override def hasSufficient = if (header) 10 <= available else super.hasSufficient
+  protected[this] override final def hasSufficient = if (header) 10 <= available else super.hasSufficient
 
   private[this] final def readHeader = {
     def nextByte = 0xff & innerbuffer.get
@@ -116,5 +116,42 @@ sealed trait GzipSinkConduit
 
   extends DeflateSinkConduit {
 
-}
+  override protected[this] def filterOut(processed: Integer, buffer: ByteBuffer): Integer = {
+    if (0 >= processed) {
+      val read = deflater.getBytesRead
+      super.filterOut(processed, buffer)
+      writeTrailer(read)
+    } else {
+      if (header) writeHeader
+      val e = buffer.position
+      val len = super.filterOut(processed, buffer)
+      checksum.update(buffer.array, e, len)
+      len
+    }
+  }
 
+  private[this] final def writeHeader = {
+    innerbuffer.put(headerbytes)
+    header = false
+  }
+
+  private[this] final def writeTrailer(bytesread: Long): Int = {
+    def nextInt(l: Long) = {
+      val i = l % 4294967296L
+      innerbuffer.put((i & 0xff).toByte)
+      innerbuffer.put(((i >> 8) & 0xff).toByte)
+      innerbuffer.put(((i >> 16) & 0xff).toByte)
+      innerbuffer.put(((i >> 24) & 0xff).toByte)
+    }
+    nextInt(checksum.getValue)
+    nextInt(bytesread)
+    0
+  }
+
+  private[this] final var header = true
+
+  private[this] final val headerbytes = Array[Byte](0x1f, 0x8b.toByte, Deflater.DEFLATED, 0, 0, 0, 0, 0, 4, 0xff.toByte)
+
+  private[this] final val checksum = new CRC32
+
+}
