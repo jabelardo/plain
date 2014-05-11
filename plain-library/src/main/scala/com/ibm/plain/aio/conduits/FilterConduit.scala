@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import scala.math.min
 
 /**
- * A FilterConduit modifies or manipulates the data of its underlying channel during reads and writes.
+ * A FilterSourceConduit modifies or manipulates the data of its underlying channel during reads.
  */
 trait FilterSourceConduit[C <: Channel]
 
@@ -21,6 +21,13 @@ trait FilterSourceConduit[C <: Channel]
 
   with SourceConduit[C] {
 
+  /**
+   * Needs to be implemented by subclasses. It filters from the outer buffer to the inner buffer.
+   *
+   * @param processed The bytes avaiable or the space on the inner buffer to be filtered to.
+   * @param buffer The outer buffer to be filtered from.
+   * @return The amount of bytes read and filtered from the outer buffer. Invariant: returns a value in [0, buffer.remaining]
+   */
   protected[this] def filterIn(processed: Integer, buffer: ByteBuffer): Integer
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
@@ -71,7 +78,7 @@ trait FilterSourceConduit[C <: Channel]
 }
 
 /**
- *
+ * A FilterSinkConduit modifies or manipulates the data of its underlying channel during writes.
  */
 trait FilterSinkConduit[C <: Channel]
 
@@ -79,6 +86,13 @@ trait FilterSinkConduit[C <: Channel]
 
   with SinkConduit[C] {
 
+  /**
+   * Needs to be implemented by subclasses. It filters from the outer buffer to the inner buffer.
+   *
+   * @param processed The bytes processed on buffer. This amount of bytes can now be filtered.
+   * @param buffer The outer buffer to be filtered.
+   * @return The amount of bytes filtered on buffer. Invariant: returns a value in [0, processed]
+   */
   protected[this] def filterOut(processed: Integer, buffer: ByteBuffer): Integer
 
   final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
@@ -96,6 +110,9 @@ trait FilterSinkConduit[C <: Channel]
     }
   }
 
+  /**
+   * @return true if the inner buffer has no more space left for writing
+   */
   private[this] final def filled = {
     if (0 == innerbuffer.remaining)
       if (0 == innerbuffer.position && 0 == innerbuffer.limit) {

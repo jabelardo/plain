@@ -28,7 +28,7 @@ eclipseOutput in ThisBuild := Some("target/scala-2.11/classes")
 
 withSource in ThisBuild:= true
 
-scalacOptions in (doc) := Seq("-diagrams", "-doc-title plain.io")
+scalacOptions in (doc) := Seq("-diagrams", "-doc-title plain.io", "-access private")
 
 scalacOptions in ThisBuild ++= Seq(
 	"-g:vars",

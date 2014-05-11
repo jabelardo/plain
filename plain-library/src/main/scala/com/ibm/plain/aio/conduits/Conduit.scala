@@ -41,14 +41,14 @@ trait Conduit[C <: Channel]
 }
 
 /**
- *
+ * A Conduit is split into its source for reading from it and sink for writing to it. SourceConduit builds the base for reading implementations.
  */
 trait SourceConduit[C <: Channel]
 
   extends Conduit[C]
 
 /**
- *
+ * A Conduit is split into its source for reading from it and sink for writing to it. SinnkConduit builds the base for writing implementations.
  */
 trait SinkConduit[C <: Channel]
 
