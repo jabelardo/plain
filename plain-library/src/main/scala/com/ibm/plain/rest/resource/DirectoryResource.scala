@@ -39,7 +39,9 @@ final class DirectoryResource
 
   Get { get(context.config.getStringList("roots"), context.remainder.mkString("/"), exchange) }
 
-  Get { _: String ⇒ getZipFile(exchange) }
+  Get { _: String ⇒ get(context.config.getStringList("roots"), context.remainder.mkString("/"), exchange) }
+
+  //  Get { _: String ⇒ getZipFile(exchange) }
 
 }
 

@@ -42,7 +42,7 @@ final class ByteBufferInputStream(
 
   @inline override final def available = limit - position
 
-  private[this] final var position = 0
+  private[this] final var position = buffer.position
 
   private[this] final val limit = buffer.limit
 

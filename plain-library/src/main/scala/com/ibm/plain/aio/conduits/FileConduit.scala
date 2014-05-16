@@ -15,7 +15,7 @@ import java.nio.file.StandardOpenOption.{ CREATE, READ, TRUNCATE_EXISTING, WRITE
 import scala.collection.JavaConversions.setAsJavaSet
 
 /**
- * Converts an AsynchronousFileChannel into an AsynchronousByteChannel. You can either read from it or write to it, but not both at the same time.
+ * Converts an AsynchronousFileChannel into an AsynchronousByteChannel.
  */
 final class FileConduit(
 

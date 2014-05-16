@@ -148,6 +148,9 @@ object Exchange
           case (e @ Done(in: InMessage), Elem(_)) ⇒
             exchange.cache(e)
             process(exchange ++ in)
+          case (e @ Done(a), Elem(_)) ⇒
+            println("done " + a)
+            unhandled(e)
           case (e @ Error(_), Elem(_)) ⇒
             exchange.reset
             process(exchange ++ e)
@@ -331,7 +334,7 @@ object Exchange
   @inline def unhandled(e: Any) = {
     e match {
       case e: Throwable ⇒ e.printStackTrace
-      case _ ⇒
+      case _ ⇒ dumpStack
     }
     error("Unhandled, may need attention : " + e)
   }

@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit
  */
 final class SocketChannelConduit private (
 
-  protected[this] val underlyingchannel: SocketChannel)
+  protected[this] final val underlyingchannel: SocketChannel)
 
   extends SocketChannelSourceConduit
 
@@ -59,7 +59,7 @@ object SocketChannelConduit {
  */
 sealed trait SocketChannelSourceConduit
 
-  extends SourceConduit[SocketChannel] {
+  extends ConnectorSourceConduit[SocketChannel] {
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     underlyingchannel.read(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, attachment, handler)
@@ -72,7 +72,7 @@ sealed trait SocketChannelSourceConduit
  */
 sealed trait SocketChannelSinkConduit
 
-  extends SinkConduit[SocketChannel] {
+  extends ConnectorSinkConduit[SocketChannel] {
 
   final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     underlyingchannel.write(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, attachment, handler)

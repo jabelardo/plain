@@ -15,7 +15,9 @@ import java.util.zip.{ CRC32, DataFormatException, Deflater }
  */
 final class GzipConduit private (
 
-  protected[this] val underlyingchannel: Channel)
+  protected[this] final val underlyingchannel: Channel,
+
+  protected[this] final val compressionlevel: Int)
 
   extends GzipSourceConduit
 
@@ -30,7 +32,9 @@ final class GzipConduit private (
  */
 object GzipConduit {
 
-  final def apply(underlyingchannel: Channel) = new GzipConduit(underlyingchannel)
+  final def apply(underlyingchannel: Channel, compressionlevel: Int) = new GzipConduit(underlyingchannel, compressionlevel)
+
+  final def apply(underlyingchannel: Channel) = new GzipConduit(underlyingchannel, deflaterCompressionLevel)
 
 }
 

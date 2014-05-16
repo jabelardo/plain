@@ -14,6 +14,8 @@ package object conduits
   import config._
   import config.settings._
 
+  final val deflaterCompressionLevel = getInt("plain.aio.conduits.deflater-compression-level", 1)
+
   final val ignoreChecksumForGzipDecoding = getBoolean("plain.aio.conduits.ignore-checksum-for-gzip-decoding", true)
 
   final val defaultChunkSize = getBytes("plain.aio.conduits.default-chunk-size", 16 * 1024).toInt

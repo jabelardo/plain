@@ -179,9 +179,11 @@ trait ExchangeApiImpl[A]
       //        DeflateConduit(ChunkedConduit(channel))
       // ChunkedConduit(socketchannel)
       case _ ⇒
-        FixedLengthConduit(socketchannel, readbuffer.remaining, length)
+        unsupported
+      // FixedLengthConduit(socketchannel, readbuffer.remaining, length)
     }
-    transferdestination = DeflateConduit(destination) // DeflateConduit(ChunkedConduit(destination))
+    // transferdestination = GzipConduit(destination) // DeflateConduit(ChunkedConduit(destination))
+    transferdestination = TarArchiveConduit(new java.io.File("/tmp/tartest"))
     transfercompleted = completed
     throw ExchangeControl
   }

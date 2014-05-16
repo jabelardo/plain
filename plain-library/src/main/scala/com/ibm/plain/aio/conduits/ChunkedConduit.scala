@@ -18,7 +18,7 @@ import scala.math.min
  */
 final class ChunkedConduit private (
 
-  protected[this] val underlyingchannel: Channel)
+  protected[this] final val underlyingchannel: Channel)
 
   extends ChunkedSourceConduit
 

@@ -13,13 +13,22 @@ import java.util.concurrent.atomic.AtomicBoolean
 import scala.math.min
 
 /**
+ * A FilterConduit filters data from an outer buffer to an inner buffer and modifies it on the way. As source and sink share the same inner buffer either reads or writes ares supported, but not both at the same time.
+ */
+trait FilterConduit[C <: Channel]
+
+  extends FilterSourceConduit[C]
+
+  with FilterSinkConduit[C]
+
+/**
  * A FilterSourceConduit modifies or manipulates the data of its underlying channel during reads.
  */
 trait FilterSourceConduit[C <: Channel]
 
   extends FilterBaseConduit[C]
 
-  with SourceConduit[C] {
+  with ConnectorSourceConduit[C] {
 
   /**
    * Needs to be implemented by subclasses. It filters from the outer buffer to the inner buffer.
@@ -84,7 +93,7 @@ trait FilterSinkConduit[C <: Channel]
 
   extends FilterBaseConduit[C]
 
-  with SinkConduit[C] {
+  with ConnectorSinkConduit[C] {
 
   /**
    * Needs to be implemented by subclasses. It filters from the outer buffer to the inner buffer.
@@ -172,7 +181,7 @@ trait FilterSinkConduit[C <: Channel]
  */
 sealed trait FilterBaseConduit[C <: Channel]
 
-  extends Conduit[C] {
+  extends ConnectorConduit[C] {
 
   override final def isOpen = !closed
 

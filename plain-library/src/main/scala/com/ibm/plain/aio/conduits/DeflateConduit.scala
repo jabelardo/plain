@@ -15,7 +15,9 @@ import java.util.zip.{ Deflater, Inflater }
  */
 final class DeflateConduit private (
 
-  protected[this] val underlyingchannel: Channel)
+  protected[this] final val underlyingchannel: Channel,
+
+  protected[this] final val compressionlevel: Int)
 
   extends DeflateSourceConduit
 
@@ -30,7 +32,9 @@ final class DeflateConduit private (
  */
 object DeflateConduit {
 
-  final def apply(underlyingchannel: Channel) = new DeflateConduit(underlyingchannel)
+  final def apply(underlyingchannel: Channel, compressionlevel: Int) = new DeflateConduit(underlyingchannel, compressionlevel)
+
+  final def apply(underlyingchannel: Channel) = new DeflateConduit(underlyingchannel, deflaterCompressionLevel)
 
 }
 
@@ -90,9 +94,11 @@ trait DeflateSinkConduit
     }
   }
 
+  protected[this] val compressionlevel: Int
+
   protected[this] val nowrap: Boolean
 
-  protected[this] final val deflater = new Deflater(Deflater.BEST_SPEED, nowrap)
+  protected[this] final val deflater = new Deflater(compressionlevel, nowrap)
 
   private[this] final var bytesread = 0L
 

@@ -12,7 +12,7 @@ import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel }
 import scala.math.min
 
 /**
- * Limit a channel to an offset and a length.
+ * Wrap a Conduit around a ByteArray. Currently only supports reads.
  */
 final class ByteArrayConduit(
 
@@ -22,7 +22,7 @@ final class ByteArrayConduit(
 
   private[this] final val length: Int)
 
-  extends Conduit[Channel] {
+  extends Conduit {
 
   override final def close = total = 0
 
@@ -35,7 +35,9 @@ final class ByteArrayConduit(
       total -= len
       position += len
       handler.completed(len, attachment)
-    } else handler.completed(0, attachment)
+    } else {
+      handler.completed(0, attachment)
+    }
   }
 
   final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = unsupported
