@@ -301,6 +301,7 @@ object Exchange
           exchange.writeEncoding(this, false, 0)
         } else {
           exchange.transferClose
+          println("read next")
           read(exchange) // next please
         }
       }

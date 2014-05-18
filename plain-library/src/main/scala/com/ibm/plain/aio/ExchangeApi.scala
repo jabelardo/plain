@@ -164,6 +164,8 @@ trait ExchangeApiImpl[A]
     writebuffer.limit(writebuffer.capacity)
   }
 
+  import conduits._
+
   @inline final def transferFrom(source: Channel): Unit = {
     transfersource = source
     transferdestination = socketchannel
@@ -173,7 +175,6 @@ trait ExchangeApiImpl[A]
   @inline final def transferTo(destination: Channel, length: Long, completed: A ⇒ Unit): Nothing = {
     transfersource = length match {
       case len if 0 > len ⇒
-        import aio.conduits._
         //  TarArchiveConduit(GzipConduit(ChunkedConduit(socketchannel)))
         GzipConduit(ChunkedConduit(socketchannel))
       //        DeflateConduit(ChunkedConduit(channel))
@@ -262,18 +263,18 @@ trait ExchangeApiImpl[A]
 
   @inline final def writeEncoding(handler: ExchangeHandler[A], flip: Boolean, encode: Int) = {
     if (flip) writebuffer.flip
-    outmessage.encoder match {
-      case Some(encoder) ⇒ encode match {
-        case -1 ⇒
-          writebuffer.clear
-          encoder.finish(writebuffer)
-        case 0 ⇒
-        case 1 ⇒
-          encoder.encode(writebuffer)
-          writebuffer.flip
-      }
-      case _ ⇒
-    }
+    //    outmessage.encoder match {
+    //      case Some(encoder) ⇒ encode match {
+    //        case -1 ⇒
+    //          writebuffer.clear
+    //          encoder.finish(writebuffer)
+    //        case 0 ⇒
+    //        case 1 ⇒
+    //          encoder.encode(writebuffer)
+    //          writebuffer.flip
+    //      }
+    //      case _ ⇒
+    //    }
     transferdestination.write(writebuffer, this, handler)
   }
 
@@ -286,6 +287,7 @@ trait ExchangeApiImpl[A]
     transfercompleted = null
     writebuffer.clear
     currentiteratee = Done[ExchangeIo[A], Option[Nothing]](None)
+    release(null)
   }
 
   @inline final def hasError = currentiteratee.isInstanceOf[Error[_]]

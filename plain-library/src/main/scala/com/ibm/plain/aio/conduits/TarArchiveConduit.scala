@@ -11,12 +11,14 @@ import java.nio.ByteBuffer
 import java.nio.file.Files.createDirectories
 
 import org.apache.commons.io.FileUtils.deleteDirectory
-import org.apache.commons.compress.archivers.tar.{ TarArchiveEntry, TarArchiveInputStream }
+import org.apache.commons.compress.archivers.tar.{ TarArchiveEntry, TarArchiveInputStream, TarArchiveOutputStream }
 
 import scala.{ Left, Right }
+import scala.collection.mutable.ListBuffer
 import scala.math.min
 
-import io.{ ByteArrayInputStream, ByteBufferInputStream }
+import io.{ ByteArrayInputStream, ByteBufferInputStream, ByteBufferOutputStream }
+import NullConduit.nulls
 
 /**
  *
@@ -40,6 +42,8 @@ object TarArchiveConduit {
 
   final def apply(directory: File, purge: Boolean) = new TarArchiveConduit(directory, purge)
 
+  final def apply(directory: File) = new TarArchiveConduit(directory, false)
+
 }
 
 /**
@@ -52,7 +56,94 @@ sealed trait TarArchiveSourceConduit
   with TerminatingSourceConduit {
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
-    unsupported
+    if (isOpen) {
+      if (reading) {
+        fixedlengthconduit.read(buffer, attachment, new TarArchiveSourceHandler(buffer, handler))
+      } else {
+        if (!nextEntry(buffer)) {
+          entrysize = 2 * recordsize
+          buffer.put(nulls, 0, entrysize)
+          close
+        }
+        handler.completed(entrysize, attachment)
+      }
+    } else {
+      handler.completed(0, attachment)
+    }
+  }
+
+  private[this] final class TarArchiveSourceHandler[A](
+
+    private[this] final val buffer: ByteBuffer,
+
+    private[this] final val handler: Handler[A])
+
+    extends BaseHandler[A](handler) {
+
+    @inline final def completed(processed: Integer, attachment: A) = {
+      if (0 >= processed) {
+        fixedlengthconduit.close
+        fixedlengthconduit = null
+        if (0 < padsize) {
+          fixedlengthconduit = FixedLengthConduit(NullConduit, padsize - 1)
+          padsize = 0
+          buffer.put(0.toByte)
+          handler.completed(1, attachment)
+        } else {
+          read(buffer, attachment, handler)
+        }
+      } else {
+        handler.completed(processed, attachment)
+      }
+    }
+
+  }
+
+  private[this] final def nextEntry(buffer: ByteBuffer) = {
+    if (files.hasNext) {
+      val file = files.next
+      if (null == out) nextOut(buffer)
+      val e = buffer.position
+      out.putArchiveEntry(new TarArchiveEntry(file, relativePath(file)))
+      entrysize = buffer.position - e
+      nextFile(file)
+      true
+    } else {
+      false
+    }
+  }
+
+  private[this] final def nextFile(file: File) = if (file.isFile) {
+    val size = file.length
+    padsize = (size % recordsize).toInt match { case 0 ⇒ 0 case e ⇒ recordsize - e }
+    fixedlengthconduit = FixedLengthConduit(FileConduit.forReading(file), size)
+    out = null
+  }
+
+  private[this] final def nextOut(buffer: ByteBuffer) = {
+    out = new TarArchiveOutputStream(new ByteBufferOutputStream(buffer))
+    out.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX)
+    out.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU)
+    out.setAddPaxHeadersForNonAsciiNames(true)
+    if (0 == recordsize) recordsize = out.getRecordSize
+  }
+
+  private[this] final def reading = null != fixedlengthconduit
+
+  private[this] final def relativePath(file: File) = {
+    directorypath.getFileName + "/" + directorypath.relativize(file.toPath).toString
+  }
+
+  private[this] final var out: TarArchiveOutputStream = null
+
+  private[this] final lazy val files = {
+    val f = new ListBuffer[File]
+    def findFiles(file: File): Unit = {
+      f += file
+      if (file.isDirectory) file.listFiles.foreach(findFiles)
+    }
+    findFiles(directory)
+    f.toIterator
   }
 
 }
@@ -68,7 +159,7 @@ sealed trait TarArchiveSinkConduit
 
   final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     if (isOpen) {
-      if (writingFile) {
+      if (writing) {
         fixedlengthconduit.write(buffer, attachment, new TarArchiveSinkHandler(handler))
       } else {
         entry = nextEntry(buffer)
@@ -99,7 +190,7 @@ sealed trait TarArchiveSinkConduit
     extends BaseHandler[A](handler) {
 
     @inline final def completed(processed: Integer, attachment: A) = {
-      if (0 == processed) {
+      if (0 >= processed) {
         fixedlengthconduit.close
         fixedlengthconduit = null
         if (0 < padsize) {
@@ -126,7 +217,10 @@ sealed trait TarArchiveSinkConduit
       used
     } else {
       in = new TarArchiveInputStream(new ByteBufferInputStream(buffer))
-      if (0 == recordsize) recordsize = in.getRecordSize
+      if (0 == recordsize) {
+        purgeDirectory
+        recordsize = in.getRecordSize
+      }
       val e = buffer.position
       try entry = in.getNextTarEntry catch { case _: Throwable ⇒ entry = null }
       e
@@ -146,15 +240,14 @@ sealed trait TarArchiveSinkConduit
   private[this] final def nextFile = {
     val size = entry.getSize
     padsize = (size % recordsize).toInt match { case 0 ⇒ 0 case e ⇒ recordsize - e }
-    val filepath = directorypath.resolve(entry.getName)
-    fixedlengthconduit = FixedLengthConduit(FileConduit.forWriting(filepath, size), size)
+    fixedlengthconduit = FixedLengthConduit(FileConduit.forWriting(directorypath.resolve(entry.getName), size), size)
   }
 
   private[this] final def nextDirectory = {
     createDirectories(directorypath.resolve(entry.getName))
   }
 
-  private[this] final def writingFile = null != fixedlengthconduit
+  private[this] final def writing = null != fixedlengthconduit
 
   private[this] final def isEof = 2 * recordsize == entrysize
 
@@ -162,17 +255,9 @@ sealed trait TarArchiveSinkConduit
 
   private[this] final var in: TarArchiveInputStream = null
 
-  private[this] final var fixedlengthconduit: FixedLengthConduit = null
-
   private[this] final var array: Array[Byte] = null
 
   private[this] final var underflow = 0
-
-  private[this] final var entrysize = 0
-
-  private[this] final var recordsize = 0
-
-  private[this] final var padsize = 0
 
 }
 
@@ -187,17 +272,25 @@ sealed trait TarArchiveConduitBase
 
   def isOpen = !isclosed
 
+  protected[this] final def purgeDirectory = if (purge) deleteDirectory(directory)
+
   protected[this] val directory: File
 
   protected[this] val purge: Boolean
 
-  protected[this] final val directorypath = {
-    if (purge) {
-      deleteDirectory(directory)
-    }
-    createDirectories(directory.toPath.toAbsolutePath)
-  }
+  protected[this] final val directorypath = createDirectories(directory.toPath.toAbsolutePath)
+
+  protected[this] final var fixedlengthconduit: FixedLengthConduit = null
+
+  protected[this] final var recordsize = 0
+
+  protected[this] final var padsize = 0
+
+  protected[this] final var entrysize = 0
 
   private[this] final var isclosed = false
 
 }
+
+
+

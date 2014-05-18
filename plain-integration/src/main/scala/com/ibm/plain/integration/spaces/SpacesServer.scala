@@ -42,7 +42,6 @@ final class SpacesServer
    * Download a file or an entire directory as a zip file.
    */
   Get {
-    println("get tar " + request)
     getZipFile(exchange)
   }
 
@@ -83,7 +82,7 @@ object SpacesServer
   extends Logger {
 
   private final def getZipFile(exchange: Exchange[Context]) = {
-    val source = aio.AsynchronousTarArchiveChannel("/Users/guido/Development/Others/squeryl")
+    val source = aio.conduits.TarArchiveConduit(new java.io.File("/Users/guido/Development/Others/jenkins"))
     val contenttype = ContentType(`application/tar`)
     exchange.transferFrom(source)
     AsynchronousByteChannelEntity(

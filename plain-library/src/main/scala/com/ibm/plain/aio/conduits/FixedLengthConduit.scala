@@ -21,19 +21,11 @@ final class FixedLengthConduit(
   extends ConnectorConduit[Channel] {
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
-    if (position < length) underlyingchannel.read(buffer, attachment, new FixedLengthHandler(handler)) else handler.completed(0, attachment)
+    if (position < length) underlyingchannel.read(wrapper(buffer), attachment, new FixedLengthHandler(handler)) else handler.completed(0, attachment)
   }
 
   final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
-    val buf = if (buffer.remaining < length - position) {
-      buffer
-    } else {
-      val len = (length - position).toInt
-      val buf = ByteBuffer.wrap(buffer.array, buffer.position, len)
-      buffer.position(buffer.position + len)
-      buf
-    }
-    if (position < length) underlyingchannel.write(buf, attachment, new FixedLengthHandler(handler)) else handler.completed(0, attachment)
+    if (position < length) underlyingchannel.write(wrapper(buffer), attachment, new FixedLengthHandler(handler)) else handler.completed(0, attachment)
   }
 
   private[this] final class FixedLengthHandler[A](
@@ -47,6 +39,15 @@ final class FixedLengthConduit(
       handler.completed(processed, attachment)
     }
 
+  }
+
+  private[this] final def wrapper(buffer: ByteBuffer) = if (buffer.remaining < length - position) {
+    buffer
+  } else {
+    val len = (length - position).toInt
+    val buf = ByteBuffer.wrap(buffer.array, buffer.position, len)
+    buffer.position(buffer.position + len)
+    buf
   }
 
   private[this] final var position = 0
