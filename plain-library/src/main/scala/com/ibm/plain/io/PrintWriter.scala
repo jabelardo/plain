@@ -11,7 +11,7 @@ import java.nio.charset.Charset
 /**
  * Non-thread-safe version of java.io.PrintWriter.
  */
-final class PrintWriter private (
+final class PrintWriter(
 
   final val outputstream: ByteArrayOutputStream)
 
@@ -98,8 +98,6 @@ final class PrintWriter private (
 }
 
 object PrintWriter {
-
-  final def apply(outputstream: ByteArrayOutputStream) = new PrintWriter(outputstream)
 
   private final val dummy = new j.PipedWriter
 

@@ -20,7 +20,11 @@ final class ByteArrayInputStream(
 
   extends InputStream {
 
-  def this(arr: Array[Byte]) = this(arr, 0, arr.length)
+  final def this(arr: Array[Byte]) = this(arr, 0, arr.length)
+
+  final def getByteArray: Array[Byte] = array
+
+  override final def close = position = lastposition
 
   override final def read: Int = {
     val b = array(position)
@@ -43,13 +47,9 @@ final class ByteArrayInputStream(
 
   override final def available = lastposition - position
 
-  private[this] var position = offset
+  private[this] final var position = offset
 
-  private[this] var lastposition = offset + length
-
-  override final def close = lastposition = position
-
-  final def getByteArray: Array[Byte] = array
+  private[this] final val lastposition = offset + length
 
 }
 

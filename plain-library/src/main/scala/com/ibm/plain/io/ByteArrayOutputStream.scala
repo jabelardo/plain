@@ -11,7 +11,7 @@ import java.util.Arrays.copyOf
  * Non-thread-safe version of java.io.ByteArrayOutputStream
  */
 
-final class ByteArrayOutputStream private (
+final class ByteArrayOutputStream(
 
   private[this] final var capacity: Int)
 
@@ -63,11 +63,3 @@ final class ByteArrayOutputStream private (
 
 }
 
-/**
- *
- */
-object ByteArrayOutputStream {
-
-  final def apply(capacity: Int) = new ByteArrayOutputStream(capacity)
-
-}

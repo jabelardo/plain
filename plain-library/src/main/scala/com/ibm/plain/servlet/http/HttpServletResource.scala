@@ -43,7 +43,7 @@ final class HttpServletResource(
       response ++ new HashMap[String, String]
       val printwriter = exchange.printWriter match {
         case null ⇒
-          exchange ++ PrintWriter(ByteArrayOutputStream(io.defaultBufferSize))
+          exchange ++ new PrintWriter(new ByteArrayOutputStream(io.defaultBufferSize))
           exchange.printWriter
         case p ⇒
           p.outputstream.reset

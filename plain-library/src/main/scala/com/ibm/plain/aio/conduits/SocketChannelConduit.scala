@@ -11,6 +11,8 @@ import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousSocketChannel ⇒ SocketChannel }
 import java.util.concurrent.TimeUnit
 
+import io.IgnoringCloseable
+
 /**
  *
  */
@@ -20,11 +22,11 @@ final class SocketChannelConduit private (
 
   extends SocketChannelSourceConduit
 
-  with SocketChannelSinkConduit {
+  with SocketChannelSinkConduit
 
-  override final def close = ()
+  with IgnoringCloseable {
 
-  final def doClose = underlyingchannel.close
+  override final def doClose = underlyingchannel.close
 
   final def socketChannel = underlyingchannel
 

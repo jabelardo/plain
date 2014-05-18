@@ -5,30 +5,12 @@ package plain
 package io
 
 import java.io.OutputStream
-import java.nio.ByteBuffer
-import java.util.zip.{ DeflaterOutputStream ⇒ JDeflaterOutputStream, GZIPOutputStream ⇒ JGZIPOutputStream, Deflater, CRC32 }
+import java.util.zip.{ Deflater, GZIPOutputStream ⇒ JGZIPOutputStream }
 
 /**
- *
+ * With this class it's possible to set the compression level on the GzipOutputStream.
  */
-final class DeflaterOutputStream(
-
-  output: OutputStream,
-
-  compressionlevel: Int)
-
-  extends JDeflaterOutputStream(output) {
-
-  `def`.setLevel(compressionlevel)
-
-  def this(output: OutputStream) = this(output, Deflater.BEST_SPEED)
-
-}
-
-/**
- * With this class it's possible to set the compression level on the GZIPOutputStream.
- */
-final class GZIPOutputStream(
+final class GzipOutputStream(
 
   output: OutputStream,
 

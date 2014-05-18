@@ -372,7 +372,7 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
 
   private[this] final val file = new File(filepath)
 
-  private[this] final val out = new BufferedOutputStream(new FileOutputStream(file), buffersize) with io.IgnoreClose
+  private[this] final val out = new BufferedOutputStream(new FileOutputStream(file), buffersize) with io.IgnoringCloseable
 
   private[this] final val chunkcount = new AtomicInteger(0)
 

@@ -12,11 +12,10 @@ import java.util.zip.GZIPInputStream
 
 import org.apache.commons.io.FileUtils
 
-import com.ibm.plain.io.{ ByteBufferInputStream, ByteBufferOutputStream, GZIPOutputStream, Io, NullOutputStream }
-
 import concurrent.spawn
 import config.{ CheckedConfig, config2RichConfig }
 import logging.createLogger
+import io.{ ByteBufferInputStream, ByteBufferOutputStream, GzipOutputStream, Io, NullOutputStream }
 
 package object io
 
@@ -107,7 +106,7 @@ package object io
    */
   final def gzip(buffer: ByteBuffer): ByteBuffer = {
     val in = new ByteBufferInputStream(buffer)
-    val out = new GZIPOutputStream(new BufferedOutputStream(new ByteBufferOutputStream(buffer)), defaultBufferSize)
+    val out = new GzipOutputStream(new BufferedOutputStream(new ByteBufferOutputStream(buffer)), defaultBufferSize)
     copyBytesIo(in, out)
     out.close
     buffer

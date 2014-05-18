@@ -20,7 +20,7 @@ import scala.xml.XML
 import concurrent.scheduleOnce
 import reflect.Injector
 import javax.{ servlet ⇒ js }
-import plain.io.{ classPathFromClassLoader, temporaryDirectory }
+import plain.io.{ classPathFromClassLoader, temporaryDirectory, ByteArrayOutputStream, PrintWriter }
 import plain.http.{ MimeType, Request, Response }
 import http.{ HttpServletRequest, HttpServletResponse }
 
@@ -261,7 +261,7 @@ final class ServletContext(
         jspfiles.foreach { jsp ⇒
           val path = jsp.getAbsolutePath.replace(getRealPath, "")
           try {
-            val printwriter = io.PrintWriter(io.ByteArrayOutputStream(io.defaultBufferSize))
+            val printwriter = new PrintWriter(new ByteArrayOutputStream(io.defaultBufferSize))
             val request = new HttpServletRequest(Request.Get(path), null, this, jspservlet)
             val response = new HttpServletResponse(Response(null, null), this, printwriter, jspservlet)
             new RequestDispatcher(path, this).forward(request, response)
