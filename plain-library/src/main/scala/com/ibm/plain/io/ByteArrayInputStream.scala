@@ -47,8 +47,6 @@ final class ByteArrayInputStream(
 
   private[this] var lastposition = offset + length
 
-  override final def toString = getClass.getName + "(cap " + array.length + ", ofs " + offset + ", len " + length + ", pos " + position + ", last " + lastposition + ")"
-
   override final def close = lastposition = position
 
   final def getByteArray: Array[Byte] = array
