@@ -12,7 +12,11 @@ import scala.annotation.tailrec
 import logging.createLogger
 import concurrent.OnlyOnce
 
-final class ByteBufferPool private (buffersize: Int, initialpoolsize: Int)
+final class ByteBufferPool private (
+
+  buffersize: Int,
+
+  initialpoolsize: Int)
 
   extends OnlyOnce {
 

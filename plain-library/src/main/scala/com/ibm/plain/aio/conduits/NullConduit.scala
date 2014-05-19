@@ -24,17 +24,19 @@ object NullConduit
 
   final def isOpen = true
 
-  final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = readwrite(buffer, attachment, handler, true)
-
-  final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = readwrite(buffer, attachment, handler, false)
-
-  @inline private[this] final def readwrite[A](buffer: ByteBuffer, attachment: A, handler: Handler[A], nullify: Boolean) = {
+  final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     val e = buffer.remaining
-    if (nullify) while (0 < buffer.remaining) buffer.put(nulls, 0, min(nulls.length, buffer.remaining))
+    while (0 < buffer.remaining) buffer.put(nul, 0, min(nul.length, buffer.remaining))
     buffer.position(buffer.limit)
     handler.completed(e, attachment)
   }
 
-  final val nulls = Array.fill(2048)(0.toByte)
+  final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
+    val e = buffer.remaining
+    buffer.position(buffer.limit)
+    handler.completed(e, attachment)
+  }
+
+  final val nul = Array.fill(2048)(0.toByte)
 
 }

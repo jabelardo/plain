@@ -82,7 +82,7 @@ object SpacesServer
   extends Logger {
 
   private final def getZipFile(exchange: Exchange[Context]) = {
-    val source = aio.conduits.TarArchiveConduit(new java.io.File("/Users/guido/Development/Others/jenkins"))
+    val source = aio.conduits.TarConduit(new java.io.File("/Users/guido/Development/Others/jenkins"))
     val contenttype = ContentType(`application/tar`)
     exchange.transferFrom(source)
     AsynchronousByteChannelEntity(

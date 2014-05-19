@@ -96,7 +96,7 @@ object DirectoryResource
   }
 
   private final def getZipFile(exchange: Exchange[Context]) = {
-    val source = aio.AsynchronousTarArchiveChannel("/Users/guido/Development/Others/spray")
+    val source = aio.conduits.TarConduit(new java.io.File("/Users/guido/Development/Others/spray"))
     val contenttype = ContentType(`application/tar`)
     exchange.transferFrom(source)
     AsynchronousByteChannelEntity(

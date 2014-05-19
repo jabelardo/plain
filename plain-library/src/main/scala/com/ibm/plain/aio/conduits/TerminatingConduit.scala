@@ -11,6 +11,7 @@ import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel, CompletionHandle
 
 /**
  * A TerminatingConduit cannot be connected with other Conduits. It is either the only SourceConduit or the only SinkConduit in a transfer.
+ * A TarConduit is an example for a TerminatingConduit.
  */
 trait TerminatingConduit
 

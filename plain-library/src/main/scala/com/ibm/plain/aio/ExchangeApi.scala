@@ -184,7 +184,7 @@ trait ExchangeApiImpl[A]
       // FixedLengthConduit(socketchannel, readbuffer.remaining, length)
     }
     // transferdestination = GzipConduit(destination) // DeflateConduit(ChunkedConduit(destination))
-    transferdestination = TarArchiveConduit(new java.io.File("/tmp/tartest"), true)
+    transferdestination = TarConduit(new java.io.File("/tmp/tartest"), true)
     transfercompleted = completed
     throw ExchangeControl
   }

@@ -18,40 +18,40 @@ import scala.collection.mutable.ListBuffer
 import scala.math.min
 
 import io.{ ByteArrayInputStream, ByteBufferInputStream, ByteBufferOutputStream }
-import NullConduit.nulls
+import NullConduit.nul
 
 /**
  *
  */
-final class TarArchiveConduit private (
+final class TarConduit private (
 
   protected[this] final val directory: File,
 
   protected[this] final val purge: Boolean)
 
-  extends TarArchiveSourceConduit
+  extends TarSourceConduit
 
-  with TarArchiveSinkConduit {
+  with TarSinkConduit {
 
 }
 
 /**
  *
  */
-object TarArchiveConduit {
+object TarConduit {
 
-  final def apply(directory: File, purge: Boolean) = new TarArchiveConduit(directory, purge)
+  final def apply(directory: File, purge: Boolean) = new TarConduit(directory, purge)
 
-  final def apply(directory: File) = new TarArchiveConduit(directory, false)
+  final def apply(directory: File) = new TarConduit(directory, false)
 
 }
 
 /**
  * Create a SourceConduit from a source directory with all its content in the tar archive format to read from.
  */
-sealed trait TarArchiveSourceConduit
+sealed trait TarSourceConduit
 
-  extends TarArchiveConduitBase
+  extends TarConduitBase
 
   with TerminatingSourceConduit {
 
@@ -62,7 +62,7 @@ sealed trait TarArchiveSourceConduit
       } else {
         if (!nextEntry(buffer)) {
           entrysize = 2 * recordsize
-          buffer.put(nulls, 0, entrysize)
+          buffer.put(nul, 0, entrysize)
           close
         }
         handler.completed(entrysize, attachment)
@@ -151,9 +151,9 @@ sealed trait TarArchiveSourceConduit
 /**
  * Create a SinkConduit to write into a destination directory all content from the tar archive that is written to this sink.
  */
-sealed trait TarArchiveSinkConduit
+sealed trait TarSinkConduit
 
-  extends TarArchiveConduitBase
+  extends TarConduitBase
 
   with TerminatingSinkConduit {
 
@@ -264,7 +264,7 @@ sealed trait TarArchiveSinkConduit
 /**
  *
  */
-sealed trait TarArchiveConduitBase
+sealed trait TarConduitBase
 
   extends Conduit {
 

@@ -11,7 +11,7 @@ import scala.collection.immutable.Map
 import scala.collection.mutable.HashMap
 
 /**
- *
+ * A cheater. Just to save a few nanoseconds.
  */
 object StringPool {
 
@@ -93,26 +93,6 @@ object StringPool {
     add("localhost:8000")
     add("localhost:8080")
     add("localhost:9080")
-    ignore {
-      os.hostName match {
-        case "localhost" | "127.0.0.1" ⇒
-        case hostname ⇒
-          add(hostname + ":80")
-          add(hostname + ":8000")
-          add(hostname + ":8080")
-          add(hostname + ":9080")
-      }
-    }
-    ignore {
-      os.canonicalHostName match {
-        case "localhost" | "127.0.0.1" ⇒
-        case hostname ⇒
-          add(hostname + ":80")
-          add(hostname + ":8000")
-          add(hostname + ":8080")
-          add(hostname + ":9080")
-      }
-    }
     add("plaintext")
     add("json")
     add("fortunes")
