@@ -71,7 +71,7 @@ package object aio
 
   final def format(buffer: ByteBuffer, limit: Int = 512) = "ByteBuffer(" + System.identityHashCode(buffer) + ", pos " + buffer.position + ", remain " + buffer.remaining + ", lim " + buffer.limit + ", cap " + buffer.capacity + ", " + (if (buffer.hasArray) "heap" else "direct") + ")" + "\n" + text.hexDump(buffer, limit)
 
-  final val tooTinyToCareSize = getBytes("plain.aio.too-tiny-to-care-size", 1024).toInt
+  final val tooTinyForEncodingSize = getBytes("plain.aio.too-tiny-for-encoding-size", 1400).toInt
 
   /**
    * If not set differently this will result to 54k which proved to provide best performance under high load.
@@ -84,9 +84,7 @@ package object aio
 
   final val tinyBufferPoolSize = getBytes("plain.aio.tiny-buffer-pool-size", 10000).toInt
 
-  final val encodingSpareBufferSize = getBytes("plain.aio.encoding-spare-buffer-space", 128).toInt
-
-  /**
+   /**
    * Should be large enough to make an SSL packet fit into it.
    */
   final val largeBufferSize = getBytes("plain.aio.large-buffer-size", 64 * 1024).toInt

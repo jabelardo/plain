@@ -109,7 +109,7 @@ trait FilterSinkConduit[C <: Channel]
       spill(attachment, new FilterSinkHandler(buffer, handler))
     } else {
       val processed = filterOut(buffer.remaining, buffer)
-      if (0 == processed) {
+      if (0 >= processed) {
         spill(attachment, new FilterCloseHandler(handler))
       } else if (flushing(handler)) {
         write(buffer, attachment, handler)

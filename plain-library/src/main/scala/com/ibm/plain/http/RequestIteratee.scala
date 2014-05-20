@@ -9,6 +9,7 @@ import java.nio.charset.Charset
 import java.nio.channels.{ CompletionHandler ⇒ Handler }
 
 import aio._
+import aio.Encoding._
 import aio.Iteratee._
 import aio.Iteratees._
 import aio.Input._
@@ -142,7 +143,7 @@ object RequestIteratee
 
     query: Option[String],
 
-    settings: ServerConfiguration): Iteratee[ExchangeIo[A], EntityInfo] = {
+    settings: ServerConfiguration): Iteratee[ExchangeIo[A], Option[Entity]] = {
 
     def contenttype: ContentType = `Content-Type`(headers) match {
       case Some(contenttype) ⇒ contenttype
@@ -155,26 +156,25 @@ object RequestIteratee
     }
 
     if (ignoreEntityEncoding) {
-      Done(NoneInfo)
+      Done(None)
     } else {
       `Transfer-Encoding`(headers) match {
-        case Some(value) ⇒
+        case Some(transferencoding) ⇒
           for (_ ← continue(Long.MaxValue, continuebuffer.duplicate))
-            yield EntityInfo(Some(TransferEncodedEntity(value, contenttype)), `Content-Encoding`(headers) match {
-            case Some(value) if value.contains("deflate") ⇒ None
-            case Some(value) if value.contains("gzip") ⇒ None
+            yield Some(TransferEncodedEntity(transferencoding, ContentEntity(contenttype, `Content-Encoding`(headers) match {
+            case Some(value) ⇒ Encoding(value)
             case _ ⇒ None
-          })
+          })))
         case None ⇒ `Content-Length`(headers) match {
           case Some(length) ⇒
             if (need100continue) {
-              for (_ ← continue(length, continuebuffer.duplicate)) yield EntityInfo(Some(ContentEntity(contenttype, length)), None)
+              for (_ ← continue(length, continuebuffer.duplicate)) yield Some(ContentEntity(contenttype, length))
             } else {
-              Done(EntityInfo(Some(ContentEntity(contenttype, length)), None))
+              Done(Some(ContentEntity(contenttype, length)))
             }
           case None ⇒ query match {
-            case Some(query) ⇒ Done(EntityInfo(Some(ArrayEntity(query.getBytes(defaultCharacterSet), `text/plain`)), None))
-            case None ⇒ Done(NoneInfo)
+            case Some(query) ⇒ Done(Some(ArrayEntity(query.getBytes(defaultCharacterSet), `text/plain`)))
+            case None ⇒ Done(None)
           }
         }
       }
@@ -186,15 +186,11 @@ object RequestIteratee
     for {
       line ← readRequestLine(settings, server)
       headers ← readHeaders(settings.defaultCharacterSet)
-      body ← readEntity(headers, line.query, settings)
-    } yield Request(line.method, line.path, line.query, line.version, headers, body.entity, body.decoder)
+      entity ← readEntity(headers, line.query, settings)
+    } yield Request(line.method, line.path, line.query, line.version, headers, entity)
   }
 
   @inline private[this] final case class RequestLine(method: Method, path: Path, query: Option[String], version: Version)
-
-  @inline private[this] case class EntityInfo(entity: Option[Entity], decoder: Option[Decoder])
-
-  @inline private[this] object NoneInfo extends EntityInfo(None, None)
 
   @inline private[this] final val continuebuffer = {
     val response = "HTTP/1.1 100 Continue\r\n\r\n".getBytes

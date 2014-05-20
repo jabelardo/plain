@@ -18,13 +18,13 @@ import _root_.com.typesafe.config.Config
 import scala.collection.JavaConversions.asScalaBuffer
 import scala.language.implicitConversions
 
-import aio.{ Encoder, Exchange }
+import aio.{ Exchange }
 import aio.conduits.FileConduit.{ forReading, forWriting }
 import concurrent.ioexecutor
 import logging.Logger
 import crypt.Uuid
 import http.{ ContentType, Entity, Request }
-import http.Entity.{ AsynchronousByteChannelEntity, ArrayEntity, ContentEntity }
+import http.Entity.{ ArrayEntity, ContentEntity, ConduitEntity }
 import http.MimeType.{ `application/octet-stream`, `application/tar`, forExtension }
 import http.Status.{ ClientError, ServerError, Success }
 import rest.{ Form, StaticResource, Context }
@@ -66,7 +66,7 @@ final class SpacesServer
     entity match {
       case e @ Entity(contenttype, length, _) ⇒
         val file = computeFilePath(context)
-        exchange.transferTo(forWriting(file, length), length, context ⇒ { context.response ++ Success.`201` })
+        exchange.transferTo(forWriting(file, length), context ⇒ { context.response ++ Success.`201` })
       case _ ⇒ throw ServerError.`501`
     }
     ()
@@ -85,7 +85,7 @@ object SpacesServer
     val source = aio.conduits.TarConduit(new java.io.File("/Users/guido/Development/Others/jenkins"))
     val contenttype = ContentType(`application/tar`)
     exchange.transferFrom(source)
-    AsynchronousByteChannelEntity(
+    ConduitEntity(
       source,
       contenttype,
       -1,
@@ -106,7 +106,7 @@ object SpacesServer
       } else {
         val source = forReading(path)
         exchange.transferFrom(source)
-        AsynchronousByteChannelEntity(
+        ConduitEntity(
           source,
           contenttype,
           length,

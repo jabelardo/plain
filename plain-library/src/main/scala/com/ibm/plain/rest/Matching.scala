@@ -15,7 +15,7 @@ import json.{ Json, JsonMarshaled }
 import json.Json.{ JArray, JObject }
 import text.{ `UTF-8`, fastSplit, convertCharset }
 import xml.XmlMarshaled
-import aio.tooTinyToCareSize
+import aio.tooTinyForEncodingSize
 import http.{ defaultCharacterSet, defaultcodec }
 import http.Status.{ ClientError, ServerError }
 import http.ContentType
@@ -172,7 +172,7 @@ final class Matching {
   } yield ((inmimetype, outmimetype), (intype, outtype))
 
   @inline private[this] final def E(s: String, contenttype: ContentType): Entity =
-    if (tooTinyToCareSize < s.length) ByteBufferEntity(s, contenttype) else ArrayEntity(s.getBytes(`UTF-8`), contenttype)
+    if (tooTinyForEncodingSize < s.length) ByteBufferEntity(s, contenttype) else ArrayEntity(s.getBytes(`UTF-8`), contenttype)
 
 }
 

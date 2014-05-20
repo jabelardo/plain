@@ -7,41 +7,141 @@ package aio
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel, AsynchronousServerSocketChannel ⇒ ServerChannel, AsynchronousSocketChannel ⇒ SocketChannel, CompletionHandler ⇒ Handler }
+import java.nio.charset.Charset
+
+import com.ibm.plain.aio.Iteratee.Done
 
 import Input.{ Elem, Empty, Eof }
 import Iteratee.{ Cont, Done, Error }
+import conduits._
+import io.PrintWriter
 import logging.Logger
-import conduits.SocketChannelConduit
 
 /**
  * Putting it all together.
  */
 trait Exchange[A]
 
-  extends ExchangePublicApi[A]
+  extends ExchangeAccess[A]
 
-  with ExchangePrivateApi[A]
+  with ExchangeAio[A]
 
   with ExchangeIo[A]
 
 /**
- *
+ * Public interface of the aio.Exchange
  */
-final class ExchangeImpl[A] private[aio] (
+trait ExchangeAccess[A] {
 
-  protected[this] final val socketchannel: SocketChannelConduit,
+  def attachment: Option[A]
 
-  protected[this] final val readiteratee: ExchangeIteratee[A],
+  def socketChannel: SocketChannelConduit
 
-  protected[this] final val readbuffer: ByteBuffer,
+  def iteratee: ExchangeIteratee[A]
 
-  protected[this] final val writebuffer: ByteBuffer)
+  def inMessage: InMessage
 
-  extends Exchange[A]
+  def outMessage: OutMessage
 
-  with ExchangeApiImpl[A]
+  def printWriter: PrintWriter
 
-  with ExchangeIoImpl[A]
+  def remaining: Int
+
+  def available: Int
+
+  def keepAlive: Boolean
+
+  def transferFrom(source: TerminatingConduit): Unit
+
+  def transferTo(destination: TerminatingConduit, completed: A ⇒ Unit): Nothing
+
+  /**
+   * Setters.
+   */
+
+  def ++(attachment: Option[A]): Exchange[A]
+
+  def ++(iteratee: ExchangeIteratee[A]): Exchange[A]
+
+  def ++(inmessage: InMessage): Exchange[A]
+
+  def ++(outmessage: OutMessage): Exchange[A]
+
+  def ++(printwriter: PrintWriter): Exchange[A]
+
+  /**
+   * Some exceptional access.
+   */
+
+  private[plain] def writeBuffer: ByteBuffer
+
+  private[plain] def setDestination(destination: Channel)
+
+  private[plain] def setSource(source: Channel)
+
+}
+
+/**
+ * Private interface for aio methods.
+ */
+private[aio] trait ExchangeAio[A] {
+
+  private[aio] def apply(input: Input[ExchangeIo[A]], flip: Boolean): (ExchangeIteratee[A], Input[ExchangeIo[A]])
+
+  private[aio] def cache(cachediteratee: Done[ExchangeIo[A], _])
+
+  private[aio] def read(handler: ExchangeHandler[A])
+
+  private[aio] def write(handler: ExchangeHandler[A], flip: Boolean)
+
+  private[aio] def isTransferFrom: Boolean
+
+  private[aio] def readTransfer(handler: ExchangeHandler[A])
+
+  private[aio] def writeTransfer(handler: ExchangeHandler[A], flip: Boolean)
+
+  private[aio] def closeTransfer
+
+  /**
+   * Helpers
+   */
+
+  private[aio] def close
+
+  private[aio] def reset
+
+  private[aio] def release(e: Throwable)
+
+  private[aio] def hasError: Boolean
+
+}
+
+/**
+ * The inner low-level aio methods.
+ */
+trait ExchangeIo[A] {
+
+  private[aio] def length: Int
+
+  private[aio] def decode(characterset: Charset, lowercase: Boolean): String
+
+  private[aio] def consume: Array[Byte]
+
+  private[aio] def take(n: Int): ExchangeIo[A]
+
+  private[aio] def peek(n: Int): ExchangeIo[A]
+
+  private[aio] def peek: Byte
+
+  private[aio] def drop(n: Int): ExchangeIo[A]
+
+  private[aio] def indexOf(b: Byte): Int
+
+  private[aio] def span(p: Int ⇒ Boolean): (Int, Int)
+
+  private[aio] def ++(that: ExchangeIo[A]): ExchangeIo[A]
+
+}
 
 /**
  *
@@ -73,6 +173,19 @@ object Exchange
     readiteratee: ExchangeIteratee[A],
 
     processor: Processor[A]): Unit = {
+
+    /**
+     * Helpers.
+     */
+    @inline def unhandled(e: Any) = {
+      e match {
+        case e: Throwable ⇒ e.printStackTrace
+        case _ ⇒ dumpStack
+      }
+      error("Unhandled, may need attention : " + e)
+    }
+
+    @inline def ignore = trace("eof")
 
     /**
      * The AIO handlers.
@@ -115,22 +228,10 @@ object Exchange
       }
 
       @inline def completed(processed: Integer, exchange: Exchange[A]) = try {
-        if (0 > processed) {
-          isEof
-        } else {
-          doComplete(processed, exchange)
-        }
+        doComplete(processed, exchange)
       } catch { case e: Throwable ⇒ failed(e, exchange) }
 
       protected[this] def doComplete(processed: Integer, exchange: Exchange[A]): Unit
-
-      @inline final def isEof = throw ReleaseHandler.eof
-
-    }
-
-    object ReleaseHandler {
-
-      final val eof = new java.io.EOFException
 
     }
 
@@ -142,14 +243,13 @@ object Exchange
       extends ReleaseHandler {
 
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
-        exchange(if (0 == processed) Eof else Elem(exchange), processed != Int.MaxValue) match {
+        exchange(if (0 >= processed) Eof else Elem(exchange), processed != Int.MaxValue) match {
           case (cont @ Cont(_), Empty) ⇒
             read(exchange ++ cont)
           case (e @ Done(in: InMessage), Elem(_)) ⇒
             exchange.cache(e)
             process(exchange ++ in)
           case (e @ Done(a), Elem(_)) ⇒
-            println("done " + a)
             unhandled(e)
           case (e @ Error(_), Elem(_)) ⇒
             exchange.reset
@@ -215,94 +315,49 @@ object Exchange
     }
 
     /**
-     * Handling tranfers from the channel "to" a destination, eventually with decoding.
+     * Handling tranfers.
      */
-    object DecodeReadHandler
+    object TransferReadHandler
 
       extends ReleaseHandler {
-
-      @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
-        if (0 == processed) {
-          exchange.writeDecoding(DecodeCloseHandler, false)
-        } else {
-          exchange.writeDecoding(DecodeWriteHandler, false)
-        }
-      }
-
-    }
-
-    object DecodeWriteHandler
-
-      extends ReleaseHandler {
-
-      @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
-        if (0 < exchange.remaining) {
-          exchange.writeDecoding(this, false)
-        } else {
-          exchange.readDecoding(DecodeReadHandler)
-        }
-      }
-    }
-
-    object DecodeCloseHandler
-
-      extends ReleaseHandler {
-
-      @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
-        if (0 < exchange.remaining) {
-          exchange.writeDecoding(this, false)
-        } else {
-          exchange.transferClose
-          ProcessHandler.completed(0, exchange)
-        }
-      }
-    }
-
-    /**
-     * Handling tranfers "from" a source to the channel, eventually with encoding.
-     */
-    object EncodeReadHandler
-
-      extends ReleaseHandler {
-
-      @inline override final def completed(processed: Integer, exchange: Exchange[A]) = try {
-        doComplete(processed, exchange)
-      } catch { case e: Throwable ⇒ failed(e, exchange) }
 
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
         if (0 >= processed) {
-          exchange.writeEncoding(EncodeCloseHandler, true, -1)
+          exchange.writeTransfer(TransferCloseHandler, true)
         } else {
-          exchange.writeEncoding(EncodeWriteHandler, true, 1)
+          exchange.writeTransfer(TransferWriteHandler, true)
         }
       }
 
     }
 
-    object EncodeWriteHandler
+    object TransferWriteHandler
 
       extends ReleaseHandler {
 
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
         if (0 < exchange.available) {
-          exchange.writeEncoding(this, false, 0)
+          exchange.writeTransfer(this, false)
         } else {
-          exchange.readEncoding(EncodeReadHandler)
+          exchange.readTransfer(TransferReadHandler)
         }
       }
     }
 
-    object EncodeCloseHandler
+    object TransferCloseHandler
 
       extends ReleaseHandler {
 
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
         if (0 < exchange.available) {
-          exchange.writeEncoding(this, false, 0)
+          exchange.writeTransfer(this, false)
         } else {
-          exchange.transferClose
-          println("read next")
-          read(exchange) // next please
+          exchange.closeTransfer
+          if (exchange.isTransferFrom) {
+            read(exchange)
+          } else {
+            ProcessHandler.completed(0, exchange)
+          }
         }
       }
     }
@@ -318,9 +373,9 @@ object Exchange
 
     @inline def write(exchange: Exchange[A], flip: Boolean = true) = exchange.write(WriteHandler, flip)
 
-    @inline def transferFrom(exchange: Exchange[A]) = exchange.writeEncoding(EncodeWriteHandler, true, 0)
+    @inline def transferFrom(exchange: Exchange[A]) = exchange.write(TransferWriteHandler, true)
 
-    @inline def transferTo(exchange: Exchange[A]) = exchange.readDecoding(DecodeReadHandler)
+    @inline def transferTo(exchange: Exchange[A]) = exchange.readTransfer(TransferReadHandler)
 
     /**
      * Now, let's get started.
@@ -328,19 +383,6 @@ object Exchange
     accept
 
   } // loop
-
-  /**
-   * Helpers.
-   */
-  @inline def unhandled(e: Any) = {
-    e match {
-      case e: Throwable ⇒ e.printStackTrace
-      case _ ⇒ dumpStack
-    }
-    error("Unhandled, may need attention : " + e)
-  }
-
-  @inline private def ignore = debug("Ignored.")
 
 }
 

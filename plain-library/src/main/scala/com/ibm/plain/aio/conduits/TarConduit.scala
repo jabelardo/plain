@@ -31,7 +31,9 @@ final class TarConduit private (
 
   extends TarSourceConduit
 
-  with TarSinkConduit {
+  with TarSinkConduit
+
+  with TerminatingConduit {
 
 }
 

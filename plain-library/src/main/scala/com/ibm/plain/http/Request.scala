@@ -4,9 +4,7 @@ package plain
 
 package http
 
-import java.util.zip.Deflater
-
-import aio.{ Decoder, Encoder, InMessage }
+import aio.{ Encoding, InMessage }
 import Header.General.{ `Connection`, `Transfer-Encoding` }
 import Header.Entity.{ `Content-Encoding` }
 import Header.Request.{ `Accept-Encoding` }
@@ -35,9 +33,7 @@ final case class Request(
 
   headers: HttpMessage.Headers,
 
-  entity: Option[Entity],
-
-  decoder: Option[Decoder])
+  entity: Option[Entity])
 
   extends InMessage {
 
@@ -53,10 +49,13 @@ final case class Request(
     case _ ⇒ true
   }
 
-  final def acceptEncoding: Option[Encoder] = `Accept-Encoding`(headers) match {
-    case Some(value) if value.contains("deflate") ⇒ Some(DeflateEncoder(Deflater.BEST_SPEED))
-    case Some(value) if value.contains("gzip") ⇒ Some(GzipEncoder(Deflater.BEST_SPEED))
-    case _ ⇒ None
+  final def acceptEncoding: Option[Encoding] = {
+    val x = `Accept-Encoding`(headers) match {
+      case Some(value) ⇒ Encoding(value)
+      case _ ⇒ None
+    }
+    println("accept " + headers + " " + x)
+    x
   }
 
 }
@@ -70,6 +69,6 @@ object Request {
 
   type Variables = scala.collection.Map[String, String]
 
-  final def Get(path: String): Request = Request(Method.GET, path.split("/").toList.filter(0 < _.length), None, Version.`HTTP/1.1`, null, None, None)
+  final def Get(path: String): Request = Request(Method.GET, path.split("/").toList.filter(0 < _.length), None, Version.`HTTP/1.1`, null, None)
 
 }

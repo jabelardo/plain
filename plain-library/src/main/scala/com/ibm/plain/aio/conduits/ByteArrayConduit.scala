@@ -7,7 +7,6 @@ package aio
 package conduits
 
 import java.nio.ByteBuffer
-import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel }
 
 import scala.math.min
 
@@ -22,7 +21,7 @@ final class ByteArrayConduit(
 
   private[this] final val length: Int)
 
-  extends Conduit {
+  extends TerminatingConduit {
 
   override final def close = total = 0
 
@@ -36,13 +35,11 @@ final class ByteArrayConduit(
       position += len
       handler.completed(len, attachment)
     } else {
-      handler.completed(0, attachment)
+      handler.completed(-1, attachment)
     }
   }
 
   final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = unsupported
-
-  protected[this] final val underlyingchannel: Channel = null
 
   private[this] final var position = offset
 
