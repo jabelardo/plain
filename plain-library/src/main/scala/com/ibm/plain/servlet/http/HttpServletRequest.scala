@@ -114,8 +114,8 @@ final class HttpServletRequest(
     case Some(e: ArrayEntity) ⇒
       new ServletInputStream(new io.ByteArrayInputStream(e.array, e.offset, e.length.toInt))
     case e ⇒
-      error("Unsupported entity type in getInputStream : " + e.getClass)
-      null
+      println("Unsupported entity type in getInputStream : " + e.getClass)
+      unsupported
   }
 
   final def getParameter(name: String): String = getParameterMap.get(name) match { case null ⇒ null case values ⇒ values.head }
@@ -134,7 +134,11 @@ final class HttpServletRequest(
 
   final def getServerPort: Int = getLocalPort
 
-  final def getReader: BufferedReader = new BufferedReader(new InputStreamReader(getInputStream))
+  final def getReader: BufferedReader = {
+    val in = getInputStream
+    println("getReader " + in)
+    new BufferedReader(new InputStreamReader(in))
+  }
 
   final def getRemoteAddr: String = remoteaddress.getHostString
 

@@ -67,8 +67,7 @@ object Entity {
    */
   object ArrayEntity {
 
-    final def apply(array: Array[Byte], contenttype: ContentType): ArrayEntity =
-      ArrayEntity(array, 0, array.length, contenttype)
+    final def apply(array: Array[Byte], contenttype: ContentType): ArrayEntity = ArrayEntity(array, 0, array.length, contenttype)
 
   }
 

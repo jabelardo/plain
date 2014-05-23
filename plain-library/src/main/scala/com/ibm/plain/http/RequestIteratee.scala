@@ -170,7 +170,7 @@ object RequestIteratee
             if (need100continue) {
               for (_ ← continue(length, continuebuffer.duplicate)) yield Some(ContentEntity(contenttype, length))
             } else if (length < tooTinyForEncodingSize) {
-              for (array ← takeBytes(length.toInt)) yield Some(ArrayEntity(array, contenttype))
+              for (array ← takeBytes(length.toInt)) yield Some(ArrayEntity(array, 0, length, contenttype))
             } else {
               Done(Some(ContentEntity(contenttype, length)))
             }

@@ -30,3 +30,5 @@ project/plugins/project/
 .DS_Store
 .idea/
 
+
+plain-samples/plain-integration-hello-world/lib/tools.jar
