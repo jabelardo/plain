@@ -170,13 +170,14 @@ trait ExchangeAccessImpl[A]
     }
     if (null != transfersource) {
       transfersource.close
-      transfersource = null
+      transfersource = socketchannel
     }
     if (null != transferdestination) {
       transferdestination.close
       transferdestination = socketchannel
     }
-    reset
+    writebuffer.clear
+    currentiteratee = readiteratee
   }
 
   @inline private[plain] def setDestination(destination: Channel) = {
@@ -188,10 +189,6 @@ trait ExchangeAccessImpl[A]
   }
 
   @inline final def hasError = currentiteratee.isInstanceOf[Error[_]]
-
-  /**
-   * Internals.
-   */
 
   @inline private[aio] final def close = keepalive = false
 
@@ -250,7 +247,7 @@ trait ExchangeAccessImpl[A]
 
   private[this] final var printwriter: PrintWriter = null
 
-  private[this] final var transfersource: Channel = null
+  private[this] final var transfersource: Channel = socketchannel
 
   private[this] final var transferdestination: Channel = socketchannel
 

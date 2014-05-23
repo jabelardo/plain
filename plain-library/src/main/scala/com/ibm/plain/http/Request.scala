@@ -50,12 +50,10 @@ final case class Request(
   }
 
   final def acceptEncoding: Option[Encoding] = {
-    val x = `Accept-Encoding`(headers) match {
-      case Some(value) ⇒ Encoding(value)
+    `Accept-Encoding`(headers) match {
+      case Some(accept) ⇒ if (accept.contains("deflate")) Some(Encoding.`deflate`) else if (accept.contains("gzip")) Some(Encoding.`gzip`) else None
       case _ ⇒ None
     }
-    println("accept " + headers + " " + x)
-    x
   }
 
 }

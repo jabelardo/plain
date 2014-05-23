@@ -20,4 +20,6 @@ package object conduits
 
   final val defaultChunkSize = getBytes("plain.aio.conduits.default-chunk-size", 16 * 1024).toInt
 
+  require(4 * 1024 <= defaultChunkSize && defaultChunkSize <= 64 * 1024, "Invalid default-chunk-size")
+
 }

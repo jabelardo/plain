@@ -94,13 +94,13 @@ private[aio] trait ExchangeAio[A] {
 
   private[aio] def write(handler: ExchangeHandler[A], flip: Boolean)
 
-  private[aio] def isTransferFrom: Boolean
-
   private[aio] def readTransfer(handler: ExchangeHandler[A])
 
   private[aio] def writeTransfer(handler: ExchangeHandler[A], flip: Boolean)
 
   private[aio] def closeTransfer
+
+  private[aio] def isTransferFrom: Boolean
 
   /**
    * Helpers
@@ -151,7 +151,7 @@ object Exchange
   extends Logger {
 
   /**
-   * Constructors.
+   * Constructor.
    */
   final def apply[A](
 
@@ -164,7 +164,7 @@ object Exchange
     writebuffer: ByteBuffer) = new ExchangeImpl[A](socketchannel, readiteratee, readbuffer, writebuffer)
 
   /**
-   * The core of all asynchronous IO starting with an Accept at the very bottom.
+   * The core of all asynchronous IO starting with an accept at the very bottom.
    */
   final def loop[A](
 
@@ -185,7 +185,7 @@ object Exchange
       error("Unhandled, may need attention : " + e)
     }
 
-    @inline def ignore = trace("eof")
+    @inline def ignore = ()
 
     /**
      * The AIO handlers.
@@ -204,11 +204,12 @@ object Exchange
       }
 
       @inline final def failed(e: Throwable, ignore: Null) = {
+        def msg = "accept failed : " + e + "(" + serverchannel + ")"
         if (serverchannel.isOpen) {
           accept
           e match {
-            case _: IOException ⇒ debug("Accept failed : " + e + "(" + serverchannel + ")")
-            case _: Throwable ⇒ warn("Accept failed : " + e + "(" + serverchannel + ")")
+            case _: IOException ⇒ debug(msg)
+            case _: Throwable ⇒ warn(msg)
           }
         }
       }
@@ -221,8 +222,8 @@ object Exchange
 
       @inline final def failed(e: Throwable, exchange: Exchange[A]) = {
         e match {
-          case e: IOException ⇒
-          case e ⇒ e.printStackTrace
+          case e: IOException ⇒ ignore
+          case e ⇒ if (logger.isDebugEnabled) e.printStackTrace; trace(e)
         }
         exchange.release(e)
       }

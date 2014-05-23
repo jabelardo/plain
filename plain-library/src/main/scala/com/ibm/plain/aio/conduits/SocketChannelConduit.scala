@@ -77,7 +77,6 @@ sealed trait SocketChannelSinkConduit
   extends ConnectorSinkConduit[SocketChannel] {
 
   final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
-    println("write socket " + format(buffer, 1000000))
     underlyingchannel.write(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, attachment, handler)
   }
 

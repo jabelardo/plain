@@ -5,7 +5,7 @@ import AssemblyKeys._
 
 object Integration {
 
-	def camelVersion = "2.13.0"
+	def camelVersion = "2.13.1"
 
 	def activemqVersion = "5.9.1"
 
