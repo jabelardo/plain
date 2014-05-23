@@ -54,7 +54,7 @@ final case class Server(
         serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.box(true))
         serverChannel.setOption(StandardSocketOptions.SO_RCVBUF, Integer.valueOf(aio.sendReceiveBufferSize))
         serverChannel.bind(bindaddress, backlog)
-        loop(serverChannel, readRequest(this), dispatcher)
+        loop(serverChannel, readRequest(this), dispatcher.initialize)
       }
 
       application match {
@@ -173,11 +173,11 @@ object Server {
 
     require(0 < portRange.size, "You must at least specify one port for 'port-range'.")
 
-    def createDispatcher[A] = {
+    final def createDispatcher[A] = {
       val dconfig = config.settings.getConfig(getString("dispatcher")).withFallback(config.settings.getConfig("plain.rest.default-dispatcher"))
       val dispatcher = dconfig.getInstanceFromClassName[HttpDispatcher[A]]("class-name")
-      dispatcher.init(dconfig.getString("display-name", getString("dispatcher")), dconfig)
-      dispatcher.init
+      dispatcher.set(dconfig.getString("display-name", getString("dispatcher")), dconfig)
+      dispatcher
     }
 
   }

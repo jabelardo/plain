@@ -196,11 +196,13 @@ final class ServletContext(
     }
     (webxml \ "servlet").map { servletxml ⇒
       val loadonstartup = if ((servletxml \ "load-on-startup").isEmpty) 0 else (servletxml \ "load-on-startup").text match { case "" ⇒ 0 case i ⇒ i.toInt }
-      val servlet = Injector(Class.forName(
-        (servletxml \ "servlet-class").text.trim, true, getClassLoader).newInstance.asInstanceOf[js.http.HttpServlet])
+      val servlet = try
+        Injector(Class.forName(
+          (servletxml \ "servlet-class").text.trim, true, getClassLoader).newInstance.asInstanceOf[js.http.HttpServlet])
+      catch { case e: Throwable ⇒ error("Servlet not initialized : " + e); null }
       val servletconfig = new WebXmlServletConfig(servletxml, this)
       (servletconfig.getServletName, (if (0 < loadonstartup) Left((loadonstartup, servlet)) else Right(servlet), servletconfig, this))
-    }.toMap
+    }.filter(_._2 != null).toMap
   }
 
   private[this] final val loadedservlets = servlets.toSeq.
@@ -219,7 +221,7 @@ final class ServletContext(
       (pattern("url-pattern").getOrElse(pattern("url-regexp").getOrElse(null)), servlets.getOrElse((mapping \ ((if (attribute) "@" else "") + "servlet-name")).text, null))
     }.filter(_._1 != null).toMap
 
-    (mappings(false) ++ mappings(true)).map { case (regex, (servlet, servletconfig, servletcontext)) ⇒ (servletconfig.getServletName, handleRegex(regex)) }
+    (mappings(false) ++ mappings(true)).filter(_._2 != null).map { case (regex, (servlet, servletconfig, servletcontext)) ⇒ (servletconfig.getServletName, handleRegex(regex)) }
   }
 
   private[this] final val jspservlet: js.http.HttpServlet = {

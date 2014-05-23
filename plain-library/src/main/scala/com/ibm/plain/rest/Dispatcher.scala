@@ -26,11 +26,12 @@ abstract class Dispatcher
   final def process(exchange: Exchange[Context], handler: ExchangeHandler[Context]) = {
     val request = exchange.inMessage.asInstanceOf[Request]
     val response = if (null == exchange.outMessage) {
-      val r = Response(exchange.writeBuffer, Success.`200`)
-      exchange ++ r
-      r
+      val res = Response(exchange.writeBuffer, Success.`200`)
+      exchange ++ res
+      res
     } else {
-      exchange.outMessage.asInstanceOf[Response]
+      val res = exchange.outMessage.asInstanceOf[Response]
+      res ++ Success.`200`
     }
     val context = exchange.attachment match {
       case Some(context) ⇒ context
@@ -61,7 +62,7 @@ abstract class Dispatcher
     }
   }
 
-  final def init = {
+  final def initialize = {
     val servletcontexts = ServletContainer.instance.getServletContexts
 
     templates = Templates(

@@ -13,13 +13,13 @@ abstract class HttpDispatcher[A]
 
   extends HttpProcessor[A] {
 
-  def init: HttpDispatcher[A]
+  def initialize: HttpDispatcher[A]
 
   def name = n
 
   def config = c
 
-  def init(name: String, config: Config) = {
+  def set(name: String, config: Config) = {
     n = name
     c = config
   }

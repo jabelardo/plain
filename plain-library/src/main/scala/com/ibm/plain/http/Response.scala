@@ -80,6 +80,7 @@ final case class Response(
   }
 
   @inline private[this] final def renderCookie = if (null != cookie) {
+    def rc(cookie: Cookie) = r((cookie.getName + "=" + cookie.getValue + (cookie.getPath match { case null ⇒ "" case path ⇒ "; Path=" + path }) + (if (cookie.isHttpOnly) "; HttpOnly" else "")).getBytes(`UTF-8`))
     r(`Set-Cookie: `) + rc(cookie) + `\r\n` + ^
   }
 
@@ -170,11 +171,6 @@ final case class Response(
       }
     case _ ⇒
   }
-
-  /**
-   * What was this for?
-   */
-  @inline private[this] final def rc(cookie: Cookie) = r((cookie.getName + "=" + cookie.getValue + (cookie.getPath match { case null ⇒ "" case path ⇒ "; Path=" + path }) + (if (cookie.isHttpOnly) "; HttpOnly" else "")).getBytes(`UTF-8`))
 
 }
 

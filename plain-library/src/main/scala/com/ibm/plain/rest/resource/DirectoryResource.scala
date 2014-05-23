@@ -82,7 +82,7 @@ object DirectoryResource
       }
     }
     if (!found) {
-      trace("Not found: " + remainder + "; " + roots.mkString(", "))
+      trace("Not found: " + remainder + " in roots: " + list.mkString(", "))
       throw ClientError.`404`
     } else {
       result

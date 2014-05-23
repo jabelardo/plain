@@ -179,8 +179,8 @@ object Exchange
      */
     @inline def unhandled(e: Any) = {
       e match {
-        case e: Throwable ⇒ e.printStackTrace
-        case _ ⇒ dumpStack
+        case e: Throwable ⇒
+        case _ ⇒ // dumpStack
       }
       error("Unhandled, may need attention : " + e)
     }
@@ -223,7 +223,7 @@ object Exchange
       @inline final def failed(e: Throwable, exchange: Exchange[A]) = {
         e match {
           case e: IOException ⇒ ignore
-          case e ⇒ if (logger.isDebugEnabled) e.printStackTrace; trace(e)
+          case e ⇒ trace(e)
         }
         exchange.release(e)
       }
@@ -251,6 +251,8 @@ object Exchange
             exchange.cache(e)
             process(exchange ++ in)
           case (e @ Done(a), Elem(_)) ⇒
+            trace(exchange.inMessage)
+            trace(a)
             unhandled(e)
           case (e @ Error(_), Elem(_)) ⇒
             exchange.reset

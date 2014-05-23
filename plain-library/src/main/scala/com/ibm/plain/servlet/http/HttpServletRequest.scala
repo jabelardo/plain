@@ -111,8 +111,11 @@ final class HttpServletRequest(
   final def getContentType: String = getHeader("content-type")
 
   final def getInputStream: js.ServletInputStream = request.entity match {
-    case Some(arrayentity: ArrayEntity) ⇒ new ServletInputStream(new io.ByteArrayInputStream(arrayentity.array, arrayentity.offset, arrayentity.length.toInt))
-    case _ ⇒ unsupported
+    case Some(e: ArrayEntity) ⇒
+      new ServletInputStream(new io.ByteArrayInputStream(e.array, e.offset, e.length.toInt))
+    case e ⇒
+      error("Unsupported entity type in getInputStream : " + e.getClass)
+      null
   }
 
   final def getParameter(name: String): String = getParameterMap.get(name) match { case null ⇒ null case values ⇒ values.head }

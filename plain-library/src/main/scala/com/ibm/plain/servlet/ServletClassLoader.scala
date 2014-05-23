@@ -164,11 +164,10 @@ object ServletClassLoader
             catch { case e: Throwable ⇒ warn("Could not unpack file " + file.getFileName + " in " + libfile.getName + " : " + e.getMessage) }
           }
         libfile.delete
-        debug("Unpacked " + i + " of " + total + " (" + libfile.getName + ")")
       }
     }
     if (forceUnpackWebApplications || sourcepath.lastModified > target.lastModified) {
-      debug("Unpacking " + sourcepath + " to " + target)
+      trace("Unpacking " + sourcepath + " to " + target)
       FileUtils.deleteDirectory(target)
       new ZipFile(sourcepath).extractAll(target.getAbsolutePath)
       if (unpackWebApplicationsRecursively) unpackJars

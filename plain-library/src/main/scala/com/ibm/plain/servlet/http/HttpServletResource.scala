@@ -30,47 +30,49 @@ final class HttpServletResource(
 
   final def init(config: Config) = ()
 
-  final def process(exchange: Exchange[Context], handler: ExchangeHandler[Context]) = exchange.attachment match {
-    case Some(context) ⇒ try {
-      if (null == servlet) servlet = servletwrapper match {
-        case (Right(servlet), servletconfig, _) ⇒
-          servlet.init(servletconfig)
-          servlet
-        case (Left((_, servlet)), _, _) ⇒ servlet
-      }
-      val request = context.request
-      val response = context.response
-      response ++ new HashMap[String, String]
-      val printwriter = exchange.printWriter match {
-        case null ⇒
-          exchange ++ new PrintWriter(new ByteArrayOutputStream(io.defaultBufferSize))
-          exchange.printWriter
-        case p ⇒
-          p.outputstream.reset
-          p
-      }
-      val parentloader = Thread.currentThread.getContextClassLoader
-      Thread.currentThread.setContextClassLoader(servletcontext.getClassLoader)
-      try {
-        val httpservletrequest = new HttpServletRequest(request, exchange, servletcontext, servlet)
-        val httpservletresponse = new HttpServletResponse(response, servletcontext, printwriter, servlet)
-        servlet.service(httpservletrequest, httpservletresponse)
-        response ++ Some(httpservletresponse.getEntity)
-        if (httpservletrequest.hasSession) httpservletrequest.getSession match {
-          case session if session.isNew ⇒
-            val cookie = new Cookie("JSESSIONID", session.getId)
-            cookie.setPath(request.path.take(2).mkString("/", "/", "/"))
-            cookie.setHttpOnly(true)
-            response ++ cookie
-          case _ ⇒
+  final def process(exchange: Exchange[Context], handler: ExchangeHandler[Context]) = try {
+    exchange.attachment match {
+      case Some(context) ⇒ try {
+        if (null == servlet) servlet = servletwrapper match {
+          case (Right(servlet), servletconfig, _) ⇒
+            servlet.init(servletconfig)
+            servlet
+          case (Left((_, servlet)), _, _) ⇒ servlet
         }
-        completed(exchange, handler)
-      } finally Thread.currentThread.setContextClassLoader(parentloader)
-    } catch {
-      case e: Throwable ⇒ failed(e, exchange, handler)
+        val request = context.request
+        val response = context.response
+        response ++ new HashMap[String, String]
+        val printwriter = exchange.printWriter match {
+          case null ⇒
+            exchange ++ new PrintWriter(new ByteArrayOutputStream(io.defaultBufferSize))
+            exchange.printWriter
+          case p ⇒
+            p.outputstream.reset
+            p
+        }
+        val parentloader = Thread.currentThread.getContextClassLoader
+        Thread.currentThread.setContextClassLoader(servletcontext.getClassLoader)
+        try {
+          val httpservletrequest = new HttpServletRequest(request, exchange, servletcontext, servlet)
+          val httpservletresponse = new HttpServletResponse(response, servletcontext, printwriter, servlet)
+          servlet.service(httpservletrequest, httpservletresponse)
+          response ++ Some(httpservletresponse.getEntity)
+          if (httpservletrequest.hasSession) httpservletrequest.getSession match {
+            case session if session.isNew ⇒
+              val cookie = new Cookie("JSESSIONID", session.getId)
+              cookie.setPath(request.path.take(2).mkString("/", "/", "/"))
+              cookie.setHttpOnly(true)
+              response ++ cookie
+            case _ ⇒
+          }
+          completed(exchange, handler)
+        } finally Thread.currentThread.setContextClassLoader(parentloader)
+      } catch {
+        case e: Throwable ⇒ failed(e, exchange, handler)
+      }
+      case _ ⇒
     }
-    case _ ⇒
-  }
+  } catch { case e: Throwable ⇒ println(e) }
 
   private[this] final var servlet: HttpServlet = servletwrapper match {
     case (Left((_, servlet)), _, _) ⇒ servlet
