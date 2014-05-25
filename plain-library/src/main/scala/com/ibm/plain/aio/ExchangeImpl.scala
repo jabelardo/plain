@@ -169,6 +169,7 @@ trait ExchangeAccessImpl[A]
   @inline final def isTransferFrom = transferfrom
 
   @inline final def closeTransfer = {
+    writebuffer.clear
     if (null != transfercompleted) {
       transfercompleted(attachment.get)
       transfercompleted = null
@@ -181,7 +182,7 @@ trait ExchangeAccessImpl[A]
       transferdestination.close
       transferdestination = socketchannel
     }
-    writebuffer.clear
+    currentiteratee = if (transferfrom) readiteratee else Done[ExchangeIo[A], Null](null)
   }
 
   @inline private[plain] def setDestination(destination: Channel) = {
