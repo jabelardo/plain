@@ -13,10 +13,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 import scala.math.min
 
 import Input.Elem
-import Iteratee.{ Done, Error }
+import Iteratee.{ Cont, Done, Error }
 import conduits.{ ChunkedConduit, GzipConduit, SocketChannelConduit, TarConduit, TerminatingConduit }
 import io.PrintWriter
-import logging.createLogger
 
 /**
  *
@@ -110,7 +109,11 @@ trait ExchangeAccessImpl[A]
         } else {
           false
         }
-        if (fromcache) (cachediteratee, Elem(this)) else currentiteratee(input)
+        if (fromcache) {
+          (cachediteratee, Elem(this))
+        } else {
+          currentiteratee(input)
+        }
       case _ ⇒
         readbuffer.flip
         currentiteratee(input)
@@ -175,7 +178,7 @@ trait ExchangeAccessImpl[A]
       transferdestination = socketchannel
     }
     writebuffer.clear
-    currentiteratee = Done[ExchangeIo[A], Null](null)
+    currentiteratee = if (transferfrom) readiteratee else Cont[ExchangeIo[A], Null](null)
   }
 
   @inline private[plain] def setDestination(destination: Channel) = {
@@ -200,8 +203,8 @@ trait ExchangeAccessImpl[A]
     e match {
       case null ⇒
       case _: java.io.IOException ⇒
-      case _: java.lang.IllegalStateException ⇒ createLogger(this).warn("release: " + e)
-      case _ ⇒ createLogger(this).error("release: " + e)
+      case _: java.lang.IllegalStateException ⇒ Exchange.warn("release: " + e)
+      case _ ⇒ Exchange.error("release: " + e)
     }
     releaseByteBuffer(readbuffer)
     releaseByteBuffer(writebuffer)

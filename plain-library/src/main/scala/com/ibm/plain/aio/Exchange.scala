@@ -9,11 +9,9 @@ import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel, AsynchronousServerSocketChannel ⇒ ServerChannel, AsynchronousSocketChannel ⇒ SocketChannel, CompletionHandler ⇒ Handler }
 import java.nio.charset.Charset
 
-import com.ibm.plain.aio.Iteratee.Done
-
 import Input.{ Elem, Empty, Eof }
 import Iteratee.{ Cont, Done, Error }
-import conduits._
+import conduits.{ SocketChannelConduit, TerminatingConduit }
 import io.PrintWriter
 import logging.Logger
 
@@ -177,13 +175,7 @@ object Exchange
     /**
      * Helpers.
      */
-    @inline def unhandled(e: Any) = {
-      e match {
-        case e: Throwable ⇒
-        case _ ⇒ // dumpStack
-      }
-      error("Unhandled, may need attention : " + e)
-    }
+    @inline def unhandled(e: Any) = error("Unhandled, may need attention : " + e)
 
     @inline def ignore = ()
 
