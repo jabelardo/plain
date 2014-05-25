@@ -182,7 +182,6 @@ trait ExchangeAccessImpl[A]
       transferdestination = socketchannel
     }
     writebuffer.clear
-    currentiteratee = if (transferfrom) readiteratee else Cont[ExchangeIo[A], Null](null)
   }
 
   @inline private[plain] def setDestination(destination: Channel) = {
