@@ -175,7 +175,7 @@ object Exchange
     /**
      * Helpers.
      */
-    @inline def unhandled(e: Any) = error("Unhandled, may need attention : " + e)
+    @inline def unhandled(e: Any) = { dumpStack; warn("Unhandled, may need attention : " + e) }
 
     @inline def ignore = ()
 

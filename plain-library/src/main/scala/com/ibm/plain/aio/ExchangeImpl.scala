@@ -112,6 +112,10 @@ trait ExchangeAccessImpl[A]
         if (fromcache) {
           (cachediteratee, Elem(this))
         } else {
+          currentiteratee match {
+            case Done(_) ⇒ currentiteratee = readiteratee
+            case _ ⇒
+          }
           currentiteratee(input)
         }
       case _ ⇒
