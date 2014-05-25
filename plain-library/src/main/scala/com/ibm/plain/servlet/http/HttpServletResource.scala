@@ -40,8 +40,7 @@ final class HttpServletResource(
           case (Left((_, servlet)), _, _) ⇒ servlet
         }
         val request = context.request
-        val response = context.response
-        response ++ new HashMap[String, String]
+        val response = context.response ++ new HashMap[String, String]
         val printwriter = exchange.printWriter match {
           case null ⇒
             exchange ++ new PrintWriter(new ByteArrayOutputStream(io.defaultBufferSize))

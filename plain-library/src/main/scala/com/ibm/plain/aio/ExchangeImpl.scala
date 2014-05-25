@@ -10,12 +10,10 @@ import java.nio.charset.Charset
 import java.util.Arrays
 import java.util.concurrent.atomic.AtomicBoolean
 
-import com.ibm.plain.aio.Iteratee.{ Done, Error }
-
 import scala.math.min
 
 import Input.Elem
-import Iteratee.Done
+import Iteratee.{ Done, Error }
 import conduits.{ ChunkedConduit, GzipConduit, SocketChannelConduit, TarConduit, TerminatingConduit }
 import io.PrintWriter
 import logging.createLogger
@@ -177,7 +175,7 @@ trait ExchangeAccessImpl[A]
       transferdestination = socketchannel
     }
     writebuffer.clear
-    currentiteratee = readiteratee
+    currentiteratee = Done[ExchangeIo[A], Null](null)
   }
 
   @inline private[plain] def setDestination(destination: Channel) = {

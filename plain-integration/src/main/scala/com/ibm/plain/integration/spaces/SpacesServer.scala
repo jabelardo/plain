@@ -63,10 +63,13 @@ final class SpacesServer
    * Upload a file.
    */
   Put { entity: Entity ⇒
+    import aio.conduits._
     entity match {
       case e @ Entity(contenttype, length, _) ⇒
         val file = computeFilePath(context)
-        exchange.transferTo(forWriting(file, length), context ⇒ { context.response ++ Success.`201` })
+        exchange.setSource(GzipConduit(ChunkedConduit(exchange.socketChannel)))
+        val dest = TarConduit(file.toFile)
+        exchange.transferTo(dest, context ⇒ { context.response ++ Success.`201` })
       case _ ⇒ throw ServerError.`501`
     }
     ()
@@ -208,7 +211,7 @@ object SpacesServer
     val container = context.variables.getOrElse("container", null)
     require(null != space && null != container, throw ClientError.`400`)
     val containeruuid = try Uuid.fromString(container) catch { case e: Throwable ⇒ trace(e); throw ClientError.`400` }
-    computeDirectory(computeDirectory(root, space).toString, containeruuid).resolve("relativePath_NYI")
+    computeDirectory(computeDirectory(root, space).toString, containeruuid).resolve("a")
   }
 
   /**

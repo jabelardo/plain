@@ -134,11 +134,7 @@ final class HttpServletRequest(
 
   final def getServerPort: Int = getLocalPort
 
-  final def getReader: BufferedReader = {
-    val in = getInputStream
-    println("getReader " + in)
-    new BufferedReader(new InputStreamReader(in))
-  }
+  final def getReader: BufferedReader = new BufferedReader(new InputStreamReader(getInputStream))
 
   final def getRemoteAddr: String = remoteaddress.getHostString
 

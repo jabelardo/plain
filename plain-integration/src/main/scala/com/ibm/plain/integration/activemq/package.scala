@@ -25,7 +25,7 @@ package object activemq
 
   final val brokerPort = getInt("plain.integration.activemq.broker-port", 61616)
 
-  final val usePersistence = getBoolean("plain.integration.activemq.use-persistence", false)
+  final val usePersistence = getBoolean("plain.integration.activemq.use-persistence", true)
 
   final val persistenceDirectory = getString("plain.integration.activemq.persistence-directory", "target/activemq-persistence")
 

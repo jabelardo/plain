@@ -251,9 +251,8 @@ object Exchange
             exchange.cache(e)
             process(exchange ++ in)
           case (e @ Done(a), Elem(_)) ⇒
-            trace(exchange.inMessage)
-            trace(a)
             unhandled(e)
+            exchange.release(null)
           case (e @ Error(_), Elem(_)) ⇒
             exchange.reset
             process(exchange ++ e)

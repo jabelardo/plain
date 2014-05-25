@@ -56,7 +56,7 @@ trait DeflateSourceConduit
       val e = inflater.getRemaining
       val len = inflater.inflate(buffer.array, buffer.position, buffer.remaining)
       skip(e - inflater.getRemaining)
-      buffer.limit(buffer.position + len)
+      buffer.position(buffer.position + len)
       len
     }
   }
