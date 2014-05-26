@@ -96,7 +96,7 @@ trait ExchangeAccessImpl[A]
         if (flip) readbuffer.flip
         val fromcache = if (null == cachedarray) {
           false
-        } else if (0 < readbuffer.position && readbuffer.remaining >= cachedarray.length) {
+        } else if (readbuffer.remaining >= cachedarray.length) {
           readbuffer.mark
           readbuffer.get(peekarray)
           if (Arrays.equals(cachedarray, peekarray)) {
@@ -125,7 +125,7 @@ trait ExchangeAccessImpl[A]
   }
 
   @inline final def cache(cachediteratee: Done[ExchangeIo[A], _]): Unit = {
-    if (0 < readbuffer.position && 0 < readbuffer.remaining && null == cachedarray) {
+    if (null == cachedarray) {
       var len = readbuffer.position
       readbuffer.rewind
       len -= readbuffer.position

@@ -43,7 +43,10 @@ final class DistributedConfig
 
     from("servlet:/distributed-config?matchOnUriPrefix=true").
       routeId("distributed-config-master-routes").
-      setBody(settings.root.render, classOf[String])
+      setBody(settings.root.render, classOf[String]).
+      to("file:/tmp/input").
+      to("file:/tmp/outout").
+      to("direct:/totaltoll")
 
   }
 
