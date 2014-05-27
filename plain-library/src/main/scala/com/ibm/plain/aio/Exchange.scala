@@ -215,7 +215,7 @@ object Exchange
       @inline final def failed(e: Throwable, exchange: Exchange[A]) = {
         e match {
           case e: IOException ⇒ ignore
-          case e ⇒ trace(e)
+          case e ⇒ e.printStackTrace; trace(e)
         }
         exchange.release(e)
       }
@@ -249,7 +249,7 @@ object Exchange
             exchange.reset
             process(exchange ++ e)
           case (_, Eof) ⇒
-            ignore
+            exchange.release(null)
           case e ⇒
             unhandled(e)
         }

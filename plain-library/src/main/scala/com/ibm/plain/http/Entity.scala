@@ -124,7 +124,7 @@ object Entity {
 
     final def apply(contenttype: ContentType, length: Long) = new ContentEntity(contenttype, length, false, None, None)
 
-    final def apply(contenttype: ContentType, contentencoding: Option[Encoding]) = new ContentEntity(contenttype, -1, true, None, contentencoding)
+    final def apply(contenttype: ContentType, contentencoding: Option[Encoding]) = new ContentEntity(contenttype, -1, true, contentencoding, None)
 
   }
 

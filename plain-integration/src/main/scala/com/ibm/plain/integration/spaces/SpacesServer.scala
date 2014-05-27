@@ -19,6 +19,7 @@ import scala.collection.JavaConversions.asScalaBuffer
 import scala.language.implicitConversions
 
 import aio.{ Exchange }
+import aio.conduits.TarConduit
 import aio.conduits.FileConduit.{ forReading, forWriting }
 import concurrent.ioexecutor
 import logging.Logger
@@ -63,13 +64,11 @@ final class SpacesServer
    * Upload a file.
    */
   Put { entity: Entity ⇒
-    import aio.conduits._
     entity match {
       case e @ Entity(contenttype, length, _) ⇒
-        val file = computeFilePath(context)
-        exchange.setSource(GzipConduit(ChunkedConduit(exchange.socketChannel)))
-        val dest = TarConduit(file.toFile)
-        exchange.transferTo(dest, context ⇒ { context.response ++ Success.`201` })
+        exchange.transferTo(
+          TarConduit(computeFilePath(context).toFile),
+          context ⇒ { context.response ++ Success.`201` })
       case _ ⇒ throw ServerError.`501`
     }
     ()
@@ -85,7 +84,7 @@ object SpacesServer
   extends Logger {
 
   private final def getZipFile(exchange: Exchange[Context]) = {
-    val source = aio.conduits.TarConduit(new java.io.File("/Users/guido/Development/Others/jenkins"))
+    val source = aio.conduits.TarConduit(new java.io.File("/Users/guido/Development/Others/disruptor"))
     val contenttype = ContentType(`application/tar`)
     exchange.transferFrom(source)
     ConduitEntity(

@@ -78,12 +78,14 @@ trait ExchangeAccessImpl[A]
   @inline final def keepAlive = null == inmessage || inmessage.keepalive
 
   @inline final def transferFrom(source: TerminatingConduit): Unit = {
+    require(null != transferdestination, "transferdestination must be set before calling transferFrom.")
     transfersource = source
     transfercompleted = null
     transferfrom = true
   }
 
   @inline final def transferTo(destination: TerminatingConduit, completed: A ⇒ Unit): Nothing = {
+    require(null != transfersource, "transfersource must be set before calling transferTo.")
     transferdestination = destination
     transfercompleted = completed
     transferfrom = false
@@ -203,16 +205,18 @@ trait ExchangeAccessImpl[A]
     currentiteratee = readiteratee
   }
 
-  @inline private[aio] final def release(e: Throwable) = if (released.compareAndSet(false, true)) {
-    e match {
-      case null ⇒
-      case _: java.io.IOException ⇒
-      case _: java.lang.IllegalStateException ⇒ Exchange.warn("release: " + e)
-      case _ ⇒ Exchange.error("release: " + e)
+  @inline private[aio] final def release(e: Throwable) = {
+    if (released.compareAndSet(false, true)) {
+      releaseByteBuffer(readbuffer)
+      releaseByteBuffer(writebuffer)
+      if (socketchannel.isOpen) socketchannel.asInstanceOf[SocketChannelConduit].doClose
+      e match {
+        case null ⇒
+        case _: java.io.IOException ⇒
+        case _: java.lang.IllegalStateException ⇒ Exchange.warn("release: " + e)
+        case _ ⇒ Exchange.error("release: " + e)
+      }
     }
-    releaseByteBuffer(readbuffer)
-    releaseByteBuffer(writebuffer)
-    if (socketchannel.isOpen) socketchannel.asInstanceOf[SocketChannelConduit].doClose
   }
 
   @inline private[this] final def setCachedArray(length: Int) = if (0 < length) {

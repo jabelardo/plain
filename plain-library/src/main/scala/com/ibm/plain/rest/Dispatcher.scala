@@ -4,12 +4,14 @@ package plain
 
 package rest
 
-import com.ibm.plain.aio.{ Exchange, ExchangeHandler }
-import com.ibm.plain.http.HttpDispatcher
 import com.typesafe.config.{ Config, ConfigFactory }
 
+import aio.{ Encoding, Exchange, ExchangeHandler }
+import aio.conduits.{ ChunkedConduit, DeflateConduit, GzipConduit }
 import config.config2RichConfig
-import http.{ Entity, Request, Response }
+import http.{ HttpDispatcher, Request, Response }
+import http.Entity
+import http.Entity.chunked
 import http.Status.{ ClientError, ServerError, Success }
 import servlet.ServletContainer
 import servlet.http.HttpServletResource
@@ -25,6 +27,14 @@ abstract class Dispatcher
 
   final def process(exchange: Exchange[Context], handler: ExchangeHandler[Context]) = {
     val request = exchange.inMessage.asInstanceOf[Request]
+    request.entity match {
+      case Some(`chunked`(entity)) ⇒ entity.contentencoding match {
+        case Some(Encoding.`deflate`) ⇒ exchange.setSource(DeflateConduit(ChunkedConduit(exchange.socketChannel)))
+        case Some(Encoding.`gzip`) ⇒ exchange.setSource(GzipConduit(ChunkedConduit(exchange.socketChannel)))
+        case _ ⇒
+      }
+      case _ ⇒
+    }
     val response = if (null == exchange.outMessage) {
       val res = Response(exchange.writeBuffer, Success.`200`)
       exchange ++ res

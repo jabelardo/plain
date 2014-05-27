@@ -41,12 +41,23 @@ final class DistributedConfig
 
   private[this] final def masterRoutes = new RouteBuilder {
 
+    val i = 5
+
     from("servlet:/distributed-config?matchOnUriPrefix=true").
       routeId("distributed-config-master-routes").
       setBody(settings.root.render, classOf[String]).
       to("file:/tmp/input").
       to("file:/tmp/outout").
-      to("direct:/totaltoll")
+      wireTap("direct:wire").
+      choice.
+      when(i < 9).to("direct:b").to("file:/tmp/blabla").to("direct:eof").
+      when(i == 9).to("direct:c").
+      choice.
+      when(2 < 3).to("direct:e").
+      otherwise.to("direct:f").
+      multicast.to("direct:x", "direct:y", "direct:z").
+      loadBalance.failover(-1, false, true).
+      to("direct:bad", "direct:bad2", "direct:good", "direct:good2")
 
   }
 

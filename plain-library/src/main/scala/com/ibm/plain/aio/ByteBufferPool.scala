@@ -28,7 +28,6 @@ final class ByteBufferPool private (
   @tailrec final def get: ByteBuffer = if (trylock) {
     val buffer = try pool match {
       case head :: tail ⇒
-        if (0 < watermark) watermark -= 1
         pool = tail
         head
       case _ ⇒
@@ -38,7 +37,7 @@ final class ByteBufferPool private (
       buffer.clear
       buffer
     } else {
-      onlyonce { createLogger(this).warn("ByteBufferPool exhausted, need to create more : buffer size " + buffersize + ", initial pool size " + initialpoolsize) }
+      onlyonce { createLogger(this).warn("ByteBufferPool exhausted, need to create more : buffer size " + buffersize + ", initial pool size " + initialpoolsize + ", current pool size " + size) }
       ByteBuffer.allocate(buffersize)
     }
   } else {
@@ -51,12 +50,11 @@ final class ByteBufferPool private (
    */
   @tailrec final def release(buffer: ByteBuffer): Unit = if (trylock) {
     try {
-      // if (!pool.exists(_ eq buffer)) {
-      buffer.clear
-      pool = buffer :: pool
-      // } else {
-      //  createLogger(this).warn("Trying to release twice (prevented) " + pool.size + ", buffer size " + buffersize + ", initial pool size " + initialpoolsize)
-      // }
+      if (!pool.exists(_ eq buffer)) {
+        pool = buffer :: pool
+      } else {
+        createLogger(this).warn("Trying to release a buffer twice. This was prevented. pool size " + pool.size + ", buffer size " + buffersize + ", initial pool size " + initialpoolsize + ", current pool size " + size)
+      }
     } finally unlock
   } else {
     Thread.`yield`
@@ -69,12 +67,13 @@ final class ByteBufferPool private (
 
   @volatile private[this] final var pool: List[ByteBuffer] = (0 until initialpoolsize).map(_ ⇒ ByteBuffer.allocate(buffersize)).toList
 
-  @volatile private[this] final var watermark = initialpoolsize
-
   private[this] final val locked = new AtomicBoolean(false)
 
 }
 
+/**
+ *
+ */
 object ByteBufferPool {
 
   def apply(buffersize: Int, initialpoolsize: Int) = new ByteBufferPool(buffersize, initialpoolsize: Int)
