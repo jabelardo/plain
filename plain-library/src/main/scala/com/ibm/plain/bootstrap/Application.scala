@@ -26,24 +26,26 @@ final class Application private
   final def render: Array[String] = components.toArray.map(_.toString)
 
   final def bootstrap = {
+    createExtensions
     createExternals
     sortComponents
     components.filter(_.isEnabled).foreach(_.preStart)
     components.filter(_.isEnabled).foreach(_.doStart)
     Runtime.getRuntime.addShutdownHook(new Thread(new Runnable { def run = teardown }))
+    runExtensions
   }
 
   /**
    * Initialize data in external components before starting the bootstrap process. See Camel for example.
    */
-  final def createExternals = components.insertAll(components.size, subClasses(classOf[ExternalComponent[_]]).map(try _.newInstance catch {
+  private[this] final def createExternals = components.insertAll(components.size, subClasses(classOf[ExternalComponent[_]]).map(try _.newInstance catch {
     case e: Throwable ⇒ e.printStackTrace; null
   }).toSeq.filter(null != _))
 
   /**
    * Sort all components by their dependency order.
    */
-  final def sortComponents = {
+  private[this] final def sortComponents = {
 
     final class Node( final val component: Component[_], dependencyclasses: List[Class[_ <: Component[_]]]) {
 
@@ -78,6 +80,10 @@ final class Application private
     components.insertAll(0, (enabledcomponents ++ disabledcomponents).map(_.asInstanceOf[BaseComponent[_]]))
   }
 
+  private[this] final def createExtensions = extensions.insertAll(extensions.size, subClasses(classOf[ApplicationExtension]).map(try _.newInstance catch {
+    case e: Throwable ⇒ e.printStackTrace; null
+  }).toSeq.filter(null != _))
+
   final def teardown = onlyonce {
     try {
       val shutdown = new Thread(new Runnable { def run = { Thread.sleep(5000); terminateJvm(new RuntimeException("Forcing hard shutdown now."), -1, false) } })
@@ -102,7 +108,16 @@ final class Application private
 
   final def getComponents(componentclass: Class[_ <: Component[_]]) = synchronized { components.filter(c ⇒ componentclass.isAssignableFrom(c.getClass)).clone.toList }
 
+  private[this] final def runExtensions = extensions.foreach { extension ⇒
+    try
+      try extension.run
+      catch { case NonFatal(e) ⇒ println(extension.getClass + " : " + e) }
+    catch { case e: Throwable ⇒ terminateJvm(e, -1, false) }
+  }
+
   private[this] final val components = new ListBuffer[BaseComponent[_]]
+
+  private[this] final val extensions = new ListBuffer[ApplicationExtension]
 
   private[this] final val starttime = now
 
