@@ -34,6 +34,6 @@ package object spaces
     Space(c.getString("name"), c.getBytes("quota-in-bytes", -1), c.getBoolean("purge-on-startup", false), c.getBoolean("purge-on-shutdown", false))
   }
 
-  final val downloadEncoding = getString("plain.integration.spaces.downloadEncoding", "deflate")
+  final val downloadEncoding = getString("plain.integration.spaces.download-encoding", "deflate")
 
 }

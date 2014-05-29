@@ -13,7 +13,7 @@ import org.apache.commons.io.FilenameUtils.getExtension
 import org.apache.commons.io.filefilter.RegexFileFilter
 import org.apache.commons.io.FileUtils.deleteDirectory
 
-import _root_.com.typesafe.config.Config
+import com.typesafe.config.Config
 
 import scala.collection.JavaConversions.asScalaBuffer
 import scala.language.implicitConversions
@@ -61,7 +61,7 @@ final class SpacesServer
   Put { response ++ put(context.config.getStringList("roots").head, context.remainder.mkString("/")); () }
 
   /**
-   * Upload a file.
+   * Upload a complete tar file and extract it to the destination directory.
    */
   Put { entity: Entity ⇒
     entity match {

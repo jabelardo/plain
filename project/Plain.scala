@@ -4,8 +4,8 @@ import Keys._
 object Plain {
 
 	def logging = Seq(
-		"com.typesafe" % "config" % "1.2.0",
-		"org.slf4j" % "slf4j-api" % "1.7.6",
+		"com.typesafe" % "config" % "1.2.1",
+		"org.slf4j" % "slf4j-api" % "1.7.7",
 		"com.lmax" % "disruptor" % "3.2.1",
 		"org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.0-rc1",
 		"org.apache.logging.log4j" % "log4j-api" % "2.0-rc1",
@@ -14,8 +14,8 @@ object Plain {
 
 	def commons = Seq(
 		"com.googlecode.concurrentlinkedhashmap" % "concurrentlinkedhashmap-lru" % "1.4",
-		"org.apache.commons" % "commons-lang3" % "3.3.1",
-		"org.apache.commons" % "commons-compress" % "1.8",
+		"org.apache.commons" % "commons-lang3" % "3.3.2",
+		"org.apache.commons" % "commons-compress" % "1.8.1",
 		"commons-io" % "commons-io" % "2.4",
 		"commons-net" % "commons-net" % "3.3",
 		"commons-codec" % "commons-codec" % "1.9",
@@ -24,12 +24,12 @@ object Plain {
 	) 
 
 	def net = Seq(
-		"com.ning" % "async-http-client" % "1.8.7"
+		"com.ning" % "async-http-client" % "1.8.9"
 	)
 
 	def reflection = Seq(
-		"org.scala-lang" % "scala-reflect" % "2.11.0",
-		"org.reflections" % "reflections" % "0.9.8"
+		"org.scala-lang" % "scala-reflect" % "2.11.1",
+		"org.reflections" % "reflections" % "0.9.9-RC1"
 	)
 
 	def javax = Seq(
@@ -44,21 +44,21 @@ object Plain {
 	) 
 
 	def json = Seq(
-		"com.fasterxml.jackson.core" % "jackson-databind" % "2.3.2",
+		"com.fasterxml.jackson.core" % "jackson-databind" % "2.4.0-rc3",
 		"com.sun.jersey" % "jersey-json" % "1.18.1"
 	) 
 
 	def modules = Seq(
-		"org.scala-lang.modules" % "scala-xml_2.11.0-M7" % "1.0.0-RC7",
-                "org.scala-lang.modules" % "scala-parser-combinators_2.11.0-M7" % "1.0.0-RC5"
+		"org.scala-lang.modules" %% "scala-xml" % "1.0.2",
+                "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.1"
 
 	)
 
 	def jdbc = Seq(
-		"mysql" % "mysql-connector-java" % "5.1.29",
-		"org.apache.derby" % "derby" % "10.10.1.1",
-		"org.apache.derby" % "derbyclient" % "10.10.1.1",
-		"com.h2database" % "h2" % "1.3.175"
+		"mysql" % "mysql-connector-java" % "5.1.30",
+		"org.apache.derby" % "derby" % "10.10.2.0",
+		"org.apache.derby" % "derbyclient" % "10.10.2.0",
+		"com.h2database" % "h2" % "1.4.178"
 	) 
 
 	def commercialJdbc = Seq(

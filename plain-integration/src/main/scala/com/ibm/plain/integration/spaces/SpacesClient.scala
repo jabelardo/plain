@@ -6,29 +6,28 @@ package integration
 
 package spaces
 
-import java.io._
+import java.io.{ BufferedInputStream, File, FileInputStream, FileOutputStream, PipedInputStream, PipedOutputStream }
 import java.nio.file.{ FileSystems, Files, Path }
 import java.util.UUID
 
-import org.apache.commons.compress.archivers.tar.{TarArchiveEntry, TarArchiveOutputStream, TarArchiveInputStream}
+import org.apache.commons.compress.archivers.tar.{ TarArchiveEntry, TarArchiveInputStream, TarArchiveOutputStream }
 import org.apache.http.{ HttpHeaders, HttpResponse }
 import org.apache.http.client.ResponseHandler
-import org.apache.http.client.methods.{HttpPut, HttpDelete, HttpGet, HttpRequestBase}
-
+import org.apache.http.client.methods.{ HttpDelete, HttpGet, HttpPut, HttpRequestBase }
+import org.apache.http.entity.InputStreamEntity
 import org.apache.http.impl.client.HttpClients
 import org.apache.http.message.BasicHeader
 
-import rest.StaticResource
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.concurrent.duration.DurationInt
+import scala.language.postfixOps
+import scala.util.{ Failure, Success }
+
 import io.deleteDirectory
 import logging.Logger
-import org.apache.http.entity.InputStreamEntity
-import java.util.concurrent.{FutureTask, Callable}
-import scala.concurrent._
-import scala.concurrent.duration._
-import scala.Some
-import ExecutionContext.Implicits.global
-import scala.language.postfixOps
-import scala.util.{Failure, Success}
+import rest.StaticResource
 
 /**
  *
@@ -166,26 +165,26 @@ object SpacesClient
     val pis = new PipedInputStream(pos)
 
     val createTar = Future {
-        val out = new TarArchiveOutputStream(pos)
-        file.toFile.listFiles.toList.foreach(addFilesToTar(out, _, FileSystems.getDefault.getPath(".")))
-        out.close()
+      val out = new TarArchiveOutputStream(pos)
+      file.toFile.listFiles.toList.foreach(addFilesToTar(out, _, FileSystems.getDefault.getPath(".")))
+      out.close()
     }
 
     val startRequest = Future {
-        val entity = new InputStreamEntity(pis)
-        entity.setChunked(true)
-        request.setEntity(entity)
+      val entity = new InputStreamEntity(pis)
+      entity.setChunked(true)
+      request.setEntity(entity)
 
-        httpRequest(request) {
-          case (200, response) =>
+      httpRequest(request) {
+        case (200, response) ⇒
 
-        }
+      }
     }
 
     startRequest.onComplete {
-      case Success(_) =>
+      case Success(_) ⇒
         trace("PUT was successful")
-      case Failure(t) =>
+      case Failure(t) ⇒
         error("An error occured... " + t.getMessage)
     }
 
@@ -208,7 +207,7 @@ object SpacesClient
       out.closeArchiveEntry()
     } else {
       out.closeArchiveEntry()
-      file.listFiles.toList.foreach(childFile => addFilesToTar(out, childFile, path.resolve(childFile.getName)))
+      file.listFiles.toList.foreach(childFile ⇒ addFilesToTar(out, childFile, path.resolve(childFile.getName)))
     }
   }
 

@@ -45,8 +45,8 @@ scalacOptions in ThisBuild ++= Seq(
 incOptions := incOptions.value.withNameHashing(true) 
 
 javacOptions in ThisBuild ++= Seq(
-	"-source", "1.7",
-	"-target", "1.7",
+	"-source", "1.8",
+	"-target", "1.8",
 	"-Xlint:unchecked",
 	"-Xlint:deprecation",
 	"-Xlint:-options"
@@ -56,11 +56,13 @@ scalariformSettings
 
 graphSettings
 
+lazy val allSettings = assemblySettings ++ runSettings ++ scalariformSettings ++ integrationSettings ++ graphSettings
+
 lazy val library = project in file("plain-library") settings(plainSettings ++ graphSettings: _*)
 
 lazy val hybriddb = project in file("plain-hybriddb") dependsOn library settings(jdbcSettings: _*)
 
-lazy val samples = project in file("plain-samples") aggregate(helloworld, jdbc, integrationhelloworld, preparation)  
+lazy val samples = project in file("plain-samples") aggregate(helloworld, jdbc, integrationserver, integrationclient)  
 
 lazy val helloworld = project in file("plain-samples/plain-sample-hello-world") dependsOn library settings(assemblySettings: _*)
 
@@ -72,8 +74,7 @@ lazy val benchmark = project in file("plain-benchmark") dependsOn library settin
 
 lazy val integration = project in file("plain-integration") dependsOn library settings(integrationSettings ++ graphSettings: _*)
 
-lazy val integrationhelloworld = project in file("plain-samples/plain-integration-hello-world") dependsOn integration settings(assemblySettings ++ runSettings ++ scalariformSettings ++ integrationSettings ++ graphSettings: _*)
+lazy val integrationserver = project in file("plain-samples/plain-integration-server") dependsOn integration settings(allSettings: _*)
 
-lazy val preparation = project in file("plain-samples/preparation") dependsOn library settings(assemblySettings: _*)
-
+lazy val integrationclient = project in file("plain-samples/plain-integration-client") dependsOn integration settings(allSettings: _*)
 
