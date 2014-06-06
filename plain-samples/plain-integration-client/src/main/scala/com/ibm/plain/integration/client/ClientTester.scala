@@ -23,7 +23,7 @@ import bootstrap.{ Application, ApplicationExtension }
  */
 final class ClientTester
 
-  extends ApplicationExtension {
+    extends ApplicationExtension {
 
   final def run = {
     val client = new AsyncHttpClient
@@ -99,7 +99,7 @@ final class ClientTester
 
         object ReadHandler
 
-          extends Handler[Integer, Unit] {
+            extends Handler[Integer, Unit] {
 
           def failed(e: Throwable, a: Unit) = {
             println(e)
@@ -116,7 +116,7 @@ final class ClientTester
 
         object WriteHandler
 
-          extends Handler[Integer, Unit] {
+            extends Handler[Integer, Unit] {
 
           def failed(e: Throwable, a: Unit) = {
             println(e)

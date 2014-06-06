@@ -64,7 +64,7 @@ object Camel
 
   private final def createWarFile = {
     val file = new File(servlet.webApplicationsDirectory + "/" + servletServicesRoot + ".war")
-    Files.createDirectories(file.toPath.getParent)
+    ignore(Files.createDirectories(file.toPath.getParent))
     val out = new JarOutputStream(new FileOutputStream(file))
     out.putNextEntry(new ZipEntry("WEB-INF/web.xml"))
     val in = new ByteArrayInputStream(webxml)
