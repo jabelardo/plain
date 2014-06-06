@@ -23,7 +23,7 @@ import plain.http.Request
 import plain.http.Header.Request.`Cookie`
 import plain.http.Entity.ArrayEntity
 import plain.io.ByteArrayInputStream
-import aio.conduits.SocketChannelConduit
+import aio.conduit.SocketChannelConduit
 
 final class HttpServletRequest(
 

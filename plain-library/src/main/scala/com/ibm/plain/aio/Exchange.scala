@@ -11,7 +11,7 @@ import java.nio.charset.Charset
 
 import Input.{ Elem, Empty, Eof }
 import Iteratee.{ Cont, Done, Error }
-import conduits.{ SocketChannelConduit, TerminatingConduit }
+import conduit.{ SocketChannelConduit, TerminatingConduit }
 import io.PrintWriter
 import logging.Logger
 

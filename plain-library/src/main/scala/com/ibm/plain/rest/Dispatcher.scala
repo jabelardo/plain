@@ -7,7 +7,7 @@ package rest
 import com.typesafe.config.{ Config, ConfigFactory }
 
 import aio.{ Encoding, Exchange, ExchangeHandler }
-import aio.conduits.{ ChunkedConduit, DeflateConduit, GzipConduit }
+import aio.conduit.{ ChunkedConduit, DeflateConduit, GzipConduit }
 import config.config2RichConfig
 import http.{ HttpDispatcher, Request, Response }
 import http.Entity

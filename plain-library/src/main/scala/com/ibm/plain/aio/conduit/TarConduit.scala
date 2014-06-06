@@ -4,7 +4,7 @@ package plain
 
 package aio
 
-package conduits
+package conduit
 
 import java.io.File
 import java.nio.ByteBuffer
@@ -181,6 +181,7 @@ sealed trait TarSinkConduit
         handler.completed(entrysize, attachment)
       }
     } else {
+      println("closed")
       handler.completed(0, attachment)
     }
   }
@@ -193,11 +194,13 @@ sealed trait TarSinkConduit
 
     @inline final def completed(processed: Integer, attachment: A) = {
       if (0 >= processed) {
-        fixedlengthconduit.close
-        fixedlengthconduit = null
-        if (0 < padsize) {
-          fixedlengthconduit = FixedLengthConduit(NullConduit, padsize)
-          padsize = 0
+        if (null != fixedlengthconduit) {
+          fixedlengthconduit.close
+          fixedlengthconduit = null
+          if (0 < padsize) {
+            fixedlengthconduit = FixedLengthConduit(NullConduit, padsize)
+            padsize = 0
+          }
         }
       }
       handler.completed(processed, attachment)
@@ -270,7 +273,7 @@ sealed trait TarConduitBase
 
   extends Conduit {
 
-  def close = isclosed = true
+  def close = { dumpStack; isclosed = true }
 
   def isOpen = !isclosed
 

@@ -12,8 +12,7 @@ import scala.language.implicitConversions
 import aio.{ Encoding, Exchange, ExchangeIo, ExchangeIteratee, Iteratee, OutMessage, releaseByteBuffer, tooTinyForEncodingSize }
 import aio.Iteratee.{ Cont, Done }
 import aio.Renderable._
-import aio.conduits._
-import aio.conduits.ByteArrayConduit
+import aio.conduit._
 import text.`UTF-8`
 import time.{ now, rfc1123 }
 import Entity._

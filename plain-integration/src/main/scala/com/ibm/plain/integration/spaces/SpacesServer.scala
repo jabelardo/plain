@@ -19,8 +19,8 @@ import scala.collection.JavaConversions.asScalaBuffer
 import scala.language.implicitConversions
 
 import aio.{ Exchange }
-import aio.conduits.TarConduit
-import aio.conduits.FileConduit.{ forReading, forWriting }
+import aio.conduit.TarConduit
+import aio.conduit.FileConduit.{ forReading, forWriting }
 import concurrent.ioexecutor
 import logging.Logger
 import crypt.Uuid
@@ -84,7 +84,7 @@ object SpacesServer
   extends Logger {
 
   private final def getZipFile(exchange: Exchange[Context]) = {
-    val source = aio.conduits.TarConduit(new java.io.File("/Users/guido/Development/Others/disruptor"))
+    val source = TarConduit(new java.io.File("/Users/guido/Development/Others/spray"))
     val contenttype = ContentType(`application/tar`)
     exchange.transferFrom(source)
     ConduitEntity(

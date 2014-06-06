@@ -20,7 +20,7 @@ import scala.collection.JavaConversions.asScalaBuffer
 import scala.language.implicitConversions
 import scala.reflect.runtime.universe
 
-import aio.conduits.FileConduit.forReading
+import aio.conduit.FileConduit.forReading
 import aio.Exchange
 import http.{ ContentType, Entity }
 import http.Entity.ConduitEntity

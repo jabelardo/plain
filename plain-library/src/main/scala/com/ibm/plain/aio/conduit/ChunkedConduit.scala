@@ -4,7 +4,7 @@ package plain
 
 package aio
 
-package conduits
+package conduit
 
 import java.io.StreamCorruptedException
 import java.nio.ByteBuffer

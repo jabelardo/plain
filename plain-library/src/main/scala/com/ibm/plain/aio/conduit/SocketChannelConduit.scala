@@ -4,7 +4,7 @@ package plain
 
 package aio
 
-package conduits
+package conduit
 
 import java.net.StandardSocketOptions.{ SO_KEEPALIVE, SO_RCVBUF, SO_REUSEADDR, SO_SNDBUF, TCP_NODELAY }
 import java.nio.ByteBuffer

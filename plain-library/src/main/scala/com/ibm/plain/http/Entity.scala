@@ -10,7 +10,7 @@ import java.nio.charset.Charset
 import java.nio.channels.AsynchronousByteChannel
 
 import aio.{ bestFitByteBuffer, releaseByteBuffer, Exchange, ExchangeHandler, Encoding, tooTinyForEncodingSize }
-import aio.conduits.Conduit
+import aio.conduit.Conduit
 import text.`UTF-8`
 import Status._
 import ServerError.`501`

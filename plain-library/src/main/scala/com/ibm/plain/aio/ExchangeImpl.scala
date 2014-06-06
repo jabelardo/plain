@@ -14,7 +14,7 @@ import scala.math.min
 
 import Input.Elem
 import Iteratee.{ Cont, Done, Error }
-import conduits.{ ChunkedConduit, GzipConduit, SocketChannelConduit, TarConduit, TerminatingConduit }
+import conduit.{ ChunkedConduit, GzipConduit, SocketChannelConduit, TarConduit, TerminatingConduit }
 import io.PrintWriter
 
 /**
