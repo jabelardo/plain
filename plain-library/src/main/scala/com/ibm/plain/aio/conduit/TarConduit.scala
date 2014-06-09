@@ -42,6 +42,8 @@ final class TarConduit private (
  */
 object TarConduit {
 
+  final def apply(directory: String, purge: Boolean) = new TarConduit(new File(directory), purge)
+
   final def apply(directory: File, purge: Boolean) = new TarConduit(directory, purge)
 
   final def apply(directory: File) = new TarConduit(directory, false)
@@ -160,29 +162,22 @@ sealed trait TarSinkConduit
   with TerminatingSinkConduit {
 
   final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
-    if (isOpen) {
-      if (writing) {
-        fixedlengthconduit.write(buffer, attachment, new TarArchiveSinkHandler(handler))
-      } else {
-        entry = nextEntry(buffer)
-        if (null == entry) {
-          if (isEof) {
-            close
-          }
-        } else {
-          if (entry.isDirectory) {
-            nextDirectory
-          } else if (entry.isFile) {
-            nextFile
-          } else {
-            unsupported
-          }
-        }
-        handler.completed(entrysize, attachment)
-      }
+    if (writing) {
+      fixedlengthconduit.write(buffer, attachment, new TarArchiveSinkHandler(handler))
     } else {
-      println("closed")
-      handler.completed(0, attachment)
+      nextEntry(buffer)
+      if (null == entry) {
+        if (lastEntry) close
+      } else {
+        if (entry.isDirectory) {
+          nextDirectory
+        } else if (entry.isFile) {
+          nextFile
+        } else {
+          unsupported
+        }
+      }
+      handler.completed(entrysize, attachment)
     }
   }
 
@@ -208,37 +203,37 @@ sealed trait TarSinkConduit
 
   }
 
-  private[this] final def nextEntry(buffer: ByteBuffer): TarArchiveEntry = {
-    val e: Int = if (0 < underflow) {
-      Array.copy(buffer.array, buffer.position, array, underflow, min(array.size - underflow, buffer.remaining))
-      val b = new ByteArrayInputStream(array)
-      val e = b.available
-      in = new TarArchiveInputStream(b)
-      entry = in.getNextTarEntry
-      val len = (e - b.available) - underflow
-      val used = -underflow
-      buffer.position(buffer.position + len)
-      underflow = 0
-      used
-    } else {
-      in = new TarArchiveInputStream(new ByteBufferInputStream(buffer))
-      if (0 == recordsize) {
-        purgeDirectory
-        recordsize = in.getRecordSize
+  private[this] final def nextEntry(buffer: ByteBuffer) = {
+    if (0 < buffer.remaining) {
+      val e: Int = if (0 < underflow) {
+        Array.copy(buffer.array, buffer.position, array, underflow, min(array.size - underflow, buffer.remaining))
+        val b = new ByteArrayInputStream(array)
+        val e = b.available
+        in = new TarArchiveInputStream(b)
+        entry = in.getNextTarEntry
+        val len = (e - b.available) - underflow
+        val used = -underflow
+        buffer.position(buffer.position + len)
+        underflow = 0
+        used
+      } else {
+        in = new TarArchiveInputStream(new ByteBufferInputStream(buffer))
+        if (0 == recordsize) {
+          purgeDirectory
+          recordsize = in.getRecordSize
+        }
+        val e = buffer.position
+        try entry = in.getNextTarEntry catch { case _: Throwable ⇒ entry = null }
+        e
       }
-      val e = buffer.position
-      try entry = in.getNextTarEntry catch { case _: Throwable ⇒ entry = null }
-      e
-    }
-    if (null == entry) {
-      underflow = buffer.position - e
-      if (null == array) array = new Array[Byte](4 * recordsize)
-      Array.copy(buffer.array, e, array, 0, underflow)
-      entrysize = underflow
-      null
-    } else {
-      entrysize = buffer.position - e
-      entry
+      if (null == entry) {
+        underflow = buffer.position - e
+        if (null == array) array = new Array[Byte](4 * recordsize)
+        Array.copy(buffer.array, e, array, 0, underflow)
+        entrysize = underflow
+      } else {
+        entrysize = buffer.position - e
+      }
     }
   }
 
@@ -254,7 +249,7 @@ sealed trait TarSinkConduit
 
   private[this] final def writing = null != fixedlengthconduit
 
-  private[this] final def isEof = 2 * recordsize == entrysize
+  private[this] final def lastEntry = 2 * recordsize == entrysize
 
   private[this] final var entry: TarArchiveEntry = null
 
@@ -273,7 +268,7 @@ sealed trait TarConduitBase
 
   extends Conduit {
 
-  def close = { dumpStack; isclosed = true }
+  def close = isclosed = true
 
   def isOpen = !isclosed
 

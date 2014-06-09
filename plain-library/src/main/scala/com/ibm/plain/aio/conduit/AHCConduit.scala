@@ -56,7 +56,7 @@ sealed trait AHCSourceConduit
       requestbuilder.execute(new AHCSourceHandler(buffer, handler, attachment))
       requestbuilder = null
     }
-    cyclicbarrier.await
+    await
   }
 
   protected[this] final class AHCSourceHandler[A](
@@ -69,15 +69,11 @@ sealed trait AHCSourceConduit
 
     extends AsyncCompletionHandler[Unit] {
 
-    final def onCompleted(response: Response) = {
-      cyclicbarrier.await
-      handler.completed(-1, attachment)
-    }
+    final def onCompleted(response: Response) = ()
 
     override final def onBodyPartReceived(part: HttpResponseBodyPart): State = {
-      cyclicbarrier.await
-      if (0 >= part.length) println("part " + part.length)
-      if (buffer.remaining < part.length) println("buffer to small " + buffer.remaining)
+      await
+      require(buffer.remaining >= part.length)
       buffer.put(part.getBodyByteBuffer)
       handler.completed(part.length, attachment)
       State.CONTINUE
@@ -88,6 +84,8 @@ sealed trait AHCSourceConduit
     }
 
   }
+
+  private[this] final def await = ignore(cyclicbarrier.await)
 
   private[this] final val cyclicbarrier = new CyclicBarrier(2)
 
@@ -102,26 +100,24 @@ sealed trait AHCSinkConduit
 
   with TerminatingSinkConduit {
 
-  final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
-  }
+  final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = unsupported
 
 }
 
 /**
- * d
  *
  */
 sealed trait AHCConduitBase
 
   extends Conduit {
 
-  def close = client.close
+  final def close = client.close
 
-  def isOpen = !client.isClosed
+  final def isOpen = !client.isClosed
 
   protected[this] val client: AsyncHttpClient
 
-  protected[this] var requestbuilder: AsyncHttpClient#BoundRequestBuilder = null
+  protected[this] final var requestbuilder: AsyncHttpClient#BoundRequestBuilder = null
 
 }
 

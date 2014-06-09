@@ -15,15 +15,16 @@ import com.ning.http.client.AsyncCompletionHandler
 import com.ning.http.client.AsyncHandler.{ STATE ⇒ State }
 import com.ning.http.client.listener.{ TransferCompletionHandler, TransferListener }
 
-import aio.conduit.{ AHCConduit, FileConduit, GzipConduit, TarConduit }
+import aio.conduit.{ AHCConduit, FileConduit, DeflateConduit, GzipConduit, TarConduit }
 import bootstrap.{ Application, ApplicationExtension }
+import time.infoMillis
 
 /**
  * Do some tests, then shutdown.
  */
 final class ClientTester
 
-    extends ApplicationExtension {
+  extends ApplicationExtension {
 
   final def run = {
     val client = new AsyncHttpClient
@@ -86,20 +87,20 @@ final class ClientTester
         setHeader("Accept-Encoding", "gzip").
         execute(t)
 
-    } else {
+    } else if (false) {
 
       println("test 3")
       val request = new RequestBuilder("GET").setUrl(url).setHeader("Accept-Encoding", "gzip").build
       val source = GzipConduit(AHCConduit(client, request))
-      // val dest = FileConduit.forWriting("/tmp/test.bin")
-      val dest = TarConduit(new File("/tmp/tardir"), true)
+      val dest = FileConduit.forWriting("/tmp/test.bin")
+      //val dest = TarConduit(new File("/tmp/tardir"), true)
       object ClientExchange {
 
         val buffer = ByteBuffer.allocate(aio.defaultBufferSize)
 
         object ReadHandler
 
-            extends Handler[Integer, Unit] {
+          extends Handler[Integer, Unit] {
 
           def failed(e: Throwable, a: Unit) = {
             println(e)
@@ -110,13 +111,16 @@ final class ClientTester
             if (0 < processed) {
               buffer.flip
               if (0 < buffer.remaining) dest.write(buffer, (), WriteHandler) else println("empty")
+            } else {
+              println("close client")
+              client.close
             }
           }
         }
 
         object WriteHandler
 
-            extends Handler[Integer, Unit] {
+          extends Handler[Integer, Unit] {
 
           def failed(e: Throwable, a: Unit) = {
             println(e)
@@ -140,10 +144,16 @@ final class ClientTester
       }
       import ClientExchange._
       source.read(buffer, (), ReadHandler)
-    }
+    } else {
 
-    Thread.sleep(50000)
-    client.close
+      val request = new RequestBuilder("GET").setUrl(url).setHeader("Accept-Encoding", "gzip").build
+      val source = GzipConduit(AHCConduit(client, request))
+      //val destination = FileConduit.forWriting("/tmp/test.bin")
+      val destination = TarConduit("/tmp/test.dir", true)
+      val exchange = aio.client.ClientExchange(source, destination)
+      infoMillis(exchange.transferAndWait)
+
+    }
 
     Application.instance.teardown
   }
