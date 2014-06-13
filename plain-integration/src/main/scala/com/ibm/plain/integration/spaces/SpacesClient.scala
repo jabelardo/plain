@@ -115,7 +115,7 @@ object SpacesClient
 
       // Clean & Create local directory
       deleteDirectory(localFilePath.toFile, false)
-      Files.createDirectories(localFilePath)
+      io.createDirectory(localFilePath)
 
       // TAR entpcken
       // TODO: TAR spezifisches in TAR Utils auslagern?
@@ -128,7 +128,7 @@ object SpacesClient
           debug(s"Untar directory ${targetFile.toAbsolutePath}")
           if (!Files.exists(targetFile)) {
             debug(s"Create directory ${targetFile.toAbsolutePath}")
-            Files.createDirectory(targetFile)
+            io.createDirectory(targetFile)
           }
         } else {
           debug(s"Untar ${targetFile.toAbsolutePath}")

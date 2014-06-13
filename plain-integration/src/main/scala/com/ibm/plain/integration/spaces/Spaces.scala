@@ -6,7 +6,7 @@ package integration
 
 package spaces
 
-import java.nio.file.Files.{ createDirectories, exists, isDirectory, isRegularFile }
+import java.nio.file.Files.{ exists, isDirectory, isRegularFile }
 import java.nio.file.{ Path, Paths }
 
 import org.apache.commons.io.FileUtils.deleteDirectory
@@ -39,13 +39,13 @@ final class Spaces
           (error, "invalid directory (is a file)", path)
         case path if exists(path) && isDirectory(path) && space.purgeOnStartup ⇒
           deleteDirectory(path.toFile)
-          createDirectories(path)
+          io.createDirectory(path)
           (trace, "directory purged", path)
         case path if exists(path) && isDirectory(path) ⇒
           (trace, "directory exists", path)
         case path ⇒
           try {
-            createDirectories(path)
+            io.createDirectory(path)
             (trace, "directory created", path)
           } catch {
             case e: Throwable ⇒ (error, e.getMessage, path)

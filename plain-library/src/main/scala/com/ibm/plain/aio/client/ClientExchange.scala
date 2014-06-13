@@ -46,17 +46,17 @@ final class ClientExchange private (
     latch.await
   }
 
-  private final def readTransfer(handler: ExchangeHandler) = {
+  @inline private final def readTransfer(handler: ExchangeHandler) = {
     buffer.clear
     source.read(buffer, this, handler)
   }
 
-  private final def writeTransfer(handler: ExchangeHandler, flip: Boolean) = {
+  @inline private final def writeTransfer(handler: ExchangeHandler, flip: Boolean) = {
     if (flip) buffer.flip
     destination.write(buffer, this, handler)
   }
 
-  private final def closeTransfer(e: Throwable) = {
+  @inline private final def closeTransfer(e: Throwable) = {
     releaseByteBuffer(buffer)
     source.close
     destination.close
@@ -64,7 +64,7 @@ final class ClientExchange private (
     if (null != handler) if (null != e) handler.failed(e, this) else handler.completed(-1, this)
   }
 
-  private final def available = buffer.remaining
+  @inline private final def available = buffer.remaining
 
   private[this] final val buffer = defaultByteBuffer
 
@@ -93,12 +93,12 @@ object ClientExchange
     final def failed(e: Throwable, exchange: ClientExchange) = {
       e match {
         case e: IOException ⇒
-        case e ⇒ e.printStackTrace; trace(e)
+        case e ⇒ trace("failed :" + e)
       }
       exchange.closeTransfer(e)
     }
 
-    def completed(processed: Integer, exchange: ClientExchange) = try {
+    @inline final def completed(processed: Integer, exchange: ClientExchange) = try {
       doComplete(processed, exchange)
     } catch { case e: Throwable ⇒ failed(e, exchange) }
 

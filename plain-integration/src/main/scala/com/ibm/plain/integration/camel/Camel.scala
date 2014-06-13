@@ -7,7 +7,7 @@ package integration
 package camel
 
 import java.io.{ ByteArrayInputStream, File, FileOutputStream }
-import java.nio.file.Files
+import java.nio.file.Files.{ createDirectories, exists }
 import java.util.jar.JarOutputStream
 import java.util.zip.ZipEntry
 
@@ -64,7 +64,7 @@ object Camel
 
   private final def createWarFile = {
     val file = new File(servlet.webApplicationsDirectory + "/" + servletServicesRoot + ".war")
-    ignore(Files.createDirectories(file.toPath.getParent))
+    io.createDirectory(file.toPath.getParent)
     val out = new JarOutputStream(new FileOutputStream(file))
     out.putNextEntry(new ZipEntry("WEB-INF/web.xml"))
     val in = new ByteArrayInputStream(webxml)

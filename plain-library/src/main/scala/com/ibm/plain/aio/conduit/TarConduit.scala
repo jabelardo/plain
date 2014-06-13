@@ -8,7 +8,6 @@ package conduit
 
 import java.io.File
 import java.nio.ByteBuffer
-import java.nio.file.Files.createDirectories
 
 import org.apache.commons.io.FileUtils.deleteDirectory
 import org.apache.commons.compress.archivers.tar.{ TarArchiveEntry, TarArchiveInputStream, TarArchiveOutputStream }
@@ -191,10 +190,11 @@ sealed trait TarSinkConduit
       if (0 >= processed) {
         if (null != fixedlengthconduit) {
           fixedlengthconduit.close
-          fixedlengthconduit = null
           if (0 < padsize) {
             fixedlengthconduit = FixedLengthConduit(NullConduit, padsize)
             padsize = 0
+          } else {
+            fixedlengthconduit = null
           }
         }
       }
@@ -206,11 +206,13 @@ sealed trait TarSinkConduit
   private[this] final def nextEntry(buffer: ByteBuffer) = {
     if (0 < buffer.remaining) {
       val e: Int = if (0 < underflow) {
-        Array.copy(buffer.array, buffer.position, array, underflow, min(array.size - underflow, buffer.remaining))
-        val b = new ByteArrayInputStream(array)
+        val l = min(array.size - underflow, buffer.remaining)
+        Array.copy(buffer.array, buffer.position, array, underflow, l)
+        val b = new ByteArrayInputStream(array, 0, underflow + l)
         val e = b.available
         in = new TarArchiveInputStream(b)
-        entry = in.getNextTarEntry
+        try entry = in.getNextTarEntry catch { case e: Throwable ⇒ println("#2 " + e); entry = null }
+        if (null == entry) println("entry is still null " + (underflow + l))
         val len = (e - b.available) - underflow
         val used = -underflow
         buffer.position(buffer.position + len)
@@ -223,7 +225,7 @@ sealed trait TarSinkConduit
           recordsize = in.getRecordSize
         }
         val e = buffer.position
-        try entry = in.getNextTarEntry catch { case _: Throwable ⇒ entry = null }
+        try entry = in.getNextTarEntry catch { case x: Throwable ⇒ println("#1 " + x + " " + e + " " + buffer); entry = null }
         e
       }
       if (null == entry) {
@@ -243,8 +245,8 @@ sealed trait TarSinkConduit
     fixedlengthconduit = FixedLengthConduit(FileConduit.forWriting(directorypath.resolve(entry.getName), size), size)
   }
 
-  private[this] final def nextDirectory = {
-    createDirectories(directorypath.resolve(entry.getName))
+  private[this] final def nextDirectory: Unit = {
+    io.createDirectory(directorypath.resolve(entry.getName))
   }
 
   private[this] final def writing = null != fixedlengthconduit
@@ -278,7 +280,7 @@ sealed trait TarConduitBase
 
   protected[this] val purge: Boolean
 
-  protected[this] final val directorypath = createDirectories(directory.toPath.toAbsolutePath)
+  protected[this] final val directorypath = io.createDirectory(directory.toPath.toAbsolutePath)
 
   protected[this] final var fixedlengthconduit: FixedLengthConduit = null
 

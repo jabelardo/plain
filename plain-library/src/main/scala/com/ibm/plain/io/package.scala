@@ -7,7 +7,7 @@ import java.net.URLClassLoader
 import java.nio.ByteBuffer
 import java.nio.channels.{ FileChannel, ReadableByteChannel, WritableByteChannel }
 import java.nio.channels.Channels.newChannel
-import java.nio.file.{ Files, Paths }
+import java.nio.file.{ Files, Path, Paths }
 import java.util.zip.GZIPInputStream
 
 import org.apache.commons.io.FileUtils
@@ -160,7 +160,7 @@ package object io
 
   final val temp = try {
     val tmp = getString("plain.config.temp", System.getenv("TMP"))
-    Files.createDirectories(Paths.get(tmp))
+    createDirectory(Paths.get(tmp))
     System.setProperty("java.io.tmpdir", tmp)
     Paths.get(tmp)
   } catch {
@@ -194,6 +194,10 @@ package object io
     deleteOnExit(d)
     d
   }
+
+  final def createDirectory(directory: Path): Path = if (!Files.exists(directory)) Files.createDirectories(directory) else directory
+
+  final def createDirectory(directory: File): Path = if (!Files.exists(directory.toPath)) Files.createDirectories(directory.toPath) else directory.toPath
 
   /**
    * Delete a directory and all of its contents in a background thread. Use delete-directory-retries and delete-directory-timeout to make this method more robust.

@@ -26,7 +26,7 @@ package object spaces
 
   final val rootDirectory = {
     val root = Paths.get(getString("plain.integration.spaces.root-directory", "target/spaces"))
-    if (!Files.exists(root)) Files.createDirectories(root)
+    io.createDirectory(root)
     root
   }
 

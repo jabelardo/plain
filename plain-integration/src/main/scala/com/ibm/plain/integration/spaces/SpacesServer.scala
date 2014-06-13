@@ -7,7 +7,7 @@ package integration
 package spaces
 
 import java.nio.file.{ Path, Paths }
-import java.nio.file.Files.{ createDirectories, exists ⇒ fexists, isDirectory, isRegularFile, size ⇒ fsize, write ⇒ writeAllBytes, readAllBytes, delete ⇒ fdelete }
+import java.nio.file.Files.{ exists ⇒ fexists, isDirectory, isRegularFile, size ⇒ fsize, write ⇒ writeAllBytes, readAllBytes, delete ⇒ fdelete }
 
 import org.apache.commons.io.FilenameUtils.getExtension
 import org.apache.commons.io.filefilter.RegexFileFilter
@@ -84,7 +84,7 @@ object SpacesServer
   extends Logger {
 
   private final def getZipFile(exchange: Exchange[Context]) = {
-    val source = TarConduit(new java.io.File("/Users/guido/Development/Others/spray"))
+    val source = TarConduit(new java.io.File("/Users/guido/Development/Others/jenkins"))
     val contenttype = ContentType(`application/tar`)
     exchange.transferFrom(source)
     ConduitEntity(
@@ -189,7 +189,7 @@ object SpacesServer
       case path if path.toString.contains("..") ⇒ throw ClientError.`406`
       case path if fexists(path) && isDirectory(path) ⇒ throw ClientError.`409`
       case path ⇒ try {
-        if (!fexists(path.getParent)) createDirectories(path.getParent)
+        if (!fexists(path.getParent)) io.createDirectory(path.getParent)
         path
       } catch { case e: Throwable ⇒ throw ServerError.`500` }
     }
@@ -202,7 +202,7 @@ object SpacesServer
         case path if path.toString.contains("..") ⇒ throw ClientError.`406`
         case path if fexists(path) && isRegularFile(path) ⇒ throw ClientError.`409`
         case path if fexists(path) && isDirectory(path) ⇒ path
-        case path ⇒ createDirectories(path)
+        case path ⇒ io.createDirectory(path)
       }
     }
     val root = context.config.getString("spaces-directory")
@@ -221,7 +221,7 @@ object SpacesServer
       case path if path.toString.contains("..") ⇒ throw ClientError.`406`
       case path if fexists(path) && isRegularFile(path) ⇒ throw ClientError.`409`
       case path if fexists(path) && isDirectory(path) ⇒ Success.`201`
-      case path ⇒ try { createDirectories(path); Success.`201` } catch { case _: Throwable ⇒ throw ServerError.`503` }
+      case path ⇒ try { io.createDirectory(path); Success.`201` } catch { case _: Throwable ⇒ throw ServerError.`503` }
     }
   }
 

@@ -71,11 +71,13 @@ sealed trait AHCSourceConduit
 
     final def onCompleted(response: Response) = ()
 
+    var c = 0L
+
     override final def onBodyPartReceived(part: HttpResponseBodyPart): State = {
       await
       require(buffer.remaining >= part.length)
       buffer.put(part.getBodyByteBuffer)
-      handler.completed(part.length, attachment)
+      try handler.completed(part.length, attachment) catch { case _: Throwable ⇒ return State.ABORT }
       State.CONTINUE
     }
 
@@ -100,6 +102,9 @@ sealed trait AHCSinkConduit
 
   with TerminatingSinkConduit {
 
+  /**
+   * Not yet implemented.
+   */
   final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = unsupported
 
 }
