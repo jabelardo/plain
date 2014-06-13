@@ -149,7 +149,13 @@ final class ClientTester
       val request = new RequestBuilder("GET").setUrl(url).setHeader("Accept-Encoding", "gzip").build
       val source = GzipConduit(AHCConduit(client, request))
       //val destination = FileConduit.forWriting("/tmp/test.bin")
-      val destination = TarConduit("/tmp/test.dir", true)
+      val destination = TarConduit("/tmp/test.dir", true, new TarConduit.ProcessedListener {
+        var c = 0L
+
+        def processed(processed: Int) = {
+          if (0 < processed) { c += processed; println(c) } else println("finished:  " + c)
+        }
+      })
       val exchange = aio.client.ClientExchange(source, destination)
       infoMillis(exchange.transferAndWait)
 
