@@ -23,6 +23,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.language.postfixOps
+import scala.reflect.runtime.universe
 import scala.util.{ Failure, Success }
 
 import io.deleteDirectory

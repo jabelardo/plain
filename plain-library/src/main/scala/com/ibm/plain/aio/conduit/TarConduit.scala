@@ -26,9 +26,7 @@ final class TarConduit private (
 
   protected[this] final val directory: File,
 
-  protected[this] final val purge: Boolean,
-
-  protected[this] final val listener: TarConduit.ProcessedListener)
+  protected[this] final val purge: Boolean)
 
   extends TarSourceConduit
 
@@ -43,13 +41,11 @@ final class TarConduit private (
  */
 object TarConduit {
 
-  trait ProcessedListener { def processed(processed: Int) }
+  final def apply(directory: String, purge: Boolean) = new TarConduit(new File(directory), purge)
 
-  final def apply(directory: String, purge: Boolean, listener: ProcessedListener) = new TarConduit(new File(directory), purge, listener)
+  final def apply(directory: File, purge: Boolean) = new TarConduit(directory, purge)
 
-  final def apply(directory: File, purge: Boolean, listener: ProcessedListener) = new TarConduit(directory, purge, listener)
-
-  final def apply(directory: File) = new TarConduit(directory, false, null)
+  final def apply(directory: File) = new TarConduit(directory, false)
 
 }
 
@@ -75,7 +71,6 @@ sealed trait TarSourceConduit
         handler.completed(entrysize, attachment)
       }
     } else {
-      listen(-1)
       handler.completed(0, attachment)
     }
   }
@@ -101,7 +96,6 @@ sealed trait TarSourceConduit
           read(buffer, attachment, handler)
         }
       } else {
-        listen(processed)
         handler.completed(processed, attachment)
       }
     }
@@ -166,14 +160,13 @@ sealed trait TarSinkConduit
 
   with TerminatingSinkConduit {
 
-  final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = if (isOpen) {
+  final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     if (writing) {
       fixedlengthconduit.write(buffer, attachment, new TarArchiveSinkHandler(handler))
     } else {
       if (0 < buffer.remaining) nextEntry(buffer)
       if (null == entry) {
         if (lastEntry) {
-          listen(-1)
           close
         }
       } else {
@@ -206,8 +199,6 @@ sealed trait TarSinkConduit
             fixedlengthconduit = null
           }
         }
-      } else {
-        listen(processed)
       }
       handler.completed(processed, attachment)
     }
@@ -215,10 +206,13 @@ sealed trait TarSinkConduit
   }
 
   private[this] final def nextEntry(buffer: ByteBuffer): Unit = try {
-    val e: Int = if (0 < underflow) {
+    val pos: Int = if (0 < underflow) {
       if (underflow + buffer.remaining < recordsize) {
-        underflowbuffer.put(buffer)
+        println("not enough " + underflow + " " + buffer + " " + entry)
         underflow += buffer.remaining
+        underflowbuffer.put(buffer)
+        println("after " + underflowbuffer + " " + buffer)
+        println("u " + underflow)
         return
       } else {
         val len = min(underflowbuffer.remaining, buffer.remaining)
@@ -240,15 +234,15 @@ sealed trait TarSinkConduit
       e
     }
 
-    if (null == entry) {
-      underflow = buffer.position - e
+    if (0 < pos && null == entry) {
+      underflow = buffer.position - pos
       if (null == underflowbuffer) underflowbuffer = ByteBuffer.allocate(4 * recordsize) else underflowbuffer.clear
-      underflowbuffer.put(buffer.array, e, underflow)
+      try underflowbuffer.put(buffer.array, pos, underflow) catch { case e: Throwable ⇒ println(e); println(pos + " " + underflowbuffer + " " + underflow + " " + buffer); ??? }
       entrysize = underflow
     } else {
-      entrysize = buffer.position - e
+      entrysize = buffer.position - pos
     }
-  } catch { case e: Throwable ⇒ e.printStackTrace; unsupported }
+  } catch { case e: Throwable ⇒ e.printStackTrace; ??? }
 
   private[this] final def nextFile = {
     val size = entry.getSize
@@ -277,7 +271,7 @@ sealed trait TarSinkConduit
 }
 
 /**
- *
+ * A few common basics.
  */
 sealed trait TarConduitBase
 
@@ -287,13 +281,9 @@ sealed trait TarConduitBase
 
   def isOpen = !isclosed
 
-  protected[this] final def listen(processed: Int) = if (null != listener) ignore(listener.processed(processed))
-
   protected[this] val directory: File
 
   protected[this] val purge: Boolean
-
-  protected[this] val listener: TarConduit.ProcessedListener
 
   protected[this] final val directorypath = io.createDirectory(directory.toPath.toAbsolutePath)
 

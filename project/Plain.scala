@@ -24,7 +24,7 @@ object Plain {
 	) 
 
 	def net = Seq(
-		"com.ning" % "async-http-client" % "1.8.9"
+		"com.ning" % "async-http-client" % "1.8.10"
 	)
 
 	def reflection = Seq(

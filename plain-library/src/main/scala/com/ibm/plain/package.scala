@@ -69,6 +69,15 @@ package object plain
     elements(depth - 1).getClassName + "." + elements(depth - 1).getMethodName
   }
 
+  /**
+   * Careful: This is very expensive.
+   */
+  final def getStackDepth: Int = {
+    val mxBean = java.lang.management.ManagementFactory.getThreadMXBean
+    val threadInfo = mxBean.getThreadInfo(Thread.currentThread.getId, Int.MaxValue)
+    threadInfo.getStackTrace.length
+  }
+
   final def unsupported = throw new UnsupportedOperationException(getCallingFunctionName(6))
 
   final def unsupported(b: Boolean) = throw unsupported_
