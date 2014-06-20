@@ -75,10 +75,12 @@ sealed trait AHCSourceConduit
 
     override final def onBodyPartReceived(part: HttpResponseBodyPart): State = {
       await
-      require(buffer.remaining >= part.length)
+      require(buffer.remaining >= part.length, buffer + " " + part.length)
       buffer.put(part.getBodyByteBuffer)
-      try handler.completed(part.length, attachment) catch { case _: Throwable ⇒ return State.ABORT }
-      State.CONTINUE
+      try {
+        handler.completed(part.length, attachment)
+        State.CONTINUE
+      } catch { case _: Throwable ⇒ State.ABORT }
     }
 
     override final def onThrowable(e: Throwable) = {

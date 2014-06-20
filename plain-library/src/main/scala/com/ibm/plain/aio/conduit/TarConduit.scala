@@ -205,14 +205,11 @@ sealed trait TarSinkConduit
 
   }
 
-  private[this] final def nextEntry(buffer: ByteBuffer): Unit = try {
+  private[this] final def nextEntry(buffer: ByteBuffer): Unit = {
     val pos: Int = if (0 < underflow) {
       if (underflow + buffer.remaining < recordsize) {
-        println("not enough " + underflow + " " + buffer + " " + entry)
         underflow += buffer.remaining
         underflowbuffer.put(buffer)
-        println("after " + underflowbuffer + " " + buffer)
-        println("u " + underflow)
         return
       } else {
         val len = min(underflowbuffer.remaining, buffer.remaining)
@@ -233,26 +230,24 @@ sealed trait TarSinkConduit
       try entry = in.getNextTarEntry catch { case e: Throwable ⇒ entry = null }
       e
     }
-
     if (0 < pos && null == entry) {
       underflow = buffer.position - pos
       if (null == underflowbuffer) underflowbuffer = ByteBuffer.allocate(4 * recordsize) else underflowbuffer.clear
-      try underflowbuffer.put(buffer.array, pos, underflow) catch { case e: Throwable ⇒ println(e); println(pos + " " + underflowbuffer + " " + underflow + " " + buffer); ??? }
+      underflowbuffer.put(buffer.array, pos, underflow)
       entrysize = underflow
     } else {
       entrysize = buffer.position - pos
     }
-  } catch { case e: Throwable ⇒ e.printStackTrace; ??? }
+  }
 
   private[this] final def nextFile = {
     val size = entry.getSize
     padsize = (size % recordsize).toInt match { case 0 ⇒ 0 case e ⇒ recordsize - e }
-    println(directorypath.resolve(entry.getName))
     fixedlengthconduit = FixedLengthConduit(FileConduit.forWriting(directorypath.resolve(entry.getName), size), size)
   }
 
   private[this] final def nextDirectory: Unit = {
-    ignore(io.createDirectory(directorypath.resolve(entry.getName)))
+    ignore(io.createDirectory(directorypath.resolve(entry.getName.trim)))
   }
 
   private[this] final def purgeDirectory = if (purge) deleteDirectory(directory)

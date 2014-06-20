@@ -41,7 +41,7 @@ final class ClientTester
       setUrl(url).
       setHeader("Accept-Encoding", "gzip").
       build
-    val choise = 1
+    val choise = 2
     choise match {
       case 1 ⇒
         val handler = new AsyncCompletionHandler[Unit] {
@@ -62,12 +62,11 @@ final class ClientTester
         client.close
       case 2 ⇒
         val source = GzipConduit(AHCConduit(client, request))
-        val destination = FileConduit.forWriting("/dev/null")
-        //    val destination = TarConduit("/tmp/test.dir", true)
+        // val destination = FileConduit.forWriting("/dev/null")
+        val destination = TarConduit("/tmp/test.dir", true)
         var c = 0L
         var p = 0L
-        val exchange = aio.client.ClientExchange(
-          source, destination, null, i ⇒ { c += i; if (p < c - 1000000) { p = c; println(c) } })
+        val exchange = aio.client.ClientExchange(source, destination)
         infoMillis(exchange.transferAndWait)
     }
     Application.instance.teardown
