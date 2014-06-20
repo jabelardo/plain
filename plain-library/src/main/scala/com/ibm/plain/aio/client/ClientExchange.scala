@@ -14,6 +14,7 @@ import java.util.concurrent.CountDownLatch
 import scala.util.control.TailCalls._
 
 import aio.conduit.Conduit
+import concurrent.spawn
 import logging.Logger
 
 /**
@@ -51,12 +52,18 @@ final class ClientExchange private (
     latch.await
   }
 
-  @inline private final def readTransfer(handler: ExchangeHandler) = {
+  /**
+   * Note: spawn
+   */
+  @inline private final def readTransfer(handler: ExchangeHandler) = spawn {
     buffer.clear
     source.read(buffer, this, handler)
   }
 
-  @inline private final def writeTransfer(handler: ExchangeHandler, flip: Boolean) = {
+  /**
+   * Note: spawn
+   */
+  @inline private final def writeTransfer(handler: ExchangeHandler, flip: Boolean) = spawn {
     if (flip) buffer.flip
     destination.write(buffer, this, handler)
   }

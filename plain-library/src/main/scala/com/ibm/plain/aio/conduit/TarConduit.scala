@@ -125,8 +125,8 @@ sealed trait TarSourceConduit
 
   private[this] final def nextOut(buffer: ByteBuffer) = {
     out = new TarArchiveOutputStream(new ByteBufferOutputStream(buffer))
-    out.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX)
-    out.setLongFileMode(TarArchiveOutputStream.LONGFILE_GNU)
+    out.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_STAR)
+    out.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX)
     out.setAddPaxHeadersForNonAsciiNames(true)
     if (0 == recordsize) recordsize = out.getRecordSize
   }
@@ -247,6 +247,7 @@ sealed trait TarSinkConduit
   private[this] final def nextFile = {
     val size = entry.getSize
     padsize = (size % recordsize).toInt match { case 0 ⇒ 0 case e ⇒ recordsize - e }
+    println(directorypath.resolve(entry.getName))
     fixedlengthconduit = FixedLengthConduit(FileConduit.forWriting(directorypath.resolve(entry.getName), size), size)
   }
 
