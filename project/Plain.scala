@@ -61,10 +61,13 @@ object Plain {
 		"com.h2database" % "h2" % "1.4.178"
 	) 
 
-	def commercialJdbc = Seq(
-		"com.oracle" % "ojdbc" % "11.2.0",
-		"com.microsoft.sqlserver" % "sqljdbc4" % "4.0"
+	def oracleJdbc = Seq(
+		"com.oracle" % "ojdbc" % "11.2.0"
 	)
+
+        def microsoftJdbc = Seq(
+                "com.microsoft.sqlserver" % "sqljdbc4" % "4.0"
+        )
 
 	def test = Seq(
 		"junit" % "junit" % "4.11" % "test",
@@ -78,7 +81,7 @@ object Plain {
 	)
 
 	def jdbcSettings = plainSettings ++ Seq(
-		libraryDependencies ++= plainDependencies ++ jdbc
+		libraryDependencies ++= plainDependencies ++ jdbc 
 	)
 
 }

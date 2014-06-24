@@ -34,3 +34,5 @@ project/plugins/project/
 plain-samples/plain-integration-hello-world/lib/tools.jar
 
 webapps
+
+plain-samples/plain-sample-jdbc/lib/ojdbc6.jar

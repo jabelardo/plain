@@ -1,13 +1,11 @@
 import sbt._
 import Keys._
-import sbtassembly.Plugin._
-import AssemblyKeys._
 
 object Integration {
 
 	def camelVersion = "2.13.1"
 
-	def activemqVersion = "5.9.1"
+	def activemqVersion = "5.10.0"
 
 	def core = Seq(
                 "org.apache.camel" % "camel-scala" % camelVersion,
@@ -35,7 +33,8 @@ object Integration {
                 "org.apache.camel" % "camel-mybatis" % camelVersion,
                 "org.apache.camel" % "camel-jdbc" % camelVersion,
                 "org.apache.camel" % "camel-sql" % camelVersion,
-                "org.apache.camel" % "camel-leveldb" % camelVersion
+                "org.apache.camel" % "camel-leveldb" % camelVersion,
+		"com.typesafe.slick" %% "slick" % "2.1.0-M2"
         )
 
         def networking = Seq(
@@ -61,17 +60,6 @@ object Integration {
 
                 libraryDependencies ++= integrationDependencies
 	
-	)
-
-	def excludedIntegrationJars = Seq(
-		"xml-apis-1.4.01.jar",
-		"xmlpull-1.1.3.1.jar",
-		"geronimo-servlet_2.5_spec-1.2.jar",
-		"servlet-api-2.4.jar",
-		"servlet-api-2.5-20081211.jar",
-		"servlet-api-2.5-6.1.14.jar",
-		"geronimo-servlet_3.0_spec-1.0.jar",
-		"javax.servlet-2.5.0.v201103041518.jar"
 	)
 
 }
