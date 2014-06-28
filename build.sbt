@@ -59,7 +59,7 @@ graphSettings
 
 releaseSettings
 
-lazy val librarySettings = scalariformSettings ++ graphSettings ++ releaseSettings
+lazy val librarySettings = graphSettings ++ releaseSettings
 
 lazy val allSettings = runSettings ++ scalariformSettings ++ integrationSettings ++ graphSettings ++ releaseSettings
 
