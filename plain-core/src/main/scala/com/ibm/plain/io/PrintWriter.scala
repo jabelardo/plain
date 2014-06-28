@@ -15,7 +15,7 @@ final class PrintWriter(
 
   final val outputstream: ByteArrayOutputStream)
 
-  extends j.PrintWriter(PrintWriter.dummy) {
+    extends j.PrintWriter(PrintWriter.dummy) {
 
   final def setCharacterSet(cset: Charset) = characterset = cset
 

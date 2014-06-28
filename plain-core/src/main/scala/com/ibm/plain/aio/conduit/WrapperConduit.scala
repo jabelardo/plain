@@ -14,7 +14,7 @@ import java.nio.channels.{ AsynchronousChannel ⇒ BaseChannel, CompletionHandle
  */
 trait WrapperConduit
 
-  extends Conduit {
+    extends Conduit {
 
   override final def close = wrappedchannel.close
 

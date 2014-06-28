@@ -35,7 +35,7 @@ final case class Request(
 
   entity: Option[Entity])
 
-  extends InMessage {
+    extends InMessage {
 
   type Type = Request
 

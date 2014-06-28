@@ -10,7 +10,6 @@ import scala.concurrent.duration.Duration
 import com.typesafe.config.ConfigList
 import com.typesafe.config.Config
 
-
 /**
  * Add a couple of helpers to Config eg. get with default.
  */

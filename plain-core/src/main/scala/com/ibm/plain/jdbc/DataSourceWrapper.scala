@@ -16,7 +16,7 @@ class DataSourceWrapper(
 
   connectionfactory: ConnectionFactory)
 
-  extends JdbcDataSource {
+    extends JdbcDataSource {
 
   final def getConnection: JdbcConnection = connectionfactory.newConnection
 

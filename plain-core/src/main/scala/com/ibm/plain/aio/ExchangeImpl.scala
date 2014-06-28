@@ -30,20 +30,20 @@ final class ExchangeImpl[A] private[aio] (
 
   protected[this] final val writebuffer: ByteBuffer)
 
-  extends Exchange[A]
+    extends Exchange[A]
 
-  with ExchangeAccessImpl[A]
+    with ExchangeAccessImpl[A]
 
-  with ExchangeIoImpl[A]
+    with ExchangeIoImpl[A]
 
 /**
  *
  */
 trait ExchangeAccessImpl[A]
 
-  extends ExchangeAccess[A]
+    extends ExchangeAccess[A]
 
-  with ExchangeAio[A] {
+    with ExchangeAio[A] {
 
   self: Exchange[A] ⇒
 
@@ -271,7 +271,7 @@ trait ExchangeAccessImpl[A]
  */
 private[aio] trait ExchangeIoImpl[A]
 
-  extends ExchangeIo[A] {
+    extends ExchangeIo[A] {
 
   import ExchangeIoImpl._
 

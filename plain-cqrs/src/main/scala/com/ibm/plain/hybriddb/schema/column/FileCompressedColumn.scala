@@ -45,11 +45,11 @@ import io.{ ByteBufferInputStream, LZ4 }
 
   withordering: Option[O])
 
-  extends BuiltColumn[A]
+    extends BuiltColumn[A]
 
-  with BaseIndexed[A]
+    with BaseIndexed[A]
 
-  with Closeable {
+    with Closeable {
 
   outer ⇒
 
@@ -128,7 +128,7 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
 
   withordering: Option[O])
 
-  extends ColumnBuilder[A, FileCompressedColumn[A, O]] {
+    extends ColumnBuilder[A, FileCompressedColumn[A, O]] {
 
   final def this(capacity: Long, filepath: String, withordering: Option[O]) = this(capacity, 10, 1024, filepath, withordering)
 

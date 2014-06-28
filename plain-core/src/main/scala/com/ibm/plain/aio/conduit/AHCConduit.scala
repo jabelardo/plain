@@ -23,11 +23,11 @@ final class AHCConduit private (
 
   private[this] final val request: Request)
 
-  extends AHCSourceConduit
+    extends AHCSourceConduit
 
-  with AHCSinkConduit
+    with AHCSinkConduit
 
-  with TerminatingConduit {
+    with TerminatingConduit {
 
   requestbuilder = client.prepareRequest(request)
 
@@ -47,9 +47,9 @@ object AHCConduit {
  */
 sealed trait AHCSourceConduit
 
-  extends AHCConduitBase
+    extends AHCConduitBase
 
-  with TerminatingSourceConduit {
+    with TerminatingSourceConduit {
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     if (null != requestbuilder) {
@@ -67,7 +67,7 @@ sealed trait AHCSourceConduit
 
     private[this] final val attachment: A)
 
-    extends AsyncCompletionHandler[Unit] {
+      extends AsyncCompletionHandler[Unit] {
 
     final def onCompleted(response: Response) = ()
 
@@ -100,9 +100,9 @@ sealed trait AHCSourceConduit
  */
 sealed trait AHCSinkConduit
 
-  extends AHCConduitBase
+    extends AHCConduitBase
 
-  with TerminatingSinkConduit {
+    with TerminatingSinkConduit {
 
   /**
    * Not yet implemented.
@@ -116,7 +116,7 @@ sealed trait AHCSinkConduit
  */
 sealed trait AHCConduitBase
 
-  extends Conduit {
+    extends Conduit {
 
   final def close = client.close
 
@@ -127,6 +127,4 @@ sealed trait AHCConduitBase
   protected[this] final var requestbuilder: AsyncHttpClient#BoundRequestBuilder = null
 
 }
-
-
 

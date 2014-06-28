@@ -49,7 +49,7 @@ abstract class BaseComponent[C](
 
   dependants: Class[_ <: Component[_]]*)
 
-  extends Component[C] {
+    extends Component[C] {
 
   final def this(name: String) = this(true, name, Seq.empty: _*)
 

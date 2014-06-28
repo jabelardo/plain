@@ -12,7 +12,7 @@ import config.CheckedConfig
 
 package object concurrent
 
-  extends CheckedConfig {
+    extends CheckedConfig {
 
   import config._
   import config.settings._

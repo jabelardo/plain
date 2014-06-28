@@ -8,7 +8,7 @@ import com.typesafe.config.{ Config, ConfigFactory }
 
 package object config
 
-  extends config.CheckedConfig {
+    extends config.CheckedConfig {
 
   /**
    * The "global" plain application configuration settings.

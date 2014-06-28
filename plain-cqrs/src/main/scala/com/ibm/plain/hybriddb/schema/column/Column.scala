@@ -13,7 +13,7 @@ package column
  */
 trait Column[A]
 
-  extends Serializable {
+    extends Serializable {
 
   type Builder <: ColumnBuilder[A, _]
 
@@ -30,7 +30,7 @@ trait Column[A]
  */
 trait BuiltColumn[A]
 
-  extends Column[A] {
+    extends Column[A] {
 
   type Builder <: ColumnBuilder[A, _]
 

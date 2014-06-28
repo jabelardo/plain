@@ -69,7 +69,7 @@ final case class SpacesURI(space: String, container: String = UUID.randomUUID.to
  */
 object SpacesClient
 
-  extends Logger {
+    extends Logger {
 
   private object PredefinedHeaders {
 
@@ -270,7 +270,7 @@ object SpacesClient
  */
 final class SpacesTestClient
 
-  extends StaticResource {
+    extends StaticResource {
 
   Get {
     throw new Exception("HUHU")

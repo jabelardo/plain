@@ -17,9 +17,9 @@ import time.now
  */
 final class Application private
 
-  extends OnlyOnce
+    extends OnlyOnce
 
-  with IsSingleton {
+    with IsSingleton {
 
   override final def toString = components.toList.toString
 

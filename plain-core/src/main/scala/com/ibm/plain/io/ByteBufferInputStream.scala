@@ -16,7 +16,7 @@ final class ByteBufferInputStream(
 
   private[this] final val buffer: ByteBuffer)
 
-  extends InputStream {
+    extends InputStream {
 
   @inline override final def close = buffer.position(buffer.limit)
 

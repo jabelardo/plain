@@ -12,6 +12,8 @@ organization in ThisBuild := "com.ibm.plain"
 
 scalaVersion in ThisBuild := "2.11.1"
 
+crossScalaVersions in ThisBuild:= Seq("2.11.1")
+
 mainClass in (Compile, run) := Some("com.ibm.plain.bootstrap.Main")
 
 publishTo in ThisBuild := { 

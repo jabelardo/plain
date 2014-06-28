@@ -28,11 +28,11 @@ final class TarConduit private (
 
   protected[this] final val purge: Boolean)
 
-  extends TarSourceConduit
+    extends TarSourceConduit
 
-  with TarSinkConduit
+    with TarSinkConduit
 
-  with TerminatingConduit {
+    with TerminatingConduit {
 
 }
 
@@ -54,9 +54,9 @@ object TarConduit {
  */
 sealed trait TarSourceConduit
 
-  extends TarConduitBase
+    extends TarConduitBase
 
-  with TerminatingSourceConduit {
+    with TerminatingSourceConduit {
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     if (isOpen) {
@@ -81,7 +81,7 @@ sealed trait TarSourceConduit
 
     private[this] final val handler: Handler[A])
 
-    extends BaseHandler[A](handler) {
+      extends BaseHandler[A](handler) {
 
     @inline final def completed(processed: Integer, attachment: A) = {
       if (0 >= processed) {
@@ -156,9 +156,9 @@ sealed trait TarSourceConduit
  */
 sealed trait TarSinkConduit
 
-  extends TarConduitBase
+    extends TarConduitBase
 
-  with TerminatingSinkConduit {
+    with TerminatingSinkConduit {
 
   final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     if (writing) {
@@ -186,7 +186,7 @@ sealed trait TarSinkConduit
 
     private[this] final val handler: Handler[A])
 
-    extends BaseHandler[A](handler) {
+      extends BaseHandler[A](handler) {
 
     @inline final def completed(processed: Integer, attachment: A) = {
       if (0 >= processed) {
@@ -271,7 +271,7 @@ sealed trait TarSinkConduit
  */
 sealed trait TarConduitBase
 
-  extends Conduit {
+    extends Conduit {
 
   def close = isclosed = true
 
@@ -294,6 +294,4 @@ sealed trait TarConduitBase
   private[this] final var isclosed = false
 
 }
-
-
 

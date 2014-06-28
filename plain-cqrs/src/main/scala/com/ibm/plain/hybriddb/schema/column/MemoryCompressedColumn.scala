@@ -29,7 +29,7 @@ import io.{ ByteArrayInputStream, LZ4 }
 
   pages: Array[Array[Byte]])
 
-  extends BuiltColumn[A] {
+    extends BuiltColumn[A] {
 
   type Builder = MemoryCompressedColumnBuilder[A]
 
@@ -66,7 +66,7 @@ final class MemoryCompressedColumnBuilder[@specialized A: ClassTag](
 
   highcompression: Boolean)
 
-  extends ColumnBuilder[A, MemoryCompressedColumn[A]] {
+    extends ColumnBuilder[A, MemoryCompressedColumn[A]] {
 
   /**
    * A good starting point, but should be fine tuned with the default constructor.

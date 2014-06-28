@@ -24,9 +24,9 @@ import collection.immutable.Sorting.sortedIndexedSeq
 
   protected[this] final val ordering: O)
 
-  extends BuiltColumn[A]
+    extends BuiltColumn[A]
 
-  with BaseIndexed[A] {
+    with BaseIndexed[A] {
 
   type Builder = IndexedColumnBuilder[A]
 
@@ -45,7 +45,7 @@ final class IndexedColumnBuilder[A: ClassTag](
 
   ordering: Ordering[A])
 
-  extends ColumnBuilder[A, IndexedColumn[A, Ordering[A]]] {
+    extends ColumnBuilder[A, IndexedColumn[A, Ordering[A]]] {
 
   final def next(value: A): Unit = array.update(nextIndex.toInt, value)
 

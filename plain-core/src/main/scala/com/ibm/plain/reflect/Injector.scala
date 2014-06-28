@@ -13,7 +13,7 @@ import jdbc.dataSourceForJndiLookupName
 
 final class Injector[A] private (any: A)
 
-  extends Logger {
+    extends Logger {
 
   def inject: A = {
     injectResource

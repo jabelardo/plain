@@ -62,7 +62,7 @@ object Iteratees {
 
     object ContinueWriteHandler
 
-      extends Handler[Integer, ExchangeIo[A]] {
+        extends Handler[Integer, ExchangeIo[A]] {
 
       @inline final def completed(processed: Integer, exchange: ExchangeIo[A]) = written.success(true)
 

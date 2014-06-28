@@ -32,9 +32,9 @@ import UniqueColumn._
 
   private[this] final val keys: Map[A, Long])
 
-  extends BuiltColumn[A]
+    extends BuiltColumn[A]
 
-  with Unique[A] {
+    with Unique[A] {
 
   type Builder = UniqueColumnBuilder[A]
 
@@ -53,7 +53,7 @@ final class UniqueColumnBuilder[@specialized A: ClassTag](
 
   val capacity: Long)
 
-  extends ColumnBuilder[A, UniqueColumn[A]] {
+    extends ColumnBuilder[A, UniqueColumn[A]] {
 
   final def next(value: A): Unit = {
     val i = nextIndex.toInt

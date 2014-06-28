@@ -37,9 +37,9 @@ import DictionaryColumn._
 
   private[this] final val distinctvalues: Array[A])
 
-  extends BuiltColumn[A]
+    extends BuiltColumn[A]
 
-  with Lookup[A] {
+    with Lookup[A] {
 
   type Builder = DictionaryColumnBuilder[A]
 
@@ -59,7 +59,7 @@ final class DictionaryColumnBuilder[@specialized A: ClassTag](
 
   val capacity: Long)
 
-  extends ColumnBuilder[A, DictionaryColumn[A]] {
+    extends ColumnBuilder[A, DictionaryColumn[A]] {
 
   final def next(value: A): Unit = keys.put(value, keys.getOrElse(value, new IntSet) += nextIndex.toInt)
 
