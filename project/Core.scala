@@ -81,6 +81,7 @@ object Core {
 
 	def plainSettings = Defaults.defaultSettings ++ Seq(
 		libraryDependencies ++= plainDependencies
+		scalaVersion in ThisBuild := "2.11.1"
 	)
 
 	def jdbcSettings = plainSettings ++ Seq(
