@@ -1,5 +1,6 @@
 import sbt._
 import Keys._
+import sbtrelease.ReleasePlugin._
 
 object Core {
 
