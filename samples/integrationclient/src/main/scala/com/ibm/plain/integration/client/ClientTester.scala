@@ -25,7 +25,7 @@ import time.infoMillis
  */
 final class ClientTester
 
-  extends ApplicationExtension {
+    extends ApplicationExtension {
 
   final def run = {
     val url = "http://harryklein.local:7070/spaces/temporary/375FA43D46984A0BB4989A0B70000000"

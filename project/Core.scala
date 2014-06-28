@@ -1,15 +1,15 @@
 import sbt._
 import Keys._
 
-object Plain {
+object Core {
 
 	def logging = Seq(
 		"com.typesafe" % "config" % "1.2.1",
 		"org.slf4j" % "slf4j-api" % "1.7.7",
 		"com.lmax" % "disruptor" % "3.2.1",
-		"org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.0-rc1",
-		"org.apache.logging.log4j" % "log4j-api" % "2.0-rc1",
-		"org.apache.logging.log4j" % "log4j-core" % "2.0-rc1"
+		"org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.0-rc2",
+		"org.apache.logging.log4j" % "log4j-api" % "2.0-rc2",
+		"org.apache.logging.log4j" % "log4j-core" % "2.0-rc2"
 	) 
 
 	def commons = Seq(
@@ -19,17 +19,19 @@ object Plain {
 		"commons-io" % "commons-io" % "2.4",
 		"commons-net" % "commons-net" % "3.3",
 		"commons-codec" % "commons-codec" % "1.9",
-		"org.apache.httpcomponents" % "httpclient" % "4.3.3"
+		"org.apache.httpcomponents" % "httpclient" % "4.3.4"
             
 	) 
 
 	def net = Seq(
-		"com.ning" % "async-http-client" % "1.8.10"
+		"com.ning" % "async-http-client" % "1.8.11"
 	)
 
 	def reflection = Seq(
 		"org.scala-lang" % "scala-reflect" % "2.11.1",
-		"org.reflections" % "reflections" % "0.9.9-RC1"
+		"org.reflections" % "reflections" % "0.9.9-RC2",
+                "com.google.guava" % "guava" % "17.0",
+		"org.javassist" % "javassist" % "3.18.2-GA"
 	)
 
 	def javax = Seq(
@@ -44,7 +46,7 @@ object Plain {
 	) 
 
 	def json = Seq(
-		"com.fasterxml.jackson.core" % "jackson-databind" % "2.4.0-rc3",
+		"com.fasterxml.jackson.core" % "jackson-databind" % "2.4.1.1",
 		"com.sun.jersey" % "jersey-json" % "1.18.1"
 	) 
 
@@ -55,7 +57,7 @@ object Plain {
 	)
 
 	def jdbc = Seq(
-		"mysql" % "mysql-connector-java" % "5.1.30",
+		"mysql" % "mysql-connector-java" % "5.1.31",
 		"org.apache.derby" % "derby" % "10.10.2.0",
 		"org.apache.derby" % "derbyclient" % "10.10.2.0",
 		"com.h2database" % "h2" % "1.4.178"
