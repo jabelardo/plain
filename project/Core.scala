@@ -80,7 +80,7 @@ object Core {
 	def plainDependencies = logging ++ commons ++ net ++ reflection ++ compress ++ json ++ modules ++ javax ++ test
 
 	def plainSettings = Defaults.defaultSettings ++ Seq(
-		libraryDependencies ++= plainDependencies
+		libraryDependencies ++= plainDependencies,
 		scalaVersion in ThisBuild := "2.11.1"
 	)
 
