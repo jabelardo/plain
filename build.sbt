@@ -15,7 +15,7 @@ scalaVersion in ThisBuild := "2.11.1"
 mainClass in (Compile, run) := Some("com.ibm.plain.bootstrap.Main")
 
 publishTo in ThisBuild := { 
-	def repo = if (version.value.trim.endsWith("SNAPSHOT")) "libs-snapshot-local" else "libs-release-local"
+	val repo = if (version.value.trim.endsWith("SNAPSHOT")) "libs-snapshot-local" else "libs-release-local"
 	Some("Artifactory Realm" at "http://pdmbuildvm.munich.de.ibm.com:8080/artifactory/" + repo)
 }
 
@@ -55,17 +55,21 @@ scalariformSettings
 
 graphSettings
 
-lazy val allSettings = runSettings ++ scalariformSettings ++ integrationSettings ++ graphSettings
+releaseSettings
+
+lazy val librarySettings = scalariformSettings ++ graphSettings ++ releaseSettings
+
+lazy val allSettings = runSettings ++ scalariformSettings ++ integrationSettings ++ graphSettings ++ releaseSettings
 
 lazy val runSettings = Seq(fork in (Compile, run) := false)
 
 // libary projects
 
-lazy val `plain-core` = project in file("plain-core") settings(plainSettings ++ graphSettings: _*)
+lazy val `plain-core` = project in file("plain-core") settings(plainSettings ++ librarySettings: _*)
 
-lazy val `plain-cqrs` = project in file("plain-cqrs") dependsOn `plain-core` settings(jdbcSettings: _*)
+lazy val `plain-cqrs` = project in file("plain-cqrs") dependsOn `plain-core` settings(jdbcSettings ++ librarySettings: _*)
 
-lazy val `plain-integration` = project in file("plain-integration") dependsOn `plain-core` settings(integrationSettings ++ graphSettings: _*)
+lazy val `plain-integration` = project in file("plain-integration") dependsOn `plain-core` settings(integrationSettings ++ librarySettings: _*)
 
 // sample projects
 
