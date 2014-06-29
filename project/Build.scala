@@ -87,7 +87,7 @@ object PlainBuild
 
   lazy val integration = Project(
     id = "plain-integration",
-    base = file("pintegration"),
+    base = file("integration"),
     dependencies = Seq(core))
 
 }
