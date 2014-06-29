@@ -14,7 +14,7 @@ import config.settings.getConfig
  */
 package object infrastructure
 
-    extends CheckedConfig {
+  extends CheckedConfig {
 
   import config._
   import config.settings._

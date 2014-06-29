@@ -15,7 +15,7 @@ import java.nio.file.{ Files, Paths }
  */
 package object spaces
 
-    extends CheckedConfig {
+  extends CheckedConfig {
 
   import config._
   import config.settings._

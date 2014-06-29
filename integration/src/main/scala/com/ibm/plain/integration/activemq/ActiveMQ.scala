@@ -23,15 +23,15 @@ import distributedconfig.DistributedConfig
  */
 final class ActiveMQ
 
-    extends ExternalComponent[ActiveMQ](
+  extends ExternalComponent[ActiveMQ](
 
-      activemq.isEnabled,
+    activemq.isEnabled,
 
-      "plain-integration-activemq",
+    "plain-integration-activemq",
 
-      classOf[infrastructure.Infrastructure])
+    classOf[infrastructure.Infrastructure])
 
-    with Logger {
+  with Logger {
 
   override def start = {
     if (null == broker) {
