@@ -87,6 +87,6 @@ lazy val integrationclient = project in file("samples/integrationclient") depend
 
 // techempower framework benchmark
 
-lazy val `plain-benchmark` = project in file("samples/benchmark") dependsOn `plain-core` settings(jdbcSettings: _*) settings(allSettings: _*)
+lazy val benchmark = project in file("samples/benchmark") dependsOn `plain-core` settings(jdbcSettings: _*) settings(allSettings: _*)
 
 
