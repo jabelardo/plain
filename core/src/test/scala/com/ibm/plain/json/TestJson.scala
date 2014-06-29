@@ -17,9 +17,9 @@ case class Person(
 
   @xmlAttribute age: Int)
 
-    extends XmlMarshaled
+  extends XmlMarshaled
 
-    with JsonMarshaled {
+  with JsonMarshaled {
 
   def this() = this(null, -1)
 
