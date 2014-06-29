@@ -21,13 +21,13 @@ import logging.Logger
  */
 final class Camel
 
-  extends ExternalComponent[Camel](
+    extends ExternalComponent[Camel](
 
-    camel.isEnabled,
+      camel.isEnabled,
 
-    "plain-integration-camel")
+      "plain-integration-camel")
 
-  with Logger {
+    with Logger {
 
   import Camel._
 
@@ -60,7 +60,7 @@ final class Camel
  */
 object Camel
 
-  extends Singleton[Camel] {
+    extends Singleton[Camel] {
 
   private final def createWarFile = {
     val file = new File(servlet.webApplicationsDirectory + "/" + servletServicesRoot + ".war")

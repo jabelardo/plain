@@ -35,7 +35,7 @@ import rest.{ Form, StaticResource, Context }
  */
 final class SpacesServer
 
-  extends StaticResource {
+    extends StaticResource {
 
   import SpacesServer._
 
@@ -81,7 +81,7 @@ final class SpacesServer
  */
 object SpacesServer
 
-  extends Logger {
+    extends Logger {
 
   private final def getZipFile(exchange: Exchange[Context]) = {
     val source = TarConduit(new java.io.File("/tmp/bigtest/"))

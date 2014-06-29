@@ -1,10 +1,10 @@
 import sbt._
 import Keys._
 import EclipseKeys._
-import Plain._
+import Core._
 import Integration._
-import com.typesafe.sbt.SbtNativePackager._
-import NativePackagerKeys._
+import Cqrs._
+import Samples._
 
 name := "plain.io"
 
@@ -12,11 +12,16 @@ organization in ThisBuild := "com.ibm.plain"
 
 scalaVersion in ThisBuild := "2.11.1"
 
-version in ThisBuild := "1.0.0-SNAPSHOT"
+crossScalaVersions in ThisBuild:= Seq("2.11.1")
 
 mainClass in (Compile, run) := Some("com.ibm.plain.bootstrap.Main")
 
-val runSettings = Seq(fork in (Compile, run) := false)
+publishTo in ThisBuild := { 
+	val repo = if (version.value.trim.endsWith("SNAPSHOT")) "libs-snapshot-local" else "libs-release-local"
+	Some("Artifactory Realm" at "http://pdmbuildvm.munich.de.ibm.com:8080/artifactory/" + repo)
+}
+
+credentials in ThisBuild += Credentials(Path.userHome / ".ivy2" / ".credentials")
 
 createSrc in ThisBuild := EclipseCreateSrc.Default + EclipseCreateSrc.Resource
 
@@ -52,40 +57,36 @@ scalariformSettings
 
 graphSettings
 
-lazy val allSettings = runSettings ++ scalariformSettings ++ integrationSettings ++ graphSettings
+releaseSettings
+
+lazy val librarySettings = graphSettings ++ releaseSettings
+
+lazy val allSettings = runSettings ++ scalariformSettings ++ integrationSettings ++ graphSettings ++ releaseSettings
+
+lazy val runSettings = Seq(fork in (Compile, run) := false)
 
 // libary projects
 
-lazy val library = project in file("plain-library") settings(plainSettings ++ graphSettings: _*)
+lazy val `plain-core` = project in file("plain-core") settings(plainSettings ++ librarySettings: _*)
 
-lazy val hybriddb = project in file("plain-hybriddb") dependsOn library settings(jdbcSettings: _*)
+lazy val `plain-cqrs` = project in file("plain-cqrs") dependsOn `plain-core` settings(jdbcSettings ++ librarySettings: _*)
 
-lazy val integration = project in file("plain-integration") dependsOn library settings(integrationSettings ++ graphSettings: _*)
-
-lazy val migration = project in file("plain-migration") dependsOn integration settings(integrationSettings ++ graphSettings: _*)
-
-lazy val coexistence = project in file("plain-coexistence") dependsOn integration settings(integrationSettings ++ graphSettings: _*)
-
-// techempower framework benchmark
-
-lazy val benchmark = project in file("plain-benchmark") dependsOn library settings(jdbcSettings: _*) settings(allSettings: _*)
+lazy val `plain-integration` = project in file("plain-integration") dependsOn `plain-core` settings(integrationSettings ++ librarySettings: _*)
 
 // sample projects
 
-lazy val samples = project in file("plain-samples") aggregate(helloworldsample, jdbcsample, integrationserversample, integrationclientsample)  
+lazy val helloworld = project in file("samples/helloworld") dependsOn `plain-core` settings(allSettings: _*)
 
-lazy val helloworldsample = project in file("plain-samples/plain-sample-hello-world") dependsOn library settings(allSettings: _*)
+lazy val jdbc = project in file("samples/jdbc") dependsOn `plain-core` settings(jdbcSettings: _*) settings(allSettings: _*)
 
-lazy val jdbcsample = project in file("plain-samples/plain-sample-jdbc") dependsOn library settings(jdbcSettings: _*) settings(allSettings: _*)
+lazy val servlet = project in file("samples/servlet") dependsOn `plain-core` settings(allSettings: _*)
 
-lazy val servletsample = project in file("plain-samples/plain-sample-servlet") dependsOn library settings(allSettings: _*)
+lazy val integrationserver = project in file("samples/integrationserver") dependsOn `plain-integration` settings(allSettings: _*)
 
-lazy val integrationserversample = project in file("plain-samples/plain-integration-server") dependsOn integration settings(allSettings: _*)
+lazy val integrationclient = project in file("samples/integrationclient") dependsOn `plain-integration` settings(allSettings: _*)
 
-lazy val integrationclientsample = project in file("plain-samples/plain-integration-client") dependsOn integration settings(allSettings: _*)
+// techempower framework benchmark
 
-// MAN specific projects
-
-lazy val `man-migration-framework` = project in file("man-migration-framework") dependsOn (migration, coexistence) settings(allSettings: _*)
+lazy val `plain-benchmark` = project in file("samples/benchmark") dependsOn `plain-core` settings(jdbcSettings: _*) settings(allSettings: _*)
 
 
