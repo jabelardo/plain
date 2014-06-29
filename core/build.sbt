@@ -5,5 +5,5 @@ defaultSettings
 
 formatSettings
 
-libraryDependencies ++= Core.dependencies
+libraryDependencies ++= Core.dependencies ++ plain.Dependencies.Test.dependencies
 

@@ -5,5 +5,5 @@ defaultSettings
 
 formatSettings
 
-libraryDependencies ++= Core.dependencies ++ Jdbc.dependencies
+libraryDependencies ++= Core.dependencies ++ Jdbc.dependencies ++ plain.Dependencies.Test.dependencies
 

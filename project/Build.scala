@@ -28,8 +28,6 @@ object PlainBuild
           Some("Artifactory Realm" at "http://pdmbuildvm.munich.de.ibm.com:8080/artifactory/" + repo)
         },
         credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
-        publishArtifact in (Compile, packageDoc) := false,
-        publishArtifact in (Compile, packageSrc) := false,
         createSrc := EclipseCreateSrc.Default + EclipseCreateSrc.Resource,
         eclipseOutput := Some("target/scala-2.11/classes"),
         withSource := true,
