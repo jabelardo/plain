@@ -25,7 +25,7 @@ object PlainBuild
         mainClass in (Compile, run) := Some("com.ibm.plain.bootstrap.Main"),
         publishTo := {
           def repo = if (version.value.trim.endsWith("SNAPSHOT")) "libs-snapshot-local" else "libs-release-local"
-          Some("Artifactory IBM" at "http://pdmbuildvm.munich.de.ibm.com:8080/artifactory/" + repo)
+          Some("Artifactory Realm" at "http://pdmbuildvm.munich.de.ibm.com:8080/artifactory/" + repo)
         },
         credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
         publishArtifact in (Compile, packageDoc) := false,
