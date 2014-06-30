@@ -51,6 +51,9 @@ object PlainBuild
           "-Xlint:deprecation",
           "-Xlint:-options"),
         resolvers ++= Seq(
+	  "sonatype-releases" at "http://oss.sonatype.org/content/repositories/releases/",
+	  "typesafe-releases" at "http://repo.typesafe.com/typesafe/releases/",
+	  "scalasbt-releases" at "http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases/",
           "pentaho-releases" at "http://repository.pentaho.org/artifactory/repo/",
           "fusesource-releases" at "http://repo.fusesource.com/nexus/content/groups/public/"))
   }
