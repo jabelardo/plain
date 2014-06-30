@@ -7,9 +7,9 @@ package reflect
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-@Test class TestReflect {
+/* @Test */ class TestReflect {
 
-  @Test def testPrimitives = {
+  /* @Test */ def testPrimitives = {
     assertTrue(primitive(classOf[java.lang.Boolean]) == classOf[Boolean])
     assertTrue(primitive(classOf[java.lang.Byte]) == classOf[Byte])
     assertTrue(primitive(classOf[java.lang.Character]) == classOf[Char])
@@ -21,7 +21,7 @@ import org.junit.Test
     assertTrue(primitive(classOf[java.lang.String]) == classOf[String])
   }
 
-  @Test def testBoxed = {
+  /* @Test */ def testBoxed = {
     assertTrue(boxed(classOf[Boolean]) == classOf[java.lang.Boolean])
     assertTrue(boxed(classOf[Byte]) == classOf[java.lang.Byte])
     assertTrue(boxed(classOf[Char]) == classOf[java.lang.Character])

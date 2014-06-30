@@ -3,7 +3,5 @@ import plain.Dependencies._
 
 defaultSettings
 
-formatSettings
-
-libraryDependencies ++= Core.dependencies ++ plain.Dependencies.Test.dependencies
+libraryDependencies ++= Core.dependencies ++ Testing.dependencies
 

@@ -1,6 +1,9 @@
-import Integration._
-import com.typesafe.sbt.SbtNativePackager._
-import NativePackagerKeys._
+import plain.PlainBuild._
+import plain.Dependencies._
+
+applicationSettings
+
+libraryDependencies ++= Core.dependencies ++ Integration.dependencies 
 
 mainClass in (Compile) := Some("com.ibm.plain.bootstrap.Main")
 

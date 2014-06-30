@@ -3,7 +3,5 @@ import plain.Dependencies._
 
 defaultSettings
 
-formatSettings
-
-libraryDependencies ++= Core.dependencies ++ Jdbc.dependencies ++ plain.Dependencies.Test.dependencies
+libraryDependencies ++= Core.dependencies ++ Jdbc.dependencies ++ Testing.dependencies
 

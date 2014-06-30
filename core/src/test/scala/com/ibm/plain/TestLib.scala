@@ -14,10 +14,10 @@ import io._
 import http._
 import config._
 
-@Test class TestLib {
+/* @Test */class TestLib {
 
-  @Test def testA = {
-    run(1.minute) {
+  /* @Test */def testA = {
+    run (1.minute) {
       println(requiredVersion)
       println(operatingSystem)
       println(userName)
@@ -39,4 +39,5 @@ import config._
   }
 
 }
+
 

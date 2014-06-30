@@ -11,11 +11,11 @@ import org.junit.Test
 import scala.util.Random
 import scala.math.Ordering._
 
-// add @Test for testing
+// add /* @Test */for testing
 
 final class TestSortedArray {
 
-  @Test def test1 = {
+  /* @Test */ def test1 = {
     bootstrap.Application.instance.bootstrap
     val v = Array("C", "B", "@", "A", "B", "E", "@")
     val s = Sorting.sortedIndexedSeq(v, Ordering[String])
@@ -30,7 +30,7 @@ final class TestSortedArray {
     for (i ← 0 until (a.length - 1)) if (v(a(i)) > v(a(i + 1))) throw new Exception("incorrect " + i)
   }
 
-  @Test def test2 = {
+  /* @Test */ def test2 = {
     val n = 1000000
     val v = Array.fill(n) { Random.nextInt(1000000000).toString }
     println(v.length)
@@ -53,7 +53,7 @@ final class TestSortedArray {
 
   import java.sql.Timestamp
 
-  @Test def test3 = {
+  /* @Test */ def test3 = {
     val n = 50000000
     val v = Array.fill(n) { Random.nextInt(1000000000).toLong }
     val x = 47114711
@@ -70,7 +70,7 @@ final class TestSortedArray {
     assert(true)
   }
 
-  @Test def test4 = {
+  /* @Test */ def test4 = {
     import java.sql.Timestamp
     val n = 5000000
     for (i ← 1 to 1) {

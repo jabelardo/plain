@@ -119,7 +119,7 @@ object Dependencies {
 
   }
 
-  object Test {
+  object Testing {
 
     def test = Seq(
       "junit" % "junit" % "4.11" % "test",

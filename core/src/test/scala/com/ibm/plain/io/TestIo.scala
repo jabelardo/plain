@@ -10,18 +10,18 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.FileOutputStream
 
-@Test class IoTest {
+/* @Test */ class IoTest {
 
   /*
     val print = false
 
-  @Test def testNullStream = {
+  /* @Test */def testNullStream = {
     val nullstream = NullOutputStream
     (1 to 100).foreach(nullstream.write)
     assertTrue("" == nullstream.toString)
   }
 
-  @Test def testBinaryFormat = {
+  /* @Test */def testBinaryFormat = {
     val array = java.nio.ByteBuffer.allocateDirect(10000)
     if (true) {
       val out = new BinaryFormatByteBuffer(array, 0, 10000)
@@ -84,7 +84,7 @@ abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefgh
     }
   }
 
-  @Test def testCopy = {
+  /* @Test */def testCopy = {
     val array = new Array[Byte](1000000)
     var out = new ByteArrayOutputStream(array, 0, 1000000)
     val s = Array[Byte](1, 2, 3, 4, 5)
@@ -104,7 +104,7 @@ abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefgh
     }
   }
 
-  @Test def testBase64 = {
+  /* @Test */def testBase64 = {
     for (i ← 1 to 10) {
       val a1 = new Array[Byte](1000000)
       val a2 = new Array[Byte](1000000)
@@ -122,7 +122,7 @@ abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefgh
     }
   }
 
-  @Test def testFileChannel = {
+  /* @Test */def testFileChannel = {
     for (i ← 1 to 10) {
       val i = temporaryFile
       val o = temporaryFile
@@ -149,7 +149,7 @@ abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefgh
       assertTrue(java.util.Arrays.equals(a1, a3))
     }
 
-    @Test def testByteBuffer = {
+    /* @Test */def testByteBuffer = {
       val longs = """
 abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789
 abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789
@@ -172,7 +172,7 @@ abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefgh
     }
   }
 */
-  @Test def testLZ4 = {
+  /* @Test */ def testLZ4 = {
     import java.io._
     import scala.util.Random
     var t = 0L

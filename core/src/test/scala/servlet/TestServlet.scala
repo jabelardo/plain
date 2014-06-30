@@ -6,13 +6,13 @@ package servlet
 
 import org.junit.Test
 
-@Test class TestServlet {
+/* @Test */ class TestServlet {
 
-  @Test def test1 = {
+  /* @Test */ def test1 = {
     assert(true)
   }
 
-  @Test def test2 = {
+  /* @Test */ def test2 = {
     assert(true)
   }
 

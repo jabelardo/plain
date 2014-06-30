@@ -37,16 +37,16 @@ object Test2 {
 
 }
 
-@Test class TestTable {
+/* @Test */class TestTable {
 
-  @Test def test4 = {
+  /* @Test */def test4 = {
     val data = List(List(1001, "Dow", "John", "London", true, 21), List(1002, "Smith", "Mary", "München", false, 23), List(1003, "Jones", "Paul", "London", false, 24))
     val p = Table.fromSeq[Persons]("persons", data.length, data.view)
     for (i ← 0 until p.length.toInt) println(i + " : " + Json.build(p.row(i)))
     assert(true)
   }
 
-  @Test def test2 = {
+  /* @Test */def test2 = {
     import Test2._
     import util.Random.nextDouble
     val max = 10000000
@@ -71,7 +71,7 @@ object Test2 {
     println(ds)
   }
 
-  @Test def test1 = {
+  /* @Test */def test1 = {
 
     trait Assign[A] { def assign(a: Any): A }
 

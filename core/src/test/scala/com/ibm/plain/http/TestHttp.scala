@@ -6,9 +6,9 @@ package http
 
 import org.junit.Test
 
-@Test class TestHttp {
+/* @Test */ class TestHttp {
 
-  @Test def testA = {
+  /* @Test */ def testA = {
     assert(true)
   }
 

@@ -11,11 +11,11 @@ import crypt.Uuid
 import crypt.Crypt
 import crypt.Digest._
 
-@Test private class TextTest {
+/* @Test */ private class TextTest {
 
   val print = false
 
-  @Test def testConverters = {
+  /* @Test */ def testConverters = {
     assertTrue(isNumber("1"))
     assertTrue(isNumber("42"))
     assertTrue(isNumber("0.0"))
@@ -53,13 +53,13 @@ import crypt.Digest._
     if (print) println("crypthexstring : " + (end - start) / 1000000000.0 + " sec")
   }
 
-  @Test def testUuid = {
+  /* @Test */ def testUuid = {
     val u = Uuid.newUuid
     val s: String = Uuid.newUuid.toUpperCase
     assertTrue(32 == s.length)
   }
 
-  @Test def testMD5 = {
+  /* @Test */ def testMD5 = {
     import crypt.Digest._
     assertTrue("19ff680c1fa57aafb74292dfda79ebc2" == MD5(s))
     assertTrue("eebfe82abd231302d8c0ef76f1b6b7cb" == MD5(longs))
@@ -70,7 +70,7 @@ import crypt.Digest._
     assertTrue(32 == MD5(muenchen).length)
   }
 
-  @Test def testCrypt = {
+  /* @Test */ def testCrypt = {
     assertTrue("AAdFMPiEiQmQw" == Crypt.crypt(null, "Hello world."))
     assertTrue("so39caW9.TBUk" == Crypt.crypt("somesalt", "Hello world."))
   }
