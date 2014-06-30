@@ -15,9 +15,9 @@ import scala.util.Random
 
 import collection.immutable.Sorting._
 
-/* @Test */class TestColumn {
+/* @Test */ class TestColumn {
 
-  /* @Test */def test1 = {
+  /* @Test */ def test1 = {
     val v = Array("B", "C", "A", "E", "C", "D", "F")
     val b = new IndexedColumnBuilder[String](v.length, Ordering[String])
     v.foreach(b.next(_))
@@ -30,7 +30,7 @@ import collection.immutable.Sorting._
     assert(true)
   }
 
-  /* @Test */def test2 = {
+  /* @Test */ def test2 = {
     val n = 1000
     val v = Array.fill(n) { Random.nextInt(1000000000).toString }
     val b = new IndexedColumnBuilder[String](v.length, Ordering[String])
@@ -42,7 +42,7 @@ import collection.immutable.Sorting._
     assert(true)
   }
 
-  /* @Test */def test3 = {
+  /* @Test */ def test3 = {
     val n = 10000000
     val v = Array.fill(n) { Random.nextInt(1000000000).toString }
     println(v.length)
@@ -63,7 +63,7 @@ import collection.immutable.Sorting._
     assert(true)
   }
 
-  /* @Test */def test4 = {
+  /* @Test */ def test4 = {
     val n = 5000000
     var t = 0L
     var m = 1
@@ -110,7 +110,7 @@ import collection.immutable.Sorting._
     assert(true)
   }
 
-  /* @Test */def test5 = {
+  /* @Test */ def test5 = {
     val n = 5000000
     var t = 0L
     var m = 1
@@ -151,7 +151,7 @@ import collection.immutable.Sorting._
     assert(true)
   }
 
-  /* @Test */def test6 = {
+  /* @Test */ def test6 = {
     val n = 1000000
     var t = 0L
     var m = 1
@@ -198,7 +198,7 @@ import collection.immutable.Sorting._
     assert(true)
   }
 
-  /* @Test */def test7 = {
+  /* @Test */ def test7 = {
     import math.Matrix
     val n = 10000000
     var t = 0L
@@ -209,7 +209,7 @@ import collection.immutable.Sorting._
       for (i ← 1 to m) {
         t += time.timeNanos {
           for (j ← 0 until n) b.next(j match {
-            case 333 ⇒ 3.14
+            case 333             ⇒ 3.14
             case j if n - 1 == j ⇒ 2.72
             case j if 0 == (j + 1) % 1000000 ⇒
               println(j + 1); Random.nextInt(3) match { case 0 ⇒ 0.0 case 1 ⇒ 1.0 case 2 ⇒ Random.nextDouble }
@@ -242,7 +242,7 @@ import collection.immutable.Sorting._
     assert(true)
   }
 
-  /* @Test */def test8 = {
+  /* @Test */ def test8 = {
     val n = 50000000
     var t = 0L
     var m = 1
