@@ -134,7 +134,7 @@ final case class Response(
         if (null != conduit) exchange.transferFrom(conduit)
         false
       case Some(_) ⇒ false
-      case None    ⇒ true
+      case None ⇒ true
     }) match {
       case true ⇒
         exchange ++ done[A]

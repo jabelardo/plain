@@ -252,9 +252,9 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
     @tailrec @inline def merge(left: BufferedStream, right: BufferedStream, out: ObjectOutputStream): Unit = {
       ((left.next, right.next) match {
         case (Some(x), Some(y)) ⇒ if (0 <= pairordering.compare(x, y)) left.consume else right.consume
-        case (Some(_), None)    ⇒ left.consume
-        case (None, Some(_))    ⇒ right.consume
-        case (None, None)       ⇒ None
+        case (Some(_), None) ⇒ left.consume
+        case (None, Some(_)) ⇒ right.consume
+        case (None, None) ⇒ None
       }) match {
         case Some(value) ⇒
           out.writeObject(value)
@@ -346,7 +346,7 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
     concurrent.cores match {
       case 1 | 2 ⇒ split2(1 to n, 0, sort)
       case 3 | 4 ⇒ split4(1 to n, 0, sort)
-      case _     ⇒ split8(1 to n, 0, sort)
+      case _ ⇒ split8(1 to n, 0, sort)
     }
     mergeFiles(workingdir.listFiles.length, 0)
     unzipIndexFile

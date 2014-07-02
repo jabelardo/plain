@@ -99,7 +99,7 @@ final case class Templates(
 
       @inline def resource(tail: Path) = templates.resource match {
         case Some((resourceclass, config)) ⇒ Some((resourceclass, config, variables, tail))
-        case _                             ⇒ None
+        case _ ⇒ None
       }
 
       path match {
@@ -108,10 +108,10 @@ final case class Templates(
           templates.branch match {
             case Some(Right(branch)) ⇒ branch.get(head) match {
               case Some(subbranch) ⇒ get0(tail, variables, subbranch)
-              case _               ⇒ resource(p)
+              case _ ⇒ resource(p)
             }
             case Some(Left((name, branch))) ⇒ get0(tail, { val v = variables match { case None ⇒ new TrieMap[String, String] case Some(v) ⇒ v }; v += ((name, head)); Some(v) }, branch)
-            case _                          ⇒ resource(p)
+            case _ ⇒ resource(p)
           }
       }
     }
@@ -128,8 +128,8 @@ final case class Templates(
         case _ ⇒ ""
       }) + (node.branch match {
         case Some(Left((name, node))) ⇒ inner(node, indent + "/{" + name + "}")
-        case Some(Right(branch))      ⇒ branch.foldLeft("") { case (elem, e) ⇒ elem + inner(e._2, indent + "/" + e._1) }
-        case _                        ⇒ ""
+        case Some(Right(branch)) ⇒ branch.foldLeft("") { case (elem, e) ⇒ elem + inner(e._2, indent + "/" + e._1) }
+        case _ ⇒ ""
       })
     }
 
@@ -156,16 +156,16 @@ object Templates {
 
       element match {
         case Segment(name, next) ⇒ node match {
-          case None                            ⇒ Templates(None, Some(Right(Map(name -> add0(next, None)))))
+          case None ⇒ Templates(None, Some(Right(Map(name -> add0(next, None)))))
           case Some(Templates(resource, None)) ⇒ Templates(resource, Some(Right(Map(name -> add0(next, None)))))
           case Some(Templates(resource, Some(Right(branch)))) ⇒ branch.get(name) match {
-            case None        ⇒ Templates(resource, Some(Right(branch ++ Map(name -> add0(next, None)))))
+            case None ⇒ Templates(resource, Some(Right(branch ++ Map(name -> add0(next, None)))))
             case s @ Some(_) ⇒ Templates(resource, Some(Right(branch ++ Map(name -> add0(next, s)))))
           }
           case Some(Templates(resource, Some(Left((_, _))))) ⇒ alreadyVariable
         }
         case Variable(name, next) ⇒ node match {
-          case None                            ⇒ Templates(None, Some(Left((name, add0(next, None)))))
+          case None ⇒ Templates(None, Some(Left((name, add0(next, None)))))
           case Some(Templates(resource, None)) ⇒ Templates(resource, Some(Left((name, add0(next, None)))))
           case Some(Templates(resource, Some(Left((oldname, branch))))) if oldname == name ⇒
             Templates(resource, Some(Left((name, add0(next, Some(branch))))))
@@ -173,7 +173,7 @@ object Templates {
           case _ ⇒ alreadySegment
         }
         case ResourceClass(resource, config) ⇒ node match {
-          case None                     ⇒ Templates(Some((resource, config)), None)
+          case None ⇒ Templates(Some((resource, config)), None)
           case Some(Templates(_, node)) ⇒ Templates(Some((resource, config)), node)
         }
       }

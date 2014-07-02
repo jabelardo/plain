@@ -70,7 +70,7 @@ private object HttpSession {
 
   final def retrieve(id: String): HttpSession = httpsessions.get(id) match {
     case Some(session) ⇒ session.fromCache
-    case _             ⇒ null
+    case _ ⇒ null
   }
 
   final def destroy(id: String): Unit = httpsessions.remove(id)

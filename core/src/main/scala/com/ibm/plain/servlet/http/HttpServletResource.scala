@@ -75,7 +75,7 @@ final class HttpServletResource(
 
   private[this] final var servlet: HttpServlet = servletwrapper match {
     case (Left((_, servlet)), _, _) ⇒ servlet
-    case _                          ⇒ null
+    case _ ⇒ null
   }
 
   private[this] final val servletcontext: ServletContext = servletwrapper._3

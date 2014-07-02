@@ -166,7 +166,7 @@ final class BinaryFormatByteBuffer(
   def writeOption(v: Option[Any]) = {
     writeBoolean(v.isDefined)
     v match {
-      case None    ⇒
+      case None ⇒
       case Some(v) ⇒ writeAny(v)
     }
   }
@@ -231,55 +231,55 @@ final class BinaryFormatByteBuffer(
 
   private[this] final def writeType(v: Any): Unit = {
     writeByte((v: @unchecked) match {
-      case _: Boolean                  ⇒ 1
-      case _: Byte                     ⇒ 2
-      case _: Char                     ⇒ 3
-      case _: Short                    ⇒ 4
-      case _: Int                      ⇒ 5
-      case _: Long                     ⇒ 6
-      case _: Double                   ⇒ 7
+      case _: Boolean ⇒ 1
+      case _: Byte ⇒ 2
+      case _: Char ⇒ 3
+      case _: Short ⇒ 4
+      case _: Int ⇒ 5
+      case _: Long ⇒ 6
+      case _: Double ⇒ 7
       case v: String if 128 > v.length ⇒ 8
-      case _: String                   ⇒ 9
-      case _: Map[_, _]                ⇒ 100
-      case _: List[_]                  ⇒ 101
-      case _: Option[_]                ⇒ 102
-      case _                           ⇒ throw InvalidBinaryFormat
+      case _: String ⇒ 9
+      case _: Map[_, _] ⇒ 100
+      case _: List[_] ⇒ 101
+      case _: Option[_] ⇒ 102
+      case _ ⇒ throw InvalidBinaryFormat
     })
   }
 
   private[this] final def writeAny(v: Any): Unit = {
     writeType(v)
     (v: @unchecked) match {
-      case v: Boolean                  ⇒ writeBoolean(v)
-      case v: Byte                     ⇒ writeByte(v)
-      case v: Char                     ⇒ writeChar(v)
-      case v: Short                    ⇒ writeShort(v)
-      case v: Int                      ⇒ writeInt(v)
-      case v: Long                     ⇒ writeLong(v)
-      case v: Double                   ⇒ writeDouble(v)
+      case v: Boolean ⇒ writeBoolean(v)
+      case v: Byte ⇒ writeByte(v)
+      case v: Char ⇒ writeChar(v)
+      case v: Short ⇒ writeShort(v)
+      case v: Int ⇒ writeInt(v)
+      case v: Long ⇒ writeLong(v)
+      case v: Double ⇒ writeDouble(v)
       case v: String if 128 > v.length ⇒ writeShortString(v)
-      case v: String                   ⇒ writeString(v)
-      case v: Map[_, _]                ⇒ writeMap(v.asInstanceOf[Map[String, Any]])
-      case v: List[_]                  ⇒ writeList(v.asInstanceOf[List[Any]])
-      case v: Option[_]                ⇒ writeOption(v.asInstanceOf[Option[Any]])
-      case _                           ⇒ throw InvalidBinaryFormat
+      case v: String ⇒ writeString(v)
+      case v: Map[_, _] ⇒ writeMap(v.asInstanceOf[Map[String, Any]])
+      case v: List[_] ⇒ writeList(v.asInstanceOf[List[Any]])
+      case v: Option[_] ⇒ writeOption(v.asInstanceOf[Option[Any]])
+      case _ ⇒ throw InvalidBinaryFormat
     }
   }
 
   private[this] final def readAny: Any = {
     readByte match {
-      case 1       ⇒ readBoolean
-      case 2       ⇒ readByte
-      case 3       ⇒ readChar
-      case 4       ⇒ readShort
-      case 5       ⇒ readInt
-      case 6       ⇒ readLong
-      case 7       ⇒ readDouble
-      case 8       ⇒ readShortString
-      case 9       ⇒ readString
-      case 100     ⇒ readMap
-      case 101     ⇒ readList
-      case 102     ⇒ readOption
+      case 1 ⇒ readBoolean
+      case 2 ⇒ readByte
+      case 3 ⇒ readChar
+      case 4 ⇒ readShort
+      case 5 ⇒ readInt
+      case 6 ⇒ readLong
+      case 7 ⇒ readDouble
+      case 8 ⇒ readShortString
+      case 9 ⇒ readString
+      case 100 ⇒ readMap
+      case 101 ⇒ readList
+      case 102 ⇒ readOption
       case invalid ⇒ throw InvalidBinaryFormat
     }
   }

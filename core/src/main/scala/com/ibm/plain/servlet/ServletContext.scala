@@ -98,7 +98,7 @@ final class ServletContext(
 
   final def getMimeType(file: String): String = MimeType.forExtension(FilenameUtils.getExtension(file)) match {
     case Some(mimetype) ⇒ mimetype.name
-    case _              ⇒ null
+    case _ ⇒ null
   }
 
   final def getMinorVersion: Int = version(1)
@@ -107,7 +107,7 @@ final class ServletContext(
 
   final def getRealPath(path: String): String = getResource(path) match {
     case null ⇒ null
-    case url  ⇒ ignoreOrElse(new File(url.toURI).getAbsolutePath, null)
+    case url ⇒ ignoreOrElse(new File(url.toURI).getAbsolutePath, null)
   }
 
   final val getRealPath = FilenameUtils.normalize(FilenameUtils.removeExtension(root))
@@ -124,8 +124,8 @@ final class ServletContext(
 
   final def getServlet(name: String): js.Servlet = servlets.get(name) match {
     case Some((Left((_, servlet)), _, _)) ⇒ servlet
-    case Some((Right(servlet), _, _))     ⇒ servlet
-    case _                                ⇒ null
+    case Some((Right(servlet), _, _)) ⇒ servlet
+    case _ ⇒ null
   }
 
   final def getServletContextName: String = (webxml \ "display-name").text.trim match { case "" ⇒ getContextPath.replace("/", "") case s ⇒ s }
@@ -167,7 +167,7 @@ final class ServletContext(
   private[this] final val effectiveversion = try {
     (webxml \ "@version").text.split('.').toList match {
       case List("") ⇒ version
-      case l        ⇒ l.map(_.toInt)
+      case l ⇒ l.map(_.toInt)
     }
   } catch { case _: Throwable ⇒ version }
 
@@ -214,7 +214,7 @@ final class ServletContext(
   private[this] final val servletmappings: Map[String, String] = {
     def handleRegex(regex: Regex) = regex.toString match {
       case r if r.startsWith("^") && r.endsWith("$") ⇒ r.drop(1).dropRight(1)
-      case r                                         ⇒ r
+      case r ⇒ r
     }
     def mappings(attribute: Boolean) = (webxml \ "servlet-mapping").map { mapping ⇒
       def pattern(p: String) = (mapping \ ((if (attribute) "@" else "") + p)) match { case u if u.isEmpty ⇒ None case u ⇒ Some(u.text.r) }

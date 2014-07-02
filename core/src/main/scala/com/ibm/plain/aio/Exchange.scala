@@ -201,7 +201,7 @@ object Exchange
           accept
           e match {
             case _: IOException ⇒ debug(msg)
-            case _: Throwable   ⇒ warn(msg)
+            case _: Throwable ⇒ warn(msg)
           }
         }
       }
@@ -215,7 +215,7 @@ object Exchange
       @inline final def failed(e: Throwable, exchange: Exchange[A]) = {
         e match {
           case e: IOException ⇒ ignore
-          case e              ⇒ e.printStackTrace; trace(e)
+          case e ⇒ e.printStackTrace; trace(e)
         }
         exchange.release(e)
       }

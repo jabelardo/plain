@@ -225,7 +225,7 @@ object SpacesClient
   final def delete(uri: SpacesURI, relativePath: Option[Path] = None) = httpRequest(new HttpDelete(url(uri, relativePath))) {
     case (204, response) ⇒
     // Alles gut.
-    case _               ⇒
+    case _ ⇒
     // TODO throw exception ...
   }
 
@@ -242,7 +242,7 @@ object SpacesClient
   private def url(uri: SpacesURI, relativePath: Option[Path]): String = {
     val result = s"${uri.url}" + (relativePath match {
       case Some(path) ⇒ "?relativePath=" + path.toString
-      case _          ⇒ ""
+      case _ ⇒ ""
     })
 
     trace("Send request to : " + result)

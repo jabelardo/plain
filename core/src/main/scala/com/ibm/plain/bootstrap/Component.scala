@@ -106,27 +106,27 @@ abstract class BaseComponent[C](
     if (isStarted) awaitTermination(timeout)
   } catch {
     case e: TimeoutException ⇒ System.err.println(name + " " + e)
-    case e: Throwable        ⇒ System.err.println("Exception during awaitTermination of Component '" + name + "' : " + e)
+    case e: Throwable ⇒ System.err.println("Exception during awaitTermination of Component '" + name + "' : " + e)
   }
 
   private[this] final def error(msg: String) = this match {
     case logger: Logger ⇒ logger.error(msg)
-    case _              ⇒ System.err.println(msg)
+    case _ ⇒ System.err.println(msg)
   }
 
   private[this] final def warn(msg: String) = this match {
     case logger: Logger ⇒ logger.warn(msg)
-    case _              ⇒ System.err.println(msg)
+    case _ ⇒ System.err.println(msg)
   }
 
   private[this] final def info(msg: String) = this match {
     case logger: Logger ⇒ logger.info(msg)
-    case _              ⇒
+    case _ ⇒
   }
 
   private[this] final def debug(msg: String) = this match {
     case logger: Logger ⇒ logger.debug(msg)
-    case _              ⇒
+    case _ ⇒
   }
 
   override def toString = "Component(name:" + name + ", enabled:" + isEnabled + ", started:" + isStarted + ", stopped:" + isStopped + ")"

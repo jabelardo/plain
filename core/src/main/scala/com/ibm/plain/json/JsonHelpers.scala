@@ -88,7 +88,7 @@ private[json] final class ConfiggyString(wrapped: String) {
         case '\r' ⇒ "\\r"
         case '\n' ⇒ "\\n"
         case '\t' ⇒ "\\t"
-        case '"'  ⇒ "\\\""
+        case '"' ⇒ "\\\""
         case '\\' ⇒ "\\\\"
         case c ⇒
           if (c <= 255) {
@@ -121,7 +121,7 @@ private[json] final class ConfiggyString(wrapped: String) {
         case 'r' ⇒ '\r'
         case 'n' ⇒ '\n'
         case 't' ⇒ '\t'
-        case x   ⇒ x
+        case x ⇒ x
       }
       ch.toString
     }

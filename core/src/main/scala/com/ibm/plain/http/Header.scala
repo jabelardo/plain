@@ -19,7 +19,7 @@ sealed abstract class Header[A]
 
   final def apply(headers: Headers): Option[A] = headers.get(name) match {
     case Some(s) ⇒ Some(value(s))
-    case _       ⇒ None
+    case _ ⇒ None
   }
 
 }

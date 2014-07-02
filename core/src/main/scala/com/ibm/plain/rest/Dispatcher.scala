@@ -30,8 +30,8 @@ abstract class Dispatcher
     request.entity match {
       case Some(`chunked`(entity)) ⇒ entity.contentencoding match {
         case Some(Encoding.`deflate`) ⇒ exchange.setSource(DeflateConduit(ChunkedConduit(exchange.socketChannel)))
-        case Some(Encoding.`gzip`)    ⇒ exchange.setSource(GzipConduit(ChunkedConduit(exchange.socketChannel)))
-        case _                        ⇒
+        case Some(Encoding.`gzip`) ⇒ exchange.setSource(GzipConduit(ChunkedConduit(exchange.socketChannel)))
+        case _ ⇒
       }
       case _ ⇒
     }

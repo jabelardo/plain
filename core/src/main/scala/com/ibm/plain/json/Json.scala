@@ -30,9 +30,9 @@ final case class Json(any: Any) {
   private def convert[T](default: T): T = try {
     any match {
       case Some(json: Json) ⇒ json.convert[T](default)
-      case None             ⇒ default
-      case null             ⇒ null.asInstanceOf[T]
-      case a: Any           ⇒ a.asInstanceOf[T]
+      case None ⇒ default
+      case null ⇒ null.asInstanceOf[T]
+      case a: Any ⇒ a.asInstanceOf[T]
     }
   } catch { case e: Throwable ⇒ throw new JsonException("Conversion failed: " + e.getMessage) }
 }
@@ -72,22 +72,22 @@ object Json {
         case '\r' ⇒ "\\r"
         case '\n' ⇒ "\\n"
         case '\t' ⇒ "\\t"
-        case '"'  ⇒ "\\\""
+        case '"' ⇒ "\\\""
         case '\\' ⇒ "\\\\"
-        case '/'  ⇒ "\\/"
-        case c    ⇒ "\\u%04x" format c.asInstanceOf[Int]
+        case '/' ⇒ "\\/"
+        case c ⇒ "\\u%04x" format c.asInstanceOf[Int]
       }
     }) + "\""
 
     def build0(a: Any): QuotedString = QuotedString(a match {
       case QuotedString(inner) ⇒ inner
-      case null                ⇒ "null"
-      case v: Boolean          ⇒ v.toString
-      case v: Number           ⇒ v.toString
-      case list: Seq[_]        ⇒ list.map(build0(_).inner).mkString("[", ",", "]")
-      case map: Map[_, _]      ⇒ (for ((key, value) ← map.iterator) yield { quote(key.toString) + ":" + build0(value).inner }).mkString("{", ",", "}")
-      case json: Json          ⇒ build0(json.any).toString
-      case v                   ⇒ quote(v.toString)
+      case null ⇒ "null"
+      case v: Boolean ⇒ v.toString
+      case v: Number ⇒ v.toString
+      case list: Seq[_] ⇒ list.map(build0(_).inner).mkString("[", ",", "]")
+      case map: Map[_, _] ⇒ (for ((key, value) ← map.iterator) yield { quote(key.toString) + ":" + build0(value).inner }).mkString("{", ",", "}")
+      case json: Json ⇒ build0(json.any).toString
+      case v ⇒ quote(v.toString)
     })
 
     build0(any).toString

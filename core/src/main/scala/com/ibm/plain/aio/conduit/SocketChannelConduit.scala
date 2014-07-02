@@ -41,9 +41,9 @@ object SocketChannelConduit {
 
   private[this] final def tweakChannel(channel: SocketChannel): SocketChannel = {
     tcpNoDelay match {
-      case 1  ⇒ channel.setOption(TCP_NODELAY, Boolean.box(true))
+      case 1 ⇒ channel.setOption(TCP_NODELAY, Boolean.box(true))
       case -1 ⇒ channel.setOption(TCP_NODELAY, Boolean.box(false))
-      case _  ⇒
+      case _ ⇒
     }
     channel.setOption(SO_REUSEADDR, Boolean.box(true))
     channel.setOption(SO_KEEPALIVE, Boolean.box(false))

@@ -32,7 +32,7 @@ object Iteratees {
             (Done(in.take(n).decode(characterset, lowercase)), Elem(in))
           }
         case Failure(e) ⇒ (Error(e), input)
-        case _          ⇒ (Error(EOF), input)
+        case _ ⇒ (Error(EOF), input)
       }
 
     Cont(cont(null) _)
@@ -50,7 +50,7 @@ object Iteratees {
             (Done(in.take(in.length).consume), Elem(in))
           }
         case Failure(e) ⇒ (Error(e), input)
-        case _          ⇒ (Error(EOF), input)
+        case _ ⇒ (Error(EOF), input)
       }
 
     Cont(cont(null) _)
@@ -77,7 +77,7 @@ object Iteratees {
           Await.ready(written.future, readWriteDuration)
           (Done(null), Elem(more))
         case Failure(e) ⇒ (Error(e), input)
-        case _          ⇒ (Error(null), input)
+        case _ ⇒ (Error(null), input)
       }
     }
 
@@ -90,7 +90,7 @@ object Iteratees {
       input match {
         case Elem(more) ⇒ (Done(more.peek), Elem(more))
         case Failure(e) ⇒ (Error(e), input)
-        case _          ⇒ (Error(EOF), input)
+        case _ ⇒ (Error(EOF), input)
       }
 
     Cont(cont _)
@@ -101,7 +101,7 @@ object Iteratees {
     def cont(input: Input[ExchangeIo[A]]): (Iteratee[ExchangeIo[A], Boolean], Input[ExchangeIo[A]]) =
       input match {
         case Elem(more) if 0 < more.length ⇒ (Done(false), Elem(more))
-        case _                             ⇒ (Done(true), Eof)
+        case _ ⇒ (Done(true), Eof)
       }
 
     Cont(cont _)
@@ -119,7 +119,7 @@ object Iteratees {
             (Done(in.peek(n).decode(characterset, lowercase)), Elem(in))
           }
         case Failure(e) ⇒ (Error(e), input)
-        case _          ⇒ (Done(taken.decode(characterset, lowercase)), Eof)
+        case _ ⇒ (Done(taken.decode(characterset, lowercase)), Eof)
       }
 
     Cont(cont(null) _)
@@ -138,7 +138,7 @@ object Iteratees {
             (Cont(cont(in)), Empty)
           }
         case Failure(e) ⇒ (Error(e), input)
-        case _          ⇒ (Error(EOF), input)
+        case _ ⇒ (Error(EOF), input)
       }
 
     Cont(cont(null) _)
@@ -160,7 +160,7 @@ object Iteratees {
             (Done(in.take(pos).decode(characterset, lowercase)), Elem(in.drop(1)))
           }
         case Failure(e) ⇒ (Error(e), input)
-        case _          ⇒ (Error(EOF), input)
+        case _ ⇒ (Error(EOF), input)
       }
 
     Cont(cont(null) _)
@@ -179,7 +179,7 @@ object Iteratees {
             (Done(in.take(pos).decode(characterset, lowercase)), Elem(in.drop(2)))
           }
         case Failure(e) ⇒ (Error(e), input)
-        case _          ⇒ (Error(EOF), input)
+        case _ ⇒ (Error(EOF), input)
       }
 
     Cont(cont(null) _)
@@ -197,7 +197,7 @@ object Iteratees {
             (Done(()), Elem(more.drop(length)))
           }
         case Failure(e) ⇒ (Error(e), input)
-        case _          ⇒ (Error(EOF), input)
+        case _ ⇒ (Error(EOF), input)
       }
 
     Cont(cont(n) _)

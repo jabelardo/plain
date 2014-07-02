@@ -136,7 +136,7 @@ package object io
         url.toString match {
           case u if u.startsWith("file:") ⇒ ignore(b.append(new File(url.toURI).getCanonicalPath))
           case u if u.startsWith("jndi:") ⇒ b.append(u.drop(5))
-          case u                          ⇒ b.append(u)
+          case u ⇒ b.append(u)
         }
       }
       cl = ignoreOrElse(cl.getParent.asInstanceOf[URLClassLoader], null)

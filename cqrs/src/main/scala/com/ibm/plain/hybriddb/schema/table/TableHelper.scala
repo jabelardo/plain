@@ -44,11 +44,11 @@ protected trait TableHelper {
       }
       val builder = c.members.filter(m ⇒ m.isType && m.typeSignature <:< utypeOf[ColumnBuilder[_, _]]).map(_.typeSignature).head
       val parameters = constructorParams(builder) match {
-        case TLong +: TNil                           ⇒ List(capacity)
-        case TLong +: TClassTag +: TNil              ⇒ List(capacity, columnclasstag)
-        case TLong +: TOrdering +: TNil              ⇒ List(capacity, ordering)
+        case TLong +: TNil ⇒ List(capacity)
+        case TLong +: TClassTag +: TNil ⇒ List(capacity, columnclasstag)
+        case TLong +: TOrdering +: TNil ⇒ List(capacity, ordering)
         case TLong +: TOrdering +: TClassTag +: TNil ⇒ List(capacity, ordering, columnclasstag)
-        case _                                       ⇒ unsupported
+        case _ ⇒ unsupported
       }
       newInstance[ColumnBuilder[_, _]](builder, parameters)
     }

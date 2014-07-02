@@ -83,7 +83,7 @@ object Status {
     case 503 ⇒ `503`
     case 504 ⇒ `504`
     case 505 ⇒ `505`
-    case _   ⇒ `500`
+    case _ ⇒ `500`
   }
 
   sealed abstract class BaseStatus(rsn: String) extends Status {

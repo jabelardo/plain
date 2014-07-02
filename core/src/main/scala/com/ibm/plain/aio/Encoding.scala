@@ -23,8 +23,8 @@ object Encoding {
   final def apply(name: String): Option[Encoding] = name match {
     case "chunked" ⇒ Some(new `chunked`)
     case "deflate" ⇒ Some(`deflate`)
-    case "gzip"    ⇒ Some(`gzip`)
-    case _         ⇒ None
+    case "gzip" ⇒ Some(`gzip`)
+    case _ ⇒ None
   }
 
   /**

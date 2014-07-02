@@ -85,12 +85,12 @@ package object logging
 
     if (enable) cfg.getString("pattern", "") match {
       case "" | null ⇒
-      case v         ⇒ System.setProperty(path + ".pattern", v)
+      case v ⇒ System.setProperty(path + ".pattern", v)
     }
 
     if (enable) cfg.getString("rolling-pattern", "") match {
       case "" | null ⇒
-      case v         ⇒ System.setProperty(path + ".rolling-pattern", v)
+      case v ⇒ System.setProperty(path + ".rolling-pattern", v)
     }
 
     override final def toString = System.getProperties.propertyNames.toSeq.filter(_.toString.startsWith(path)).map(n ⇒ n + "=" + System.getProperty(n.toString)).mkString(", ")

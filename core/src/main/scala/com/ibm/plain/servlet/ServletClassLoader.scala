@@ -87,7 +87,7 @@ final class ServletClassLoader private (
 
   @inline final protected def findLoadedClass0(name: String): Class[_] = classesloaded.get(name) match {
     case Some(c) ⇒ c
-    case _       ⇒ findLoadedClass(name)
+    case _ ⇒ findLoadedClass(name)
   }
 
   @inline final protected def findLocalClass(name: String): Class[_] = {

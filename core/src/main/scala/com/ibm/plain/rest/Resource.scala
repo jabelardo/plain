@@ -44,7 +44,7 @@ trait Resource
     case Some(context) ⇒ try {
       methods.get(context.request.method) match {
         case Some(Right(resourcepriorities)) ⇒ execute(exchange, handler, resourcepriorities)
-        case _                               ⇒ throw ClientError.`405`
+        case _ ⇒ throw ClientError.`405`
       }
     } catch {
       case e: Throwable ⇒ failed(e, exchange, handler)
@@ -152,7 +152,7 @@ trait Resource
             val inmimetype: MimeType = inentity match { case Some(entity: Entity) ⇒ entity.contenttype.mimetype case _ ⇒ `application/x-scala-unit` }
             val outmimetypes: List[MimeType] = AcceptHeader(request.headers) match {
               case Some(Accept(mimetypes)) ⇒ mimetypes
-              case _                       ⇒ List(`*/*`)
+              case _ ⇒ List(`*/*`)
             }
 
             def tryDecode(in: Type, decode: AnyRef): Boolean = {
@@ -207,9 +207,9 @@ trait Resource
     require(!(out =:= typeOf[Nothing]), getClass.getSimpleName + " " + method + " Nothing is not allowed as output type.")
     val methodbody = MethodBody(body.asInstanceOf[Body[Any, Any]])
     methods = methods ++ Map(method -> Left((methods.get(method) match {
-      case None               ⇒ Array(((in, out), methodbody))
+      case None ⇒ Array(((in, out), methodbody))
       case Some(Left(bodies)) ⇒ bodies ++ Array(((in, out), methodbody))
-      case _                  ⇒ null
+      case _ ⇒ null
     })))
     methodbody
   }

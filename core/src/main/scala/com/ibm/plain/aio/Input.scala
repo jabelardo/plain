@@ -12,9 +12,9 @@ sealed trait Input[+E] {
   import Input._
 
   final def map[B](f: E ⇒ B): Input[B] = this match {
-    case Elem(elem)     ⇒ Elem(f(elem))
-    case Eof            ⇒ Eof
-    case Empty          ⇒ Empty
+    case Elem(elem) ⇒ Elem(f(elem))
+    case Eof ⇒ Eof
+    case Empty ⇒ Empty
     case e @ Failure(_) ⇒ e
   }
 

@@ -68,7 +68,6 @@ object PlainBuild
     FormattingPreferences()
       .setPreference(RewriteArrowSymbols, true)
       .setPreference(AlignParameters, true)
-      .setPreference(AlignSingleLineCaseStatements, true)
   }
 
   def applicationSettings = defaultSettings ++ Seq(fork in (Compile, run) := false)

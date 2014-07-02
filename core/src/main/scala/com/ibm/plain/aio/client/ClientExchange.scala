@@ -107,7 +107,7 @@ object ClientExchange
     final def failed(e: Throwable, exchange: ClientExchange) = {
       e match {
         case e: IOException ⇒
-        case e              ⇒ trace(e)
+        case e ⇒ trace(e)
       }
       exchange.closeTransfer(e)
     }

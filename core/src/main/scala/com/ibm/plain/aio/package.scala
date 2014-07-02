@@ -62,11 +62,11 @@ package object aio
    * Quite dangerous, never call this function on a buffer more than once or it could be later used by more than one at the same time.
    */
   final def releaseByteBuffer(buffer: ByteBuffer) = buffer.capacity match {
-    case `tinyBufferSize`    ⇒ Aio.instance.tinyBufferPool.release(buffer)
+    case `tinyBufferSize` ⇒ Aio.instance.tinyBufferPool.release(buffer)
     case `defaultBufferSize` ⇒ Aio.instance.defaultBufferPool.release(buffer)
-    case `largeBufferSize`   ⇒ Aio.instance.largeBufferPool.release(buffer)
-    case `hugeBufferSize`    ⇒ Aio.instance.hugeBufferPool.release(buffer)
-    case _                   ⇒
+    case `largeBufferSize` ⇒ Aio.instance.largeBufferPool.release(buffer)
+    case `hugeBufferSize` ⇒ Aio.instance.hugeBufferPool.release(buffer)
+    case _ ⇒
   }
 
   final def format(buffer: ByteBuffer, limit: Int = 512) = "ByteBuffer(" + System.identityHashCode(buffer) + ", pos " + buffer.position + ", remain " + buffer.remaining + ", lim " + buffer.limit + ", cap " + buffer.capacity + ", " + (if (buffer.hasArray) "heap" else "direct") + ")" + "\n" + text.hexDump(buffer, limit)

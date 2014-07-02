@@ -94,7 +94,7 @@ object ConnectionHelper {
 
     final def foldLeft[A](init: A)(f: (ResultSet, A) ⇒ A): A = rs.next match {
       case false ⇒ init
-      case true  ⇒ foldLeft(f(rs, init))(f)
+      case true ⇒ foldLeft(f(rs, init))(f)
     }
 
     final def map[A](f: ResultSet ⇒ A): Seq[A] = {
@@ -208,17 +208,17 @@ object ConnectionHelper {
     final def <<(any: Any): RichPreparedStatement = {
       while (0 < repeat) {
         any match {
-          case a: Boolean     ⇒ ps.setBoolean(pos, a)
-          case a: Byte        ⇒ ps.setByte(pos, a)
-          case a: Int         ⇒ ps.setInt(pos, a)
-          case a: Long        ⇒ ps.setLong(pos, a)
-          case a: Float       ⇒ ps.setFloat(pos, a)
-          case a: Double      ⇒ ps.setDouble(pos, a)
-          case a: String      ⇒ ps.setString(pos, a)
-          case a: Date        ⇒ ps.setDate(pos, a)
+          case a: Boolean ⇒ ps.setBoolean(pos, a)
+          case a: Byte ⇒ ps.setByte(pos, a)
+          case a: Int ⇒ ps.setInt(pos, a)
+          case a: Long ⇒ ps.setLong(pos, a)
+          case a: Float ⇒ ps.setFloat(pos, a)
+          case a: Double ⇒ ps.setDouble(pos, a)
+          case a: String ⇒ ps.setString(pos, a)
+          case a: Date ⇒ ps.setDate(pos, a)
           case a: InputStream ⇒ ps.setBinaryStream(pos, a)
           case a: Array[Byte] ⇒ ps.setBytes(pos, a)
-          case a              ⇒ ps.setObject(pos, a)
+          case a ⇒ ps.setObject(pos, a)
         }
         pos += 1
         repeat -= 1

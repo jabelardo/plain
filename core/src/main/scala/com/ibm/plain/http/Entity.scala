@@ -221,8 +221,8 @@ object Entity {
 
     @inline final def apply(value: String, entity: Entity): TransferEncodedEntity = value match {
       case "identity" ⇒ `identity`(entity)
-      case "chunked"  ⇒ `chunked`(entity)
-      case _          ⇒ throw `501`
+      case "chunked" ⇒ `chunked`(entity)
+      case _ ⇒ throw `501`
     }
 
     @inline final def unapply(entity: TransferEncodedEntity): Option[(Entity, Option[Encoding])] =

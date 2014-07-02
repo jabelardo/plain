@@ -74,7 +74,7 @@ final class HttpServletResponse(
 
   final def setHeader(name: String, value: String) = name match {
     case "Content-Type" ⇒ contenttype = ContentType(value)
-    case _              ⇒ response.headers.asInstanceOf[MutableMap[String, String]].put(name, value)
+    case _ ⇒ response.headers.asInstanceOf[MutableMap[String, String]].put(name, value)
   }
 
   final def setIntHeader(name: String, value: Int) = setHeader(name, value.toString)

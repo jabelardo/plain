@@ -85,7 +85,7 @@ final case class ConnectionFactory(
 
   final def newConnection(timeout: Long) = getConnection(timeout) match {
     case Some(connection) ⇒ connection
-    case _                ⇒ throw new java.sql.SQLTimeoutException("No connection available from " + name)
+    case _ ⇒ throw new java.sql.SQLTimeoutException("No connection available from " + name)
   }
 
   final def getConnection(timeout: Long): Option[Connection] = {

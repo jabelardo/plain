@@ -53,7 +53,7 @@ import MostlyNullColumn._
 
   final def lookup(value: Option[A]): Iterator[Long] = if (value.isEmpty) nulls.iterator else keys.get(value.get) match {
     case Some(s) ⇒ s.iterator
-    case _       ⇒ Set.empty.iterator
+    case _ ⇒ Set.empty.iterator
   }
 
 }

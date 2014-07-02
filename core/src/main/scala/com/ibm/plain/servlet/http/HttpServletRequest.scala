@@ -73,7 +73,7 @@ final class HttpServletRequest(
 
   final def getRequestedSessionId: String = `Cookie`(request.headers) match {
     case Some(value) ⇒ value.split(";").head.split("=")(1)
-    case _           ⇒ null
+    case _ ⇒ null
   }
 
   final def getServletPath: String = servletpath
@@ -210,7 +210,7 @@ final class HttpServletRequest(
 
   final def getHeader(name: String): String = request.headers.get(name) match {
     case Some(value) ⇒ value
-    case _           ⇒ null
+    case _ ⇒ null
   }
 
   final def getHeaders(name: String): Enumeration[String] = List(getHeader(name)).toIterator
@@ -249,7 +249,7 @@ final class HttpServletRequest(
 
   final lazy val servletpath = if (null == servlet.getServletConfig) "" else servletcontext.getServletMappings.getOrElse(servlet.getServletName, "") match {
     case "" ⇒ contextpath
-    case s  ⇒ s
+    case s ⇒ s
   }
 
   final lazy val pathinfo = (requesturi.replace(contextpath, "").replace(servletpath, "") + "/") match { case "/" ⇒ null case i ⇒ i }
@@ -259,7 +259,7 @@ final class HttpServletRequest(
     `Cookie`(request.headers) match {
       case Some(value) ⇒
         HttpSession.retrieve(value.split(";").head.split("=")(1)) match {
-          case null    ⇒ HttpSession.create(crypt.Uuid.newUuid, servletcontext)
+          case null ⇒ HttpSession.create(crypt.Uuid.newUuid, servletcontext)
           case session ⇒ session
         }
       case _ ⇒

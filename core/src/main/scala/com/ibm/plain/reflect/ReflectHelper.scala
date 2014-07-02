@@ -47,7 +47,7 @@ object ReflectHelper {
   final class TType(val t: Type) {
     override final def equals(other: Any) = other match {
       case b: TType ⇒ t <:< b.t.erasure
-      case _        ⇒ false
+      case _ ⇒ false
     }
     override final def hashCode = t.hashCode
     override final def toString = t.toString

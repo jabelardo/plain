@@ -47,7 +47,7 @@ import DictionaryColumn._
 
   final def lookup(value: A): Iterator[Long] = keys.get(value) match {
     case Some(s) ⇒ s.iterator
-    case _       ⇒ Set.empty.iterator
+    case _ ⇒ Set.empty.iterator
   }
 
 }

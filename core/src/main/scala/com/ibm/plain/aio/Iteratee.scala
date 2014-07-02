@@ -21,9 +21,9 @@ sealed trait Iteratee[E, +A]
   def apply(input: Input[E]): (Iteratee[E, A], Input[E])
 
   @inline final def result: A = this(Eof) match {
-    case (Done(a), _)  ⇒ a
+    case (Done(a), _) ⇒ a
     case (Error(e), _) ⇒ throw e
-    case _             ⇒ throw IllegalState
+    case _ ⇒ throw IllegalState
   }
 
   def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B]
@@ -86,7 +86,7 @@ object Iteratee {
 
     final def flatMap[B](f: A ⇒ Iteratee[E, B]): Iteratee[E, B] = k match {
       case comp: Compose[E, B] ⇒ Cont(comp.clone(f.asInstanceOf[Any ⇒ Iteratee[E, _]]))
-      case k                   ⇒ Cont(new Compose(k, f.asInstanceOf[Any ⇒ Iteratee[E, _]] :: Nil, Nil))
+      case k ⇒ Cont(new Compose(k, f.asInstanceOf[Any ⇒ Iteratee[E, _]] :: Nil, Nil))
     }
 
     final def map[B](f: A ⇒ B): Iteratee[E, B] = flatMap(a ⇒ Done[E, B](f(a)))
@@ -128,10 +128,10 @@ object Iteratee {
           result match {
             case (Done(value), remaining) ⇒ out.head(value) match {
               case Cont(k) ⇒ run(k(remaining), out.tail, in)
-              case e       ⇒ run((e, remaining), out.tail, in)
+              case e ⇒ run((e, remaining), out.tail, in)
             }
             case (Cont(k), remaining) ⇒ (Cont(new Compose(k, out, in)), remaining)
-            case _                    ⇒ result
+            case _ ⇒ result
           }
         }
       }

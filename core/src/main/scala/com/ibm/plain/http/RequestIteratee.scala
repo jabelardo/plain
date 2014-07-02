@@ -47,7 +47,7 @@ object RequestIteratee
       case `C` ⇒ for (_ ← drop(8)) yield Method.CONNECT
       case `O` ⇒ for (_ ← drop(8)) yield Method.OPTIONS
       case `T` ⇒ for (_ ← drop(6)) yield Method.TRACE
-      case _   ⇒ for (name ← takeUntil(` `, characterset, false)) yield Method(name)
+      case _ ⇒ for (name ← takeUntil(` `, characterset, false)) yield Method(name)
     }
 
     val readRequestUri: Iteratee[ExchangeIo[A], (Path, Option[String])] = {
@@ -147,7 +147,7 @@ object RequestIteratee
 
     def contenttype: ContentType = `Content-Type`(headers) match {
       case Some(contenttype) ⇒ contenttype
-      case _                 ⇒ `application/octet-stream`
+      case _ ⇒ `application/octet-stream`
     }
 
     def need100continue = `Expect`(headers) match {
@@ -163,7 +163,7 @@ object RequestIteratee
           for (_ ← continue(Long.MaxValue, continuebuffer.duplicate))
             yield Some(TransferEncodedEntity(transferencoding, ContentEntity(contenttype, `Content-Encoding`(headers) match {
             case Some(value) ⇒ Encoding(value)
-            case _           ⇒ None
+            case _ ⇒ None
           })))
         case None ⇒ `Content-Length`(headers) match {
           case Some(length) ⇒
@@ -176,7 +176,7 @@ object RequestIteratee
             }
           case None ⇒ query match {
             case Some(query) ⇒ Done(Some(ArrayEntity(query.getBytes(defaultCharacterSet), `text/plain`)))
-            case None        ⇒ Done(None)
+            case None ⇒ Done(None)
           }
         }
       }

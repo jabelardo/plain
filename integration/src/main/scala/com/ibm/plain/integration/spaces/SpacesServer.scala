@@ -145,12 +145,12 @@ object SpacesServer
     var found = false
     while (!found && roots.hasNext) {
       Paths.get(roots.next).toAbsolutePath.resolve(remainder.mkString("/")) match {
-        case path if path.toString.contains("..")         ⇒ false
+        case path if path.toString.contains("..") ⇒ false
         case path if fexists(path) && isRegularFile(path) ⇒ found = true
         case path if fexists(path) && isDirectory(path) ⇒
           path.toFile.listFiles(welcomefilter).filter(f ⇒ f.exists && f.isFile).headOption match {
             case Some(index) ⇒ found = true
-            case _           ⇒ false
+            case _ ⇒ false
           }
         case _ ⇒ null
       }
@@ -186,7 +186,7 @@ object SpacesServer
    */
   private final def check(root: String, remainder: String): Path = {
     Paths.get(root).toAbsolutePath.resolve(remainder) match {
-      case path if path.toString.contains("..")       ⇒ throw ClientError.`406`
+      case path if path.toString.contains("..") ⇒ throw ClientError.`406`
       case path if fexists(path) && isDirectory(path) ⇒ throw ClientError.`409`
       case path ⇒ try {
         if (!fexists(path.getParent)) io.createDirectory(path.getParent)
@@ -199,10 +199,10 @@ object SpacesServer
   private final def computeFilePath(context: Context): Path = {
     def computeDirectory(root: String, directory: String): Path = {
       Paths.get(root).toAbsolutePath.resolve(directory) match {
-        case path if path.toString.contains("..")         ⇒ throw ClientError.`406`
+        case path if path.toString.contains("..") ⇒ throw ClientError.`406`
         case path if fexists(path) && isRegularFile(path) ⇒ throw ClientError.`409`
-        case path if fexists(path) && isDirectory(path)   ⇒ path
-        case path                                         ⇒ io.createDirectory(path)
+        case path if fexists(path) && isDirectory(path) ⇒ path
+        case path ⇒ io.createDirectory(path)
       }
     }
     val root = context.config.getString("spaces-directory")
@@ -218,10 +218,10 @@ object SpacesServer
    */
   private final def put(root: String, remainder: String): Success = {
     Paths.get(root).toAbsolutePath.resolve(remainder) match {
-      case path if path.toString.contains("..")         ⇒ throw ClientError.`406`
+      case path if path.toString.contains("..") ⇒ throw ClientError.`406`
       case path if fexists(path) && isRegularFile(path) ⇒ throw ClientError.`409`
-      case path if fexists(path) && isDirectory(path)   ⇒ Success.`201`
-      case path                                         ⇒ try { io.createDirectory(path); Success.`201` } catch { case _: Throwable ⇒ throw ServerError.`503` }
+      case path if fexists(path) && isDirectory(path) ⇒ Success.`201`
+      case path ⇒ try { io.createDirectory(path); Success.`201` } catch { case _: Throwable ⇒ throw ServerError.`503` }
     }
   }
 

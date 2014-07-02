@@ -40,7 +40,7 @@ final case class Request(
   type Type = Request
 
   final def query = queryoption match {
-    case None    ⇒ None
+    case None ⇒ None
     case Some(q) ⇒ Some(q.replace("_escaped_fragment_=", ""))
   }
 
@@ -52,7 +52,7 @@ final case class Request(
   final def acceptEncoding: Option[Encoding] = {
     `Accept-Encoding`(headers) match {
       case Some(accept) ⇒ if (accept.contains("deflate")) Some(Encoding.`deflate`) else if (accept.contains("gzip")) Some(Encoding.`gzip`) else None
-      case _            ⇒ None
+      case _ ⇒ None
     }
   }
 

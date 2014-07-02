@@ -53,7 +53,7 @@ final class Logging private
 
   def createLogger(any: Any): Logger = any match {
     case name: String ⇒ new NamedLogger(name)
-    case any          ⇒ new NamedLogger(any.getClass.getName.replace("$", ""))
+    case any ⇒ new NamedLogger(any.getClass.getName.replace("$", ""))
   }
 
   private[logging] final def createJLogger(name: String): JLogger = LoggerFactory.getLogger(name)

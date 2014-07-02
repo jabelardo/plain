@@ -116,7 +116,7 @@ trait ExchangeAccessImpl[A]
         } else {
           currentiteratee match {
             case Done(_) ⇒ currentiteratee = readiteratee
-            case _       ⇒
+            case _ ⇒
           }
           currentiteratee(input)
         }
@@ -211,10 +211,10 @@ trait ExchangeAccessImpl[A]
       releaseByteBuffer(writebuffer)
       if (socketchannel.isOpen) socketchannel.asInstanceOf[SocketChannelConduit].doClose
       e match {
-        case null                               ⇒
-        case _: java.io.IOException             ⇒
+        case null ⇒
+        case _: java.io.IOException ⇒
         case _: java.lang.IllegalStateException ⇒ Exchange.warn("release: " + e)
-        case _                                  ⇒ Exchange.error("release: " + e)
+        case _ ⇒ Exchange.error("release: " + e)
       }
     }
   }
@@ -282,7 +282,7 @@ private[aio] trait ExchangeIoImpl[A]
       case 0 ⇒ emptyString
       case n ⇒ readBytes(n) match {
         case a if a eq array ⇒ StringPool.get(if (lowercase) lowerAlphabet(a, 0, n) else a, n, characterset)
-        case a               ⇒ new String(a, 0, n, characterset)
+        case a ⇒ new String(a, 0, n, characterset)
       }
     })
 

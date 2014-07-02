@@ -69,7 +69,7 @@ object DirectoryResource
     while (!found && roots.hasNext) {
       val root = roots.next
       result = Paths.get(root).toAbsolutePath.resolve(remainder) match {
-        case path if path.toString.contains("..")         ⇒ throw ClientError.`406`
+        case path if path.toString.contains("..") ⇒ throw ClientError.`406`
         case path if fexists(path) && isRegularFile(path) ⇒ entity(path)
         case path if fexists(path) && isDirectory(path) ⇒
           path.toFile.listFiles(welcomefilter).filter(f ⇒ f.exists && f.isFile).headOption match {

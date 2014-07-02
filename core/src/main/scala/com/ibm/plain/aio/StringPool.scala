@@ -22,7 +22,7 @@ object StringPool {
   final def get(array: Array[Byte], length: Int, characterset: Charset): String = {
     strings.get(hash(array, length)) match {
       case Some(s) if length <= maxLength ⇒ s
-      case _                              ⇒ new String(array, 0, length, characterset)
+      case _ ⇒ new String(array, 0, length, characterset)
     }
   }
 
@@ -35,7 +35,7 @@ object StringPool {
       buf.put(s.getBytes)
       map.put(hash(buf.array, buf.position), s) match {
         case Some(_) ⇒ throw new IllegalArgumentException("Keyword with identical hash value found : " + s)
-        case _       ⇒
+        case _ ⇒
       }
     }
 

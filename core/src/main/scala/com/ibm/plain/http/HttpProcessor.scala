@@ -29,18 +29,18 @@ abstract class HttpProcessor[A]
 
   def failed(e: Throwable, exchange: Exchange[A], handler: ExchangeHandler[A]): Unit = {
     exchange ++ (e match {
-      case ExchangeControl                                        ⇒ Cont[ExchangeIo[A], Null](null)
+      case ExchangeControl ⇒ Cont[ExchangeIo[A], Null](null)
       case e: IOException if !e.isInstanceOf[FileSystemException] ⇒ Error[ExchangeIo[A]](e)
       case status: Status ⇒
         status match {
           case servererror: ServerError ⇒ debug("Dispatching failed : " + stackTraceToString(status))
-          case _                        ⇒
+          case _ ⇒
         }
         val response = exchange.outMessage.asInstanceOf[Response]
         Done[ExchangeIo[A], Response]({
           status match {
             case e: ErrorStatus ⇒ response ++ None
-            case _              ⇒
+            case _ ⇒
           }
           response ++ status
         })

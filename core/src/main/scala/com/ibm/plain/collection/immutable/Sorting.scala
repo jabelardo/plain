@@ -164,7 +164,7 @@ object Sorting {
       if (high < low) None else {
         val mid = (low + high) >>> 1
         ordering.compare(values(array(mid)), value) match {
-          case 0          ⇒ Some(mid)
+          case 0 ⇒ Some(mid)
           case c if 0 < c ⇒ recurse(low, mid - 1)
           case c if 0 > c ⇒ recurse(mid + 1, high)
         }

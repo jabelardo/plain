@@ -33,7 +33,7 @@ final class ServletContainer private
       try {
         val applicationpaths: Array[Path] = if (webApplicationsDirectory.exists) {
           webApplicationsDirectory.listFiles(FileExtensionFilter("war")) match {
-            case null  ⇒ Array.empty
+            case null ⇒ Array.empty
             case files ⇒ files.map { f ⇒ webApplicationsDirectory.toPath.resolve(f.getName).toAbsolutePath }
           }
         } else Array.empty

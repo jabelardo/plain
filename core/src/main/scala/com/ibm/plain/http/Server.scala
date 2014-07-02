@@ -103,7 +103,7 @@ final case class Server(
   private[this] var serverChannel: ServerChannel = null
 
   private[this] final lazy val settings = serverconfig match {
-    case None    ⇒ new ServerConfiguration(configpath, false)
+    case None ⇒ new ServerConfiguration(configpath, false)
     case Some(s) ⇒ s
   }
 
