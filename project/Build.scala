@@ -55,6 +55,7 @@ object PlainBuild
 	  "typesafe-releases" at "http://repo.typesafe.com/typesafe/releases/",
 	  "scalasbt-releases" at "http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases/",
           "pentaho-releases" at "http://repository.pentaho.org/artifactory/repo/",
+	  "codels" at "https://code.lds.org/nexus/content/groups/main-repo/",
           "fusesource-releases" at "http://repo.fusesource.com/nexus/content/groups/public/"))
   }
 
@@ -98,7 +99,7 @@ object PlainBuild
 
   lazy val integration = Project(
     id = "plain-integration",
-    base = file("integration"),
+    base = file("./integration"),
     dependencies = Seq(core))
 
   lazy val integrationclient = Project(

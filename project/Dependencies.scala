@@ -62,12 +62,12 @@ object Dependencies {
       "com.h2database" % "h2" % "1.4.178")
 
     def oracleJdbc = Seq(
-      "com.oracle" % "ojdbc" % "11.2.0" % "provided")
+      "com.oracle" % "ojdbc6" % "11.2.0.3")
 
     def microsoftJdbc = Seq(
       "com.microsoft.sqlserver" % "sqljdbc4" % "4.0" % "provided")
 
-    def dependencies = jdbc
+    def dependencies = jdbc ++ oracleJdbc
 
   }
 
@@ -91,6 +91,7 @@ object Dependencies {
       "org.apache.camel" % "camel-sjms" % camelVersion,
       "org.apache.camel" % "camel-mail" % camelVersion,
       "org.apache.activemq" % "activemq-camel" % activemqVersion,
+      "org.apache.activemq.protobuf" % "activemq-protobuf" % "1.1",
       "org.apache.activemq" % "activemq-broker" % activemqVersion,
       "org.apache.activemq" % "activemq-jaas" % activemqVersion,
       "org.apache.activemq" % "activemq-kahadb-store" % activemqVersion)
@@ -115,7 +116,7 @@ object Dependencies {
       "org.apache.camel" % "camel-http4" % camelVersion,
       "org.apache.camel" % "camel-ahc" % camelVersion)
 
-    def dependencies = core ++ networking ++ messaging ++ persistence
+    def dependencies = core ++ networking ++ messaging ++ persistence ++ Jdbc.dependencies
 
   }
 
