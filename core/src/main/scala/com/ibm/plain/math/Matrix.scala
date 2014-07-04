@@ -65,5 +65,7 @@ object Matrix {
 
   final def apply(m: Array[Double]) = new Matrix(m)
 
+  final val unity = apply(Array[Double](1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0))
+
 }
 
