@@ -34,6 +34,13 @@ package object reflect {
 
   final def stackSize = try { throw new Exception("stackSize thrown.") } catch { case e: Throwable ⇒ println("stackSize : " + e.getStackTrace.size) }
 
+  final def companion[A](anyclass: Class[A]): A = {
+    val c = mirror.classSymbol(anyclass)
+    val m = c.companionSymbol.asModule
+    val mm = mirror.reflectModule(m)
+    mm.instance.asInstanceOf[A]
+  }
+
   /**
    * Returns the primitive corresponding to it, for example Int for java.lang.Integer
    */
