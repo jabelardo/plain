@@ -6,7 +6,9 @@ package math
 
 import java.io.PrintWriter
 
-final class Matrix(val m: Array[Double])
+final class Matrix(
+
+  val m: Array[Double])
 
   extends Serializable {
 
@@ -47,7 +49,12 @@ final class Matrix(val m: Array[Double])
 
 }
 
+/**
+ *
+ */
 object Matrix {
+
+  final def apply(m: Array[Double]) = new Matrix(m)
 
   final def apply(
     m1: Double,
@@ -63,9 +70,7 @@ object Matrix {
     m11: Double,
     m12: Double): Matrix = apply(Array[Double](m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12))
 
-  final def apply(m: Array[Double]) = new Matrix(m)
-
-  final val unity = apply(Array[Double](1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0))
+  final val identity = apply(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 
 }
 
