@@ -46,7 +46,7 @@ final case class ConnectionFactory(
   /**
    * Helper mapping to a corresponding com.typesafe.slick driver class.
    */
-  final def slickDriverClass: Class[_] = Class.forName(slickdriverclass)
+  final def getSlickJdbcProfileClass: Class[_] = Class.forName(slickjdbcprofileclass)
 
   override final def start = {
     setParameters(datasource, datasourcesettings)
@@ -221,7 +221,7 @@ final case class ConnectionFactory(
 
   private[this] final val connectionsettings = settings.getConfig("connection-settings", ConfigFactory.empty).withFallback(config.settings.getConfig("plain.jdbc.drivers." + driver + ".connection-settings", ConfigFactory.empty))
 
-  private[this] final val slickdriverclass = config.settings.getString("plain.jdbc.drivers." + driver + ".slick-driver-class", "scala.slick.driver.JdbcProfile")
+  private[this] final val slickjdbcprofileclass = config.settings.getString("plain.jdbc.drivers." + driver + ".slick-jdbc-profile-class", "scala.slick.driver.JdbcProfile")
 
 }
 
