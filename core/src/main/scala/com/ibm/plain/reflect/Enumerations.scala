@@ -18,14 +18,14 @@ trait EnumerationCapabilities
 
   extends Logger {
 
-  type ENUM_TYPE
+  type EnumerationType
 
-  val asString: ENUM_TYPE ⇒ String
+  val asString: EnumerationType ⇒ String
 
   /**
    * A Sequence of all enumeration values.
    */
-  val values: Seq[ENUM_TYPE]
+  val values: Seq[EnumerationType]
 
   /**
    * Returns the enumeration value which is associated with the string.
@@ -37,7 +37,7 @@ trait EnumerationCapabilities
    * @throws EnumerationValueNotFoundException
    * If the value cannot be transformed to the enumeration type.
    */
-  def forString(value: String): ENUM_TYPE = {
+  def forString(value: String): EnumerationType = {
     values.find(asString(_) == value) match {
       case Some(enumerationValue) ⇒ enumerationValue
       case _ ⇒
@@ -47,13 +47,15 @@ trait EnumerationCapabilities
     }
   }
 
+  final def valueOf(name: String) = forString(name)
+
 }
 
 abstract class AbstractEnumeration[T](val asString: T ⇒ String)
 
   extends EnumerationCapabilities {
 
-  type ENUM_TYPE = T
+  type EnumerationType = T
 
 }
 
@@ -74,6 +76,7 @@ object EnumerationWithName {
   abstract class EnumerationCapabilities[T <: BaseType]
 
     extends AbstractEnumeration[T](_.name)
+
 }
 
 /**
@@ -88,7 +91,7 @@ object EnumerationWithClassName {
 
     extends EnumerationWithName.BaseType {
 
-    val name = this.getClass.getSimpleName
+    final val name = this.getClass.getSimpleName
 
   }
 
@@ -107,7 +110,9 @@ object EnumerationWithClassName {
 object EnumerationWithValue {
 
   trait BaseType {
+
     val value: String
+
   }
 
   abstract class EnumerationCapabilities[T <: BaseType]
