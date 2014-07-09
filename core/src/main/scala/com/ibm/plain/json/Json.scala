@@ -5,13 +5,19 @@ package plain
 package json
 
 import java.io.Reader
-import language.implicitConversions
-import scala.collection.JavaConversions.{ asScalaBuffer, mapAsScalaMap }
+
+import scala.collection.JavaConversions.asScalaBuffer
+import scala.collection.JavaConversions.mapAsScalaMap
 import scala.collection.Map
-import scala.collection.immutable.{ List, Seq }
+import scala.collection.immutable.List
+import scala.collection.immutable.Seq
+import scala.language.implicitConversions
 import scala.math.BigDecimal.double2bigDecimal
-import scala.util.parsing.combinator.JavaTokenParsers
+
 import com.fasterxml.jackson.databind.ObjectMapper
+import org.json4s._
+import org.json4s.native.JsonMethods
+
 import Helpers.stringToConfiggyString
 
 final case class Json(any: Any) {
@@ -57,8 +63,12 @@ object JsonConversions {
 }
 
 object Json {
+
   type JArray = List[Json]
+
   type JObject = Map[String, Json]
+
+  final def parse4s(s: String) = JsonMethods.parse(s)
 
   final def apply(s: String) = parse(s)
 

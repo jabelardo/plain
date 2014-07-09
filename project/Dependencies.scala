@@ -42,6 +42,7 @@ object Dependencies {
       "net.lingala.zip4j" % "zip4j" % "1.3.2")
 
     def json = Seq(
+      "org.json4s" %% "json4s-native" % "3.2.9",
       "com.fasterxml.jackson.core" % "jackson-databind" % "2.4.1.1",
       "com.sun.jersey" % "jersey-json" % "1.18.1")
 
