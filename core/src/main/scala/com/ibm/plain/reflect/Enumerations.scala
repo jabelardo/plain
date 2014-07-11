@@ -91,7 +91,7 @@ object EnumerationWithClassName {
 
     extends EnumerationWithName.BaseType {
 
-    final val name = this.getClass.getSimpleName
+    final val name = this.getClass.getSimpleName.replace("$", "")
 
   }
 
