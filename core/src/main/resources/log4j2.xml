@@ -20,7 +20,9 @@
 			additivity="false" />
 		<Logger name="akka.camel" level="error"
 			additivity="false" />
-		<Logger name="com.typesafe.slick.SlickExtensions" level="error"
+		<Logger name="scala.slick" level="error"
+			additivity="false" />
+		<Logger name="com.typesafe.slick" level="off"
 			additivity="false" />
 	</Loggers>
 </Configuration>

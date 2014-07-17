@@ -34,8 +34,11 @@ package object reflect {
 
   final def stackSize = try { throw new Exception("stackSize thrown.") } catch { case e: Throwable ⇒ println("stackSize : " + e.getStackTrace.size) }
 
-  final def companion[A](anyclass: Class[A]): A = {
-    val c = mirror.classSymbol(anyclass)
+  /**
+   * No error checking, existance is assumed. Use CompanionObject instead to get an optional companion.
+   */
+  final def companion[A](clazz: Class[A]): A = {
+    val c = mirror.classSymbol(clazz)
     val m = c.companionSymbol.asModule
     val mm = mirror.reflectModule(m)
     mm.instance.asInstanceOf[A]
