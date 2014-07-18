@@ -70,6 +70,8 @@ object Json {
 
   final def parse4s(s: String) = JsonMethods.parse(s)
 
+  final def parse4s(reader: Reader) = JsonMethods.parse(reader)
+
   final def apply(s: String) = parse(s)
 
   final def apply(reader: Reader) = parse(reader)
