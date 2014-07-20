@@ -5,6 +5,7 @@ package plain
 package http
 
 import java.nio.ByteBuffer
+import scala.collection.immutable.SortedMap
 
 import reflect.{ scalifiedName, subClasses }
 
@@ -44,17 +45,17 @@ object MimeType {
     case "application/atom+xml" ⇒ `application/atom+xml`
     case "cgr" | "application/cgr" | "application/x-cgr" | "application/catia-3d" ⇒ `application/vnd.catiav5-cgr`
     case "3dxml" | "application/3dxml" | "application/x-3exml" | "application/vnd.catiav5-3dxml" ⇒ `application/vnd.catiav5-3dxml`
-    case "application/catiav5-local2d" | "application/vnd-catiav5-drawing" ⇒ `application/vnd.catiav5-drawing`
-    case "application/catiav5-part" | "application/vnd-catiav5-part" ⇒ `application/vnd.catiav5-part`
-    case "model" | "application/model" | "application/x-model" | "application/vnd-catiav5-model" ⇒ `application/vnd.catiav5-model`
-    case "application/catiav5-product" | "application/vnd-catiav5-product" ⇒ `application/vnd.catiav5-product`
-    case "application/catiav5-material" | "application/vnd-catiav5-material" ⇒ `application/vnd.catiav5-material`
-    case "application/catalog" | "application/vnd-catiav5-catalog" ⇒ `application/vnd.catiav5-catalog`
-    case "application/catiav5-analysis" | "application/vnd-catiav5-analysis" ⇒ `application/vnd.catiav5-analysis`
-    case "application/catiav5-process" | "application/vnd-catiav5-process" ⇒ `application/vnd.catiav5-process`
-    case "jt" | "application/jt" | "application/x-jt" | "application/vnd-siemens-plm-jt" ⇒ `application/vnd.siemens-plm-jt`
-    case "plmxml" | "application/plmxml" | "application/x-plmxml" | "application/unigraphics" | "application/vnd-siemens-plm-plmxml" ⇒ `application/vnd.siemens-plm-plmxml`
-    case "vfz" | "application/vfz" | "application/x-vfz" | "application/vnd-siemens-plm-vfz" ⇒ `application/vnd.siemens-plm-vfz`
+    case "application/catiav5-local2d" | "application/vnd.catiav5-drawing" ⇒ `application/vnd.catiav5-drawing`
+    case "application/catiav5-part" | "application/vnd.catiav5-part" ⇒ `application/vnd.catiav5-part`
+    case "model" | "application/model" | "application/x-model" | "application/vnd.catiav5-model" ⇒ `application/vnd.catiav5-model`
+    case "application/catiav5-product" | "application/vnd.catiav5-product" ⇒ `application/vnd.catiav5-product`
+    case "application/catiav5-material" | "application/vnd.catiav5-material" ⇒ `application/vnd.catiav5-material`
+    case "application/catalog" | "application/vnd.catiav5-catalog" ⇒ `application/vnd.catiav5-catalog`
+    case "application/catiav5-analysis" | "application/vnd.catiav5-analysis" ⇒ `application/vnd.catiav5-analysis`
+    case "application/catiav5-process" | "application/vnd.catiav5-process" ⇒ `application/vnd.catiav5-process`
+    case "jt" | "application/jt" | "application/x-jt" | "application/vnd.siemens-plm-jt" ⇒ `application/vnd.siemens-plm-jt`
+    case "plmxml" | "application/plmxml" | "application/x-plmxml" | "application/unigraphics" | "application/vnd.siemens-plm-plmxml" ⇒ `application/vnd.siemens-plm-plmxml`
+    case "vfz" | "application/vfz" | "application/x-vfz" | "application/vnd.siemens-plm-vfz" ⇒ `application/vnd.siemens-plm-vfz`
     case "application/gzip" | "application/x-gzip" ⇒ `application/gzip`
     case "application/javascript" ⇒ `application/javascript`
     case "application/x-jar" | "application/java-archive" ⇒ `application/java-archive`
@@ -125,13 +126,13 @@ object MimeType {
 
     final val encodable: Boolean,
 
-    final val ext: Seq[String] = Seq.empty) extends MimeType {
+    final val extension: Seq[String] = Seq.empty) extends MimeType {
 
-    final def this(ext: Seq[String]) = this(true, ext)
+    final def this(extension: Seq[String]) = this(true, extension)
 
     final val name = toString
 
-    final val extensions = ext.toSet
+    final val extensions = extension.toSet
 
     final val text = name.getBytes
 
@@ -139,13 +140,13 @@ object MimeType {
 
   }
 
-  abstract class `audio/*`(ext: String*) extends PredefinedMimeType(false, ext)
-  abstract class `application/*`(encodable: Boolean, ext: String*) extends PredefinedMimeType(encodable, ext)
-  abstract class `image/*`(ext: String*) extends PredefinedMimeType(false, ext)
-  abstract class `message/*`(ext: String*) extends PredefinedMimeType(ext)
-  abstract class `multipart/*`(ext: String*) extends PredefinedMimeType(ext)
-  abstract class `text/*`(ext: String*) extends PredefinedMimeType(ext)
-  abstract class `video/*`(ext: String*) extends PredefinedMimeType(false, ext)
+  abstract class `audio/*`(extension: String*) extends PredefinedMimeType(false, extension)
+  abstract class `application/*`(encodable: Boolean, extension: String*) extends PredefinedMimeType(encodable, extension)
+  abstract class `image/*`(extension: String*) extends PredefinedMimeType(false, extension)
+  abstract class `message/*`(extension: String*) extends PredefinedMimeType(extension)
+  abstract class `multipart/*`(extension: String*) extends PredefinedMimeType(extension)
+  abstract class `text/*`(extension: String*) extends PredefinedMimeType(extension)
+  abstract class `video/*`(extension: String*) extends PredefinedMimeType(false, extension)
 
   case object `*/*` extends PredefinedMimeType(Seq.empty)
 
@@ -248,9 +249,9 @@ object MimeType {
 
   def forExtension(extension: String): Option[MimeType] = extensionsmap.get(extension)
 
-  private[this] var extensionsmap: scala.collection.immutable.SortedMap[String, MimeType] = scala.collection.immutable.SortedMap.empty
+  private[this] var extensionsmap: SortedMap[String, MimeType] = SortedMap.empty
 
-  subClasses(classOf[MimeType]).map(scalifiedName).filter(!_.endsWith("MimeType")).foreach(apply)
+  subClasses(classOf[MimeType]).map(scalifiedName).foreach(m ⇒ ignore(apply(m)))
 
 }
 
