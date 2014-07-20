@@ -209,7 +209,7 @@ import collection.immutable.Sorting._
       for (i ← 1 to m) {
         t += time.timeNanos {
           for (j ← 0 until n) b.next(j match {
-            case 333             ⇒ 3.14
+            case 333 ⇒ 3.14
             case j if n - 1 == j ⇒ 2.72
             case j if 0 == (j + 1) % 1000000 ⇒
               println(j + 1); Random.nextInt(3) match { case 0 ⇒ 0.0 case 1 ⇒ 1.0 case 2 ⇒ Random.nextDouble }

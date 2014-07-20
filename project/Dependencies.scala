@@ -46,11 +46,15 @@ object Dependencies {
       "com.fasterxml.jackson.core" % "jackson-databind" % "2.4.1.1",
       "com.sun.jersey" % "jersey-json" % "1.18.1")
 
+    def time = Seq(
+      "joda-time" % "joda-time" % "2.3"
+    )
+
     def modules = Seq(
       "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.1")
 
-    def dependencies = logging ++ commons ++ net ++ reflection ++ javax ++ compress ++ json ++ modules
+    def dependencies = logging ++ commons ++ net ++ reflection ++ javax ++ compress ++ json ++ time ++ modules
 
   }
 

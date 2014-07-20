@@ -79,15 +79,15 @@ object Test2 {
 
     class AssignInt extends Assign[Int] {
       def assign(a: Any): Int = a match {
-        case a: Int     ⇒ a
-        case a: Double  ⇒ scala.math.round(a).toInt
-        case a: Float   ⇒ scala.math.round(a)
-        case a: String  ⇒ a.toInt
+        case a: Int ⇒ a
+        case a: Double ⇒ scala.math.round(a).toInt
+        case a: Float ⇒ scala.math.round(a)
+        case a: String ⇒ a.toInt
         case a: Boolean ⇒ if (a) 1 else 0
-        case null       ⇒ 0
-        case None       ⇒ 0
+        case null ⇒ 0
+        case None ⇒ 0
         //case a: ToInt if a.isInstanceOf[ToInt] ⇒ a.toInt
-        case a          ⇒ a.toString.toInt
+        case a ⇒ a.toString.toInt
       }
     }
 

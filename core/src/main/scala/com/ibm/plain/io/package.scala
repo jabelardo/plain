@@ -238,6 +238,13 @@ package object io
   final val devnull = NullOutputStream
 
   /**
+   * Objects with a method close() have this method automatically called when going out of scope, normally and in case of an exception.
+   * @since 0.9.4
+   * Example: autoClose(new FileWriter("test")) { f => f.write("Hello") }
+   */
+  final val autoClose = WithClosable
+
+  /**
    * check requirements
    */
   require(null != temp, "Neither plain.temp config setting nor TMP environment variable nor java.io.tmpdir property are set.")
