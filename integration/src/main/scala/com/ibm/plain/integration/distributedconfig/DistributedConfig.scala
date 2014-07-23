@@ -59,6 +59,15 @@ final class DistributedConfig
       loadBalance.failover(-1, false, true).
       to("direct:bad", "direct:bad2", "direct:good", "direct:good2")
 
+    /**
+     * sample routes
+     *
+     */
+    from("servlet:/create-job-type-1?matchOnUriPrefix=true").
+      routeId("create-job-type-1").
+      setBody(settings.root.render, classOf[String]).
+      to("file:/tmp/input")
+
   }
 
   private[this] final def slaveRoutes = new RouteBuilder {
@@ -67,7 +76,10 @@ final class DistributedConfig
       routeId("distributed-config-slave-routes").
       to("ahc:http://" + masterHost + ":" + masterPort + "/integration-services/distributed-config").
       convertBodyTo(classOf[String]).
-      to("mock:result")
+      to("mock:result").choice.
+      when("type1".length > 0).to("mock:result").
+      when("type2".length > 0).to("mock:result").
+      to("mock:result");
 
   }
 

@@ -120,7 +120,7 @@ final class ServletContext(
 
   final def getResourcePaths(path: String): JSet[String] = new java.util.HashSet[String](classloader.getResources(path).map(_.toString).toList)
 
-  final def getServerInfo: String = unsupported
+  final def getServerInfo: String = "plain-core-0.9.4-SNAPSHOT"
 
   final def getServlet(name: String): js.Servlet = servlets.get(name) match {
     case Some((Left((_, servlet)), _, _)) ⇒ servlet
