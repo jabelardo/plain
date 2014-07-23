@@ -91,7 +91,7 @@ object EnumerationWithClassName {
 
     extends EnumerationWithName.BaseType {
 
-    final val name = this.getClass.getSimpleName.replace("$", "")
+    final val name = try getClass.getSimpleName.replace("$", "") catch { case _: Throwable ⇒ scalifiedName(getClass) }
 
   }
 
