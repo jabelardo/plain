@@ -1,4 +1,4 @@
 
 
-plain : (P)roduct (L)ifecycle (A)cceleration and (I)ntegration in a (N)utshell
+plain : (P)roduct (L)ifecycle (A)cceleration and (IN)tegration.
 
