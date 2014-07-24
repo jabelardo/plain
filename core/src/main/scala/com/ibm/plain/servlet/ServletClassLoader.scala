@@ -124,7 +124,7 @@ final class ServletClassLoader private (
 
   private[this] final val systemloader = ClassLoader.getSystemClassLoader
 
-  private[this] final val directoryurls = getURLs.map(_.getPath).filter(_.endsWith("/")).map(Paths.get(_))
+  private[this] final val directoryurls = getURLs.map(_.toURI).filter(_.getPath().endsWith("/")).map(Paths.get(_))
 
   private[this] final val CLASSFILESUFFIX = ".class"
 
