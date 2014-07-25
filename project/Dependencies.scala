@@ -10,9 +10,9 @@ object Dependencies {
       "com.typesafe" % "config" % "1.2.1",
       "org.slf4j" % "slf4j-api" % "1.7.7",
       "com.lmax" % "disruptor" % "3.2.1",
-      "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.0-rc2",
-      "org.apache.logging.log4j" % "log4j-api" % "2.0-rc2",
-      "org.apache.logging.log4j" % "log4j-core" % "2.0-rc2")
+      "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.0",
+      "org.apache.logging.log4j" % "log4j-api" % "2.0",
+      "org.apache.logging.log4j" % "log4j-core" % "2.0")
 
     def commons = Seq(
       "com.googlecode.concurrentlinkedhashmap" % "concurrentlinkedhashmap-lru" % "1.4",
@@ -24,13 +24,11 @@ object Dependencies {
       "org.apache.httpcomponents" % "httpclient" % "4.3.4")
 
     def net = Seq(
-      "com.ning" % "async-http-client" % "1.8.11")
+      "com.ning" % "async-http-client" % "1.8.12")
 
     def reflection = Seq(
-      "org.scala-lang" % "scala-reflect" % "2.11.1",
-      "org.reflections" % "reflections" % "0.9.9-RC2",
-      "com.google.guava" % "guava" % "17.0",
-      "org.javassist" % "javassist" % "3.18.2-GA")
+      "org.scala-lang" % "scala-reflect" % "2.11.2",
+      "org.reflections" % "reflections" % "0.9.9-RC1")
 
     def javax = Seq(
       "javax.servlet" % "javax.servlet-api" % "3.1.0",
@@ -42,8 +40,8 @@ object Dependencies {
       "net.lingala.zip4j" % "zip4j" % "1.3.2")
 
     def json = Seq(
-      "org.json4s" %% "json4s-native" % "3.2.9",
-      "com.fasterxml.jackson.core" % "jackson-databind" % "2.4.1.1",
+      "org.json4s" %% "json4s-native" % "3.2.10",
+      "com.fasterxml.jackson.core" % "jackson-databind" % "2.4.1.3",
       "com.sun.jersey" % "jersey-json" % "1.18.1")
 
     def time = Seq(
@@ -52,7 +50,7 @@ object Dependencies {
 
     def modules = Seq(
       "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
-      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.1")
+      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.2")
 
     def dependencies = logging ++ commons ++ net ++ reflection ++ javax ++ compress ++ json ++ time ++ modules
 
@@ -64,7 +62,7 @@ object Dependencies {
       "mysql" % "mysql-connector-java" % "5.1.31",
       "org.apache.derby" % "derby" % "10.10.2.0",
       "org.apache.derby" % "derbyclient" % "10.10.2.0",
-      "com.h2database" % "h2" % "1.4.178")
+      "com.h2database" % "h2" % "1.4.180")
 
     def oracleJdbc = Seq(
       "com.oracle" % "ojdbc6" % "11.2.0.3")
@@ -78,9 +76,11 @@ object Dependencies {
 
   object Integration {
 
-    def camelVersion = "2.13.1"
+    def camelVersion = "2.13.2"
 
     def activemqVersion = "5.10.0"
+
+    def slickVersion = "2.1.0-RC2"
 
     def core = Seq(
       "org.apache.camel" % "camel-scala" % camelVersion,
@@ -108,7 +108,8 @@ object Dependencies {
       "org.apache.camel" % "camel-jdbc" % camelVersion,
       "org.apache.camel" % "camel-sql" % camelVersion,
       "org.apache.camel" % "camel-leveldb" % camelVersion,
-      "com.typesafe.slick" %% "slick" % "2.1.0-M2")
+      "com.typesafe.slick" %% "slick-extensions" % slickVersion,
+      "com.typesafe.slick" %% "slick" % slickVersion)
 
     def networking = Seq(
       "org.apache.camel" % "camel-jsch" % camelVersion,
