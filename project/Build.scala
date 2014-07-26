@@ -43,6 +43,7 @@ object PlainBuild
           "-Yinline-warnings",
           "-Yno-generic-signatures",
           "-optimize",
+          "-nowarn",
           "-unchecked"),
         javacOptions ++= Seq(
           "-source", "1.8",
@@ -67,7 +68,8 @@ object PlainBuild
     import scalariform.formatter.preferences._
     FormattingPreferences()
       .setPreference(RewriteArrowSymbols, true)
-      .setPreference(AlignParameters, true)
+      .setPreference(AlignSingleLineCaseStatements, false)
+      .setPreference(AlignParameters, false)
   }
 
   def applicationSettings = defaultSettings ++ Seq(fork in (Compile, run) := false)
