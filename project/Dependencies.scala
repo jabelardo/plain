@@ -24,7 +24,10 @@ object Dependencies {
       "org.apache.httpcomponents" % "httpclient" % "4.3.4")
 
     def net = Seq(
-      "com.ning" % "async-http-client" % "1.8.12")
+      "org.glassfish.grizzly" % "grizzly-websockets" % "2.3.16",
+      "org.glassfish.grizzly" % "grizzly-http" % "2.3.16",
+      "org.glassfish.grizzly" % "grizzly-framework" % "2.3.16",
+      "com.ning" % "async-http-client" % "1.8.13")
 
     def reflection = Seq(
       "org.scala-lang" % "scala-reflect" % "2.11.2",
