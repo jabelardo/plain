@@ -8,7 +8,7 @@ import scala.language.reflectiveCalls
  */
 private[io] final class WithClosable[A <: { def close() }] private (
 
-  closable: A) {
+    closable: A) {
 
   private def call[B](block: A ⇒ B) = {
     var ex: Throwable = null

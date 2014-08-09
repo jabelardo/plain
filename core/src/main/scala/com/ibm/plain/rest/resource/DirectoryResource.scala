@@ -33,7 +33,7 @@ import logging.Logger
  */
 final class DirectoryResource
 
-  extends Resource {
+    extends Resource {
 
   import DirectoryResource._
 
@@ -48,7 +48,7 @@ final class DirectoryResource
  */
 object DirectoryResource
 
-  extends Logger {
+    extends Logger {
 
   private final def get(list: Seq[String], remainder: String, exchange: Exchange[Context]) = {
     val roots = list.iterator

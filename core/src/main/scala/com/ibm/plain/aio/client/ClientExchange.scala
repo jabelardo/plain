@@ -11,24 +11,22 @@ import java.nio.ByteBuffer
 import java.nio.channels.{ CompletionHandler ⇒ Handler }
 import java.util.concurrent.CountDownLatch
 
-import scala.util.control.TailCalls._
-
 import aio.conduit.Conduit
-import concurrent.spawn
 import logging.Logger
+import concurrent.spawn
 
 /**
  *
  */
 final class ClientExchange private (
 
-  private[this] final val source: Conduit,
+    private[this] final val source: Conduit,
 
-  private[this] final val destination: Conduit,
+    private[this] final val destination: Conduit,
 
-  private[this] final val handler: Handler[Integer, ClientExchange],
+    private[this] final val handler: Handler[Integer, ClientExchange],
 
-  private[this] final val progressfun: Int ⇒ Unit) {
+    private[this] final val progressfun: Int ⇒ Unit) {
 
   import ClientExchange._
 
@@ -47,15 +45,14 @@ final class ClientExchange private (
    * Transfers from source to destination and waits for the transfer to be completed.
    */
   final def transferAndWait = {
-    latch = new CountDownLatch(1)
     readTransfer(TransferReadHandler)
     latch.await
   }
 
   /**
-   * Note: spawn
+   * Note: spawn, necessary to keep the stack depth shallow.
    */
-  @inline private final def readTransfer(handler: ExchangeHandler) = spawn {
+  @inline private final def readTransfer(handler: ExchangeHandler) = {
     buffer.clear
     source.read(buffer, this, handler)
   }
@@ -72,7 +69,7 @@ final class ClientExchange private (
     releaseByteBuffer(buffer)
     source.close
     destination.close
-    if (null != latch) latch.countDown
+    latch.countDown
     if (null != handler) if (null == e) handler.completed(-1, this) else handler.failed(e, this)
   }
 
@@ -82,7 +79,7 @@ final class ClientExchange private (
 
   private[this] final val buffer = defaultByteBuffer
 
-  private[this] final var latch: CountDownLatch = null
+  private[this] final val latch = new CountDownLatch(1)
 
 }
 
@@ -91,7 +88,7 @@ final class ClientExchange private (
  */
 object ClientExchange
 
-  extends Logger {
+    extends Logger {
 
   final def apply(source: Conduit, destination: Conduit, handler: Handler[Integer, ClientExchange], progress: Int ⇒ Unit) = new ClientExchange(source, destination, handler, progress)
 
@@ -102,7 +99,7 @@ object ClientExchange
    */
   sealed abstract class ReleaseHandler
 
-    extends Handler[Integer, ClientExchange] {
+      extends Handler[Integer, ClientExchange] {
 
     final def failed(e: Throwable, exchange: ClientExchange) = {
       e match {
@@ -125,7 +122,7 @@ object ClientExchange
    */
   object TransferReadHandler
 
-    extends ReleaseHandler {
+      extends ReleaseHandler {
 
     @inline final def doComplete(processed: Integer, exchange: ClientExchange) = {
       exchange.progress(processed)
@@ -140,7 +137,7 @@ object ClientExchange
 
   object TransferWriteHandler
 
-    extends ReleaseHandler {
+      extends ReleaseHandler {
 
     @inline final def doComplete(processed: Integer, exchange: ClientExchange) = {
       if (0 < exchange.available) {
@@ -153,7 +150,7 @@ object ClientExchange
 
   object TransferCloseHandler
 
-    extends ReleaseHandler {
+      extends ReleaseHandler {
 
     @inline final def doComplete(processed: Integer, exchange: ClientExchange) = {
       if (0 < exchange.available) {

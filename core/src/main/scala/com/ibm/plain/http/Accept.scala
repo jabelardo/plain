@@ -15,7 +15,7 @@ final case class Accept private (
 
   mimetypes: List[MimeType])
 
-  extends AnyVal {
+    extends AnyVal {
 
   import Accept._
 

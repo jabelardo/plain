@@ -11,7 +11,7 @@ import java.sql.{ Connection ⇒ JdbcConnection }
  */
 class ConnectionWrapper(connection: JdbcConnection)
 
-  extends JdbcConnection {
+    extends JdbcConnection {
 
   def close = connection.close
   def clearWarnings = connection.clearWarnings

@@ -12,7 +12,7 @@ final class ServletInputStream(
 
   private[this] final val in: ByteArrayInputStream)
 
-  extends js.ServletInputStream {
+    extends js.ServletInputStream {
 
   final def isFinished = !isReady
 

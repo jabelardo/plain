@@ -15,7 +15,7 @@ final class ByteArrayOutputStream(
 
   private[this] final var capacity: Int)
 
-  extends OutputStream {
+    extends OutputStream {
 
   override final def close = capacity = position
 

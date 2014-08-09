@@ -9,7 +9,7 @@ package aio
  */
 package object conduit
 
-  extends config.CheckedConfig {
+    extends config.CheckedConfig {
 
   import config._
   import config.settings._

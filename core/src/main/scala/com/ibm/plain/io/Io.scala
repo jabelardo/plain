@@ -17,9 +17,9 @@ import bootstrap.{ BaseComponent, IsSingleton, Singleton }
  */
 final class Io private
 
-  extends BaseComponent[Io]("plain-io")
+    extends BaseComponent[Io]("plain-io")
 
-  with IsSingleton {
+    with IsSingleton {
 
   override def stop = {
     if (isStarted) deleteAll

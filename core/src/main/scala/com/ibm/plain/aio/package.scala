@@ -16,7 +16,7 @@ import logging.createLogger
 
 package object aio
 
-  extends config.CheckedConfig {
+    extends config.CheckedConfig {
 
   import config._
   import config.settings._
@@ -118,7 +118,7 @@ package object aio
   /**
    * Check requirements.
    */
-  require(16 <= defaultBufferSize, "plain.aio.default-buffer-size must be >= " + 16)
+  require(512 <= defaultBufferSize, "plain.aio.default-buffer-size must be >= " + 512)
 
   require(16 <= tinyBufferSize, "plain.aio.tiny-buffer-size must be >= " + 16)
 
@@ -126,6 +126,6 @@ package object aio
 
   require(64 * 1024 <= hugeBufferSize, "plain.aio.huge-buffer-size must be >= " + 64 * 1024)
 
-  require((tinyBufferSize <= defaultBufferSize) && (defaultBufferSize <= largeBufferSize) && (largeBufferSize <= hugeBufferSize), "plain.aio buffer sizes: tiny <= default <= large <= huge violated")
+  require(((tinyBufferSize <= defaultBufferSize) && (defaultBufferSize <= largeBufferSize) && (largeBufferSize <= hugeBufferSize)), "plain.aio buffer sizes: tiny <= default <= large <= huge violated")
 
 }

@@ -16,7 +16,7 @@ final class DeflaterOutputStream(
 
   compressionlevel: Int)
 
-  extends JDeflaterOutputStream(output) {
+    extends JDeflaterOutputStream(output) {
 
   `def`.setLevel(compressionlevel)
 

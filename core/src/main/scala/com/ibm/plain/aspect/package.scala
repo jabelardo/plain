@@ -6,7 +6,7 @@ import config.CheckedConfig
 
 package object aspect
 
-  extends CheckedConfig {
+    extends CheckedConfig {
 
   import config._
   import config.settings._

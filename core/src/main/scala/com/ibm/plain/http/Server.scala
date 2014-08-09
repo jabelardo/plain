@@ -35,9 +35,9 @@ final case class Server(
 
   private val serverconfig: Option[Server.ServerConfiguration])
 
-  extends BaseComponent[Server]
+    extends BaseComponent[Server]
 
-  with Logger {
+    with Logger {
 
   import Server._
 
@@ -137,7 +137,7 @@ object Server {
 
     val default: Boolean)
 
-    extends CheckedConfig {
+      extends CheckedConfig {
 
     final val cfg: Config = config.settings.getConfig(path).withFallback(if (default) fallback else defaultServerConfiguration.cfg)
 

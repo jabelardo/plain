@@ -4,7 +4,7 @@ import scala.concurrent.duration.Duration
 
 package object plain
 
-  extends config.CheckedConfig {
+    extends config.CheckedConfig {
 
   import config._
   import config.settings._

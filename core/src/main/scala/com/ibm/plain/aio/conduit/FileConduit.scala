@@ -21,9 +21,9 @@ final class FileConduit(
 
   protected[this] final val wrappedchannel: FileChannel)
 
-  extends WrapperConduit
+    extends WrapperConduit
 
-  with TerminatingConduit {
+    with TerminatingConduit {
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     wrappedchannel.read(buffer, position, attachment, new FileHandler(handler))
@@ -37,7 +37,7 @@ final class FileConduit(
 
     private[this] final val handler: Handler[A])
 
-    extends BaseHandler[A](handler) {
+      extends BaseHandler[A](handler) {
 
     @inline final def completed(processed: Integer, attachment: A) = {
       if (0 < processed) position += processed

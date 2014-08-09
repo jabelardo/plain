@@ -21,7 +21,7 @@ import servlet.http.HttpServletResource
  */
 abstract class Dispatcher
 
-  extends HttpDispatcher[Context] {
+    extends HttpDispatcher[Context] {
 
   import Dispatcher._
 

@@ -19,9 +19,9 @@ final class DeflateConduit private (
 
   protected[this] final val compressionlevel: Int)
 
-  extends DeflateSourceConduit
+    extends DeflateSourceConduit
 
-  with DeflateSinkConduit {
+    with DeflateSinkConduit {
 
   protected[this] final val nowrap = false
 
@@ -43,7 +43,7 @@ object DeflateConduit {
  */
 trait DeflateSourceConduit
 
-  extends FilterSourceConduit[Channel] {
+    extends FilterSourceConduit[Channel] {
 
   protected[this] def filterIn(processed: Integer, buffer: ByteBuffer): Integer = {
     if (0 >= processed) {
@@ -74,7 +74,7 @@ trait DeflateSourceConduit
  */
 trait DeflateSinkConduit
 
-  extends FilterSinkConduit[Channel] {
+    extends FilterSinkConduit[Channel] {
 
   protected[this] def filterOut(processed: Integer, buffer: ByteBuffer): Integer = {
     if (0 >= processed) {

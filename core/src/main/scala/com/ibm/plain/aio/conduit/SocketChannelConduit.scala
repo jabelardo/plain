@@ -20,11 +20,11 @@ final class SocketChannelConduit private (
 
   protected[this] final val underlyingchannel: SocketChannel)
 
-  extends SocketChannelSourceConduit
+    extends SocketChannelSourceConduit
 
-  with SocketChannelSinkConduit
+    with SocketChannelSinkConduit
 
-  with IgnoringCloseable {
+    with IgnoringCloseable {
 
   override final def doClose = underlyingchannel.close
 
@@ -61,7 +61,7 @@ object SocketChannelConduit {
  */
 sealed trait SocketChannelSourceConduit
 
-  extends ConnectorSourceConduit[SocketChannel] {
+    extends ConnectorSourceConduit[SocketChannel] {
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     underlyingchannel.read(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, attachment, handler)
@@ -74,7 +74,7 @@ sealed trait SocketChannelSourceConduit
  */
 sealed trait SocketChannelSinkConduit
 
-  extends ConnectorSinkConduit[SocketChannel] {
+    extends ConnectorSinkConduit[SocketChannel] {
 
   final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     underlyingchannel.write(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, attachment, handler)

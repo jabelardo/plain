@@ -146,7 +146,7 @@ trait ExchangeIo[A] {
  */
 object Exchange
 
-  extends Logger {
+    extends Logger {
 
   /**
    * Constructor.
@@ -188,7 +188,7 @@ object Exchange
      */
     object AcceptHandler
 
-      extends Handler[SocketChannel, Null] {
+        extends Handler[SocketChannel, Null] {
 
       @inline final def completed(socketchannel: SocketChannel, ignore: Null) = {
         accept
@@ -210,7 +210,7 @@ object Exchange
 
     sealed abstract class ReleaseHandler
 
-      extends ExchangeHandler[A] {
+        extends ExchangeHandler[A] {
 
       @inline final def failed(e: Throwable, exchange: Exchange[A]) = {
         e match {
@@ -233,7 +233,7 @@ object Exchange
      */
     object ReadHandler
 
-      extends ReleaseHandler {
+        extends ReleaseHandler {
 
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
         exchange(if (0 >= processed) Eof else Elem(exchange), processed != Int.MaxValue) match {
@@ -262,7 +262,7 @@ object Exchange
      */
     object ProcessHandler
 
-      extends ReleaseHandler {
+        extends ReleaseHandler {
 
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
         exchange.iteratee match {
@@ -295,7 +295,7 @@ object Exchange
      */
     object WriteHandler
 
-      extends ReleaseHandler {
+        extends ReleaseHandler {
 
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
         if (0 == exchange.available || exchange.hasError) {
@@ -313,7 +313,7 @@ object Exchange
      */
     object TransferReadHandler
 
-      extends ReleaseHandler {
+        extends ReleaseHandler {
 
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
         if (0 >= processed) {
@@ -327,7 +327,7 @@ object Exchange
 
     object TransferWriteHandler
 
-      extends ReleaseHandler {
+        extends ReleaseHandler {
 
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
         if (0 < exchange.available) {
@@ -340,7 +340,7 @@ object Exchange
 
     object TransferCloseHandler
 
-      extends ReleaseHandler {
+        extends ReleaseHandler {
 
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
         if (0 < exchange.available) {

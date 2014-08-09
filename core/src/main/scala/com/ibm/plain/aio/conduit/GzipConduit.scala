@@ -19,9 +19,9 @@ final class GzipConduit private (
 
   protected[this] final val compressionlevel: Int)
 
-  extends GzipSourceConduit
+    extends GzipSourceConduit
 
-  with GzipSinkConduit {
+    with GzipSinkConduit {
 
   protected[this] final val nowrap = true
 
@@ -43,7 +43,7 @@ object GzipConduit {
  */
 sealed trait GzipSourceConduit
 
-  extends DeflateSourceConduit {
+    extends DeflateSourceConduit {
 
   protected[this] override final def filterIn(processed: Integer, buffer: ByteBuffer): Integer = {
     if (0 >= processed) {
@@ -68,9 +68,9 @@ sealed trait GzipSourceConduit
     def skipString = while (0 != nextByte) {}
     val e = innerbuffer.position
     def crc16 = { checksum.update(innerbuffer.array, e, innerbuffer.position); checksum.getValue.toShort }
-    require(0x1f == nextByte, invalidFormat())
-    require(0x8b == nextByte, invalidFormat())
-    require(0x08 == nextByte, invalidFormat())
+    require(0x1f == nextByte, invalidFormat("1f"))
+    require(0x8b == nextByte, invalidFormat("8b"))
+    require(0x08 == nextByte, invalidFormat("08"))
     val flags = nextByte
     skip(6)
     def isSet(flag: Byte) = { 0 < ((1 << flag) & flags) }
@@ -118,7 +118,7 @@ sealed trait GzipSourceConduit
  */
 sealed trait GzipSinkConduit
 
-  extends DeflateSinkConduit {
+    extends DeflateSinkConduit {
 
   override protected[this] def filterOut(processed: Integer, buffer: ByteBuffer): Integer = {
     if (0 >= processed) {

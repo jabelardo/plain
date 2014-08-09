@@ -1,9 +1,5 @@
-package com.ibm
-
-package plain
-
+package com.ibm.plain
 package aio
-
 package conduit
 
 import java.nio.ByteBuffer
@@ -23,11 +19,11 @@ final class AHCConduit private (
 
   private[this] final val request: Request)
 
-  extends AHCSourceConduit
+    extends AHCSourceConduit
 
-  with AHCSinkConduit
+    with AHCSinkConduit
 
-  with TerminatingConduit {
+    with TerminatingConduit {
 
   requestbuilder = client.prepareRequest(request)
 
@@ -47,14 +43,15 @@ object AHCConduit {
  */
 sealed trait AHCSourceConduit
 
-  extends AHCConduitBase
+    extends AHCConduitBase
 
-  with TerminatingSourceConduit {
+    with TerminatingSourceConduit {
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     if (null != requestbuilder) {
-      requestbuilder.execute(new AHCSourceHandler(buffer, handler, attachment))
+      val r = requestbuilder
       requestbuilder = null
+      r.execute(new AHCSourceHandler(buffer, handler, attachment))
     }
     await
   }
@@ -67,20 +64,15 @@ sealed trait AHCSourceConduit
 
     private[this] final val attachment: A)
 
-    extends AsyncCompletionHandler[Unit] {
+      extends AsyncCompletionHandler[Unit] {
 
     final def onCompleted(response: Response) = ()
 
-    var c = 0L
-
     override final def onBodyPartReceived(part: HttpResponseBodyPart): State = {
       await
-      require(buffer.remaining >= part.length, buffer + " " + part.length)
       buffer.put(part.getBodyByteBuffer)
-      try {
-        handler.completed(part.length, attachment)
-        State.CONTINUE
-      } catch { case _: Throwable ⇒ State.ABORT }
+      handler.completed(part.length, attachment)
+      State.CONTINUE
     }
 
     override final def onThrowable(e: Throwable) = {
@@ -89,7 +81,7 @@ sealed trait AHCSourceConduit
 
   }
 
-  private[this] final def await = ignore(cyclicbarrier.await)
+  private[this] final def await = cyclicbarrier.await
 
   private[this] final val cyclicbarrier = new CyclicBarrier(2)
 
@@ -100,9 +92,9 @@ sealed trait AHCSourceConduit
  */
 sealed trait AHCSinkConduit
 
-  extends AHCConduitBase
+    extends AHCConduitBase
 
-  with TerminatingSinkConduit {
+    with TerminatingSinkConduit {
 
   /**
    * Not yet implemented.
@@ -116,9 +108,12 @@ sealed trait AHCSinkConduit
  */
 sealed trait AHCConduitBase
 
-  extends Conduit {
+    extends Conduit {
 
-  final def close = client.close
+  /**
+   * Must not client as it used by others in parallel.
+   */
+  final def close = ()
 
   final def isOpen = !client.isClosed
 

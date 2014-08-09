@@ -11,7 +11,7 @@ import HttpMessage.Headers
  */
 sealed abstract class Header[A]
 
-  extends (Headers ⇒ Option[A]) {
+    extends (Headers ⇒ Option[A]) {
 
   def name: String
 
@@ -34,7 +34,7 @@ object Header {
    */
   sealed abstract class PredefinedHeader[A]
 
-    extends Header[A] {
+      extends Header[A] {
 
     final val name = reflect.scalifiedName(getClass).toLowerCase
 
