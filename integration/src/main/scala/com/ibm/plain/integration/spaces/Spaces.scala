@@ -14,17 +14,20 @@ import org.apache.commons.io.FileUtils.deleteDirectory
 import bootstrap.{ ExternalComponent, Singleton }
 import logging.Logger
 
+/**
+ *
+ */
 final class Spaces
 
-  extends ExternalComponent[Spaces](
+    extends ExternalComponent[Spaces](
 
-    spaces.isEnabled,
+      spaces.isEnabled,
 
-    "plain-integration-spaces",
+      "plain-integration-spaces",
 
-    classOf[infrastructure.Infrastructure])
+      classOf[infrastructure.Infrastructure])
 
-  with Logger {
+    with Logger {
 
   override def start = {
 
