@@ -45,7 +45,7 @@ final case class SpacesURI(space: String, container: String = UUID.randomUUID.to
   private lazy val hostSpacesURL = {
     // TODO: Get the real server name via infrastructure component
     // "localhost:7070/spaces"
-    "harryklein.munich.de.ibm.com:7070/spaces/$space"
+    "localhost:7070/spaces/$space"
   }
 
   /** Returns the unified resource name */

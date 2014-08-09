@@ -16,6 +16,7 @@ import Input.Elem
 import Iteratee.{ Cont, Done, Error }
 import conduit.{ ChunkedConduit, GzipConduit, SocketChannelConduit, TarConduit, TerminatingConduit }
 import io.PrintWriter
+import concurrent.spawn
 
 /**
  *
@@ -192,6 +193,7 @@ trait ExchangeAccessImpl[A]
   }
 
   @inline private[plain] def setSource(source: Channel) = {
+    println(source)
     transfersource = source
   }
 

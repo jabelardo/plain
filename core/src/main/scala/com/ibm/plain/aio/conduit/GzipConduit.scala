@@ -77,7 +77,7 @@ sealed trait GzipSourceConduit
     if (isSet(2)) skip(2)
     if (isSet(3)) skipString
     if (isSet(4)) skipString
-    if (isSet(1)) require(crc16 == nextShort)
+    if (isSet(1)) require(crc16 == nextShort, invalidFormat("crc16"))
     checksum.reset
     header = false
   }

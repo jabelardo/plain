@@ -27,6 +27,10 @@ final class ClientTester
     extends ApplicationExtension {
 
   final def run = try {
+
+    //    import integration.spaces._
+    //    SpacesClient.put(SpacesURI("myspace"), java.nio.file.FileSystems.getDefault.getPath("/tmp/bigtest"))
+
     val timeout = 60 * 60 * 1000
     val config = new AsyncHttpClientConfig.Builder().
       setRequestTimeoutInMs(timeout).
@@ -35,39 +39,53 @@ final class ClientTester
       setIdleConnectionInPoolTimeoutInMs(timeout).
       build
     val client = new AsyncHttpClient(new GrizzlyAsyncHttpProvider(config), config)
-    for (i ← 1 to 6) concurrent.spawn {
+    for (i ← 1 to 1) {
       infoMillis {
-        for (j ← 1 to 3) {
-          val url = "http://harryklein.local:7070/spaces/myspace/375FA43D46984A0BB4989A0B70000000"
-          val request = new RequestBuilder("GET").
-            setUrl(url).
-            setHeader("Accept-Encoding", "gzip").
-            build
-          val choice = 2
-          choice match {
+        for (j ← 1 to 1) {
+          val method = 1
+          method match {
             case 1 ⇒
-              val handler = new AsyncCompletionHandler[Unit] {
-                var c = 0
-                var p = 0
-                var total = 0L
-                override final def onBodyPartReceived(part: HttpResponseBodyPart): State = {
-                  c += 1
-                  total += part.length
-                  if (10000000 < total - p) { p = c; println(c + " " + part.isLast + " " + part.length + " " + total) }
-                  State.CONTINUE
-                }
-                final def onCompleted(response: Response) = ()
-              }
-              val f = client.executeRequest(request, handler)
-              f.get(15000, java.util.concurrent.TimeUnit.MILLISECONDS)
-              println("done")
+              val url = "http://harryklein.local:7070/spaces/myspace/375FA43D46984A0BB4989A0B70000000"
+              val request = new RequestBuilder("PUT").
+                setUrl(url).
+                setBody(new File("/tmp/bigtest/all.tar.gz")).
+                setHeader("Content-Encoding", "gzip").
+                build
+              val response = client.executeRequest(request)
+              println(request)
+              println(response.get)
             case 2 ⇒
-              val source = GzipConduit(AHCConduit(client, request))
-              val destination = TarConduit("/tmp/test.dir." + i + "." + j, true)
-              val exchange = aio.client.ClientExchange(source, destination)
-              exchange.transferAndWait
+              val url = "http://harryklein.local:7070/spaces/myspace/375FA43D46984A0BB4989A0B70000000"
+              val request = new RequestBuilder("GET").
+                setUrl(url).
+                setHeader("Accept-Encoding", "gzip").
+                build
+              val choice = 2
+              choice match {
+                case 1 ⇒
+                  val handler = new AsyncCompletionHandler[Unit] {
+                    var c = 0
+                    var p = 0
+                    var total = 0L
+                    override final def onBodyPartReceived(part: HttpResponseBodyPart): State = {
+                      c += 1
+                      total += part.length
+                      if (10000000 < total - p) { p = c; println(c + " " + part.isLast + " " + part.length + " " + total) }
+                      State.CONTINUE
+                    }
+                    final def onCompleted(response: Response) = ()
+                  }
+                  val f = client.executeRequest(request, handler)
+                  f.get(15000, java.util.concurrent.TimeUnit.MILLISECONDS)
+                  println("done")
+                case 2 ⇒
+                  val source = GzipConduit(AHCConduit(client, request))
+                  val destination = TarConduit("/tmp/test.dir." + i + "." + j, true)
+                  val exchange = aio.client.ClientExchange(source, destination)
+                  exchange.transferAndWait
+              }
+              println(i * j)
           }
-          println(i * j)
         }
       }
     }

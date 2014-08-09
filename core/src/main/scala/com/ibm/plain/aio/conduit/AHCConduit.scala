@@ -39,7 +39,7 @@ object AHCConduit {
 }
 
 /**
- *
+ * GET from the AHC component.
  */
 sealed trait AHCSourceConduit
 
@@ -88,7 +88,7 @@ sealed trait AHCSourceConduit
 }
 
 /**
- * Create a SinkConduit to write into a destination directory all content from the tar archive that is written to this sink.
+ * PUT to the AHC component.
  */
 sealed trait AHCSinkConduit
 
@@ -111,7 +111,7 @@ sealed trait AHCConduitBase
     extends Conduit {
 
   /**
-   * Must not client as it used by others in parallel.
+   * Must not close client as it used by others in parallel.
    */
   final def close = ()
 

@@ -31,7 +31,7 @@ abstract class Dispatcher
       case Some(`chunked`(entity)) ⇒ entity.contentencoding match {
         case Some(Encoding.`deflate`) ⇒ exchange.setSource(DeflateConduit(ChunkedConduit(exchange.socketChannel)))
         case Some(Encoding.`gzip`) ⇒ exchange.setSource(GzipConduit(ChunkedConduit(exchange.socketChannel)))
-        case _ ⇒
+        case _ ⇒ exchange.setSource(ChunkedConduit(exchange.socketChannel))
       }
       case _ ⇒
     }
