@@ -193,7 +193,6 @@ trait ExchangeAccessImpl[A]
   }
 
   @inline private[plain] def setSource(source: Channel) = {
-    println(source)
     transfersource = source
   }
 

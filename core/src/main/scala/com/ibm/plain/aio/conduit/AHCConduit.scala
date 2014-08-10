@@ -66,7 +66,10 @@ sealed trait AHCSourceConduit
 
       extends AsyncCompletionHandler[Unit] {
 
-    final def onCompleted(response: Response) = ()
+    final def onCompleted(response: Response) = {
+      await
+      handler.completed(0, attachment)
+    }
 
     override final def onBodyPartReceived(part: HttpResponseBodyPart): State = {
       await

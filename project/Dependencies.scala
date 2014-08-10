@@ -9,7 +9,7 @@ object Dependencies {
     def logging = Seq(
       "com.typesafe" % "config" % "1.2.1",
       "org.slf4j" % "slf4j-api" % "1.7.7",
-      "com.lmax" % "disruptor" % "3.2.1",
+      "com.lmax" % "disruptor" % "3.3.0",
       "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.0",
       "org.apache.logging.log4j" % "log4j-api" % "2.0",
       "org.apache.logging.log4j" % "log4j-core" % "2.0")
@@ -21,12 +21,11 @@ object Dependencies {
       "commons-io" % "commons-io" % "2.4",
       "commons-net" % "commons-net" % "3.3",
       "commons-codec" % "commons-codec" % "1.9",
-      "org.apache.httpcomponents" % "httpclient" % "4.3.4")
+      "org.apache.httpcomponents" % "httpclient" % "4.3.5")
 
     def net = Seq(
       "org.glassfish.grizzly" % "grizzly-websockets" % "2.3.16",
       "org.glassfish.grizzly" % "grizzly-http" % "2.3.16",
-      "org.glassfish.grizzly" % "grizzly-framework" % "2.3.16",
       "com.ning" % "async-http-client" % "1.8.13")
 
     def reflection = Seq(
@@ -48,7 +47,7 @@ object Dependencies {
       "com.sun.jersey" % "jersey-json" % "1.18.1")
 
     def time = Seq(
-      "joda-time" % "joda-time" % "2.3"
+      "joda-time" % "joda-time" % "2.4"
     )
 
     def modules = Seq(
@@ -83,7 +82,7 @@ object Dependencies {
 
     def activemqVersion = "5.10.0"
 
-    def slickVersion = "2.1.0-RC2"
+    def slickVersion = "2.1.0"
 
     def core = Seq(
       "org.apache.camel" % "camel-scala" % camelVersion,

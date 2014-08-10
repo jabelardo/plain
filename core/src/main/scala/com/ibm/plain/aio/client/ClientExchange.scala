@@ -65,12 +65,13 @@ final class ClientExchange private (
     destination.write(buffer, this, handler)
   }
 
-  @inline private final def closeTransfer(e: Throwable) = {
-    releaseByteBuffer(buffer)
-    source.close
-    destination.close
-    latch.countDown
-    if (null != handler) if (null == e) handler.completed(-1, this) else handler.failed(e, this)
+  @inline private final def closeTransfer = {
+    if (1 == latch.getCount) {
+      releaseByteBuffer(buffer)
+      source.close
+      destination.close
+      latch.countDown
+    }
   }
 
   @inline private final def progress(processed: Int) = if (null != progressfun) progressfun(processed)
@@ -104,9 +105,8 @@ object ClientExchange
     final def failed(e: Throwable, exchange: ClientExchange) = {
       e match {
         case e: IOException ⇒
-        case e ⇒ trace(e)
+        case e ⇒ e.printStackTrace; error(e)
       }
-      exchange.closeTransfer(e)
     }
 
     @inline final def completed(processed: Integer, exchange: ClientExchange) = try {
@@ -127,7 +127,7 @@ object ClientExchange
     @inline final def doComplete(processed: Integer, exchange: ClientExchange) = {
       exchange.progress(processed)
       if (0 >= processed) {
-        exchange.writeTransfer(TransferCloseHandler, true)
+        exchange.closeTransfer
       } else {
         exchange.writeTransfer(TransferWriteHandler, true)
       }
@@ -144,19 +144,6 @@ object ClientExchange
         exchange.writeTransfer(this, false)
       } else {
         exchange.readTransfer(TransferReadHandler)
-      }
-    }
-  }
-
-  object TransferCloseHandler
-
-      extends ReleaseHandler {
-
-    @inline final def doComplete(processed: Integer, exchange: ClientExchange) = {
-      if (0 < exchange.available) {
-        exchange.writeTransfer(this, false)
-      } else {
-        exchange.closeTransfer(null)
       }
     }
   }

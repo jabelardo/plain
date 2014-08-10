@@ -66,7 +66,6 @@ final class SpacesServer
   Put { entity: Entity ⇒
     entity match {
       case Entity(contenttype, length, _) ⇒
-        println(contenttype + " " + length)
         println(context.request)
         exchange.transferTo(
           TarConduit(computeFilePath(context).toFile),

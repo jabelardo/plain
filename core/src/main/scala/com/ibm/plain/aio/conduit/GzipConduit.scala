@@ -60,7 +60,7 @@ sealed trait GzipSourceConduit
     }
   }
 
-  protected[this] override final def hasSufficient = if (header) 10 <= available else super.hasSufficient
+  protected[this] override final def hasSufficient = 10 <= available
 
   private[this] final def readHeader = {
     def nextByte = 0xff & innerbuffer.get
@@ -82,6 +82,9 @@ sealed trait GzipSourceConduit
     header = false
   }
 
+  /**
+   * We do not support gzip "extensions" here. I have never actually seen them in real life.
+   */
   private[this] final def readTrailer = {
     def nextByte = 0xff & innerbuffer.get
     def nextShort = nextByte | (nextByte << 8)
@@ -100,9 +103,6 @@ sealed trait GzipSourceConduit
         skip(4)
       }
     }
-    /**
-     * We do not support gzip "extensions" here. I have never actually seen them in practice.S
-     */
   }
 
   private[this] final def invalidFormat(message: String = null) = throw new DataFormatException(message)
