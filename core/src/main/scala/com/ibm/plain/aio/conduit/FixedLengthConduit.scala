@@ -41,13 +41,15 @@ final class FixedLengthConduit(
 
   }
 
-  private[this] final def wrapper(buffer: ByteBuffer) = if (buffer.remaining < length - position) {
-    buffer
-  } else {
-    val len = (length - position).toInt
-    val buf = ByteBuffer.wrap(buffer.array, buffer.position, len)
-    buffer.position(buffer.position + len)
-    buf
+  @inline private[this] final def wrapper(buffer: ByteBuffer) = {
+    if (buffer.remaining <= length - position) {
+      buffer
+    } else {
+      val len = (length - position).toInt
+      val buf = ByteBuffer.wrap(buffer.array, buffer.position, len)
+      buffer.position(buffer.position + len)
+      buf
+    }
   }
 
   private[this] final var position = 0
