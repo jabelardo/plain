@@ -37,6 +37,6 @@ object NullConduit
     handler.completed(e, attachment)
   }
 
-  final val nul = Array.fill(2048)(0.toByte)
+  final val nul = Array.fill(8 * 1024)(0.toByte)
 
 }
