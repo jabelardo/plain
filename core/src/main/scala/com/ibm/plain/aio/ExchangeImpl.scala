@@ -164,7 +164,7 @@ trait ExchangeAccessImpl[A]
     transfersource.read(writebuffer, this, handler)
   }
 
-  @inline final def writeTransfer(handler: ExchangeHandler[A], flip: Boolean) = {
+  @inline final def writeTransfer(handler: ExchangeHandler[A], flip: Boolean) = spawn {
     if (flip) writebuffer.flip
     transferdestination.write(writebuffer, this, handler)
   }
