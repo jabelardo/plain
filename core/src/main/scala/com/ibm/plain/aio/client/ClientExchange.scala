@@ -10,6 +10,7 @@ import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.channels.{ CompletionHandler ⇒ Handler }
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.atomic.AtomicBoolean
 
 import aio.conduit.Conduit
 import logging.Logger
@@ -47,7 +48,6 @@ final class ClientExchange private (
   final def transferAndWait = {
     readTransfer(TransferReadHandler)
     latch.await
-    println("tranfer ended")
   }
 
   /**
@@ -69,9 +69,9 @@ final class ClientExchange private (
   @inline private final def closeTransfer = {
     if (isopen.compareAndSet(true, false)) {
       latch.countDown
-      // releaseByteBuffer(buffer)
-      // source.close
-      // destination.close
+      releaseByteBuffer(buffer)
+      source.close
+      destination.close
     }
   }
 
@@ -83,7 +83,7 @@ final class ClientExchange private (
 
   private[this] final val latch = new CountDownLatch(1)
 
-  private[this] final val isopen = new java.util.concurrent.atomic.AtomicBoolean(true)
+  private[this] final val isopen = new AtomicBoolean(true)
 
 }
 

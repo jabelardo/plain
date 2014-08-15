@@ -4,6 +4,7 @@ package conduit
 
 import java.nio.ByteBuffer
 import java.util.concurrent.CyclicBarrier
+import java.util.concurrent.atomic.AtomicBoolean
 
 import scala.math.min
 
@@ -100,12 +101,9 @@ sealed trait AHCSinkConduit
     with TerminatingSinkConduit {
 
   override def close = {
-    println("ahc close")
     super.close
     await
   }
-
-  var resp: ListenableFuture[Response] = null
 
   /**
    */
@@ -115,28 +113,18 @@ sealed trait AHCSinkConduit
       val r = requestbuilder
       r.setBody(generator)
       requestbuilder = null
-      resp = r.execute(new AsyncCompletionHandler[Response] {
+      response = r.execute(new AsyncCompletionHandler[Response] {
 
-        final def onCompleted(response: Response) = {
-          println("completed " + response.getStatusCode)
-          response
-        }
-
-        override final def onStatusReceived(status: HttpResponseStatus) = {
-          println("status " + status)
-          super.onStatusReceived(status)
-        }
-
-        override final def onHeadersReceived(headers: HttpResponseHeaders) = {
-          println("headers " + headers)
-          super.onHeadersReceived(headers)
+        final def onCompleted(r: Response) = {
+          println("completed " + r.getStatusCode)
+          response.done
+          r
         }
 
       })
     } else {
       generator.asInstanceOf[AHCBodyGenerator[A]].handler = handler
     }
-    println("write " + buffer)
     await
   }
 
@@ -156,38 +144,28 @@ sealed trait AHCSinkConduit
 
         extends Body {
 
-      var total = 0L
-
-      var isopen = new java.util.concurrent.atomic.AtomicBoolean(true)
-
-      def close = if (isopen.compareAndSet(true, false)) {
-        println("generator close " + isopen.get)
-      }
+      def close: Unit = isopen.compareAndSet(true, false)
 
       def getContentLength = -1L
 
       def read(buffer: java.nio.ByteBuffer): Long = try {
-        println("read await " + isopen.get)
-        if (isopen.get) {
-          await
-          println(format(innerbuffer, 100000))
-          val len = min(buffer.remaining, innerbuffer.remaining)
-          buffer.put(innerbuffer.array, innerbuffer.position, len)
-          innerbuffer.position(innerbuffer.position + len)
-          total += len
-          println("len " + len + " total " + total)
-          spawn { handler.completed(len, attachment) }
-          if (0 == len) -1L else len
-        } else {
-          -1L
-        }
+        await
+        val len = min(buffer.remaining, innerbuffer.remaining)
+        buffer.put(innerbuffer.array, innerbuffer.position, len)
+        innerbuffer.position(innerbuffer.position + len)
+        spawn { handler.completed(len, attachment) }
+        if (0 == len) -1L else len
       } catch { case e: Throwable ⇒ e.printStackTrace; throw e }
 
     }
 
+    private[this] final val isopen = new AtomicBoolean(true)
+
   }
 
   private[this] final var generator: AHCBodyGenerator[_] = null
+
+  private[this] final var response: ListenableFuture[Response] = null
 
 }
 

@@ -59,7 +59,6 @@ sealed trait TarSourceConduit
     with TerminatingSourceConduit {
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
-    println("tar read " + buffer)
     if (isOpen) {
       if (reading) {
         fixedlengthconduit.read(buffer, attachment, new TarArchiveSourceHandler(buffer, handler))
@@ -161,19 +160,13 @@ sealed trait TarSinkConduit
 
     with TerminatingSinkConduit {
 
-  var c = 0
-
   final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
-    c += 1
-    println("tar write " + format(buffer, 100000))
-    if (c > 25) { println("dead"); Thread.sleep(1000000) }
     if (writing) {
       fixedlengthconduit.write(buffer, attachment, new TarArchiveSinkHandler(handler))
     } else {
       if (0 < buffer.remaining) nextEntry(buffer)
       if (null == entry) {
         if (lastEntry) {
-          println("last " + buffer)
           // close
           entrysize = 0
         }
@@ -186,8 +179,6 @@ sealed trait TarSinkConduit
           unsupported
         }
       }
-      println("entrysize " + entrysize)
-      println(handler)
       handler.completed(entrysize, attachment)
     }
   }

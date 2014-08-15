@@ -30,7 +30,7 @@ final class ClientTester
 
   final def run = try {
 
-    val timeout = 60 * 60 * 1000
+    val timeout = 15 * 1000
     val config = new AsyncHttpClientConfig.Builder().
       setRequestTimeoutInMs(timeout).
       setConnectionTimeoutInMs(timeout).
@@ -47,12 +47,12 @@ final class ClientTester
               val url = "http://harryklein.local:7070/spaces/myspace/375FA43D46984A0BB4989A0B70000000"
               val request = new RequestBuilder("PUT").
                 setUrl(url).
-                setHeader("Content-Encoding", "deflate").
+                setHeader("Content-Encoding", "gzip").
                 setHeader("Transfer-Encoding", "chunked").
                 setHeader("Expect", "100-continue").
                 build
               val source = TarConduit(new File("/tmp/bigtest2"))
-              val destination = DeflateConduit(ChunkedConduit(AHCConduit(client, request)))
+              val destination = GzipConduit(ChunkedConduit(AHCConduit(client, request)))
               val exchange = aio.client.ClientExchange(source, destination)
               exchange.transferAndWait
             case 2 ⇒
@@ -135,7 +135,7 @@ final class ClientTester
         }
       }
     }
-    Thread.sleep(12000)
+    Thread.sleep(2000)
     client.close
   } finally {
     Application.instance.teardown

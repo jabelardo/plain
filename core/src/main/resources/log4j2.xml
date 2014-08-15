@@ -24,7 +24,7 @@
 			additivity="false" />
 		<Logger name="com.typesafe.slick" level="off"
 			additivity="false" />
-		<Logger name="com.ning.http.client.providers" level="warn"
-			additivity="false" />			
+		<Logger name="com.ning.http.client" level="trace"
+			additivity="true" />			
 	</Loggers>
 </Configuration>
