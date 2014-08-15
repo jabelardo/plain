@@ -71,8 +71,6 @@ package object aio
 
   final def format(buffer: ByteBuffer, limit: Int = 512) = "ByteBuffer(" + System.identityHashCode(buffer) + ", pos " + buffer.position + ", remain " + buffer.remaining + ", lim " + buffer.limit + ", cap " + buffer.capacity + ", " + (if (buffer.hasArray) "heap" else "direct") + ")" + "\n" + text.hexDump(buffer, limit)
 
-  final val tooTinyForEncodingSize = getBytes("plain.aio.too-tiny-for-encoding-size", 1400).toInt
-
   /**
    * If not set differently this will result to 54k which proved to provide best performance under high load.
    */

@@ -9,7 +9,7 @@ import java.nio.charset.CoderResult.OVERFLOW
 import java.nio.charset.Charset
 import java.nio.channels.AsynchronousByteChannel
 
-import aio.{ bestFitByteBuffer, releaseByteBuffer, Exchange, ExchangeHandler, Encoding, tooTinyForEncodingSize }
+import aio.{ bestFitByteBuffer, releaseByteBuffer, Exchange, ExchangeHandler, Encoding }
 import aio.conduit.Conduit
 import text.`UTF-8`
 import Status._
@@ -54,7 +54,7 @@ object Entity {
 
       extends Entity {
 
-    final val encodable = length > tooTinyForEncodingSize
+    final val encodable = true
 
     final val contentencoding = None
 
@@ -84,7 +84,7 @@ object Entity {
 
     final val length: Long = buffer.remaining
 
-    final val encodable = length > tooTinyForEncodingSize
+    final val encodable = true
 
     final val contentencoding = None
 

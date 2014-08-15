@@ -59,6 +59,7 @@ sealed trait TarSourceConduit
     with TerminatingSourceConduit {
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
+    println("tar read " + buffer)
     if (isOpen) {
       if (reading) {
         fixedlengthconduit.read(buffer, attachment, new TarArchiveSourceHandler(buffer, handler))
@@ -160,14 +161,21 @@ sealed trait TarSinkConduit
 
     with TerminatingSinkConduit {
 
+  var c = 0
+
   final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
+    c += 1
+    println("tar write " + format(buffer, 100000))
+    if (c > 25) { println("dead"); Thread.sleep(1000000) }
     if (writing) {
       fixedlengthconduit.write(buffer, attachment, new TarArchiveSinkHandler(handler))
     } else {
       if (0 < buffer.remaining) nextEntry(buffer)
       if (null == entry) {
         if (lastEntry) {
-          close
+          println("last " + buffer)
+          // close
+          entrysize = 0
         }
       } else {
         if (entry.isDirectory) {
@@ -178,6 +186,8 @@ sealed trait TarSinkConduit
           unsupported
         }
       }
+      println("entrysize " + entrysize)
+      println(handler)
       handler.completed(entrysize, attachment)
     }
   }
@@ -216,7 +226,12 @@ sealed trait TarSinkConduit
         underflowbuffer.put(buffer.array, buffer.position, len)
         underflowbuffer.flip
         in = new TarArchiveInputStream(new ByteBufferInputStream(underflowbuffer))
-        try entry = in.getNextTarEntry catch { case e: Throwable ⇒ entry = null }
+        try
+          entry = in.getNextTarEntry
+        catch {
+          case e: Throwable ⇒
+            entry = null
+        }
         buffer.position(buffer.position + (underflowbuffer.position - underflow))
         buffer.position - underflowbuffer.position - { val u = underflow; underflow = 0; u }
       }
@@ -227,12 +242,17 @@ sealed trait TarSinkConduit
         recordsize = in.getRecordSize
       }
       val e = buffer.position
-      try entry = in.getNextTarEntry catch { case e: Throwable ⇒ entry = null }
+      try
+        entry = in.getNextTarEntry
+      catch {
+        case _: Throwable ⇒
+          entry = null
+      }
       e
     }
     if (0 < pos && null == entry) {
       underflow = buffer.position - pos
-      if (null == underflowbuffer) underflowbuffer = ByteBuffer.allocate(4 * recordsize) else underflowbuffer.clear
+      if (null == underflowbuffer) underflowbuffer = ByteBuffer.allocate(defaultBufferSize) else underflowbuffer.clear
       underflowbuffer.put(buffer.array, pos, underflow)
       entrysize = underflow
     } else {
@@ -291,7 +311,7 @@ sealed trait TarConduitBase
 
   protected[this] final var entrysize = 0
 
-  private[this] final var isclosed = false
+  @volatile private[this] final var isclosed = false
 
 }
 

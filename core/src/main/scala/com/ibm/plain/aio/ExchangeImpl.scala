@@ -97,6 +97,7 @@ trait ExchangeAccessImpl[A]
     input match {
       case Elem(_) ⇒
         if (flip) readbuffer.flip
+        println("read socket " + format(readbuffer, 100000))
         val fromcache = if (null == cachedarray) {
           false
         } else if (readbuffer.remaining >= cachedarray.length) {
@@ -156,6 +157,7 @@ trait ExchangeAccessImpl[A]
 
   @inline final def write(handler: ExchangeHandler[A], flip: Boolean) = {
     if (flip) writebuffer.flip
+    println("write socket " + format(writebuffer, 100000))
     socketchannel.write(writebuffer, this, handler)
   }
 

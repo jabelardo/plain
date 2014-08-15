@@ -9,7 +9,7 @@ import javax.servlet.http.Cookie
 
 import scala.language.implicitConversions
 
-import aio.{ Encoding, Exchange, ExchangeIo, ExchangeIteratee, Iteratee, OutMessage, releaseByteBuffer, tooTinyForEncodingSize }
+import aio.{ Encoding, Exchange, ExchangeIo, ExchangeIteratee, Iteratee, OutMessage, releaseByteBuffer }
 import aio.Iteratee.{ Cont, Done }
 import aio.Renderable._
 import aio.conduit._
@@ -147,7 +147,7 @@ final case class Response(
 
   @inline private[this] final def encoding[A](exchange: Exchange[A]): Unit = entity match {
     case Some(e) ⇒
-      if (e.encodable && (0 > e.length || tooTinyForEncodingSize < e.length)) {
+      if (e.encodable) {
         exchange.inMessage match {
           case request: Request ⇒
             request.acceptEncoding match {

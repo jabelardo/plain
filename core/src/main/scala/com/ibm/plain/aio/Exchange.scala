@@ -298,6 +298,7 @@ object Exchange
         extends ReleaseHandler {
 
       @inline final def doComplete(processed: Integer, exchange: Exchange[A]) = {
+        println("written " + processed)
         if (0 == exchange.available || exchange.hasError) {
           exchange.reset
           read(exchange)

@@ -182,7 +182,7 @@ package object text {
           buf.append(if (31 < c && c < 127) c else ".")
         }
       }
-      buf.append("0--1--2--3--4--5--6--7--8--9--A--B--C--D--E--F-------0123456789ABCDEF")
+      if (0 < length) buf.append("0--1--2--3--4--5--6--7--8--9--A--B--C--D--E--F-------0123456789ABCDEF")
       for (i ← 0 to (if (0 == length % 16) length / 16 - 1 else length / 16)) {
         dumpHex(i)
         dumpChar(i)

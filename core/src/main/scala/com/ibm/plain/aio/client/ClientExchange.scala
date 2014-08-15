@@ -47,6 +47,7 @@ final class ClientExchange private (
   final def transferAndWait = {
     readTransfer(TransferReadHandler)
     latch.await
+    println("tranfer ended")
   }
 
   /**
@@ -66,11 +67,11 @@ final class ClientExchange private (
   }
 
   @inline private final def closeTransfer = {
-    if (1 == latch.getCount) {
-      releaseByteBuffer(buffer)
-      source.close
-      destination.close
+    if (isopen.compareAndSet(true, false)) {
       latch.countDown
+      // releaseByteBuffer(buffer)
+      // source.close
+      // destination.close
     }
   }
 
@@ -81,6 +82,8 @@ final class ClientExchange private (
   private[this] final val buffer = defaultByteBuffer
 
   private[this] final val latch = new CountDownLatch(1)
+
+  private[this] final val isopen = new java.util.concurrent.atomic.AtomicBoolean(true)
 
 }
 
@@ -127,7 +130,7 @@ object ClientExchange
     @inline final def doComplete(processed: Integer, exchange: ClientExchange) = {
       exchange.progress(processed)
       if (0 >= processed) {
-        exchange.closeTransfer
+        exchange.writeTransfer(TransferCloseHandler, true)
       } else {
         exchange.writeTransfer(TransferWriteHandler, true)
       }
@@ -144,6 +147,19 @@ object ClientExchange
         exchange.writeTransfer(this, false)
       } else {
         exchange.readTransfer(TransferReadHandler)
+      }
+    }
+  }
+
+  object TransferCloseHandler
+
+      extends ReleaseHandler {
+
+    @inline final def doComplete(processed: Integer, exchange: ClientExchange) = {
+      if (0 < exchange.available) {
+        exchange.writeTransfer(this, false)
+      } else {
+        exchange.closeTransfer
       }
     }
   }
