@@ -21,7 +21,7 @@ final class ByteArrayConduit(
 
   private[this] final val length: Int)
 
-    extends TerminatingConduit {
+  extends TerminatingConduit {
 
   override final def close = total = 0
 

@@ -18,7 +18,7 @@ import logging.{ createLogger, loggingLevel, setLoggingLevel }
  */
 abstract class Monitor
 
-    extends BaseComponent[Monitor]("plain-monitor") {
+  extends BaseComponent[Monitor]("plain-monitor") {
 
   override def isStopped = !isRegistered
 

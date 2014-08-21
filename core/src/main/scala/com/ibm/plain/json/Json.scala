@@ -6,6 +6,11 @@ package json
 
 import java.io.Reader
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import org.json4s._
+import org.json4s.jackson.JsonMethods
+import org.json4s.jackson.Serialization
+
 import scala.collection.JavaConversions.asScalaBuffer
 import scala.collection.JavaConversions.mapAsScalaMap
 import scala.collection.Map
@@ -14,14 +19,10 @@ import scala.collection.immutable.Seq
 import scala.language.implicitConversions
 import scala.math.BigDecimal.double2bigDecimal
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import org.json4s._
-import org.json4s.native.JsonMethods
-
 import Helpers.stringToConfiggyString
 
 final case class Json(any: Any) {
-  override def toString = any match { case Some(json: Json) ⇒ json.toString case null ⇒ "null" case _ ⇒ any.toString }
+  override def toString = Json.build(any)
   def asNull = convert[Null](null)
   def asBoolean: Boolean = any match { case Some(json: Json) ⇒ json.asBoolean case b: Boolean ⇒ b case s: String ⇒ s.toBoolean case _ ⇒ convert[Boolean](false) }
   def asInt: Int = any match { case Some(json: Json) ⇒ json.asInt case i: Int ⇒ i case l: Long ⇒ l.toInt case d: Double ⇒ d.toInt case s: String ⇒ s.toInt case _ ⇒ convert[Int](0) }
@@ -64,11 +65,13 @@ object JsonConversions {
 
 object Json {
 
+  implicit val formats = Serialization.formats(NoTypeHints)
+
   type JArray = List[Json]
 
   type JObject = Map[String, Json]
 
-  final def parse4s(s: String) = JsonMethods.parse(s)
+  final def parse4s(s: String): org.json4s.JValue = JsonMethods.parse(s)
 
   final def parse4s(reader: Reader) = JsonMethods.parse(reader)
 
@@ -99,7 +102,8 @@ object Json {
       case list: Seq[_] ⇒ list.map(build0(_).inner).mkString("[", ",", "]")
       case map: Map[_, _] ⇒ (for ((key, value) ← map.iterator) yield { quote(key.toString) + ":" + build0(value).inner }).mkString("{", ",", "}")
       case json: Json ⇒ build0(json.any).toString
-      case v ⇒ quote(v.toString)
+      case anyref: AnyRef ⇒ Serialization.write(anyref)
+      case v ⇒ throw new IllegalStateException(s"Cannot serialize into JSON format : ${v.getClass.getName}.")
     })
 
     build0(any).toString

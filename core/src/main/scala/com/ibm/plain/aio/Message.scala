@@ -14,7 +14,7 @@ trait Message
  */
 trait InMessage
 
-    extends Message {
+  extends Message {
 
   def keepalive: Boolean
 
@@ -25,7 +25,7 @@ trait InMessage
  */
 trait OutMessage
 
-    extends Message {
+  extends Message {
 
   def render[A](exchange: Exchange[A]): ExchangeIteratee[A]
 

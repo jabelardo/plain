@@ -6,7 +6,7 @@ import scala.language.implicitConversions
 
 package object bootstrap
 
-    extends config.CheckedConfig {
+  extends config.CheckedConfig {
 
   import config._
   import config.settings._

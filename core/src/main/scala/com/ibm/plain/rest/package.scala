@@ -6,7 +6,7 @@ import config.CheckedConfig
 
 package object rest
 
-    extends CheckedConfig {
+  extends CheckedConfig {
 
   import config._
   import config.settings._
@@ -20,7 +20,7 @@ package object rest
 
   final implicit class Html(val xml: scala.xml.Elem)
 
-      extends AnyVal {
+    extends AnyVal {
 
     override final def toString = xml.toString
 

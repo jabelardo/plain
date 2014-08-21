@@ -43,6 +43,7 @@ object Dependencies {
 
     def json = Seq(
       "org.json4s" %% "json4s-native" % "3.2.10",
+      "org.json4s" %% "json4s-jackson" % "3.2.10",
       "com.fasterxml.jackson.core" % "jackson-databind" % "2.4.1.3",
       "com.sun.jersey" % "jersey-json" % "1.18.1")
 

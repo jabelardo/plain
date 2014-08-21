@@ -15,11 +15,11 @@ import logging.Logger
  */
 final class ServletContainer private
 
-    extends BaseComponent[ServletContainer]("plain-servlet-container")
+  extends BaseComponent[ServletContainer]("plain-servlet-container")
 
-    with Logger
+  with Logger
 
-    with IsSingleton {
+  with IsSingleton {
 
   final def getServletContext(path: String): ServletContext = webapplications.getOrElse(path, null)
 

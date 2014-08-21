@@ -18,7 +18,7 @@ import Status.ClientError.`415`
  */
 abstract sealed class MimeType
 
-    extends Renderable {
+  extends Renderable {
 
   import MimeType._
 
@@ -124,9 +124,9 @@ object MimeType {
    */
   abstract sealed class PredefinedMimeType(
 
-      final val encodable: Boolean,
+    final val encodable: Boolean,
 
-      final val extension: Seq[String] = Seq.empty) extends MimeType {
+    final val extension: Seq[String] = Seq.empty) extends MimeType {
 
     final def this(extension: Seq[String]) = this(true, extension)
 
@@ -229,7 +229,7 @@ object MimeType {
    */
   class `User-defined` private (val name: String, val encodable: Boolean)
 
-      extends MimeType {
+    extends MimeType {
 
     val extensions: Set[String] = Set.empty
 

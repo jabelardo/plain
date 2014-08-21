@@ -35,9 +35,9 @@ final class HttpServletRequest(
 
   private[this] final val servlet: js.http.HttpServlet)
 
-    extends js.http.HttpServletRequest
+  extends js.http.HttpServletRequest
 
-    with HasAttributes {
+  with HasAttributes {
 
   final def authenticate(x$1: js.http.HttpServletResponse): Boolean = unsupported
 

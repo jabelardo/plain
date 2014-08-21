@@ -17,15 +17,15 @@ import camel.Camel
  */
 final class DistributedConfig
 
-    extends ExternalComponent[DistributedConfig](
+  extends ExternalComponent[DistributedConfig](
 
-      distributedconfig.isEnabled,
+    distributedconfig.isEnabled,
 
-      "plain-integration-distributed-config",
+    "plain-integration-distributed-config",
 
-      classOf[Camel])
+    classOf[Camel])
 
-    with Logger {
+  with Logger {
 
   override def start = {
     (if (isMaster) masterRoutes else slaveRoutes).addRoutesToCamelContext(Camel.instance.context)

@@ -30,11 +30,11 @@ final class ServletContext(
 
   private[this] final val root: String)
 
-    extends js.ServletContext
+  extends js.ServletContext
 
-    with HasAttributes
+  with HasAttributes
 
-    with logging.Logger {
+  with logging.Logger {
 
   final def addFilter(filterName: String, filterClass: Class[_ <: js.Filter]) = unsupported
 

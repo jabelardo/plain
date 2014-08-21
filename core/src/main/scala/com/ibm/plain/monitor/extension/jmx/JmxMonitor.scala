@@ -52,11 +52,11 @@ trait JmxMonitorMBean {
  */
 final class JmxMonitor private
 
-    extends Monitor
+  extends Monitor
 
-    with JmxMonitorMBean
+  with JmxMonitorMBean
 
-    with IsSingleton {
+  with IsSingleton {
 
   protected def register = server.registerMBean(
     this,

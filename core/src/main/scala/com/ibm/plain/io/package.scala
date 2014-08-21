@@ -19,7 +19,7 @@ import io.{ ByteBufferInputStream, ByteBufferOutputStream, GzipOutputStream, Io,
 
 package object io
 
-    extends CheckedConfig {
+  extends CheckedConfig {
 
   import config._
   import config.settings._

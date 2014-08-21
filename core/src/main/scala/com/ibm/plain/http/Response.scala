@@ -35,7 +35,7 @@ final case class Response(
 
   var entity: Option[Entity])
 
-    extends OutMessage {
+  extends OutMessage {
 
   import Response._
 

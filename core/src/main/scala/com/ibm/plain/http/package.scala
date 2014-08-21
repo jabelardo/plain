@@ -8,7 +8,7 @@ import config.CheckedConfig
 
 package object http
 
-    extends CheckedConfig {
+  extends CheckedConfig {
 
   import config._
   import config.settings._

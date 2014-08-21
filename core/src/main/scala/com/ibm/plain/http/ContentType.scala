@@ -24,7 +24,7 @@ final case class ContentType private (
 
   charset: Option[Charset])
 
-    extends Renderable {
+  extends Renderable {
 
   import ContentType._
 

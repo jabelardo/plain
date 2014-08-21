@@ -16,7 +16,7 @@ import scala.collection.JavaConversions._
  */
 abstract class FilterConfig
 
-    extends js.FilterConfig {
+  extends js.FilterConfig {
 
   override final def getFilterName = name
 
@@ -45,4 +45,4 @@ final class WebXmlFilterConfig(
 
   protected[this] final val servletcontext: ServletContext)
 
-    extends FilterConfig
+  extends FilterConfig

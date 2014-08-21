@@ -14,9 +14,9 @@ import concurrent.schedule
  */
 final class Time private
 
-    extends BaseComponent[Time]("plain-time")
+  extends BaseComponent[Time]("plain-time")
 
-    with IsSingleton {
+  with IsSingleton {
 
   override def start = {
     if (!isStarted) formattime = schedule(2000) { rfc1123bytearray = rfc1123format.format(now).getBytes }

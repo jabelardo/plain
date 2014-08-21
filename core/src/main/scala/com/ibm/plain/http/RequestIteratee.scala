@@ -32,7 +32,7 @@ import logging.Logger
  */
 object RequestIteratee
 
-    extends Logger {
+  extends Logger {
 
   import RequestConstants._
 

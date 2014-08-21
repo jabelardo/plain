@@ -14,7 +14,7 @@ import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel, CompletionHandle
  */
 trait Conduit
 
-    extends Channel {
+  extends Channel {
 
   final def read(buffer: ByteBuffer) = unsupported
 
@@ -26,7 +26,7 @@ trait Conduit
 
     private[this] final val handler: Handler[A])
 
-      extends CompletionHandler[Integer, A] {
+    extends CompletionHandler[Integer, A] {
 
     def failed(e: Throwable, attachment: A) = handler.failed(e, attachment)
 

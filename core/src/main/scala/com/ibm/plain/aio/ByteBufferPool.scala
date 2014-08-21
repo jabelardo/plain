@@ -18,7 +18,7 @@ final class ByteBufferPool private (
 
   initialpoolsize: Int)
 
-    extends OnlyOnce {
+  extends OnlyOnce {
 
   /**
    * This is an expensive O(n) operation.

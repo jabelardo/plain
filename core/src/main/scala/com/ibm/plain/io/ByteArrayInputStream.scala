@@ -18,7 +18,7 @@ final class ByteArrayInputStream(
 
   private[this] final val length: Int)
 
-    extends InputStream {
+  extends InputStream {
 
   final def this(arr: Array[Byte]) = this(arr, 0, arr.length)
 

@@ -11,7 +11,7 @@ import com.typesafe.config.Config
  */
 abstract class HttpDispatcher[A]
 
-    extends HttpProcessor[A] {
+  extends HttpProcessor[A] {
 
   def initialize: HttpDispatcher[A]
 

@@ -10,7 +10,7 @@ final case class FileExtensionFilter(
 
   extension: String)
 
-    extends FileFilter {
+  extends FileFilter {
 
   final def accept(file: File) = file.isFile && file.getName.toLowerCase.endsWith("." + extension)
 

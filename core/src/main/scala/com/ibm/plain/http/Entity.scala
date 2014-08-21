@@ -52,7 +52,7 @@ object Entity {
 
     contenttype: ContentType)
 
-      extends Entity {
+    extends Entity {
 
     final val encodable = true
 
@@ -80,7 +80,7 @@ object Entity {
 
     contenttype: ContentType)
 
-      extends Entity {
+    extends Entity {
 
     final val length: Long = buffer.remaining
 
@@ -115,7 +115,7 @@ object Entity {
 
     transferencoding: Option[Encoding])
 
-      extends Entity
+    extends Entity
 
   /**
    *
@@ -141,7 +141,7 @@ object Entity {
 
     encodable: Boolean)
 
-      extends Entity {
+    extends Entity {
 
     final val contentencoding = None
 
@@ -156,7 +156,7 @@ object Entity {
 
     val transferencoding: Option[Encoding])
 
-      extends Entity {
+    extends Entity {
 
     val entity: Entity
 
@@ -177,7 +177,7 @@ object Entity {
 
     entity: Entity)
 
-      extends TransferEncodedEntity(Some(Encoding.`identity`))
+    extends TransferEncodedEntity(Some(Encoding.`identity`))
 
   /**
    *
@@ -186,7 +186,7 @@ object Entity {
 
     entity: Entity)
 
-      extends TransferEncodedEntity(Some(Encoding.`chunked`))
+    extends TransferEncodedEntity(Some(Encoding.`chunked`))
 
   /**
    *
@@ -195,7 +195,7 @@ object Entity {
 
     entity: Entity)
 
-      extends TransferEncodedEntity(Some(Encoding.`chunked`)) {
+    extends TransferEncodedEntity(Some(Encoding.`chunked`)) {
 
     override final val contentencoding = Some(Encoding.`deflate`)
 
@@ -208,7 +208,7 @@ object Entity {
 
     entity: Entity)
 
-      extends TransferEncodedEntity(Some(Encoding.`chunked`)) {
+    extends TransferEncodedEntity(Some(Encoding.`chunked`)) {
 
     override final val contentencoding = Some(Encoding.`gzip`)
 

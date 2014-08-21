@@ -26,9 +26,9 @@ trait FilterConduit[C <: Channel]
  */
 trait FilterSourceConduit[C <: Channel]
 
-    extends FilterBaseConduit[C]
+  extends FilterBaseConduit[C]
 
-    with ConnectorSourceConduit[C] {
+  with ConnectorSourceConduit[C] {
 
   /**
    * Needs to be implemented by subclasses. It filters from the outer buffer to the inner buffer.
@@ -75,7 +75,7 @@ trait FilterSourceConduit[C <: Channel]
 
     private[this] final val handler: Handler[A])
 
-      extends BaseHandler[A](handler) {
+    extends BaseHandler[A](handler) {
 
     @inline final def completed(processed: Integer, attachment: A) = {
       if (0 < innerbuffer.position) innerbuffer.flip
@@ -91,9 +91,9 @@ trait FilterSourceConduit[C <: Channel]
  */
 trait FilterSinkConduit[C <: Channel]
 
-    extends FilterBaseConduit[C]
+  extends FilterBaseConduit[C]
 
-    with ConnectorSinkConduit[C] {
+  with ConnectorSinkConduit[C] {
 
   /**
    * Needs to be implemented by subclasses. It filters from the outer buffer to the inner buffer.
@@ -144,7 +144,7 @@ trait FilterSinkConduit[C <: Channel]
 
     private[this] final val handler: Handler[A])
 
-      extends BaseHandler[A](handler) {
+    extends BaseHandler[A](handler) {
 
     @inline final def completed(processed: Integer, attachment: A) = {
       if (0 < innerbuffer.remaining) {
@@ -161,7 +161,7 @@ trait FilterSinkConduit[C <: Channel]
 
     private[this] final val handler: Handler[A])
 
-      extends BaseHandler[A](handler) {
+    extends BaseHandler[A](handler) {
 
     @inline final def completed(processed: Integer, attachment: A) = {
       if (0 < innerbuffer.remaining) {
@@ -181,7 +181,7 @@ trait FilterSinkConduit[C <: Channel]
  */
 sealed trait FilterBaseConduit[C <: Channel]
 
-    extends ConnectorConduit[C] {
+  extends ConnectorConduit[C] {
 
   override final def isOpen = !closed
 

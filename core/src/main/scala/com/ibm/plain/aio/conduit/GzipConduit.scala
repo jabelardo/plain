@@ -19,9 +19,9 @@ final class GzipConduit private (
 
   protected[this] final val compressionlevel: Int)
 
-    extends GzipSourceConduit
+  extends GzipSourceConduit
 
-    with GzipSinkConduit {
+  with GzipSinkConduit {
 
   protected[this] final val nowrap = true
 
@@ -43,7 +43,7 @@ object GzipConduit {
  */
 sealed trait GzipSourceConduit
 
-    extends DeflateSourceConduit {
+  extends DeflateSourceConduit {
 
   protected[this] override final def filterIn(processed: Integer, buffer: ByteBuffer): Integer = {
     if (0 >= processed) {
@@ -118,7 +118,7 @@ sealed trait GzipSourceConduit
  */
 sealed trait GzipSinkConduit
 
-    extends DeflateSinkConduit {
+  extends DeflateSinkConduit {
 
   override protected[this] def filterOut(processed: Integer, buffer: ByteBuffer): Integer = {
     if (0 >= processed) {

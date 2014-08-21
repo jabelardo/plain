@@ -14,10 +14,10 @@ trait IsSingleton
  */
 abstract class Singleton[A <: IsSingleton](
 
-    /**
-     * Maybe null on object creation, in this case instance(value) must be called later.
-     */
-    initialinstance: A) {
+  /**
+   * Maybe null on object creation, in this case instance(value) must be called later.
+   */
+  initialinstance: A) {
 
   final def this() = this(null.asInstanceOf[A])
 

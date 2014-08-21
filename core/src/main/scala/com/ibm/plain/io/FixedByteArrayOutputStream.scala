@@ -18,7 +18,7 @@ final class FixedByteArrayOutputStream private (
 
   private[this] final val length: Int)
 
-    extends OutputStream {
+  extends OutputStream {
 
   def this(arr: Array[Byte]) = this(arr, 0, arr.length)
 

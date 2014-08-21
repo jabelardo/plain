@@ -33,9 +33,9 @@ final class ServletClassLoader private (
 
   unpackdirectory: File)
 
-    extends URLClassLoader(urls, parent)
+  extends URLClassLoader(urls, parent)
 
-    with Logger {
+  with Logger {
 
   override final def toString = name
 
@@ -135,7 +135,7 @@ final class ServletClassLoader private (
  */
 object ServletClassLoader
 
-    extends Logger {
+  extends Logger {
 
   final def apply(source: String, parent: ClassLoader): URLClassLoader = apply(source, parent, temporaryDirectory.getAbsolutePath)
 

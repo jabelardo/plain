@@ -13,7 +13,7 @@ import logging.defaultLogger
  */
 package object time
 
-    extends CheckedConfig {
+  extends CheckedConfig {
 
   /**
    * now in milliseconds since 1970

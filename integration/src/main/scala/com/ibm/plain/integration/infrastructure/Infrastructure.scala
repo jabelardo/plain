@@ -14,15 +14,15 @@ import logging.Logger
  */
 final class Infrastructure
 
-    extends ExternalComponent[Infrastructure](
+  extends ExternalComponent[Infrastructure](
 
-      infrastructure.isEnabled,
+    infrastructure.isEnabled,
 
-      "plain-integration-infrastructure",
+    "plain-integration-infrastructure",
 
-      classOf[distributedconfig.DistributedConfig])
+    classOf[distributedconfig.DistributedConfig])
 
-    with Logger {
+  with Logger {
 
   override def start = {
     Infrastructure.instance(this)

@@ -16,9 +16,9 @@ import http.{ Entity, Request }
  */
 trait StaticResource
 
-    extends Resource
+  extends Resource
 
-    with StaticUniform {
+  with StaticUniform {
 
   import Resource._
 

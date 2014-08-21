@@ -11,7 +11,7 @@ import java.io.Closeable
  */
 trait IgnoringCloseable
 
-    extends Closeable {
+  extends Closeable {
 
   abstract override def close = ()
 

@@ -12,9 +12,9 @@ import com.googlecode.concurrentlinkedhashmap.{ EvictionListener, ConcurrentLink
 
 final class LeastRecentlyUsedCache[@specialized A] private (
 
-    maxcapacity: Int,
+  maxcapacity: Int,
 
-    initialcapacity: Int) {
+  initialcapacity: Int) {
 
   final def setOnRemove(f: A ⇒ Unit): Unit = onremove = f
 

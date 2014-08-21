@@ -14,7 +14,7 @@ import bootstrap.Application
 
 package object jdbc
 
-    extends CheckedConfig {
+  extends CheckedConfig {
 
   import config._
   import config.settings._

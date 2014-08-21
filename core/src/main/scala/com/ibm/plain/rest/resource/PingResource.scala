@@ -11,7 +11,7 @@ package resource
  */
 final class PingResource
 
-    extends StaticResource {
+  extends StaticResource {
 
   import PingResource._
 

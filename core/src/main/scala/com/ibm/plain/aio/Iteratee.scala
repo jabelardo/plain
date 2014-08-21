@@ -14,7 +14,7 @@ import Input.Eof
  */
 sealed trait Iteratee[E, +A]
 
-    extends Any {
+  extends Any {
 
   import Iteratee._
 
@@ -36,7 +36,7 @@ object Iteratee {
 
   final class Done[E, A] private (val a: A)
 
-      extends Iteratee[E, A] {
+    extends Iteratee[E, A] {
 
     @inline final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = (this, input)
 
@@ -56,9 +56,9 @@ object Iteratee {
 
   final class Error[E] private (val e: Throwable)
 
-      extends AnyVal
+    extends AnyVal
 
-      with Iteratee[E, Nothing] {
+    with Iteratee[E, Nothing] {
 
     @inline final def apply(input: Input[E]): (Iteratee[E, Nothing], Input[E]) = (this, input)
 
@@ -78,9 +78,9 @@ object Iteratee {
 
   final class Cont[E, A] private (val k: Input[E] ⇒ (Iteratee[E, A], Input[E]))
 
-      extends AnyVal
+    extends AnyVal
 
-      with Iteratee[E, A] {
+    with Iteratee[E, A] {
 
     @inline final def apply(input: Input[E]): (Iteratee[E, A], Input[E]) = k(input)
 
@@ -109,7 +109,7 @@ object Iteratee {
 
     private[this] final val in: List[Any ⇒ Iteratee[E, _]])
 
-      extends R[E, A] {
+    extends R[E, A] {
 
     @inline final def clone(f: Any ⇒ Iteratee[E, _]) = { new Compose(k, out, f :: in) }
 

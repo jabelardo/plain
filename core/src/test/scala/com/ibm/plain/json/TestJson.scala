@@ -5,8 +5,7 @@ package plain
 package json
 
 import org.junit.Test
-import javax.xml.bind.annotation.{ XmlAccessorType, XmlRootElement }
-import javax.xml.bind.annotation._
+import javax.xml.bind.annotation.{ XmlAccessorType, XmlAccessType, XmlRootElement }
 import xml._
 
 @XmlRootElement(name = "person")

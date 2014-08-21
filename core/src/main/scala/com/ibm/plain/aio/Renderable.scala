@@ -11,7 +11,7 @@ import java.nio.ByteBuffer
  */
 trait Renderable
 
-    extends Any {
+  extends Any {
 
   def render(implicit buffer: ByteBuffer): Unit
 
@@ -39,7 +39,7 @@ object Renderable {
 
     private[this] final val byte: Byte)
 
-      extends Renderable {
+    extends Renderable {
 
     @inline final def render(implicit buffer: ByteBuffer) = buffer.put(byte)
 
@@ -58,7 +58,7 @@ object Renderable {
 
   final class r private (val array: Array[Byte], val offset: Int, val length: Int)
 
-      extends Renderable {
+    extends Renderable {
 
     @inline final def render(implicit out: ByteBuffer) = out.put(array, offset, length)
 
@@ -78,7 +78,7 @@ object Renderable {
 
   final class rb private (val buffer: ByteBuffer)
 
-      extends AnyVal with Renderable {
+    extends AnyVal with Renderable {
 
     @inline final def render(implicit out: ByteBuffer) = out.put(buffer)
 

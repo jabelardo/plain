@@ -9,7 +9,7 @@ package bootstrap
  */
 object Main
 
-    extends App {
+  extends App {
 
   /**
    * Commons logging interferes with plain-logging. Please keep silent.

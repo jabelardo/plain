@@ -55,7 +55,7 @@ object Adapter {
 
   @XmlRootElement(name = "list-element")
   final case class StringListElement(
-      @xmlAttribute(required = true) element: String) {
+    @xmlAttribute(required = true) element: String) {
     def this() = this(null)
   }
 
@@ -73,8 +73,8 @@ object Adapter {
 
   @XmlRootElement(name = "property")
   final case class Property(
-      @xmlJavaTypeAdapter(classOf[CDataAdapter]) name: String,
-      @xmlJavaTypeAdapter(classOf[CDataAdapter]) value: String) {
+    @xmlJavaTypeAdapter(classOf[CDataAdapter]) name: String,
+    @xmlJavaTypeAdapter(classOf[CDataAdapter]) value: String) {
     def this() = this(null, null)
   }
 

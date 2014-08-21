@@ -9,7 +9,7 @@ import config.CheckedConfig
  */
 package object math
 
-    extends CheckedConfig {
+  extends CheckedConfig {
 
   /**
    * If it is a power of 2 only one bit can be set. This is so clever ...

@@ -38,6 +38,8 @@ trait JsonMarshaled {
  */
 object JsonMarshaled {
 
+  final def apply[A](json: Json)(implicit c: ClassTag[A]): A = unmarshaller(c.runtimeClass).unmarshalFromJSON(new StringReader(Json.build(json)), c.runtimeClass).asInstanceOf[A]
+
   final def apply[A](s: String)(implicit c: ClassTag[A]): A = unmarshaller(c.runtimeClass).unmarshalFromJSON(new StringReader(s), c.runtimeClass).asInstanceOf[A]
 
   final def apply[A](in: InputStream)(implicit c: ClassTag[A]): A = unmarshaller(c.runtimeClass).unmarshalFromJSON(in, c.runtimeClass).asInstanceOf[A]

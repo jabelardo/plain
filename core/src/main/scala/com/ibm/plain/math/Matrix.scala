@@ -10,7 +10,7 @@ final class Matrix(
 
   val m: Array[Double])
 
-    extends Serializable {
+  extends Serializable {
 
   final override def toString = asString
 

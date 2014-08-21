@@ -16,9 +16,9 @@ import aio.Renderable._
  */
 sealed abstract class Status
 
-    extends Throwable
+  extends Throwable
 
-    with Renderable {
+  with Renderable {
 
   def code: String
 

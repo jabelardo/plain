@@ -16,15 +16,15 @@ import Resource.MethodBody
  */
 final case class Context(
 
-    var config: Config,
+  var config: Config,
 
-    var variables: Variables,
+  var variables: Variables,
 
-    var remainder: Path,
+  var remainder: Path,
 
-    var request: Request,
+  var request: Request,
 
-    var response: Response) {
+  var response: Response) {
 
   def this(request: Request) = this(null, null, null, request, null)
 

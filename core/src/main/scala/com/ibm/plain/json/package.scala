@@ -9,7 +9,7 @@ import com.sun.jersey.api.json.{ JSONConfiguration, JSONJAXBContext }
 
 package object json
 
-    extends CheckedConfig {
+  extends CheckedConfig {
 
   import config.settings._
   import config._

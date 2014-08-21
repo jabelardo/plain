@@ -1,14 +1,11 @@
-package com.ibm
-
-package plain
-
+package com.ibm.plain
 package reflect
 
 import scala.language.existentials
 
-final case class CompanionObject[A](clazz: Class[A]) {
+final case class CompanionObject(runtimeclass: Class[_]) {
 
-  final val companionobject: Option[A] = try Some(companion(clazz)) catch { case _: Throwable ⇒ None }
+  final val companionobject: Option[Any] = try Some(companion(runtimeclass)) catch { case _: Throwable ⇒ None }
 
 }
 

@@ -15,7 +15,7 @@ import Status.ClientError.`400`
  */
 sealed abstract class Version
 
-    extends Renderable {
+  extends Renderable {
 
   final val version = toString.getBytes
 

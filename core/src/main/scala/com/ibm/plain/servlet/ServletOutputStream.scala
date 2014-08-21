@@ -12,7 +12,7 @@ final class ServletOutputStream(
 
   private[this] final val out: ByteArrayOutputStream)
 
-    extends js.ServletOutputStream {
+  extends js.ServletOutputStream {
 
   final def write(i: Int) = out.write(i)
 

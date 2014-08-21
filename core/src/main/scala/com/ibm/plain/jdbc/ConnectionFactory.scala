@@ -35,9 +35,9 @@ final case class ConnectionFactory(
 
   configpath: String)
 
-    extends BaseComponent[ConnectionFactory]
+  extends BaseComponent[ConnectionFactory]
 
-    with Logger {
+  with Logger {
 
   override def name = getClass.getSimpleName + "(name=" + displayname + ", config=" + configpath + ", pool=" + poolmin + "/" + poolmax + ")"
 

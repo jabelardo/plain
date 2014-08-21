@@ -12,7 +12,7 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter
 
 package object xml
 
-    extends CheckedConfig {
+  extends CheckedConfig {
 
   import config.settings._
   import config._

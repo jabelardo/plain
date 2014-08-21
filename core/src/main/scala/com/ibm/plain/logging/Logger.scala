@@ -49,4 +49,4 @@ final class NamedLogger(
 
   override protected final val loggername: String)
 
-    extends Logger
+  extends Logger

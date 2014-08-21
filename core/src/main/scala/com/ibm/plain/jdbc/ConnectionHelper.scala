@@ -172,7 +172,7 @@ object ConnectionHelper {
    */
   final class RichPreparedStatement(
 
-      private[this] val ps: PreparedStatement) {
+    private[this] val ps: PreparedStatement) {
 
     @inline final def execute[A](f: RichResultSet ⇒ A): Stream[A] = {
       pos = 1

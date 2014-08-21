@@ -20,7 +20,7 @@ final class GzipOutputStream(
 
   compressionlevel: Int)
 
-    extends JGZIPOutputStream(output, buffersize, syncmode) {
+  extends JGZIPOutputStream(output, buffersize, syncmode) {
 
   `def`.setLevel(compressionlevel)
 

@@ -63,9 +63,9 @@ case class User(
 
   @xmlAttribute id: Int)
 
-    extends XmlMarshaled
+  extends XmlMarshaled
 
-    with JsonMarshaled {
+  with JsonMarshaled {
 
   def this() = this(null, -1)
 

@@ -16,9 +16,9 @@ abstract class ExternalComponent[C](
 
   dependants: Class[_ <: Component[_]]*)
 
-    extends BaseComponent[C](enabled, name, dependants: _*)
+  extends BaseComponent[C](enabled, name, dependants: _*)
 
-    with IsSingleton {
+  with IsSingleton {
 
   final def this(enabled: Boolean, name: String) = this(enabled, name, Seq[Class[Component[_]]](): _*)
 

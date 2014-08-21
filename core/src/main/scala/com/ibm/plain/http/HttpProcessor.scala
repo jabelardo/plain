@@ -18,9 +18,9 @@ import text.stackTraceToString
  */
 abstract class HttpProcessor[A]
 
-    extends Processor[A]
+  extends Processor[A]
 
-    with Logger {
+  with Logger {
 
   def completed(exchange: Exchange[A], handler: ExchangeHandler[A]): Unit = {
     exchange ++ Done[ExchangeIo[A], OutMessage](exchange.outMessage)

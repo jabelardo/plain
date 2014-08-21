@@ -16,7 +16,7 @@ import scala.collection.JavaConversions._
  */
 abstract class ServletConfig
 
-    extends js.ServletConfig {
+  extends js.ServletConfig {
 
   override final def getServletName = name
 
@@ -45,4 +45,4 @@ final class WebXmlServletConfig(
 
   protected[this] final val servletcontext: ServletContext)
 
-    extends ServletConfig
+  extends ServletConfig

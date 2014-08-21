@@ -20,7 +20,7 @@ trait Uniform
  */
 trait StaticUniform
 
-    extends Uniform {
+  extends Uniform {
 
   def init(config: Config)
 

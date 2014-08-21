@@ -23,9 +23,9 @@ import Matching.{ Encoder, Decoder, MarshaledDecoder }
  */
 trait Resource
 
-    extends Uniform
+  extends Uniform
 
-    with DelayedInit {
+  with DelayedInit {
 
   import Resource._
 
@@ -227,7 +227,7 @@ object Resource {
 
     val body: Body[Any, Any])
 
-      extends AnyVal
+    extends AnyVal
 
   object MethodBody {
 

@@ -1,7 +1,4 @@
-package com.ibm
-
-package plain
-
+package com.ibm.plain
 package reflect
 
 import scala.language.existentials
@@ -16,7 +13,7 @@ import logging.Logger
  */
 trait EnumerationCapabilities
 
-    extends Logger {
+  extends Logger {
 
   type EnumerationType
 
@@ -41,7 +38,7 @@ trait EnumerationCapabilities
     values.find(asString(_) == value) match {
       case Some(enumerationValue) ⇒ enumerationValue
       case _ ⇒
-        val e = EnumerationValueNotFoundException(this.getClass, value)
+        val e = EnumerationValueNotFoundException(this.getClass, value, values.map(asString))
         error(e.getMessage)
         throw e
     }
@@ -53,7 +50,7 @@ trait EnumerationCapabilities
 
 abstract class AbstractEnumeration[T](val asString: T ⇒ String)
 
-    extends EnumerationCapabilities {
+  extends EnumerationCapabilities {
 
   type EnumerationType = T
 
@@ -89,9 +86,11 @@ object EnumerationWithClassName {
 
   trait BaseType
 
-      extends EnumerationWithName.BaseType {
+    extends EnumerationWithName.BaseType {
 
     final val name = try getClass.getSimpleName.replace("$", "") catch { case _: Throwable ⇒ scalifiedName(getClass) }
+
+    final def longName = s"${this.getClass.getSuperclass.getSimpleName}.$name"
 
   }
 
@@ -113,6 +112,8 @@ object EnumerationWithValue {
 
     val value: String
 
+    final def longName = s"${this.getClass.getSimpleName}.value"
+
   }
 
   abstract class EnumerationCapabilities[T <: BaseType]
@@ -129,6 +130,6 @@ object EnumerationWithValue {
  * @param value
  * The value which should be transformed to the enumeration type.
  */
-case class EnumerationValueNotFoundException(enumType: Class[_], value: String)
+case class EnumerationValueNotFoundException(enumType: Class[_], value: String, values: Seq[String])
 
-  extends Exception(s"The enumeration ${enumType.getSimpleName} does not have the value $value.")
+  extends Exception(s"The enumeration ${enumType.getSimpleName} does not have the value '$value'. ${values.mkString("(", ", ", ")")}")

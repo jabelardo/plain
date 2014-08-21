@@ -11,9 +11,9 @@ import bootstrap.{ BaseComponent, IsSingleton, Singleton }
  */
 final class Aio private
 
-    extends BaseComponent[Aio]("plain-aio")
+  extends BaseComponent[Aio]("plain-aio")
 
-    with IsSingleton {
+  with IsSingleton {
 
   final val defaultBufferPool = ByteBufferPool(defaultBufferSize, defaultBufferPoolSize)
 

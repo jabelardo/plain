@@ -5,7 +5,8 @@ package plain
 import java.lang.management.ManagementFactory
 
 import scala.collection.JavaConversions.asScalaSet
-import scala.reflect.runtime.universe.runtimeMirror
+import scala.reflect.runtime.universe._
+import scala.reflect.runtime.currentMirror
 
 import org.reflections.Reflections
 
@@ -37,11 +38,65 @@ package object reflect {
   /**
    * No error checking, existance is assumed. Use CompanionObject instead to get an optional companion.
    */
-  final def companion[A](clazz: Class[A]): A = {
-    val c = mirror.classSymbol(clazz)
-    val m = c.companionSymbol.asModule
-    val mm = mirror.reflectModule(m)
-    mm.instance.asInstanceOf[A]
+  final def companion(runtimeclass: Class[_]): Any = {
+    val cs = currentMirror.classSymbol(runtimeclass)
+    val cm = cs.companion.asModule
+    val mm = mirror.reflectModule(cm)
+    mm.instance
+  }
+
+  final def innercompanion(runtimeclass: Class[_]): Any = {
+    //    def getCompanionObject: Any = {
+    //      import scala.reflect.runtime.{ currentMirror ⇒ cm }
+    //      val outerField = runtimeclass.getFields.find(_.getName == """$outer""")
+    //      println(outerField + " " + outerField.getClass)
+    //      val moduleMirror = outerField.map { _.get }.map { cm.reflect(_) }
+    //      val instanceSymbol = cm.classSymbol(runtimeclass)
+    //      val companionSymbol = instanceSymbol.companion.asModule
+    //      val companionMirror =
+    //        moduleMirror.
+    //          map { _.reflectModule(companionSymbol) }.
+    //          getOrElse { cm.reflectModule(companionSymbol) }
+    //      println("inst " + companionMirror.instance)
+    //      companionMirror.instance
+    //    }
+    if (true) {
+      val im = currentMirror.reflect(currentMirror.classSymbol(runtimeclass).toType)
+      val c = mirror.classSymbol(runtimeclass)
+      val TypeRef(pre, sym, args) = currentMirror.classSymbol(runtimeclass).toType
+      println("#2 " + pre + " " + pre.typeSymbol.fullName)
+      println("#3 " + sym.fullName)
+      println("#4 " + args)
+      val m = sym.companion
+      println("m " + m + " " + m.getClass)
+      val mm = im.instance
+      println(mm + " " + mm.getClass)
+      m
+    } else {
+
+      println(runtimeclass)
+      val x = currentMirror.reflect(currentMirror.classSymbol(runtimeclass).toType)
+      println(x)
+      println(x.symbol.companion)
+      println(x.symbol.companionSymbol)
+
+      val c = currentMirror.classSymbol(runtimeclass).toType
+      println("#1 " + c)
+      val TypeRef(pre, sym, args) = c
+      println("#2 " + pre)
+      println("#3 " + sym.fullName)
+      println("#4 " + args)
+      val im = currentMirror.reflect(sym)
+      println("#5a " + im)
+      println("#5b " + im.symbol)
+      println("#5c " + im.instance)
+      println("#5d " + im.symbol.companion)
+      val m = im.symbol.companionSymbol.asModule
+      println("#6 " + m)
+      val mm = mirror.reflectModule(m)
+      println("#7 " + mm)
+      mm.instance
+    }
   }
 
   /**

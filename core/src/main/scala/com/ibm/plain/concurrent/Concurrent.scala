@@ -18,11 +18,11 @@ import bootstrap.{ BaseComponent, IsSingleton, Singleton }
  */
 final class Concurrent private
 
-    extends BaseComponent[Concurrent]("plain-concurrent")
+  extends BaseComponent[Concurrent]("plain-concurrent")
 
-    with OnlyOnce
+  with OnlyOnce
 
-    with IsSingleton {
+  with IsSingleton {
 
   override final def stop = {
     if (isStarted) {

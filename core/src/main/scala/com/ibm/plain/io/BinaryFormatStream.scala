@@ -90,7 +90,7 @@ final class BinaryFormatByteBuffer(
   private[this] final var position: Int,
   private[this] final val limit: Int)
 
-    extends BinaryOutput with BinaryInput {
+  extends BinaryOutput with BinaryInput {
 
   def this(buf: ByteBuffer) = this(buf, 0, buf.capacity)
 

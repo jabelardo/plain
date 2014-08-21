@@ -19,7 +19,7 @@ final class Connection private[jdbc] (
 
   private[this] final val idle: BlockingDeque[Connection])
 
-    extends ConnectionWrapper(connection) {
+  extends ConnectionWrapper(connection) {
 
   override final def toString = super.toString + " active=" + active.get
 

@@ -24,9 +24,9 @@ final class HttpServletResource(
 
   private[this] final val servletwrapper: (Either[(Int, HttpServlet), HttpServlet], ServletConfig, ServletContext))
 
-    extends Uniform
+  extends Uniform
 
-    with StaticUniform {
+  with StaticUniform {
 
   final def init(config: Config) = ()
 

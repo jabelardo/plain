@@ -13,7 +13,7 @@ final class RequestDispatcher(
 
   private[this] final val servletcontext: ServletContext)
 
-    extends js.RequestDispatcher {
+  extends js.RequestDispatcher {
 
   final def forward(request: js.ServletRequest, response: js.ServletResponse) = {
     val req = request.asInstanceOf[js.http.HttpServletRequest]
