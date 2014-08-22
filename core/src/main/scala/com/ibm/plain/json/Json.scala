@@ -75,10 +75,6 @@ object Json {
 
   final def parse4s(reader: Reader) = JsonMethods.parse(reader)
 
-  final def apply(s: String) = parse(s)
-
-  final def apply(reader: Reader) = parse(reader)
-
   final def build(any: Any): String = {
     @inline def ascii(s: String) = !(encodeOutput || s.exists { c ⇒ '\u0020' > c || '\u007f' < c })
 
