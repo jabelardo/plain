@@ -41,7 +41,7 @@ trait ConnectorSinkConduit[C <: Channel]
  */
 sealed trait ConnectorConduitBase[C <: Channel]
 
-  extends Conduit {
+    extends Conduit {
 
   def close = underlyingchannel.close
 

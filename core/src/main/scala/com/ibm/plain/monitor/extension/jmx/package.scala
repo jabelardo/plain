@@ -10,6 +10,6 @@ import config.CheckedConfig
 
 package object jmx
 
-  extends CheckedConfig {
+    extends CheckedConfig {
 
 }

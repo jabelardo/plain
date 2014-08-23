@@ -21,13 +21,13 @@ import concurrent.spawn
  */
 final class ClientExchange private (
 
-  private[this] final val source: Conduit,
+    private[this] final val source: Conduit,
 
-  private[this] final val destination: Conduit,
+    private[this] final val destination: Conduit,
 
-  private[this] final val handler: Handler[Integer, ClientExchange],
+    private[this] final val handler: Handler[Integer, ClientExchange],
 
-  private[this] final val progressfun: Int ⇒ Unit) {
+    private[this] final val progressfun: Int ⇒ Unit) {
 
   import ClientExchange._
 
@@ -92,7 +92,7 @@ final class ClientExchange private (
  */
 object ClientExchange
 
-  extends Logger {
+    extends Logger {
 
   final def apply(source: Conduit, destination: Conduit, handler: Handler[Integer, ClientExchange], progress: Int ⇒ Unit) = new ClientExchange(source, destination, handler, progress)
 
@@ -103,7 +103,7 @@ object ClientExchange
    */
   sealed abstract class ReleaseHandler
 
-    extends Handler[Integer, ClientExchange] {
+      extends Handler[Integer, ClientExchange] {
 
     final def failed(e: Throwable, exchange: ClientExchange) = {
       e match {
@@ -125,7 +125,7 @@ object ClientExchange
    */
   object TransferReadHandler
 
-    extends ReleaseHandler {
+      extends ReleaseHandler {
 
     @inline final def doComplete(processed: Integer, exchange: ClientExchange) = {
       exchange.progress(processed)
@@ -140,7 +140,7 @@ object ClientExchange
 
   object TransferWriteHandler
 
-    extends ReleaseHandler {
+      extends ReleaseHandler {
 
     @inline final def doComplete(processed: Integer, exchange: ClientExchange) = {
       if (0 < exchange.available) {
@@ -153,7 +153,7 @@ object ClientExchange
 
   object TransferCloseHandler
 
-    extends ReleaseHandler {
+      extends ReleaseHandler {
 
     @inline final def doComplete(processed: Integer, exchange: ClientExchange) = {
       if (0 < exchange.available) {

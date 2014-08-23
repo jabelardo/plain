@@ -16,9 +16,9 @@ import scala.math.min
  */
 object NullConduit
 
-  extends TerminatingSourceConduit
+    extends TerminatingSourceConduit
 
-  with TerminatingSinkConduit {
+    with TerminatingSinkConduit {
 
   final def close = ()
 

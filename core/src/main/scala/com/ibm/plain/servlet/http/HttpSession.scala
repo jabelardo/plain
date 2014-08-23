@@ -18,9 +18,9 @@ final class HttpSession private (
 
   private[this] final val servletcontext: js.ServletContext)
 
-  extends js.http.HttpSession
+    extends js.http.HttpSession
 
-  with HasAttributes {
+    with HasAttributes {
 
   final val getCreationTime: Long = time.now
 

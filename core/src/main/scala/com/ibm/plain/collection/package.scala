@@ -6,7 +6,7 @@ import config.CheckedConfig
 
 package object collection
 
-  extends CheckedConfig {
+    extends CheckedConfig {
 
 }
 

@@ -11,7 +11,7 @@ import config.CheckedConfig
 
 package object servlet
 
-  extends CheckedConfig {
+    extends CheckedConfig {
 
   import config._
   import config.settings._

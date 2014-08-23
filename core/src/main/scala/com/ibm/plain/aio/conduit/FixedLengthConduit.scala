@@ -18,7 +18,7 @@ final class FixedLengthConduit(
 
   private[this] final val length: Long)
 
-  extends ConnectorConduit[Channel] {
+    extends ConnectorConduit[Channel] {
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     if (position < length) underlyingchannel.read(wrapper(buffer), attachment, new FixedLengthHandler(handler)) else handler.completed(0, attachment)
@@ -32,7 +32,7 @@ final class FixedLengthConduit(
 
     private[this] final val handler: Handler[A])
 
-    extends BaseHandler[A](handler) {
+      extends BaseHandler[A](handler) {
 
     final def completed(processed: Integer, attachment: A) = {
       position += processed

@@ -20,9 +20,9 @@ final class ChunkedConduit private (
 
   protected[this] final val underlyingchannel: Channel)
 
-  extends ChunkedSourceConduit
+    extends ChunkedSourceConduit
 
-  with ChunkedSinkConduit {
+    with ChunkedSinkConduit {
 
 }
 
@@ -40,9 +40,9 @@ object ChunkedConduit {
  */
 sealed trait ChunkedSourceConduit
 
-  extends ChunkedConduitBase
+    extends ChunkedConduitBase
 
-  with FilterSourceConduit[Channel] {
+    with FilterSourceConduit[Channel] {
 
   protected[this] final def filterIn(processed: Integer, buffer: ByteBuffer): Integer = {
     if (0 >= processed) {
@@ -91,9 +91,9 @@ sealed trait ChunkedSourceConduit
  */
 sealed trait ChunkedSinkConduit
 
-  extends ChunkedConduitBase
+    extends ChunkedConduitBase
 
-  with FilterSinkConduit[Channel] {
+    with FilterSinkConduit[Channel] {
 
   protected[this] final def filterOut(processed: Integer, buffer: ByteBuffer): Integer = {
     if (0 >= processed) {
@@ -131,11 +131,11 @@ abstract sealed class ChunkedConduitBase {
 
   protected[this] final class Chunk(
 
-    var buffer: ByteBuffer,
+      var buffer: ByteBuffer,
 
-    var position: Int,
+      var position: Int,
 
-    val length: Int) {
+      val length: Int) {
 
     final def fill(source: ByteBuffer) = {
       buffer = ByteBuffer.wrap(source.array, source.position, min(length - position, source.remaining))

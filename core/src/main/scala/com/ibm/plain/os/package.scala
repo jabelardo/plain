@@ -12,7 +12,7 @@ import time.timeMillis
 
 package object os
 
-  extends CheckedConfig {
+    extends CheckedConfig {
 
   /**
    * Get the current running operating system. Use match/case on val operatingSystem.

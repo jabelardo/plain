@@ -24,11 +24,11 @@ final class AHCConduit private (
 
   private[this] final val request: Request)
 
-  extends AHCSourceConduit
+    extends AHCSourceConduit
 
-  with AHCSinkConduit
+    with AHCSinkConduit
 
-  with TerminatingConduit {
+    with TerminatingConduit {
 
   requestbuilder = client.prepareRequest(request)
 
@@ -48,9 +48,9 @@ object AHCConduit {
  */
 sealed trait AHCSourceConduit
 
-  extends AHCConduitBase
+    extends AHCConduitBase
 
-  with TerminatingSourceConduit {
+    with TerminatingSourceConduit {
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     if (null != requestbuilder) {
@@ -69,7 +69,7 @@ sealed trait AHCSourceConduit
 
     private[this] final val attachment: A)
 
-    extends AsyncCompletionHandler[Unit] {
+      extends AsyncCompletionHandler[Unit] {
 
     final def onCompleted(response: Response) = {
       await
@@ -96,9 +96,9 @@ sealed trait AHCSourceConduit
  */
 sealed trait AHCSinkConduit
 
-  extends AHCConduitBase
+    extends AHCConduitBase
 
-  with TerminatingSinkConduit {
+    with TerminatingSinkConduit {
 
   override def close = {
     super.close
@@ -136,13 +136,13 @@ sealed trait AHCSinkConduit
 
     attachment: A)
 
-    extends BodyGenerator {
+      extends BodyGenerator {
 
     final def createBody: Body = new AHCBody
 
     final class AHCBody
 
-      extends Body {
+        extends Body {
 
       def close: Unit = isopen.compareAndSet(true, false)
 
@@ -174,7 +174,7 @@ sealed trait AHCSinkConduit
  */
 sealed trait AHCConduitBase
 
-  extends Conduit {
+    extends Conduit {
 
   /**
    * Must not close AHCClient as it used by others in parallel.

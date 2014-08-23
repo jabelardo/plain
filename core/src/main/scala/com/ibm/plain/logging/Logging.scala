@@ -19,9 +19,9 @@ import bootstrap.{ Application, BaseComponent, IsSingleton, Singleton }
  */
 final class Logging private
 
-  extends BaseComponent[Logging]("plain-logging")
+    extends BaseComponent[Logging]("plain-logging")
 
-  with IsSingleton {
+    with IsSingleton {
 
   override final def start = {
     defaultLogger.trace("Logging started.")

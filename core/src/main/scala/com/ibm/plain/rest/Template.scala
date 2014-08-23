@@ -25,7 +25,7 @@ case class InvalidTemplateException(
 
   reason: String)
 
-  extends ControlThrowable {
+    extends ControlThrowable {
 
   override final def toString = getClass.getName + "(template=" + template.path + ", reason=" + reason + ")"
 
@@ -47,11 +47,11 @@ final case class ResourceClass(resource: Class[_ <: Uniform], config: Config) ex
  */
 final class Template private (
 
-  val resource: Class[_ <: Uniform],
+    val resource: Class[_ <: Uniform],
 
-  val config: Config,
+    val config: Config,
 
-  val path: String) {
+    val path: String) {
 
   final val root = if (0 == path.length) {
     ResourceClass(resource, config)
@@ -85,9 +85,9 @@ object Template {
 
 final case class Templates(
 
-  resource: Option[(Class[_ <: Uniform], Config)],
+    resource: Option[(Class[_ <: Uniform], Config)],
 
-  branch: Option[Either[(String, Templates), Map[String, Templates]]]) {
+    branch: Option[Either[(String, Templates), Map[String, Templates]]]) {
 
   final def get(method: Method, path: Path): Option[(Class[_ <: Uniform], Config, Option[Variables], Path)] = {
 

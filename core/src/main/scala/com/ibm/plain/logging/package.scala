@@ -9,7 +9,7 @@ import config.settings.{ getConfig, getString, getStringList }
 
 package object logging
 
-  extends config.CheckedConfig {
+    extends config.CheckedConfig {
 
   import config._
   import config.settings._

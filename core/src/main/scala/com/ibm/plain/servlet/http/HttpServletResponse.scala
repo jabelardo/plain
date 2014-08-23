@@ -28,7 +28,7 @@ final class HttpServletResponse(
 
   private[this] final val servlet: js.http.HttpServlet)
 
-  extends js.http.HttpServletResponse {
+    extends js.http.HttpServletResponse {
 
   final def addCookie(cookie: js.http.Cookie) = response ++ cookie
 

@@ -1,12 +1,12 @@
-package com.ibm
-
-package plain
-
+package com.ibm.plain
 package config
 
+/**
+ *
+ */
 trait CheckedConfig
 
-  extends DelayedInit {
+    extends DelayedInit {
 
   override def delayedInit(body: ⇒ Unit): Unit = {
     try {

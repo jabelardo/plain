@@ -13,7 +13,7 @@ import logging.Logger
  */
 trait EnumerationCapabilities
 
-  extends Logger {
+    extends Logger {
 
   type EnumerationType
 
@@ -50,7 +50,7 @@ trait EnumerationCapabilities
 
 abstract class AbstractEnumeration[T](val asString: T ⇒ String)
 
-  extends EnumerationCapabilities {
+    extends EnumerationCapabilities {
 
   type EnumerationType = T
 
@@ -86,7 +86,7 @@ object EnumerationWithClassName {
 
   trait BaseType
 
-    extends EnumerationWithName.BaseType {
+      extends EnumerationWithName.BaseType {
 
     final val name = try getClass.getSimpleName.replace("$", "") catch { case _: Throwable ⇒ scalifiedName(getClass) }
 

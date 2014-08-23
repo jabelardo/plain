@@ -21,7 +21,7 @@ import logging.Logger
  */
 object Validator
 
-  extends Logger {
+    extends Logger {
 
   def validateXSD(xmluri: String, xsduri: String): Boolean = {
     try {
