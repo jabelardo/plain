@@ -22,18 +22,19 @@ import scala.math.BigDecimal.double2bigDecimal
 import Helpers.stringToConfiggyString
 
 final case class Json(any: Any) {
-  override def toString = Json.build(any)
-  def asNull = convert[Null](null)
-  def asBoolean: Boolean = any match { case Some(json: Json) ⇒ json.asBoolean case b: Boolean ⇒ b case s: String ⇒ s.toBoolean case _ ⇒ convert[Boolean](false) }
-  def asInt: Int = any match { case Some(json: Json) ⇒ json.asInt case i: Int ⇒ i case l: Long ⇒ l.toInt case d: Double ⇒ d.toInt case s: String ⇒ s.toInt case _ ⇒ convert[Int](0) }
-  def asLong: Long = any match { case Some(json: Json) ⇒ json.asLong case i: Int ⇒ i.toLong case s: String ⇒ s.toLong case _ ⇒ convert[Long](0) }
-  def asDouble: Double = any match { case Some(json: Json) ⇒ json.asDouble case i: Int ⇒ i.toDouble case l: Long ⇒ l.toDouble case s: String ⇒ s.toDouble case _ ⇒ convert[Double](0.0) }
-  def asBigDecimal: BigDecimal = any match { case Some(json: Json) ⇒ json.asBigDecimal case _ ⇒ convert[BigDecimal](0.0) }
-  def asString = convert[String]("")
-  def asArray = convert[Json.JArray](List[Json]())
-  def asObject = convert[Json.JObject](Map[String, Json]())
-  def apply(i: Int) = asArray(i)
-  def apply(key: String) = asObject(key)
+  override final def toString = Json.build(any)
+  final def asNull = convert[Null](null)
+  final def asBoolean: Boolean = any match { case Some(json: Json) ⇒ json.asBoolean case b: Boolean ⇒ b case s: String ⇒ s.toBoolean case Json.WrappedJson(s) ⇒ Json.parse(s).asBoolean case _ ⇒ convert[Boolean](false) }
+  final def asInt: Int = any match { case Some(json: Json) ⇒ json.asInt case i: Int ⇒ i case l: Long ⇒ l.toInt case d: Double ⇒ d.toInt case s: String ⇒ s.toInt case Json.WrappedJson(s) ⇒ Json.parse(s).asInt case _ ⇒ convert[Int](0) }
+  final def asLong: Long = any match { case Some(json: Json) ⇒ json.asLong case i: Int ⇒ i.toLong case s: String ⇒ s.toLong case Json.WrappedJson(s) ⇒ Json.parse(s).asLong case _ ⇒ convert[Long](0L) }
+  final def asDouble: Double = any match { case Some(json: Json) ⇒ json.asDouble case i: Int ⇒ i.toDouble case l: Long ⇒ l.toDouble case s: String ⇒ s.toDouble case Json.WrappedJson(s) ⇒ Json.parse(s).asDouble case _ ⇒ convert[Double](0.0) }
+  final def asBigDecimal: BigDecimal = any match { case Some(json: Json) ⇒ json.asBigDecimal case Json.WrappedJson(s) ⇒ Json.parse(s).asBigDecimal case _ ⇒ convert[BigDecimal](0.0) }
+  final def asString: String = any match { case Json.WrappedJson(s) ⇒ Json.parse(s).asString case _ ⇒ convert[String]("") }
+  final def asArray: Json.JArray = any match { case Json.WrappedJson(s) ⇒ Json.parse(s).asArray case _ ⇒ convert[Json.JArray](List[Json]()) }
+  final def asObject: Json.JObject = any match { case Json.WrappedJson(s) ⇒ Json.parse(s).asObject case _ ⇒ convert[Json.JObject](Map[String, Json]()) }
+  final def apply(i: Int) = asArray(i)
+  final def apply(key: String) = asObject(key)
+  final def extract[A](implicit mf: Manifest[A]): A = any match { case Json.WrappedJson(s) ⇒ Json.parse4s(s).extract[A](Json.formats, mf) case _ ⇒ throw new JsonException("Cannot extract, use as<Type> instead : " + any) }
   private def convert[T](default: T): T = try {
     any match {
       case Some(json: Json) ⇒ json.convert[T](default)
@@ -52,7 +53,6 @@ trait JsonSerializable {
 
 object JsonConversions {
   implicit def Any2Json(a: Any) = Json(a)
-
   implicit def Json2Boolean(j: Json) = j.asBoolean
   implicit def Json2Int(j: Json) = j.asInt
   implicit def Json2Long(j: Json) = j.asLong
@@ -65,15 +65,11 @@ object JsonConversions {
 
 object Json {
 
-  implicit val formats = Serialization.formats(NoTypeHints)
+  implicit val formats = Serialization.formats(NoTypeHints) ++ org.json4s.ext.JodaTimeSerializers.all
 
   type JArray = List[Json]
 
   type JObject = Map[String, Json]
-
-  final def parse4s(s: String): org.json4s.JValue = JsonMethods.parse(s)
-
-  final def parse4s(reader: Reader) = JsonMethods.parse(reader)
 
   final def build(any: Any): String = {
     @inline def ascii(s: String) = !(encodeOutput || s.exists { c ⇒ '\u0020' > c || '\u007f' < c })
@@ -99,7 +95,7 @@ object Json {
       case map: Map[_, _] ⇒ (for ((key, value) ← map.iterator) yield { quote(key.toString) + ":" + build0(value).inner }).mkString("{", ",", "}")
       case json: Json ⇒ build0(json.any).toString
       case anyref: AnyRef ⇒ Serialization.write(anyref)
-      case v ⇒ throw new IllegalStateException(s"Cannot serialize into JSON format : ${v.getClass.getName}.")
+      case v ⇒ throw new JsonException(s"Cannot serialize into JSON format : ${v.getClass.getName}.")
     })
 
     build0(any).toString
@@ -117,8 +113,17 @@ object Json {
     case a ⇒ Json(a)
   }
 
-  def parse(s: String): Json = convert((new ObjectMapper).readValue(s, classOf[Any]))
-  def parse(reader: Reader): Json = convert((new ObjectMapper).readValue(reader, classOf[Any]))
+  final def parse4s(s: String): org.json4s.JValue = JsonMethods.parse(s)
+
+  final def parse4s(reader: Reader) = JsonMethods.parse(reader)
+
+  final def parse(s: String): Json = convert((new ObjectMapper).readValue(s, classOf[Any]))
+
+  final def parse(reader: Reader): Json = convert((new ObjectMapper).readValue(reader, classOf[Any]))
+
+  final def wrap(s: String): Json = Json(WrappedJson(s))
+
+  case class WrappedJson(val s: String) extends AnyVal
 
   object Raw {
     def parseAny(s: String): Any = (new ObjectMapper).readValue(s, classOf[Any])

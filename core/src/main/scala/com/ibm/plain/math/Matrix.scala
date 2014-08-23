@@ -5,14 +5,15 @@ package plain
 package math
 
 import java.io.PrintWriter
+import json.Json
 
 final class Matrix(
 
   val m: Array[Double])
 
-  extends Serializable {
+    extends Serializable {
 
-  final override def toString = asString
+  final override def toString = Json.build(m)
 
   final def write(writer: PrintWriter)(implicit prefix: String = "m") = writer.print(asString)
 
