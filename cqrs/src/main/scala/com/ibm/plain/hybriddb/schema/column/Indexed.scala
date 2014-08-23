@@ -45,7 +45,7 @@ trait StringIndexed {
  */
 trait BaseIndexed[A]
 
-  extends Indexed[A] {
+    extends Indexed[A] {
 
   protected[this] val ordering: Ordering[A]
 
@@ -83,7 +83,7 @@ trait BaseIndexed[A]
 
     private[this] final val upper: Int)
 
-    extends Iterator[Long] {
+      extends Iterator[Long] {
 
     @inline final def hasNext = lower < upper
 
@@ -98,7 +98,7 @@ trait BaseIndexed[A]
  */
 trait BaseStringIndexed
 
-  extends StringIndexed {
+    extends StringIndexed {
 
   protected[this] val ordering: Ordering[String]
 

@@ -70,6 +70,7 @@ object PlainBuild
       .setPreference(RewriteArrowSymbols, true)
       .setPreference(AlignSingleLineCaseStatements, false)
       .setPreference(AlignParameters, false)
+      .setPreference(DoubleIndentClassDeclaration, true)
   }
 
   def applicationSettings = defaultSettings ++ Seq(fork in (Compile, run) := false)

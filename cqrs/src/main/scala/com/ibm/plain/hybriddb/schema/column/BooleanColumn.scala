@@ -30,9 +30,9 @@ import BooleanColumn.BitSet
 
   private[this] final val falses: BitSet)
 
-  extends BuiltColumn[Boolean]
+    extends BuiltColumn[Boolean]
 
-  with Lookup[Boolean] {
+    with Lookup[Boolean] {
 
   type Builder = BooleanColumnBuilder
 
@@ -49,7 +49,7 @@ final class BooleanColumnBuilder(
 
   val capacity: Long)
 
-  extends ColumnBuilder[Boolean, BooleanColumn] {
+    extends ColumnBuilder[Boolean, BooleanColumn] {
 
   final def next(value: Boolean) = if (value) trues.add(nextIndex.toInt) else falses.add(nextIndex.toInt)
 

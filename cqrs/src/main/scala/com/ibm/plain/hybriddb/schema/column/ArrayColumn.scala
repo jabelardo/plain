@@ -19,7 +19,7 @@ import scala.reflect.ClassTag
 
   private[this] final val array: Array[A])
 
-  extends BuiltColumn[A] {
+    extends BuiltColumn[A] {
 
   type Builder = ArrayColumnBuilder[A]
 
@@ -36,7 +36,7 @@ final class ArrayColumnBuilder[@specialized A: ClassTag](
 
   val capacity: Long)
 
-  extends ColumnBuilder[A, ArrayColumn[A]] {
+    extends ColumnBuilder[A, ArrayColumn[A]] {
 
   final def next(value: A): Unit = array.update(nextIndex.toInt, value)
 

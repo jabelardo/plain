@@ -25,9 +25,9 @@ import logging.Logger
  */
 trait Table
 
-  extends TableHelper
+    extends TableHelper
 
-  with Serializable {
+    with Serializable {
 
   val name: String
 
@@ -44,9 +44,9 @@ trait Table
  */
 object Table
 
-  extends TableHelper
+    extends TableHelper
 
-  with Logger {
+    with Logger {
 
   def fromSeq[T <: Table: TypeTag](name: String, capacity: Long, rows: Seq[Seq[Any]]): T = {
     val builders = createBuilders[T](capacity)

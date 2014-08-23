@@ -1,7 +1,4 @@
-package com.ibm
-
-package plain
-
+package com.ibm.plain
 package integration
 
 import scala.language.implicitConversions
@@ -14,7 +11,7 @@ import config.settings.getConfig
  */
 package object activemq
 
-  extends CheckedConfig {
+    extends CheckedConfig {
 
   import config._
   import config.settings._

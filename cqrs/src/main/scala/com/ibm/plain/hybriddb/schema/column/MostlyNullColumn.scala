@@ -43,9 +43,9 @@ import MostlyNullColumn._
 
   private[this] final val nulls: BitSet)
 
-  extends BuiltColumn[Option[A]]
+    extends BuiltColumn[Option[A]]
 
-  with Lookup[Option[A]] {
+    with Lookup[Option[A]] {
 
   type Builder = MostlyNullColumnBuilder[A]
 
@@ -65,7 +65,7 @@ final class MostlyNullColumnBuilder[@specialized A: ClassTag](
 
   val capacity: Long)
 
-  extends ColumnBuilder[Option[A], MostlyNullColumn[A]] {
+    extends ColumnBuilder[Option[A], MostlyNullColumn[A]] {
 
   final def next(value: Option[A]): Unit = if (value.isEmpty) nulls.add(nextIndex.toInt) else keys.put(value.get, keys.getOrElse(value.get, new IntSet) += nextIndex.toInt)
 

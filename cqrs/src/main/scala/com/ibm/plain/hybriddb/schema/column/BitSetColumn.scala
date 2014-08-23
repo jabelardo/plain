@@ -32,9 +32,9 @@ import BitSetColumn._
 
   private[this] final val bitsets: Map[A, BitSet])
 
-  extends BuiltColumn[A]
+    extends BuiltColumn[A]
 
-  with Lookup[A] {
+    with Lookup[A] {
 
   type Builder = BitSetColumnBuilder[A]
 
@@ -57,7 +57,7 @@ final class BitSetColumnBuilder[A](
 
   val capacity: Long)
 
-  extends ColumnBuilder[A, BitSetColumn[A]] {
+    extends ColumnBuilder[A, BitSetColumn[A]] {
 
   final def next(value: A): Unit = {
     val bitset = bitsets.get(value) match {

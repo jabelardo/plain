@@ -17,7 +17,7 @@ package column
 
   private[this] final val f: Long ⇒ A)
 
-  extends Column[A] {
+    extends Column[A] {
 
   final def get(index: Long): A = f(index)
 
