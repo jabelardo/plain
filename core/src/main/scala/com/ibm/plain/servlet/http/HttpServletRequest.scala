@@ -7,6 +7,7 @@ package servlet
 package http
 
 import java.io.{ BufferedReader, PrintWriter, InputStreamReader }
+import java.nio.channels.Channels
 import java.util.{ Enumeration, Locale, Map ⇒ JMap }
 import javax.{ servlet ⇒ js }
 
@@ -21,7 +22,7 @@ import rest.Matching.default.decodeForm
 import plain.http.MimeType.`text/plain`
 import plain.http.Request
 import plain.http.Header.Request.`Cookie`
-import plain.http.Entity.ArrayEntity
+import plain.http.Entity.{ ArrayEntity, ByteBufferEntity, ContentEntity }
 import plain.io.ByteArrayInputStream
 import aio.conduit.SocketChannelConduit
 
@@ -110,12 +111,19 @@ final class HttpServletRequest(
 
   final def getContentType: String = getHeader("content-type")
 
-  final def getInputStream: js.ServletInputStream = request.entity match {
-    case Some(e: ArrayEntity) ⇒
-      new ServletInputStream(new io.ByteArrayInputStream(e.array, e.offset, e.length.toInt))
-    case e ⇒
-      println("Unsupported entity type in getInputStream : " + e.getClass)
-      unsupported
+  final def getInputStream: js.ServletInputStream = {
+    request.entity match {
+      case Some(e: ArrayEntity) ⇒
+        new ServletInputStream(new io.ByteArrayInputStream(e.array, e.offset, e.length.toInt))
+      case Some(e: ByteBufferEntity) ⇒
+        new ServletInputStream(new io.ByteBufferInputStream(e.buffer))
+      case Some(e: ContentEntity) ⇒
+        logging.createLogger(this).info(request)
+        new ServletInputStream(Channels.newInputStream(exchange.socketChannel))
+      case e ⇒
+        logging.createLogger(this).error("Unsupported entity type in getInputStream : " + e.getClass)
+        unsupported
+    }
   }
 
   final def getParameter(name: String): String = getParameterMap.get(name) match { case null ⇒ null case values ⇒ values.head }

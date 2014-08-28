@@ -8,6 +8,7 @@ package conduit
 
 import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel, CompletionHandler }
+import java.util.concurrent.Future
 
 /**
  * A Conduit is an abstraction of an AsynchronousByteChannel. Note: Not of AsynchronousChannel. Classes directly derived from AsynchronousChannel need to be wrapped to become a Conduit.
@@ -15,10 +16,6 @@ import java.nio.channels.{ AsynchronousByteChannel ⇒ Channel, CompletionHandle
 trait Conduit
 
     extends Channel {
-
-  final def read(buffer: ByteBuffer) = unsupported
-
-  final def write(buffer: ByteBuffer) = unsupported
 
   type Handler[A] = CompletionHandler[Integer, _ >: A]
 
@@ -39,6 +36,8 @@ trait Conduit
  */
 trait SourceConduit extends Conduit {
 
+  def read(buffer: ByteBuffer): Future[Integer] = unsupported
+
   def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A])
 
 }
@@ -47,6 +46,8 @@ trait SourceConduit extends Conduit {
  * A Conduit is split into its source for reading from it and its sink for writing to it. SinkConduit builds the base for write implementations.
  */
 trait SinkConduit extends Conduit {
+
+  def write(buffer: ByteBuffer): Future[Integer] = unsupported
 
   def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A])
 

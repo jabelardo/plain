@@ -29,7 +29,13 @@ package object reflect {
     tuple.getConstructors.apply(0).newInstance(as: _*).asInstanceOf[Product]
   }
 
-  final lazy val reflections = new Reflections("com.ibm.plain")
+  final lazy val reflections = {
+    val logger = logging.createLogger(this)
+    logger.debug("Loading all class information via reflection ...")
+    val reflection = new Reflections("")
+    logger.debug("All class information loaded.")
+    reflection
+  }
 
   final def subClasses[A](clazz: Class[A]): Set[Class[_ <: A]] = reflections.getSubTypesOf(clazz).toSet
 

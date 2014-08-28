@@ -1,7 +1,4 @@
-package com.ibm
-
-package plain
-
+package com.ibm.plain
 package http
 
 import java.nio.ByteBuffer
@@ -170,7 +167,12 @@ object RequestIteratee
             if (need100continue) {
               for (_ ← continue(length, continuebuffer.duplicate)) yield Some(ContentEntity(contenttype, length))
             } else {
-              Done(Some(ContentEntity(contenttype, length)))
+              if (length <= maxLengthArrayEntity) {
+                for (array ← takeBytes(length.toInt)) yield Some(ArrayEntity(array, 0, length, contenttype))
+              } else {
+                warn(s"ContentEntity length = $length, exceeded max length for an ArrayEntity (maxLengthArrayEntity)")
+                Done(Some(ContentEntity(contenttype, length)))
+              }
             }
           case None ⇒ query match {
             case Some(query) ⇒ Done(Some(ArrayEntity(query.getBytes(defaultCharacterSet), `text/plain`)))

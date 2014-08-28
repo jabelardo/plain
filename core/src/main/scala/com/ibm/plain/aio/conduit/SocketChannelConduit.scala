@@ -1,15 +1,11 @@
-package com.ibm
-
-package plain
-
+package com.ibm.plain
 package aio
-
 package conduit
 
 import java.net.StandardSocketOptions.{ SO_KEEPALIVE, SO_RCVBUF, SO_REUSEADDR, SO_SNDBUF, TCP_NODELAY }
 import java.nio.ByteBuffer
 import java.nio.channels.{ AsynchronousSocketChannel ⇒ SocketChannel }
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.{ Future, TimeUnit }
 
 import io.IgnoringCloseable
 
@@ -63,6 +59,10 @@ sealed trait SocketChannelSourceConduit
 
     extends ConnectorSourceConduit[SocketChannel] {
 
+  override final def read(buffer: ByteBuffer): Future[Integer] = {
+    underlyingchannel.read(buffer)
+  }
+
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     underlyingchannel.read(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, attachment, handler)
   }
@@ -75,6 +75,10 @@ sealed trait SocketChannelSourceConduit
 sealed trait SocketChannelSinkConduit
 
     extends ConnectorSinkConduit[SocketChannel] {
+
+  override final def write(buffer: ByteBuffer): Future[Integer] = {
+    underlyingchannel.write(buffer)
+  }
 
   final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     underlyingchannel.write(buffer, readWriteTimeout, TimeUnit.MILLISECONDS, attachment, handler)

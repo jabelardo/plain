@@ -4,13 +4,13 @@ package plain
 
 package servlet
 
-import io.ByteArrayInputStream
+import java.io.InputStream
 
 import javax.{ servlet ⇒ js }
 
 final class ServletInputStream(
 
-  private[this] final val in: ByteArrayInputStream)
+  private[this] final val in: InputStream)
 
     extends js.ServletInputStream {
 
