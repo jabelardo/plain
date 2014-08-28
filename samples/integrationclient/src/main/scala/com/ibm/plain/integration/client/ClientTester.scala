@@ -26,7 +26,7 @@ import concurrent.spawn
  */
 final class ClientTester
 
-  extends ApplicationExtension {
+    extends ApplicationExtension {
 
   final def run = try {
 
@@ -64,7 +64,7 @@ final class ClientTester
 
                 final class MyBody
 
-                  extends Body {
+                    extends Body {
 
                   final def getContentLength = { println("length -1"); -1L }
 

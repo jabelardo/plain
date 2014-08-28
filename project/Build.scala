@@ -46,8 +46,8 @@ object PlainBuild
           "-nowarn",
           "-unchecked"),
         javacOptions ++= Seq(
-          "-source", "1.8",
-          "-target", "1.8",
+          "-source", "1.7",
+          "-target", "1.7",
           "-Xlint:unchecked",
           "-Xlint:deprecation",
           "-Xlint:-options"),

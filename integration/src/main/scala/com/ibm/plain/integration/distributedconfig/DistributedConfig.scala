@@ -28,14 +28,14 @@ final class DistributedConfig
     with Logger {
 
   override def start = {
-    (if (isMaster) masterRoutes else slaveRoutes).addRoutesToCamelContext(Camel.instance.context)
+    // (if (isMaster) masterRoutes else slaveRoutes).addRoutesToCamelContext(Camel.instance.context)
     DistributedConfig.instance(this)
     this
   }
 
   override def stop = {
     DistributedConfig.resetInstance
-    Camel.instance.context.stopRoute(if (isMaster) "distributed-config-master-routes" else "distributed-config-slave-routes")
+    // Camel.instance.context.stopRoute(if (isMaster) "distributed-config-master-routes" else "distributed-config-slave-routes")
     this
   }
 
