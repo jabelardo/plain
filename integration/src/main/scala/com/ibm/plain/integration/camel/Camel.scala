@@ -40,6 +40,7 @@ final class Camel
 
   override def start = {
     context.start
+    //CamelContext.
     Camel.instance(this)
     this
   }

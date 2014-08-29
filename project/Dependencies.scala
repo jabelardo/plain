@@ -10,9 +10,9 @@ object Dependencies {
       "com.typesafe" % "config" % "1.2.1",
       "org.slf4j" % "slf4j-api" % "1.7.7",
       "com.lmax" % "disruptor" % "3.3.0",
-      "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.0",
-      "org.apache.logging.log4j" % "log4j-api" % "2.0",
-      "org.apache.logging.log4j" % "log4j-core" % "2.0")
+      "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.0.2",
+      "org.apache.logging.log4j" % "log4j-api" % "2.0.2",
+      "org.apache.logging.log4j" % "log4j-core" % "2.0.2")
 
     def commons = Seq(
       "com.googlecode.concurrentlinkedhashmap" % "concurrentlinkedhashmap-lru" % "1.4",
@@ -45,7 +45,7 @@ object Dependencies {
       "org.json4s" %% "json4s-native" % "3.2.10",
       "org.json4s" %% "json4s-jackson" % "3.2.10",
       "org.json4s" %% "json4s-ext" % "3.2.10",
-      "com.fasterxml.jackson.core" % "jackson-databind" % "2.4.1.3",
+      "com.fasterxml.jackson.core" % "jackson-databind" % "2.4.2",
       "com.sun.jersey" % "jersey-json" % "1.18.1")
 
     def time = Seq(
@@ -100,13 +100,12 @@ object Dependencies {
       "org.apache.camel" % "camel-sjms" % camelVersion,
       "org.apache.camel" % "camel-mail" % camelVersion,
       "org.apache.activemq" % "activemq-camel" % activemqVersion,
-      "org.apache.activemq.protobuf" % "activemq-protobuf" % "1.1",
       "org.apache.activemq" % "activemq-broker" % activemqVersion,
       "org.apache.activemq" % "activemq-jaas" % activemqVersion,
       "org.apache.activemq" % "activemq-kahadb-store" % activemqVersion)
 
     def persistence = Seq(
-      "org.apache.activemq.protobuf" % "activemq-protobuf" % "1.1" % "provided", // cannot download
+      "org.apache.activemq.protobuf" % "activemq-protobuf" % "1.1", 
       "org.apache.camel" % "camel-jpa" % camelVersion,
       "org.apache.camel" % "camel-mybatis" % camelVersion,
       "org.apache.camel" % "camel-jdbc" % camelVersion,

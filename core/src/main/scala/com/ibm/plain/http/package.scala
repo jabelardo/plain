@@ -31,5 +31,5 @@ package object http
   final val ignoreEntityEncoding = getBoolean("plain.http.ignore-entity-encoding", false)
 
   final val maxLengthArrayEntity = getInt("plain.http.max-length-array-entity", 1400)
-  
+
 }
