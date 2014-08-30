@@ -44,7 +44,7 @@ package object plain
       appl
     }
     try {
-      application.bootstrap
+      time.infoMillis("application started")(application.bootstrap)
       if (!os.hostResolved) logging.createLogger(this).warn("Hostname not yet resolved, maybe some DNS problem.")
       body
       application.awaitTermination(timeout)

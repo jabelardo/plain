@@ -20,9 +20,16 @@ import scala.reflect.runtime.universe.runtimeMirror
 
 import org.reflections.Reflections
 
-package object reflect {
+package object reflect
+
+    extends config.CheckedConfig {
+
+  import config._
+  import settings._
 
   final val mirror = runtimeMirror(getClass.getClassLoader)
+
+  final val prefixes = getStringList("plain.reflection.prefixes", List("com.ibm.plain"))
 
   final def toTuple[A <: Object](as: Seq[A]): Product = {
     val tuple = Class.forName("scala.Tuple" + as.size)
@@ -31,9 +38,9 @@ package object reflect {
 
   final lazy val reflections = {
     val logger = logging.createLogger(this)
-    logger.warn("Loading all class information via reflection ...")
-    val reflection = new Reflections("")
-    logger.warn("All class information loaded.")
+    logger.info("Loading all class information via reflection : " + prefixes)
+    val reflection = new Reflections(prefixes: _*)
+    logger.debug("All class information loaded.")
     reflection
   }
 

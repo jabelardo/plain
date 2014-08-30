@@ -26,7 +26,7 @@ final class Application private
   final def render: Array[String] = components.toArray.map(_.toString)
 
   final def bootstrap = {
-    createExtensions
+    if (!disableApplicationExtensions) createExtensions
     createExternals
     sortComponents
     components.filter(_.isEnabled).foreach(_.preStart)

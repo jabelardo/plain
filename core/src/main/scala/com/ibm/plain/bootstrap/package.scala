@@ -13,6 +13,8 @@ package object bootstrap
 
   final val delayDuringTeardown = getMilliseconds("plain.bootstrap.delay-during-teardown", 20)
 
+  final val disableApplicationExtensions = getBoolean("plain.bootstrap.disable-application-extensions", false)
+
   /**
    * Call this from anywhere in order to terminate the jvm with a message and a given exit code.
    */
