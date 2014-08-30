@@ -1,7 +1,4 @@
-package com.ibm
-
-package plain
-
+package com.ibm.plain
 package integration
 
 import scala.language.implicitConversions
@@ -18,7 +15,9 @@ package object camel
   import config._
   import config.settings._
 
-  final val delayDuringShutdown = getMilliseconds("plain.integration.camel.delay-during-shutdown", 200)
+  final val shutdownTimeout = getMilliseconds("plain.integration.camel.shutdown-timeout", 5000)
+
+  final val delayDuringShutdown = getMilliseconds("plain.integration.camel.delay-during-shutdown", 500)
 
   final val servletServicesRoot = getString("plain.integration.camel.servlet-services-root", "integration-services")
 

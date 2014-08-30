@@ -1,20 +1,20 @@
-package com.ibm
-
-package plain
-
+package com.ibm.plain
 package integration
-
 package camel
+
+import scala.collection.JavaConversions._
 
 import java.io.{ ByteArrayInputStream, File, FileOutputStream }
 import java.nio.file.Files.{ createDirectories, exists }
 import java.util.jar.JarOutputStream
 import java.util.zip.ZipEntry
+import java.util.concurrent.TimeUnit
 
 import org.apache.camel.impl.DefaultCamelContext
 
 import bootstrap.{ ExternalComponent, Singleton }
 import logging.Logger
+import activemq.ActiveMQ
 
 /**
  *
@@ -25,7 +25,9 @@ final class Camel
 
       camel.isEnabled,
 
-      "plain-integration-camel")
+      "plain-integration-camel",
+
+      classOf[ActiveMQ])
 
     with Logger {
 
@@ -39,14 +41,16 @@ final class Camel
   }
 
   override def start = {
+    context.getShutdownStrategy.setShutdownNowOnTimeout(true)
+    context.getShutdownStrategy.setTimeout(shutdownTimeout)
     context.start
-    //CamelContext.
     Camel.instance(this)
     this
   }
 
   override def stop = {
     Camel.resetInstance
+    context.getRouteDefinitions.map(r ⇒ context.stopRoute(r.getId, shutdownTimeout, TimeUnit.MILLISECONDS, true))
     context.stop
     ignore(Thread.sleep(delayDuringShutdown))
     this

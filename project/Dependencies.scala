@@ -29,6 +29,7 @@ object Dependencies {
       "com.ning" % "async-http-client" % "1.8.13")
 
     def reflection = Seq(
+      "org.scala-lang" % "scala-compiler" % "2.11.2",
       "org.scala-lang" % "scala-reflect" % "2.11.2",
       "org.reflections" % "reflections" % "0.9.9-RC1")
 
@@ -66,10 +67,10 @@ object Dependencies {
       "mysql" % "mysql-connector-java" % "5.1.31",
       "org.apache.derby" % "derby" % "10.10.2.0",
       "org.apache.derby" % "derbyclient" % "10.10.2.0",
-      "com.h2database" % "h2" % "1.4.180")
+      "com.h2database" % "h2" % "1.4.181")
 
     def oracleJdbc = Seq(
-      "com.oracle" % "ojdbc6" % "11.2.0.3")
+      "com.oracle" % "ojdbc6" % "11.2.0.4")
 
     def microsoftJdbc = Seq(
       "com.microsoft.sqlserver" % "sqljdbc4" % "4.0" % "provided")
@@ -133,7 +134,7 @@ object Dependencies {
 
     def test = Seq(
       "junit" % "junit" % "4.11" % "test",
-      "com.novocode" % "junit-interface" % "0.10" % "test")
+      "com.novocode" % "junit-interface" % "0.11" % "test")
 
     def dependencies = test
 

@@ -8,6 +8,7 @@ package infrastructure
 
 import bootstrap.{ ExternalComponent, Singleton }
 import logging.Logger
+import distributedconfig.DistributedConfig
 
 /**
  *
@@ -20,7 +21,7 @@ final class Infrastructure
 
       "plain-integration-infrastructure",
 
-      classOf[distributedconfig.DistributedConfig])
+      classOf[DistributedConfig])
 
     with Logger {
 

@@ -1,9 +1,5 @@
-package com.ibm
-
-package plain
-
+package com.ibm.plain
 package integration
-
 package activemq
 
 import java.io.File
@@ -15,8 +11,6 @@ import org.apache.commons.io.FileUtils.deleteDirectory
 
 import bootstrap.{ ExternalComponent, Singleton }
 import logging.Logger
-import camel.Camel
-import distributedconfig.DistributedConfig
 
 /**
  *
@@ -27,9 +21,7 @@ final class ActiveMQ
 
       activemq.isEnabled,
 
-      "plain-integration-activemq",
-
-      classOf[infrastructure.Infrastructure])
+      "plain-integration-activemq")
 
     with Logger {
 
@@ -46,25 +38,11 @@ final class ActiveMQ
           broker.setPersistent(false)
         }
         broker.setBrokerName(name)
-        broker.setUseShutdownHook(true)
+        broker.setUseShutdownHook(false)
         broker.setUseJmx(true)
         broker.addConnector(brokerServerUri + ":" + brokerPort)
         broker.start
         broker.waitUntilStarted
-      } else {
-        Camel.instance.context.addComponent("activemq", activeMQComponent(brokerClientUri + ":" + brokerPort))
-
-        new RouteBuilder {
-
-          from("timer:foo?period=20s").
-            transform("this is a text message!").
-            to("activemq:queue:inbox")
-
-          from("activemq:queue:inbox").
-            to("mock:result").
-            to("activemq:queue:outbox")
-
-        }.addRoutesToCamelContext(Camel.instance.context)
       }
       ActiveMQ.instance(this)
     }

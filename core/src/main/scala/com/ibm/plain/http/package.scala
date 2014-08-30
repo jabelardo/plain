@@ -30,6 +30,6 @@ package object http
 
   final val ignoreEntityEncoding = getBoolean("plain.http.ignore-entity-encoding", false)
 
-  final val maxLengthArrayEntity = getInt("plain.http.max-length-array-entity", 1400)
+  final val maxLengthArrayEntity = getBytes("plain.http.max-length-array-entity", 16 * 1024).toInt
 
 }
