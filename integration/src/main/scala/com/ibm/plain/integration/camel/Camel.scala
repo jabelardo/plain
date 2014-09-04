@@ -14,7 +14,6 @@ import org.apache.camel.impl.DefaultCamelContext
 
 import bootstrap.{ ExternalComponent, Singleton }
 import logging.Logger
-import activemq.ActiveMQ
 
 /**
  *
@@ -25,9 +24,7 @@ final class Camel
 
       camel.isEnabled,
 
-      "plain-integration-camel",
-
-      classOf[ActiveMQ])
+      "plain-integration-camel")
 
     with Logger {
 
@@ -45,6 +42,7 @@ final class Camel
     context.getShutdownStrategy.setTimeout(shutdownTimeout)
     context.start
     Camel.instance(this)
+    sys.addShutdownHook(ignore(stop))
     this
   }
 

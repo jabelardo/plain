@@ -15,4 +15,4 @@
 # limitations under the License.
 #
 
-class=com.ibm.plain.integration.catia5.Catia5Component
+class=com.ibm.plain.integration.spaces.SpacesComponent

@@ -35,7 +35,7 @@ trait EnumerationCapabilities
    * If the value cannot be transformed to the enumeration type.
    */
   def forString(value: String): EnumerationType = {
-    values.find(asString(_) == value) match {
+    values.find(asString(_).toLowerCase == value.toLowerCase) match {
       case Some(enumerationValue) ⇒ enumerationValue
       case _ ⇒
         val e = EnumerationValueNotFoundException(this.getClass, value, values.map(asString))

@@ -25,7 +25,9 @@ final class ClientExchange private (
 
     private[this] final val destination: Conduit,
 
-    private[this] final val handler: Handler[Integer, ClientExchange],
+    private final val outerhandler: Handler[Integer, Any],
+
+    private final val attachment: Any,
 
     private[this] final val progressfun: Int ⇒ Unit) {
 
@@ -68,7 +70,6 @@ final class ClientExchange private (
 
   @inline private final def closeTransfer = {
     if (isopen.compareAndSet(true, false)) {
-      latch.countDown
       releaseByteBuffer(buffer)
       source.close
       destination.close
@@ -79,9 +80,9 @@ final class ClientExchange private (
 
   @inline private final def available = buffer.remaining
 
-  private[this] final val buffer = defaultByteBuffer
+  private final val latch = new CountDownLatch(1)
 
-  private[this] final val latch = new CountDownLatch(1)
+  private[this] final val buffer = defaultByteBuffer
 
   private[this] final val isopen = new AtomicBoolean(true)
 
@@ -94,9 +95,9 @@ object ClientExchange
 
     extends Logger {
 
-  final def apply(source: Conduit, destination: Conduit, handler: Handler[Integer, ClientExchange], progress: Int ⇒ Unit) = new ClientExchange(source, destination, handler, progress)
+  final def apply(source: Conduit, destination: Conduit, handler: Handler[Integer, Any], attachment: Any, progress: Int ⇒ Unit) = new ClientExchange(source, destination, handler, attachment, progress)
 
-  final def apply(source: Conduit, destination: Conduit) = new ClientExchange(source, destination, null, null)
+  final def apply(source: Conduit, destination: Conduit) = new ClientExchange(source, destination, null, null, null)
 
   /**
    * Basic handler.
@@ -110,6 +111,8 @@ object ClientExchange
         case e: IOException ⇒
         case e ⇒ e.printStackTrace; error(e)
       }
+      exchange.latch.countDown
+      if (null != exchange.outerhandler) exchange.outerhandler.failed(e, exchange.attachment)
     }
 
     @inline final def completed(processed: Integer, exchange: ClientExchange) = try {
@@ -160,6 +163,8 @@ object ClientExchange
         exchange.writeTransfer(this, false)
       } else {
         exchange.closeTransfer
+        exchange.latch.countDown
+        if (null != exchange.outerhandler) exchange.outerhandler.completed(0, exchange.attachment)
       }
     }
   }

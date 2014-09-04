@@ -200,7 +200,7 @@ sealed trait FilterBaseConduit[C <: Channel]
 
   protected[this] final val innerbuffer = { val b = defaultByteBuffer; b.flip; b }
 
-  private[this] final var closed = false
+  @volatile private[this] final var closed = false
 
 }
 

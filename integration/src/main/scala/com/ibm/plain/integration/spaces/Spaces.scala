@@ -1,18 +1,30 @@
-package com.ibm
-
-package plain
-
+package com.ibm.plain
 package integration
-
 package spaces
 
 import java.nio.file.Files.{ exists, isDirectory, isRegularFile }
 import java.nio.file.{ Path, Paths }
+import java.net.URI
 
 import org.apache.commons.io.FileUtils.deleteDirectory
 
 import bootstrap.{ ExternalComponent, Singleton }
 import logging.Logger
+
+/**
+ *
+ */
+final case class Space(
+
+  name: String,
+
+  serverUri: URI,
+
+  quotainbytes: Long,
+
+  purgeOnStartup: Boolean,
+
+  purgeOnShutdown: Boolean)
 
 /**
  *

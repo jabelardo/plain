@@ -3,7 +3,7 @@ package aio
 package conduit
 
 import java.nio.ByteBuffer
-import java.util.concurrent.CyclicBarrier
+import java.util.concurrent.{ CyclicBarrier, TimeUnit }
 import java.util.concurrent.atomic.AtomicBoolean
 
 import scala.math.min
@@ -56,7 +56,7 @@ sealed trait AHCSourceConduit
     if (null != requestbuilder) {
       val r = requestbuilder
       requestbuilder = null
-      r.execute(new AHCSourceHandler(buffer, handler, attachment))
+      response = r.execute(new AHCSourceHandler(buffer, handler, attachment))
     }
     await
   }
@@ -69,11 +69,13 @@ sealed trait AHCSourceConduit
 
     private[this] final val attachment: A)
 
-      extends AsyncCompletionHandler[Unit] {
+      extends AsyncCompletionHandler[Response] {
 
-    final def onCompleted(response: Response) = {
-      await
+    final def onCompleted(innerresponse: Response): Response = {
+      await(500)
       handler.completed(0, attachment)
+      response.done
+      innerresponse
     }
 
     override final def onBodyPartReceived(part: HttpResponseBodyPart): State = {
@@ -100,11 +102,6 @@ sealed trait AHCSinkConduit
 
     with TerminatingSinkConduit {
 
-  override def close = {
-    super.close
-    await
-  }
-
   /**
    */
   final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
@@ -115,10 +112,11 @@ sealed trait AHCSinkConduit
       requestbuilder = null
       response = r.execute(new AsyncCompletionHandler[Response] {
 
-        final def onCompleted(r: Response) = {
-          println("completed " + r.getStatusCode)
+        final def onCompleted(innerresponse: Response) = {
+          await(500)
+          handler.completed(0, attachment)
           response.done
-          r
+          innerresponse
         }
 
       })
@@ -165,8 +163,6 @@ sealed trait AHCSinkConduit
 
   private[this] final var generator: AHCBodyGenerator[_] = null
 
-  private[this] final var response: ListenableFuture[Response] = null
-
 }
 
 /**
@@ -183,13 +179,22 @@ sealed trait AHCConduitBase
 
   final def isOpen = !isclosed
 
+  /**
+   * Call only after a call to transferAndWait, if the response is "almost there".
+   */
+  final def getResponse = ignoreOrElse(Some(response.get(200, TimeUnit.MILLISECONDS)), None)
+
   protected[this] val client: AsyncHttpClient
 
   protected[this] final var requestbuilder: AsyncHttpClient#BoundRequestBuilder = null
 
   protected[this] final def await = cyclicbarrier.await
 
+  protected[this] final def await(timeout: Long) = ignore(cyclicbarrier.await(timeout, TimeUnit.MILLISECONDS))
+
   protected[this] final val cyclicbarrier = new CyclicBarrier(2)
+
+  protected[this] final var response: ListenableFuture[Response] = null
 
   @volatile private[this] final var isclosed = false
 

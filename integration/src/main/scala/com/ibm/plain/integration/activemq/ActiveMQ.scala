@@ -4,10 +4,12 @@ package activemq
 
 import java.io.File
 
-import org.apache.camel.scala.dsl.builder.RouteBuilder
-import org.apache.activemq.camel.component.ActiveMQComponent.activeMQComponent
 import org.apache.activemq.broker.BrokerService
+import org.apache.activemq.camel.component.ActiveMQComponent.activeMQComponent
 import org.apache.commons.io.FileUtils.deleteDirectory
+
+import com.ibm.plain.bootstrap.{ ExternalComponent, Singleton }
+import com.ibm.plain.integration.camel.Camel
 
 import bootstrap.{ ExternalComponent, Singleton }
 import logging.Logger
@@ -21,13 +23,15 @@ final class ActiveMQ
 
       activemq.isEnabled,
 
-      "plain-integration-activemq")
+      "plain-integration-activemq",
+
+      classOf[Camel])
 
     with Logger {
 
   override def start = {
-    if (null == broker) {
-      if (isMaster) {
+    if (isMaster) {
+      if (null == broker) {
         broker = new BrokerService
         if (usePersistence) {
           val directory = new File(persistenceDirectory)
@@ -38,24 +42,30 @@ final class ActiveMQ
           broker.setPersistent(false)
         }
         broker.setBrokerName(name)
-        broker.setUseShutdownHook(false)
+        broker.setUseShutdownHook(true)
         broker.setUseJmx(true)
         broker.addConnector(brokerServerUri + ":" + brokerPort)
         broker.start
         broker.waitUntilStarted
       }
-      ActiveMQ.instance(this)
+    } else {
+      Camel.instance.context.addComponent("activemq", activeMQComponent(brokerClientUri + ":" + brokerPort))
     }
+    ActiveMQ.instance(this)
     this
   }
 
   override def stop = {
-    if (null != broker) {
-      ActiveMQ.resetInstance
-      broker.stop
-      broker.waitUntilStopped
-      broker = null
+    if (isMaster) {
+      if (null != broker) {
+        broker.stop
+        broker.waitUntilStopped
+        broker = null
+      }
+    } else {
+      Camel.instance.context.removeComponent("activemq")
     }
+    ActiveMQ.resetInstance
     this
   }
 

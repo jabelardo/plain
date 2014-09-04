@@ -8,6 +8,7 @@ package conduit
 
 import java.io.File
 import java.nio.ByteBuffer
+import java.nio.file.Path
 
 import org.apache.commons.io.FileUtils.deleteDirectory
 import org.apache.commons.compress.archivers.tar.{ TarArchiveEntry, TarArchiveInputStream, TarArchiveOutputStream }
@@ -46,6 +47,8 @@ object TarConduit {
   final def apply(directory: File, purge: Boolean) = new TarConduit(directory, purge)
 
   final def apply(directory: File) = new TarConduit(directory, false)
+
+  final def apply(directory: Path) = new TarConduit(directory.toFile, false)
 
 }
 
@@ -125,8 +128,8 @@ sealed trait TarSourceConduit
 
   private[this] final def nextOut(buffer: ByteBuffer) = {
     out = new TarArchiveOutputStream(new ByteBufferOutputStream(buffer))
-    out.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_STAR)
-    out.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX)
+    // out.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX)
+    out.setLongFileMode(TarArchiveOutputStream.LONGFILE_TRUNCATE)
     out.setAddPaxHeadersForNonAsciiNames(true)
     if (0 == recordsize) recordsize = out.getRecordSize
   }
