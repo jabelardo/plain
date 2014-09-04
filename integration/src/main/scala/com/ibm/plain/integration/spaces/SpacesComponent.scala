@@ -23,7 +23,7 @@ import logging.Logger
  * Examples:
  *
  *  to("spaces://repository?method=get")
- *  to("spaces:repository?method=get")
+ *  to("spaces:repository?method=get&purgeDirectory=true")
  *  to("spaces:repository?method=put")
  *
  * method: get | put | delete            default: get
@@ -32,7 +32,7 @@ import logging.Logger
  *
  * the in message must contain the following headers (case-sensitive):
  *
- * spaces.container-uuid : a 32 hex uuid string
+ * spaces.containerUuid : a 32 hex uuid string
  * spaces.localDirectory : a valid local filepath to a directory; it must exist on PUT, it may be created on GET and it can be omitted on DELETE
  *
  */

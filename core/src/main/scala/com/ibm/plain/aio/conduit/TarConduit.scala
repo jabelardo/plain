@@ -126,18 +126,19 @@ sealed trait TarSourceConduit
     out = null
   }
 
+  /**
+   * The settings for TAR extensions are very "shaky". This is the lowest denominator.
+   */
   private[this] final def nextOut(buffer: ByteBuffer) = {
     out = new TarArchiveOutputStream(new ByteBufferOutputStream(buffer))
-    // out.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX)
     out.setLongFileMode(TarArchiveOutputStream.LONGFILE_TRUNCATE)
-    out.setAddPaxHeadersForNonAsciiNames(true)
     if (0 == recordsize) recordsize = out.getRecordSize
   }
 
   private[this] final def reading = null != fixedlengthconduit
 
   private[this] final def relativePath(file: File) = {
-    directorypath.getFileName + "/" + directorypath.relativize(file.toPath).toString
+    directorypath.relativize(file.toPath).toString
   }
 
   private[this] final var out: TarArchiveOutputStream = null
@@ -170,7 +171,6 @@ sealed trait TarSinkConduit
       if (0 < buffer.remaining) nextEntry(buffer)
       if (null == entry) {
         if (lastEntry) {
-          // close
           entrysize = 0
         }
       } else {
