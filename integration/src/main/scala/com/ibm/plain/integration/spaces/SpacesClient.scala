@@ -50,6 +50,7 @@ final class SpacesClient
           setHeader("Transfer-Encoding", "chunked").
           setHeader("Expect", "100-continue").
           build
+        info(request.getMethod + " " + request.getUrl)
         val source = TarConduit(localdirectory.toFile)
         val ahcconduit = AHCConduit(client, request)
         val destination = GzipConduit(ChunkedConduit(ahcconduit))
@@ -86,6 +87,7 @@ final class SpacesClient
         val request = new RequestBuilder("GET").
           setUrl(space.serverUri + "/" + container).
           build
+        info(request.getMethod + " " + request.getUrl)
         val ahcconduit = AHCConduit(client, request)
         val source = GzipConduit(ahcconduit)
         val destination = TarConduit(localdirectory.toFile)

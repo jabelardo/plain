@@ -27,6 +27,7 @@ final class SpacesResource
    * Download an entire directory from the stored container file.
    */
   Get {
+    debug(request)
     val contenttype = ContentType(`application/gzip`)
     val path = computePathToContainerFile(context, ".tar.gz")
     val length = path.toFile.length
@@ -43,6 +44,7 @@ final class SpacesResource
    * Upload a complete tar file and extract it to the destination directory.
    */
   Put { entity: Entity ⇒
+    debug(request)
     entity match {
       case Entity(contenttype, length, _) ⇒
         val container = computePathToContainerFile(context, ".tar.gz")
