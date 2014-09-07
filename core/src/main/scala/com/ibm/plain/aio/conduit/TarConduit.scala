@@ -1,9 +1,5 @@
-package com.ibm
-
-package plain
-
+package com.ibm.plain
 package aio
-
 package conduit
 
 import java.io.File
@@ -17,6 +13,7 @@ import scala.{ Left, Right }
 import scala.collection.mutable.ListBuffer
 import scala.math.min
 
+import crypt.Uuid.newUuid
 import io.{ ByteArrayInputStream, ByteBufferInputStream, ByteBufferOutputStream }
 import NullConduit.nul
 

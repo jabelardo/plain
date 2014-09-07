@@ -38,7 +38,7 @@ package object reflect
 
   final lazy val reflections = {
     val logger = logging.createLogger(this)
-    logger.info("Loading all class information via reflection : " + prefixes.mkString(", "))
+    logger.info("Loading all class information via reflection for these packages : " + prefixes.mkString(", "))
     val reflection = new Reflections(prefixes: _*)
     logger.debug("All class information loaded.")
     reflection

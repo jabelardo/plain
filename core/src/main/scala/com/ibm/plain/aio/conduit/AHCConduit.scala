@@ -56,7 +56,7 @@ sealed trait AHCSourceConduit
     if (null != requestbuilder) {
       val r = requestbuilder
       requestbuilder = null
-      response = r.execute(new AHCSourceHandler(buffer, handler, attachment))
+      result = r.execute(new AHCSourceHandler(buffer, handler, attachment))
     }
     await
   }
@@ -72,9 +72,9 @@ sealed trait AHCSourceConduit
       extends AsyncCompletionHandler[Response] {
 
     final def onCompleted(innerresponse: Response): Response = {
-      await(500)
+      await
       handler.completed(0, attachment)
-      response.done
+      result.done
       innerresponse
     }
 
@@ -110,12 +110,11 @@ sealed trait AHCSinkConduit
       val r = requestbuilder
       r.setBody(generator)
       requestbuilder = null
-      response = r.execute(new AsyncCompletionHandler[Response] {
+      result = r.execute(new AsyncCompletionHandler[Response] {
 
         final def onCompleted(innerresponse: Response) = {
-          await(500)
-          handler.completed(0, attachment)
-          response.done
+          result.content(innerresponse)
+          result.done
           innerresponse
         }
 
@@ -142,18 +141,20 @@ sealed trait AHCSinkConduit
 
         extends Body {
 
-      def close: Unit = isopen.compareAndSet(true, false)
+      def close: Unit = if (isopen.compareAndSet(true, false)) {
+        handler.completed(-1, attachment)
+      }
 
       def getContentLength = -1L
 
-      def read(buffer: java.nio.ByteBuffer): Long = try {
+      def read(buffer: java.nio.ByteBuffer): Long = {
         await
         val len = min(buffer.remaining, innerbuffer.remaining)
         buffer.put(innerbuffer.array, innerbuffer.position, len)
         innerbuffer.position(innerbuffer.position + len)
         spawn { handler.completed(len, attachment) }
-        if (0 == len) -1L else len
-      } catch { case e: Throwable ⇒ e.printStackTrace; throw e }
+        if (0 >= len) -1L else len
+      }
 
     }
 
@@ -182,7 +183,10 @@ sealed trait AHCConduitBase
   /**
    * Call only after a call to transferAndWait, if the response is "almost there".
    */
-  final def getResponse = ignoreOrElse(Some(response.get(200, TimeUnit.MILLISECONDS)), None)
+  final def getResponse = {
+    await(500)
+    ignoreOrElse(Some(result.get(500, TimeUnit.MILLISECONDS)), None)
+  }
 
   protected[this] val client: AsyncHttpClient
 
@@ -194,7 +198,7 @@ sealed trait AHCConduitBase
 
   protected[this] final val cyclicbarrier = new CyclicBarrier(2)
 
-  protected[this] final var response: ListenableFuture[Response] = null
+  protected[this] final var result: ListenableFuture[Response] = null
 
   @volatile private[this] final var isclosed = false
 

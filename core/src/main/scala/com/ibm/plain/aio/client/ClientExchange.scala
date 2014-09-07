@@ -162,9 +162,11 @@ object ClientExchange
       if (0 < exchange.available) {
         exchange.writeTransfer(this, false)
       } else {
-        exchange.closeTransfer
-        exchange.latch.countDown
-        if (null != exchange.outerhandler) exchange.outerhandler.completed(0, exchange.attachment)
+        if (0 < exchange.latch.getCount) {
+          exchange.closeTransfer
+          exchange.latch.countDown
+          if (null != exchange.outerhandler) exchange.outerhandler.completed(0, exchange.attachment)
+        }
       }
     }
   }
