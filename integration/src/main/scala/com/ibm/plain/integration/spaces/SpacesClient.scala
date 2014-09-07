@@ -4,11 +4,12 @@ package spaces
 
 import java.nio.file.Path
 
+import org.apache.commons.io.FileUtils.deleteDirectory
+
 import com.ibm.plain.bootstrap.{ ExternalComponent, Singleton }
 import com.ibm.plain.integration.infrastructure.Infrastructure
 import com.ning.http.client.{ AsyncHttpClient, AsyncHttpClientConfig, RequestBuilder }
 import com.ning.http.client.providers.netty.NettyAsyncHttpProvider
-import org.apache.commons.io.FileUtils.deleteDirectory
 
 import aio.client.ClientExchange
 import aio.conduit.{ AHCConduit, ChunkedConduit, GzipConduit, TarConduit }
@@ -50,7 +51,6 @@ final class SpacesClient
           setHeader("Transfer-Encoding", "chunked").
           setHeader("Expect", "100-continue").
           build
-        info(request.getMethod + " " + request.getUrl)
         val source = TarConduit(localdirectory.toFile)
         val ahcconduit = AHCConduit(client, request)
         val destination = GzipConduit(ChunkedConduit(ahcconduit))
@@ -81,23 +81,20 @@ final class SpacesClient
       case Some(space) ⇒
         if (purgedirectory) {
           ignore(deleteDirectory(localdirectory.toFile))
-          warn("Purged local directory : " + localdirectory)
+          debug("Purged local directory : " + localdirectory)
         }
         val url = space.serverUri + "/" + container
         val request = new RequestBuilder("GET").
           setUrl(space.serverUri + "/" + container).
           build
-        info(request.getMethod + " " + request.getUrl)
         val ahcconduit = AHCConduit(client, request)
         val source = GzipConduit(ahcconduit)
         val destination = TarConduit(localdirectory.toFile)
         ClientExchange(source, destination).transferAndWait
         ahcconduit.getResponse match {
           case Some(response) ⇒
-            error(request.getMethod + " " + request.getUrl + " : " + response.getStatusCode)
             response.getStatusCode
           case _ ⇒
-            error("No response.")
             501
         }
       case _ ⇒

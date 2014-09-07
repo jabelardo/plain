@@ -14,6 +14,7 @@ import org.apache.camel.spi.{ UriEndpoint, UriParam }
 import crypt.Uuid
 import http.Method
 import logging.Logger
+import time.timeMillis
 
 /**
  * Represents the component that manages {@link SpacesEndpoint}, Producer only (no from(spaces))
@@ -119,16 +120,17 @@ final class SpacesProducer(
     val purge = endpoint.getPurgeDirectory
     method match {
       case Method.GET ⇒
+        require(null != exchange.getIn.getHeader("spaces.localDirectory", classOf[String]), s"Cannot GET from a spaces container without spaces.localDirectory set as a message header. ")
+        require(null != exchange.getIn.getHeader("spaces.containerUuid", classOf[String]), s"Cannot GET from a spaces container without spaces.containerUuid set as a message header.")
         val localdirectory = Paths.get(exchange.getIn.getHeader("spaces.localDirectory", classOf[String]))
         val containeruuid = exchange.getIn.getHeader("spaces.containerUuid", classOf[String])
-        require(null != localdirectory, s"Cannot PUT to a spaces container without spaces.localDirectory set as a message header. ")
-        require(null != containeruuid, s"Cannot GET from a spaces container without spaces.containerUuid set as a message header.")
-        time.infoMillis("GET " + containeruuid)(SpacesClient.instance.get(space, containeruuid, localdirectory, purge))
+        val (statuscode, ms) = timeMillis(SpacesClient.instance.get(space, containeruuid, localdirectory, purge))
+        info("GET " + containeruuid + " : " + statuscode + " (" + ms + " ms)")
         exchange.getIn.removeHeader("spaces.localDirectory")
         exchange.getIn.removeHeader("spaces.containerUuid")
       case Method.PUT ⇒
+        require(null != exchange.getIn.getHeader("spaces.localDirectory", classOf[String]), s"Cannot PUT to a spaces container without spaces.localDirectory set as a message header. ")
         val localdirectory = Paths.get(exchange.getIn.getHeader("spaces.localDirectory", classOf[String]))
-        require(null != localdirectory, s"Cannot PUT to a spaces container without spaces.localDirectory set as a message header. ")
         require(localdirectory.toFile.exists, s"Cannot PUT to a spaces container from a non-existing directory : $localdirectory")
         val containeruuid = exchange.getIn.getHeader("spaces.containerUuid", classOf[String]) match {
           case null ⇒
@@ -138,7 +140,8 @@ final class SpacesProducer(
           case uuid ⇒
             Uuid.fromString(uuid)
         }
-        time.infoMillis("PUT " + containeruuid)(SpacesClient.instance.put(space, containeruuid, localdirectory))
+        val (statuscode, ms) = timeMillis(SpacesClient.instance.put(space, containeruuid, localdirectory))
+        info("PUT " + containeruuid + " : " + statuscode + " (" + ms + " ms)")
         exchange.getIn.removeHeader("spaces.localDirectory")
       case Method.DELETE ⇒
         val containeruuid = exchange.getIn.getHeader("spaces.containerUuid", classOf[String])

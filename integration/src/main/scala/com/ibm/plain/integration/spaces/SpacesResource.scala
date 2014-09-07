@@ -5,7 +5,7 @@ package spaces
 import java.nio.file.{ Path, Paths }
 import java.nio.file.Files.{ exists ⇒ fexists, isDirectory, isRegularFile }
 
-import aio.conduit.{ ChunkedConduit, FileConduit }
+import aio.conduit.{ ChunkedConduit, FileConduit, GzipConduit, TarConduit }
 import crypt.Uuid
 import http.{ ContentType, Entity }
 import http.Entity.ConduitEntity
@@ -27,7 +27,7 @@ final class SpacesResource
    * Download an entire directory from the stored container file.
    */
   Get {
-    debug(request)
+    trace(request)
     val contenttype = ContentType(`application/gzip`)
     val path = computePathToContainerFile(context, ".tar.gz")
     val length = path.toFile.length
@@ -41,20 +41,19 @@ final class SpacesResource
   }
 
   /**
-   * Upload a complete tar file and extract it to the destination directory.
+   * Upload a complete tar.gz file.
    */
   Put { entity: Entity ⇒
-    debug(request)
+    trace(request)
     entity match {
       case Entity(contenttype, length, _) ⇒
         val container = computePathToContainerFile(context, ".tar.gz")
-        info(container)
         exchange.transferTo(
           FileConduit.forWriting(container),
           context ⇒ { context.response ++ Success.`201` })
       case _ ⇒ throw ServerError.`501`
     }
-    info("completed : " + context.request)
+    ()
   }
 
 }
