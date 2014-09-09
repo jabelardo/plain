@@ -15,6 +15,7 @@ import scala.math.min
 
 import crypt.Uuid.newUuid
 import io.{ ByteArrayInputStream, ByteBufferInputStream, ByteBufferOutputStream }
+import logging.Logger
 import NullConduit.nul
 
 /**
@@ -252,11 +253,16 @@ sealed trait TarSinkConduit
   }
 
   private[this] final def nextFile = {
-    val size = entry.getSize
-    padsize = (size % recordsize).toInt match { case 0 ⇒ 0 case e ⇒ recordsize - e }
-    fixedlengthconduit = FixedLengthConduit(FileConduit.forWriting(directorypath.resolve(entry.getName), size), size)
+    val name = entry.getName
+    val validName = null != name && 0 < name.length && name.forall(!"\\/:*?\"<>|".contains(_))
+    if (validName) {
+      val size = entry.getSize
+      padsize = (size % recordsize).toInt match { case 0 ⇒ 0 case e ⇒ recordsize - e }
+      fixedlengthconduit = FixedLengthConduit(FileConduit.forWriting(directorypath.resolve(entry.getName), size), size)
+    } else {
+      error(s"Invald filepath in entry : $name")
+    }
   }
-
   private[this] final def nextDirectory: Unit = {
     ignore(io.createDirectory(directorypath.resolve(entry.getName.trim)))
   }
@@ -282,7 +288,9 @@ sealed trait TarSinkConduit
  */
 sealed trait TarConduitBase
 
-    extends Conduit {
+    extends Conduit
+
+    with Logger {
 
   def close = isclosed = true
 
