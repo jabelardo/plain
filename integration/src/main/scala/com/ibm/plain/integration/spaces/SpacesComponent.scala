@@ -125,7 +125,7 @@ final class SpacesProducer(
         val localdirectory = Paths.get(exchange.getIn.getHeader("spaces.localDirectory", classOf[String]))
         val containeruuid = exchange.getIn.getHeader("spaces.containerUuid", classOf[String])
         val (statuscode, ms) = timeMillis(SpacesClient.instance.get(space, containeruuid, localdirectory, purge))
-        info("GET " + containeruuid + " : " + statuscode + " (" + ms + " ms)")
+        info("GET " + containeruuid + " INTO " + localdirectory + " : " + statuscode + " (" + ms + " ms)")
         exchange.getIn.removeHeader("spaces.localDirectory")
         exchange.getIn.removeHeader("spaces.containerUuid")
       case Method.PUT ⇒
@@ -141,7 +141,7 @@ final class SpacesProducer(
             Uuid.fromString(uuid)
         }
         val (statuscode, ms) = timeMillis(SpacesClient.instance.put(space, containeruuid, localdirectory))
-        info("PUT " + containeruuid + " : " + statuscode + " (" + ms + " ms)")
+        info("PUT " + containeruuid + " FROM " + localdirectory + " : " + statuscode + " (" + ms + " ms)")
         exchange.getIn.removeHeader("spaces.localDirectory")
       case Method.DELETE ⇒
         val containeruuid = exchange.getIn.getHeader("spaces.containerUuid", classOf[String])
