@@ -254,15 +254,14 @@ sealed trait TarSinkConduit
 
   private[this] final def nextFile = {
     val name = entry.getName
-    val validName = null != name && 0 < name.length && name.forall(!"\\/:*?\"<>|".contains(_))
-    if (validName) {
-      val size = entry.getSize
-      padsize = (size % recordsize).toInt match { case 0 ⇒ 0 case e ⇒ recordsize - e }
-      fixedlengthconduit = FixedLengthConduit(FileConduit.forWriting(directorypath.resolve(entry.getName), size), size)
-    } else {
-      error(s"Invald filepath in entry : $name")
-    }
+    val isvalid = null != name && 0 < name.length && name.forall(!"\\/:*?\"<>|".contains(_))
+    val entryname = if (isvalid) name else newUuid.toString
+    if (!isvalid) error(s"Invald filepath in entry : $name -> replaced with : $entryname")
+    val size = entry.getSize
+    padsize = (size % recordsize).toInt match { case 0 ⇒ 0 case e ⇒ recordsize - e }
+    fixedlengthconduit = FixedLengthConduit(FileConduit.forWriting(directorypath.resolve(entryname), size), size)
   }
+
   private[this] final def nextDirectory: Unit = {
     ignore(io.createDirectory(directorypath.resolve(entry.getName.trim)))
   }
