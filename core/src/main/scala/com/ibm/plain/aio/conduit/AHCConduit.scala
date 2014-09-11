@@ -14,6 +14,7 @@ import com.ning.http.client.AsyncHandler.{ STATE ⇒ State }
 import com.ning.http.client.listener._
 
 import concurrent.spawn
+import logging.Logger
 
 /**
  *
@@ -113,6 +114,7 @@ sealed trait AHCSinkConduit
       result = r.execute(new AsyncCompletionHandler[Response] {
 
         final def onCompleted(innerresponse: Response) = {
+          trace(s"onCompleted : $innerresponse ${if (null != innerresponse) innerresponse.getStatusCode}")
           result.content(innerresponse)
           result.done
           innerresponse
@@ -122,7 +124,9 @@ sealed trait AHCSinkConduit
     } else {
       generator.asInstanceOf[AHCBodyGenerator[A]].handler = handler
     }
+    trace(s"write : await $buffer $handler")
     await
+    trace(s"write: after await")
   }
 
   protected[this] final class AHCBodyGenerator[A](
@@ -142,14 +146,17 @@ sealed trait AHCSinkConduit
         extends Body {
 
       def close: Unit = if (isopen.compareAndSet(true, false)) {
+        trace("close")
         handler.completed(-1, attachment)
       }
 
       def getContentLength = -1L
 
       def read(buffer: java.nio.ByteBuffer): Long = {
+        trace(s"read : await")
         await
         val len = min(buffer.remaining, innerbuffer.remaining)
+        trace(s"read : len = $len")
         buffer.put(innerbuffer.array, innerbuffer.position, len)
         innerbuffer.position(innerbuffer.position + len)
         spawn { handler.completed(len, attachment) }
@@ -171,7 +178,9 @@ sealed trait AHCSinkConduit
  */
 sealed trait AHCConduitBase
 
-    extends Conduit {
+    extends Conduit
+
+    with Logger {
 
   /**
    * Must not close AHCClient as it used by others in parallel.
