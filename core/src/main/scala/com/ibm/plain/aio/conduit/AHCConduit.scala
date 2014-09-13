@@ -21,9 +21,11 @@ import logging.Logger
  */
 final class AHCConduit private (
 
-  protected[this] final val client: AsyncHttpClient,
+  final val client: AsyncHttpClient,
 
-  private[this] final val request: Request)
+  final val request: Request,
+
+  final val contentLength: Long)
 
     extends AHCSourceConduit
 
@@ -40,7 +42,9 @@ final class AHCConduit private (
  */
 object AHCConduit {
 
-  final def apply(client: AsyncHttpClient, request: Request) = new AHCConduit(client, request)
+  final def apply(client: AsyncHttpClient, request: Request): AHCConduit = apply(client, request, -1L)
+
+  final def apply(client: AsyncHttpClient, request: Request, contentlength: Long) = new AHCConduit(client, request, contentlength)
 
 }
 
@@ -114,7 +118,6 @@ sealed trait AHCSinkConduit
       result = r.execute(new AsyncCompletionHandler[Response] {
 
         final def onCompleted(innerresponse: Response) = {
-          trace(s"onCompleted : $innerresponse ${if (null != innerresponse) innerresponse.getStatusCode}")
           result.content(innerresponse)
           result.done
           innerresponse
@@ -124,9 +127,7 @@ sealed trait AHCSinkConduit
     } else {
       generator.asInstanceOf[AHCBodyGenerator[A]].handler = handler
     }
-    trace(s"write : await $buffer $handler")
     await
-    trace(s"write: after await")
   }
 
   protected[this] final class AHCBodyGenerator[A](
@@ -146,17 +147,14 @@ sealed trait AHCSinkConduit
         extends Body {
 
       def close: Unit = if (isopen.compareAndSet(true, false)) {
-        trace("close")
         handler.completed(-1, attachment)
       }
 
-      def getContentLength = -1L
+      def getContentLength = contentLength
 
       def read(buffer: java.nio.ByteBuffer): Long = {
-        trace(s"read : await")
         await
         val len = min(buffer.remaining, innerbuffer.remaining)
-        trace(s"read : len = $len")
         buffer.put(innerbuffer.array, innerbuffer.position, len)
         innerbuffer.position(innerbuffer.position + len)
         spawn { handler.completed(len, attachment) }
@@ -189,12 +187,14 @@ sealed trait AHCConduitBase
 
   final def isOpen = !isclosed
 
+  protected[this] val contentLength: Long
+
   /**
    * Call only after a call to transferAndWait, if the response is "almost there".
    */
   final def getResponse = {
-    await(500)
-    ignoreOrElse(Some(result.get(500, TimeUnit.MILLISECONDS)), None)
+    await(1000)
+    ignoreOrElse(Some(result.get(1000, TimeUnit.MILLISECONDS)), None)
   }
 
   protected[this] val client: AsyncHttpClient

@@ -53,4 +53,6 @@ package object spaces
 
   final val downloadEncoding = getString("plain.integration.spaces.download-encoding", "gzip")
 
+  final val useConduitsDefault = getBoolean("plain.integration.spaces.use-conduits-default", false)
+
 }

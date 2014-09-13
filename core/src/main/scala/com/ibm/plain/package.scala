@@ -99,6 +99,8 @@ package object plain
 
   final def try2Boolean(p: ⇒ Any, show: Boolean = false) = try { p; true } catch { case e: Throwable ⇒ if (show) e.printStackTrace; false }
 
+  final def illegalState(message: ⇒ String) = throw new IllegalStateException(message)
+
   private[this] final val unsupported_ = new UnsupportedOperationException
 
   private[this] final val notyetimplemented_ = new UnsupportedOperationException("Not yet implemented.")

@@ -93,9 +93,9 @@ final class HttpServletResponse(
 
   final def getLocale: Locale = unsupported
 
-  final def getOutputStream: js.ServletOutputStream = { if (usewriter) throw new IllegalStateException; useoutputstream = true; new ServletOutputStream(printwriter.outputstream) }
+  final def getOutputStream: js.ServletOutputStream = { if (usewriter) illegalState("use inputstream"); useoutputstream = true; new ServletOutputStream(printwriter.outputstream) }
 
-  final def getWriter: PrintWriter = { if (useoutputstream) throw new IllegalStateException; usewriter = true; printwriter }
+  final def getWriter: PrintWriter = { if (useoutputstream) illegalState("use outputstream"); usewriter = true; printwriter }
 
   final def isCommitted: Boolean = unsupported
 

@@ -29,11 +29,12 @@ import time.timeMillis
  *
  * method: get | put | delete            default: get
  * purgeDirectory: true | false          default: false, only valid for method get, will empty the localDirectory if it exists
- * space: a configured space on the server
  *
- * the in message must contain the following headers (case-sensitive):
+ * space: a configured space on the server, if you prefer to specify the space as an option, this has preference over a given space in the path
+ * useConduits: true | false             default: false; true: run everything with in sockets and conduits, false: use temporary files in between
+ * the IN message must contain the following headers (case-sensitive):
  *
- * spaces.containerUuid : a 32 hex uuid string
+ * spaces.containerUuid : a 32 hex uuid string; this can be omitted for PUT it will generate a uuid and set this variable on the message
  * spaces.localDirectory : a valid local filepath to a directory; it must exist on PUT, it may be created on GET and it can be omitted on DELETE
  *
  */
@@ -101,6 +102,8 @@ class SpacesEndpoint(
 
   @BeanProperty @UriParam protected[this] final var purgeDirectory: Boolean = false
 
+  @BeanProperty @UriParam protected[this] final var useConduits: Boolean = useConduitsDefault
+
 }
 
 /**
@@ -117,14 +120,15 @@ final class SpacesProducer(
   final def process(exchange: Exchange): Unit = {
     val space = endpoint.getSpaceName
     val method = Method(endpoint.getMethod)
-    val purge = endpoint.getPurgeDirectory
+    val purgeDirectory = endpoint.getPurgeDirectory
+    val useConduits = endpoint.getUseConduits
     method match {
       case Method.GET ⇒
         require(null != exchange.getIn.getHeader("spaces.localDirectory", classOf[String]), s"Cannot GET from a spaces container without spaces.localDirectory set as a message header. ")
         require(null != exchange.getIn.getHeader("spaces.containerUuid", classOf[String]), s"Cannot GET from a spaces container without spaces.containerUuid set as a message header.")
         val localdirectory = Paths.get(exchange.getIn.getHeader("spaces.localDirectory", classOf[String]))
         val containeruuid = exchange.getIn.getHeader("spaces.containerUuid", classOf[String])
-        val (statuscode, ms) = timeMillis(SpacesClient.instance.get(space, containeruuid, localdirectory, purge))
+        val (statuscode, ms) = timeMillis(SpacesClient.instance.get(space, containeruuid, localdirectory, purgeDirectory, useConduits))
         info("GET " + containeruuid + " INTO " + localdirectory + " : " + statuscode + " (" + ms + " ms)")
         exchange.getIn.removeHeader("spaces.localDirectory")
         exchange.getIn.removeHeader("spaces.containerUuid")
@@ -140,7 +144,7 @@ final class SpacesProducer(
           case uuid ⇒
             Uuid.fromString(uuid)
         }
-        val (statuscode, ms) = timeMillis(SpacesClient.instance.put(space, containeruuid, localdirectory))
+        val (statuscode, ms) = timeMillis(SpacesClient.instance.put(space, containeruuid, localdirectory, useConduits))
         info("PUT " + containeruuid + " FROM " + localdirectory + " : " + statuscode + " (" + ms + " ms)")
         exchange.getIn.removeHeader("spaces.localDirectory")
       case Method.DELETE ⇒

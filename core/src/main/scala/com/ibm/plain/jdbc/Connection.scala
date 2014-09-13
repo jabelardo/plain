@@ -38,7 +38,7 @@ final class Connection private[jdbc] (
       if (!idle.contains(this)) {
         active.set(false)
         idle.putFirst(this)
-      } else throw new IllegalStateException("Connection already in idle list : " + this)
+      } else illegalState("Connection already in idle list : " + this)
     } else doClose
   }
 

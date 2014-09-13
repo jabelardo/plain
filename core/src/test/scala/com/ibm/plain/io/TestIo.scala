@@ -10,7 +10,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.FileOutputStream
 
-/* @Test */ class IoTest {
+/*@Test*/ class IoTest {
 
   /*
     val print = false
@@ -172,7 +172,7 @@ abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefgh
     }
   }
 */
-  /* @Test */ def testLZ4 = {
+  @Test def testLZ4 = {
     import java.io._
     import scala.util.Random
     var t = 0L
@@ -183,7 +183,7 @@ abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefgh
       t += time.timeMillis {
         val i = new FileInputStream("/tmp/list.txt")
         val f = new FileOutputStream("/tmp/test.lz4")
-        val o = LZ4.newHighOutputStream(f)
+        val o = LZ4.highOutputStream(f)
         io.copyBytes(i, o)
         i.close
         o.close
@@ -194,7 +194,7 @@ abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789abcdefgh
     for (j ← 1 to m) {
       t += time.timeMillis {
         val f = new FileInputStream("/tmp/test.lz4")
-        val i = LZ4.newInputStream(f)
+        val i = LZ4.inputStream(f)
         val buf = new Array[Byte](64 * 1024)
         var total = 0L
         while (-1 < { val len = i.read(buf); total += len; len }) ()

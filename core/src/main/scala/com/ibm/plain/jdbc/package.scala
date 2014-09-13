@@ -75,7 +75,7 @@ package object jdbc
     case Some(connection) ⇒
       try body(connection) finally connection.close
     case _ ⇒
-      throw new IllegalStateException("Could not create connection for : '" + name + "'")
+      illegalState("Could not create connection for : '" + name + "'")
   }
 
   /**
@@ -96,7 +96,7 @@ package object jdbc
         connection.close
       }
     case _ ⇒
-      throw new IllegalStateException("Could not create connection for : '" + name + "'")
+      illegalState("Could not create connection for : '" + name + "'")
   }
 
   final val startupConnectionFactories: List[String] = getStringList("plain.jdbc.startup-connection-factories", List.empty)

@@ -27,9 +27,9 @@ final class SpacesResource
    * Download an entire directory from the stored container file.
    */
   Get {
-    trace(request)
+    debug(request)
     val contenttype = ContentType(`application/gzip`)
-    val path = computePathToContainerFile(context, ".tar.gz")
+    val path = computePathToContainerFile(context, extension)
     val length = path.toFile.length
     val source = FileConduit.forReading(path)
     exchange.transferFrom(source)
@@ -44,10 +44,10 @@ final class SpacesResource
    * Upload a complete tar.gz file.
    */
   Put { entity: Entity ⇒
-    trace(request)
+    debug(request)
     entity match {
       case Entity(contenttype, length, _) ⇒
-        val container = computePathToContainerFile(context, ".tar.gz")
+        val container = computePathToContainerFile(context, extension)
         exchange.transferTo(
           FileConduit.forWriting(container),
           context ⇒ { context.response ++ Success.`201` })
@@ -55,6 +55,8 @@ final class SpacesResource
     }
     ()
   }
+
+  private[this] final val extension = ".bin"
 
 }
 
