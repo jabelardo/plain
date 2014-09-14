@@ -37,7 +37,9 @@ package object time
 
   @volatile private[time] final var rfc1123bytearray: Array[Byte] = null
 
-  // prevent "false sharing"
+  /**
+   *  Prevent "false sharing", see "mechanical sympathy" for more details. Do not change visiblity or it will not work.
+   */
   @volatile final var padding1: Array[Byte] = null
   @volatile final var padding2: Array[Byte] = null
   @volatile final var padding3: Array[Byte] = null

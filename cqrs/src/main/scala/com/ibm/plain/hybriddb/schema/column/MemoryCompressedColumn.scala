@@ -40,7 +40,7 @@ import io.{ ByteArrayInputStream, LZ4 }
   private[this] final def page(i: Int) = cache.get(i) match {
     case Some(page) ⇒ page
     case _ ⇒
-      val in = new ObjectInputStream(LZ4.newInputStream(new ByteArrayInputStream(pages(i))))
+      val in = new ObjectInputStream(LZ4.inputStream(new ByteArrayInputStream(pages(i))))
       val page = in.readObject.asInstanceOf[Array[A]]
       in.close
       cache.put(i, page)
@@ -85,7 +85,7 @@ final class MemoryCompressedColumnBuilder[@specialized A: ClassTag](
 
   private[this] final def flush = {
     out.reset
-    val os = new ObjectOutputStream(if (highcompression) LZ4.newHighOutputStream(out) else LZ4.newFastOutputStream(out))
+    val os = new ObjectOutputStream(if (highcompression) LZ4.highOutputStream(out) else LZ4.fastOutputStream(out))
     os.writeObject(array)
     os.close
     arrays += out.toByteArray

@@ -2,7 +2,7 @@ package com.ibm.plain
 package integration
 package spaces
 
-import java.io.{ File, FileInputStream, FileOutputStream }
+import java.io.{ FileInputStream, FileOutputStream }
 import java.nio.file.Path
 
 import org.apache.commons.io.FileUtils.deleteDirectory
@@ -16,11 +16,12 @@ import aio.client.ClientExchange
 import aio.conduit.{ AHCConduit, ChunkedConduit, FileConduit, GzipConduit, TarConduit }
 import bootstrap.{ ExternalComponent, Singleton }
 import crypt.Uuid
-import io.{ temporaryFile, temporaryDirectory, LZ4, copyBytes }
+import io.{ LZ4, copyBytes, temporaryDirectory }
 import logging.Logger
 import net.lingala.zip4j.core.ZipFile
 import net.lingala.zip4j.model.ZipParameters
 import net.lingala.zip4j.util.Zip4jConstants
+import time.infoMillis
 
 /**
  *
@@ -41,7 +42,6 @@ final class SpacesClient
    * PUT or upload to a container into the space.
    */
   final def put(name: String, container: Uuid, localdirectory: Path, useConduit: Boolean): Int = {
-
     spaceslist.find(name == _.name) match {
       case Some(space) ⇒
         val url = space.serverUri + "/" + container
@@ -77,7 +77,6 @@ final class SpacesClient
    * GET or download from a container from the space into a local directory.
    */
   final def get(name: String, container: Uuid, localdirectory: Path, purgedirectory: Boolean, useConduit: Boolean): Int = {
-
     spaceslist.find(name == _.name) match {
       case Some(space) ⇒
         if (purgedirectory) {
@@ -126,25 +125,32 @@ final class SpacesClient
   override final def stop = {
     ignore(client.close)
     client = null
-    Spaces.resetInstance
+    SpacesClient.resetInstance
     this
   }
 
+  /**
+   * From tests the fastest combination is to store only (no-compression) with zip4j and then use fast lz4 compression.
+   * Do not use high lz4 compression unless you have a really low bandwidth.
+   */
   private[this] final def packDirectory(directory: Path): Path = {
+    import time.infoMillis
     val tmpdir = temporaryDirectory.toPath
     val zfile = tmpdir.resolve("zip").toFile
     val zipfile = new ZipFile(zfile)
     val zipparameters = new ZipParameters
     zipparameters.setCompressionMethod(Zip4jConstants.COMP_STORE)
     zipparameters.setIncludeRootFolder(false)
-    zipfile.addFolder(directory.toFile, zipparameters)
+    infoMillis("addFolder")(zipfile.addFolder(directory.toFile, zipparameters))
     val in = new FileInputStream(zfile)
     val lz4file = tmpdir.resolve("lz4").toFile
-    val out = LZ4.highOutputStream(new FileOutputStream(lz4file))
-    try copyBytes(in, out)
-    finally {
-      in.close
-      out.close
+    val out = LZ4.fastOutputStream(new FileOutputStream(lz4file))
+    infoMillis("lz4") {
+      try copyBytes(in, out)
+      finally {
+        in.close
+        out.close
+      }
     }
     zfile.delete
     lz4file.toPath

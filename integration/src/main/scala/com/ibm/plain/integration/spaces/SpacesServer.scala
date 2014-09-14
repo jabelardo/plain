@@ -29,13 +29,13 @@ final case class Space(
 /**
  *
  */
-final class Spaces
+final class SpacesServer
 
-    extends ExternalComponent[Spaces](
+    extends ExternalComponent[SpacesServer](
 
       spaces.isEnabled,
 
-      "plain-integration-spaces",
+      "plain-integration-spaces-server",
 
       classOf[infrastructure.Infrastructure])
 
@@ -69,12 +69,12 @@ final class Spaces
       if (space.purgeOnShutdown) io.deleteOnExit(rootDirectory.resolve(space.name).toFile)
       log(fun, message, space, path)
     }
-    Spaces.instance(this)
+    SpacesServer.instance(this)
     this
   }
 
   override def stop = {
-    Spaces.resetInstance
+    SpacesServer.resetInstance
     this
   }
 
@@ -83,6 +83,6 @@ final class Spaces
 /**
  *
  */
-object Spaces
+object SpacesServer
 
-  extends Singleton[Spaces]
+  extends Singleton[SpacesServer]

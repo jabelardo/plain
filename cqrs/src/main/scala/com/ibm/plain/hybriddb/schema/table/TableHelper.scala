@@ -55,12 +55,12 @@ protected trait TableHelper {
   }
 
   protected[this] final def serialize(t: Table, f: File) = {
-    val out = new ObjectOutputStream(LZ4.newFastOutputStream(new FileOutputStream(f)))
+    val out = new ObjectOutputStream(LZ4.fastOutputStream(new FileOutputStream(f)))
     try out.writeObject(t) finally out.close
   }
 
   protected[this] final def deserialize[T <: Table](f: File): T = {
-    val in = new ObjectInputStream(LZ4.newInputStream(new FileInputStream(f)))
+    val in = new ObjectInputStream(LZ4.inputStream(new FileInputStream(f)))
     try in.readObject.asInstanceOf[T] finally in.close
   }
 

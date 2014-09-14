@@ -65,7 +65,7 @@ import io.{ ByteBufferInputStream, LZ4 }
     case Some(page) ⇒ page
     case _ ⇒
       val buf = file.map(READ_ONLY, pages(i), pages(i + 1) - pages(i))
-      val in = new ObjectInputStream(LZ4.newInputStream(new ByteBufferInputStream(buf)))
+      val in = new ObjectInputStream(LZ4.inputStream(new ByteBufferInputStream(buf)))
       val page = in.readObject.asInstanceOf[Array[A]]
       in.close
       cache.put(i, page)
@@ -352,13 +352,13 @@ final class FileCompressedColumnBuilder[@specialized A: ClassTag, O <: Ordering[
     unzipIndexFile
   }
 
-  private[this] final def newStream(out: OutputStream) = new ObjectOutputStream(LZ4.newFastOutputStream(out))
+  private[this] final def newStream(out: OutputStream) = new ObjectOutputStream(LZ4.fastOutputStream(out))
 
-  private[this] final def output(f: File) = (new ObjectOutputStream(LZ4.newFastOutputStream(new BufferedOutputStream(new FileOutputStream(f), buffersize))), f)
+  private[this] final def output(f: File) = (new ObjectOutputStream(LZ4.fastOutputStream(new BufferedOutputStream(new FileOutputStream(f), buffersize))), f)
 
   private[this] final def output(suffix: Any): (ObjectOutputStream, File) = output(new File(workingdir.getAbsolutePath + "/chunk." + suffix))
 
-  private[this] final def input(f: File) = (new ObjectInputStream(LZ4.newInputStream(new BufferedInputStream(new FileInputStream(f), buffersize))), f)
+  private[this] final def input(f: File) = (new ObjectInputStream(LZ4.inputStream(new BufferedInputStream(new FileInputStream(f), buffersize))), f)
 
   private[this] final def input(suffix: Any): (ObjectInputStream, File) = input(new File(workingdir.getAbsolutePath + "/chunk." + suffix))
 
