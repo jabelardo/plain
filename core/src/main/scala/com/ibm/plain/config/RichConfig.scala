@@ -22,6 +22,12 @@ class RichConfig(config: Config)
   /**
    * with logging
    */
+  def getBoolean(key: String) = if (config.hasPath(key)) config.getBoolean(key) else { error(s"No configuration value found for key : $key"); config.getBoolean(key) }
+
+  def getInt(key: String) = if (config.hasPath(key)) config.getInt(key) else { error(s"No configuration value found for key : $key"); config.getInt(key) }
+
+  def getObject(key: String) = if (config.hasPath(key)) config.getObject(key) else { error(s"No configuration value found for key : $key"); config.getObject(key) }
+
   def getString(key: String) = if (config.hasPath(key)) config.getString(key) else { error(s"No configuration value found for key : $key"); config.getString(key) }
 
   def getStringList(key: String) = if (config.hasPath(key)) config.getStringList(key) else { error(s"No configuration value found for key : $key"); config.getStringList(key) }
