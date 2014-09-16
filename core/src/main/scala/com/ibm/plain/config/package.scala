@@ -1,11 +1,12 @@
-package com.ibm
-
-package plain
+package com.ibm.plain
 
 import scala.language.implicitConversions
 
 import com.typesafe.config.{ Config, ConfigFactory }
 
+/**
+ *
+ */
 package object config
 
     extends config.CheckedConfig {
@@ -13,36 +14,34 @@ package object config
   /**
    * The "global" plain application configuration settings.
    */
-  final val settings: Config = {
+  final val settings: RichConfig = {
     val config = ConfigFactory.load
     config.checkValid(config, "plain")
-    config
+    new RichConfig(config)
   }
 
   import settings._
 
-  final val version = getString("plain.config.version")
+  final val version = settings.getString("plain.config.version")
 
-  private[this] final val rconfig = new RichConfig(settings)
+  final val logConfigOnStart = settings.getBoolean("plain.config.log-config-on-start", false)
 
-  final val logConfigOnStart = rconfig.getBoolean("plain.config.log-config-on-start", false)
+  final val logConfigFormatted = settings.getBoolean("plain.config.log-config-formatted", false)
 
-  final val logConfigFormatted = rconfig.getBoolean("plain.config.log-config-formatted", false)
+  final val rethrowExceptionOnError = settings.getBoolean("plain.config.rethrow-exception-on-error", false)
 
-  final val rethrowExceptionOnError = rconfig.getBoolean("plain.config.rethrow-exception-on-error", false)
+  final val printStackTraceOnError = settings.getBoolean("plain.config.print-stacktrace-on-error", true)
 
-  final val printStackTraceOnError = rconfig.getBoolean("plain.config.print-stacktrace-on-error", true)
+  final val terminateOnError = settings.getBoolean("plain.config.terminate-on-error", true)
 
-  final val terminateOnError = rconfig.getBoolean("plain.config.terminate-on-error", true)
-
-  final val terminateOnErrorExitCode = rconfig.getInt("plain.config.terminate-on-error-exitcode", -1)
+  final val terminateOnErrorExitCode = settings.getInt("plain.config.terminate-on-error-exitcode", -1)
 
   /**
    * Must match the version string provided by the *.conf files.
    */
   final val requiredVersion = "1.0"
 
-  final val home = rconfig.getString("plain.config.home", System.getenv("PLAIN_HOME"))
+  final val home = settings.getString("plain.config.home", System.getenv("PLAIN_HOME"))
 
   /**
    * implicit conversions

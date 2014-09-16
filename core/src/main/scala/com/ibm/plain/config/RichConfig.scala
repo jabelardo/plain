@@ -1,20 +1,38 @@
-package com.ibm
-
-package plain
-
+package com.ibm.plain
 package config
 
 import java.util.concurrent.TimeUnit.MILLISECONDS
+
 import scala.collection.JavaConversions.{ asScalaBuffer, asScalaSet }
 import scala.concurrent.duration.Duration
-import com.typesafe.config.ConfigList
-import com.typesafe.config.Config
+
+import com.typesafe.config.{ Config, ConfigList }
 
 /**
  * Add a couple of helpers to Config eg. get with default.
  */
-class RichConfig(config: Config) {
+class RichConfig(config: Config)
 
+    extends logging.Logger {
+
+  def root = config.root
+
+  def entrySet = config.entrySet
+
+  /**
+   * with logging
+   */
+  def getString(key: String) = if (config.hasPath(key)) config.getString(key) else { error(s"No configuration value found for key : $key"); config.getString(key) }
+
+  def getStringList(key: String) = if (config.hasPath(key)) config.getStringList(key) else { error(s"No configuration value found for key : $key"); config.getStringList(key) }
+
+  def getConfig(key: String) = if (config.hasPath(key)) config.getConfig(key) else { error(s"No configuration value found for key : $key"); config.getConfig(key) }
+
+  def getConfigList(key: String) = if (config.hasPath(key)) config.getConfigList(key) else { error(s"No configuration value found for key : $key"); config.getConfigList(key) }
+
+  /**
+   * with default
+   */
   def getString(key: String, default: String) = if (config.hasPath(key)) config.getString(key) else default
 
   def getStringList(key: String, default: List[String]): List[String] = if (config.hasPath(key)) config.getStringList(key).toList else default
