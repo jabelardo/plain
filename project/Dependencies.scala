@@ -31,7 +31,7 @@ object Dependencies {
     def reflection = Seq(
       "org.scala-lang" % "scala-compiler" % "2.11.2",
       "org.scala-lang" % "scala-reflect" % "2.11.2",
-      "org.reflections" % "reflections" % "0.9.9-RC1")
+      "org.reflections" % "reflections" % "0.9.9-RC1") // do not use 0.9.9-RC2, it will introduce deps errors
 
     def javax = Seq(
       "javax.servlet" % "javax.servlet-api" % "3.1.0",
@@ -81,7 +81,7 @@ object Dependencies {
 
   object Integration {
 
-    def camelVersion = "2.13.2"
+    def camelVersion = "2.14.0"
 
     def activemqVersion = "5.10.0"
 
