@@ -88,19 +88,21 @@ object Dependencies {
     def slickVersion = "2.1.0"
 
     def core = Seq(
+      "org.apache.camel" % "camel-core" % camelVersion,
       "org.apache.camel" % "camel-scala" % camelVersion,
-      "org.apache.camel" % "camel-exec" % camelVersion,
+      "org.apache.camel" % "camel-exec" % camelVersion exclude ("commons-exec", "commons-exec"),
+      "org.apache.commons" % "commons-exec" % "1.2",
       "org.apache.camel" % "camel-ssh" % camelVersion,
       "org.apache.camel" % "camel-stream" % camelVersion,
       "org.apache.camel" % "camel-quartz2" % camelVersion,
       "org.apache.camel" % "camel-spring-batch" % camelVersion,
-      "org.apache.camel" % "camel-test" % camelVersion,
-      "org.apache.camel" % "camel-core" % camelVersion exclude ("org.slf4j", "slf4j-api"))
+      "org.apache.camel" % "camel-test" % camelVersion)
 
     def messaging = Seq(
+      "org.apache.camel" % "camel-jms" % camelVersion,
       "org.apache.camel" % "camel-sjms" % camelVersion,
       "org.apache.camel" % "camel-mail" % camelVersion,
-      "org.apache.activemq" % "activemq-camel" % activemqVersion,
+      "org.apache.activemq" % "activemq-camel" % activemqVersion exclude ("org.apache.camel", "org.apache.camel"),
       "org.apache.activemq" % "activemq-broker" % activemqVersion,
       "org.apache.activemq" % "activemq-jaas" % activemqVersion,
       "org.apache.activemq" % "activemq-kahadb-store" % activemqVersion)
