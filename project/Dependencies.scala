@@ -83,7 +83,7 @@ object Dependencies {
 
     def camelVersion = "2.14.0"
 
-    def activemqVersion = "5.10.0"
+    def activemqVersion = "5.11-SNAPSHOT"
 
     def slickVersion = "2.1.0"
 
@@ -95,38 +95,25 @@ object Dependencies {
       "org.apache.camel" % "camel-ssh" % camelVersion,
       "org.apache.camel" % "camel-stream" % camelVersion,
       "org.apache.camel" % "camel-quartz2" % camelVersion,
-      "org.apache.camel" % "camel-spring-batch" % camelVersion,
       "org.apache.camel" % "camel-test" % camelVersion)
 
     def messaging = Seq(
-      "org.apache.camel" % "camel-jms" % camelVersion,
       "org.apache.camel" % "camel-sjms" % camelVersion,
       "org.apache.camel" % "camel-mail" % camelVersion,
-      "org.apache.activemq" % "activemq-camel" % activemqVersion exclude ("org.apache.camel", "org.apache.camel"),
+      "org.apache.activemq" % "activemq-camel" % activemqVersion,
       "org.apache.activemq" % "activemq-broker" % activemqVersion,
       "org.apache.activemq" % "activemq-jaas" % activemqVersion,
       "org.apache.activemq" % "activemq-kahadb-store" % activemqVersion)
 
     def persistence = Seq(
       "org.apache.activemq.protobuf" % "activemq-protobuf" % "1.1", 
-      "org.apache.camel" % "camel-jpa" % camelVersion,
-      "org.apache.camel" % "camel-mybatis" % camelVersion,
-      "org.apache.camel" % "camel-jdbc" % camelVersion,
-      "org.apache.camel" % "camel-sql" % camelVersion,
       "org.apache.camel" % "camel-leveldb" % camelVersion,
       "com.typesafe.slick" %% "slick-extensions" % slickVersion,
       "com.typesafe.slick" %% "slick" % slickVersion)
 
     def networking = Seq(
-      "org.apache.camel" % "camel-jsch" % camelVersion,
       "org.apache.camel" % "camel-ldap" % camelVersion,
-      "org.apache.camel" % "camel-netty" % camelVersion,
-      "org.apache.camel" % "camel-netty-http" % camelVersion,
-      "org.apache.camel" % "camel-servlet" % camelVersion,
-      "org.apache.camel" % "camel-nagios" % camelVersion,
-      "org.apache.camel" % "camel-ftp" % camelVersion,
-      "org.apache.camel" % "camel-http4" % camelVersion,
-      "org.apache.camel" % "camel-ahc" % camelVersion)
+      "org.apache.camel" % "camel-servlet" % camelVersion)
 
     def dependencies = core ++ networking ++ messaging ++ persistence ++ Jdbc.dependencies
 
