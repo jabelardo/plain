@@ -141,16 +141,14 @@ final class SpacesClient
     val zipparameters = new ZipParameters
     zipparameters.setCompressionMethod(Zip4jConstants.COMP_STORE)
     zipparameters.setIncludeRootFolder(false)
-    infoMillis("addFolder")(zipfile.addFolder(directory.toFile, zipparameters))
+    zipfile.addFolder(directory.toFile, zipparameters)
     val in = new FileInputStream(zfile)
     val lz4file = tmpdir.resolve("lz4").toFile
     val out = LZ4.fastOutputStream(new FileOutputStream(lz4file))
-    infoMillis("lz4") {
-      try copyBytes(in, out)
-      finally {
-        in.close
-        out.close
-      }
+    try copyBytes(in, out)
+    finally {
+      in.close
+      out.close
     }
     zfile.delete
     lz4file.toPath
