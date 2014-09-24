@@ -84,6 +84,8 @@ package object logging
     final val toFile = if (enabled) cfg.getString("file-name", "") match {
       case "" | "." | null ⇒ false
       case v ⇒
+        val logfile = new java.io.File(v)
+        logfile.toPath.getParent.toFile.mkdirs
         System.setProperty(path + ".file-name", v)
         true
     }

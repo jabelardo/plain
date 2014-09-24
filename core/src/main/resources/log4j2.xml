@@ -5,14 +5,22 @@
 		<Console name="Console" target="SYSTEM_OUT">
 			<PatternLayout pattern="${sys:plain.logging.console.pattern}" />
 		</Console>
-		<RollingFile name="RollingFile" fileName="${sys:plain.logging.file.file-name}" filePattern="${sys:plain.logging.file.rolling-pattern}">
-			<PatternLayout pattern="${sys:plain.logging.file.pattern}">
-			<Policies><TimeBasedTriggeringPolicy interval="1" modulate="true"/></Policies>
+		<RollingFile name="RollingFile" fileName="${sys:plain.logging.file.file-name}" filePattern="${sys:plain.logging.file.rolling-pattern}" immediateFlush="false">
+			<PatternLayout pattern="${sys:plain.logging.file.pattern}" />
+			<Policies>
+				<OnStartupTriggeringPolicy />
+				<SizeBasedTriggeringPolicy size="50 MB" />
+				<TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+			</Policies>
 		</RollingFile>
+	    <Async name="AsyncRollingFile">
+    	  <AppenderRef ref="RollingFile"/>
+    	</Async>
 	</Appenders>
 	<Loggers>
 		<Root level="${sys:rootLevel}">
 			<AppenderRef ref="Console" />
+			<AppenderRef ref="AsyncRollingFile" />
 		</Root>
 		<Logger name="org.reflections.Reflections" level="error"
 			additivity="false" />
