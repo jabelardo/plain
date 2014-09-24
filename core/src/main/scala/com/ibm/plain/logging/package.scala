@@ -71,7 +71,13 @@ package object logging
 
     private[this] val cfg = getConfig(path)
 
-    final val enabled = cfg.getBoolean("enabled", false)
+    final def enabled = cfg.getBoolean("enabled", false)
+
+    final def fileName = cfg.getString("file-name", "")
+
+    final def pattern = cfg.getString("pattern", "")
+
+    final def rollingPattern = cfg.getString("rolling-pattern", "")
 
     System.setProperty(path + ".enabled", enabled.toString)
 
