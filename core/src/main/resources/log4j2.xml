@@ -5,12 +5,20 @@
 		<Console name="Console" target="SYSTEM_OUT">
 			<PatternLayout pattern="${sys:plain.logging.console.pattern}" />
 		</Console>
+		<RollingFile name="RollingFile" fileName="${sys:plain.logging.file.file-name}" filePattern="${sys:plain.logging.file.rolling-pattern}">
+			<PatternLayout pattern="${sys:plain.logging.file.pattern}">
+			<Policies><TimeBasedTriggeringPolicy interval="1" modulate="true"/></Policies>
+		</RollingFile>
 	</Appenders>
 	<Loggers>
 		<Root level="${sys:rootLevel}">
 			<AppenderRef ref="Console" />
 		</Root>
 		<Logger name="org.reflections.Reflections" level="error"
+			additivity="false" />
+		<Logger name="org.apache.activemq" level="error"
+			additivity="false" />
+		<Logger name="org.apache.camel" level="warn"
 			additivity="false" />
 		<Logger name="org.apache.camel.management" level="error"
 			additivity="false" />

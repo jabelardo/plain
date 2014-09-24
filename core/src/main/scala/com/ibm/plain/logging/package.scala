@@ -57,7 +57,7 @@ package object logging
 
   final val loggingConsole = LogSettings("plain.logging.console")
 
-  final val loggingText = LogSettings("plain.logging.text")
+  final val loggingFile = LogSettings("plain.logging.file")
 
   final val loggingHtml = LogSettings("plain.logging.html")
 
