@@ -71,24 +71,24 @@ package object logging
 
     private[this] val cfg = getConfig(path)
 
-    final val enable = cfg.getBoolean("enable", false)
+    final val enabled = cfg.getBoolean("enabled", false)
 
-    System.setProperty(path + ".enable", enable.toString)
+    System.setProperty(path + ".enabled", enabled.toString)
 
-    final val toFile = if (enable) cfg.getString("file", "") match {
+    final val toFile = if (enabled) cfg.getString("file-name", "") match {
       case "" | "." | null ⇒ false
       case v ⇒
-        System.setProperty(path + ".file", v)
+        System.setProperty(path + ".file-name", v)
         true
     }
     else false
 
-    if (enable) cfg.getString("pattern", "") match {
+    if (enabled) cfg.getString("pattern", "") match {
       case "" | null ⇒
       case v ⇒ System.setProperty(path + ".pattern", v)
     }
 
-    if (enable) cfg.getString("rolling-pattern", "") match {
+    if (enabled) cfg.getString("rolling-pattern", "") match {
       case "" | null ⇒
       case v ⇒ System.setProperty(path + ".rolling-pattern", v)
     }
