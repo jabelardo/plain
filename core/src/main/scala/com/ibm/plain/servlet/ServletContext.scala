@@ -112,7 +112,7 @@ final class ServletContext(
 
   final val getRealPath = FilenameUtils.normalize(FilenameUtils.removeExtension(root))
 
-  final def getRequestDispatcher(path: String): js.RequestDispatcher = unsupported
+  final def getRequestDispatcher(path: String): js.RequestDispatcher = new RequestDispatcher(path, this)
 
   final def getResource(path: String): URL = classloader.getResource(if (path.startsWith("/")) path.drop(1) else path)
 
