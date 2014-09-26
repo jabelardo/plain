@@ -30,6 +30,10 @@ final class ActiveMQ
     with Logger {
 
   override def start = {
+
+    /**
+     * The master holds an activemq broker.
+     */
     if (isMaster) {
       if (null == broker) {
         broker = new BrokerService
@@ -48,24 +52,26 @@ final class ActiveMQ
         broker.start
         broker.waitUntilStarted
       }
-    } else {
-      Camel.instance.context.addComponent("activemq", activeMQComponent(brokerClientUri + ":" + brokerPort))
     }
+
+    /**
+     * Everybody including the master is a client.
+     */
+    Camel.instance.context.addComponent("activemq", activeMQComponent(brokerClientUri + ":" + brokerPort))
     ActiveMQ.instance(this)
     this
   }
 
   override def stop = {
+    ActiveMQ.resetInstance
+    Camel.instance.context.removeComponent("activemq")
     if (isMaster) {
       if (null != broker) {
         broker.stop
         broker.waitUntilStopped
         broker = null
       }
-    } else {
-      Camel.instance.context.removeComponent("activemq")
     }
-    ActiveMQ.resetInstance
     this
   }
 

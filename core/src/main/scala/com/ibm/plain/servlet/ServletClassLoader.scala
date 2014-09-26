@@ -155,7 +155,7 @@ object ServletClassLoader
       var i = 0
       FileUtils.listFiles(libdir, Array("jar"), true).foreach { libfile ⇒
         i += 1
-        trace("Unpacking " + i + " of " + total + " (" + libfile.getName + ")")
+        trace("Extract " + i + " of " + total + " (" + libfile.getName + ")")
         val zipfile = new ZipFile(libfile.getAbsolutePath)
         zipfile.getFileHeaders.map(_.asInstanceOf[FileHeader]).
           filter(!_.getFileName.toLowerCase.contains("license")).
@@ -167,7 +167,7 @@ object ServletClassLoader
       }
     }
     if (forceUnpackWebApplications || sourcepath.lastModified > target.lastModified) {
-      trace("Unpacking " + sourcepath + " to " + target)
+      info("Extract " + sourcepath + " to " + target)
       FileUtils.deleteDirectory(target)
       new ZipFile(sourcepath).extractAll(target.getAbsolutePath)
       if (unpackWebApplicationsRecursively) unpackJars

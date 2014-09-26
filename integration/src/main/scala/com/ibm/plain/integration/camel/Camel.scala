@@ -2,15 +2,17 @@ package com.ibm.plain
 package integration
 package camel
 
-import scala.collection.JavaConversions._
-
 import java.io.{ ByteArrayInputStream, File, FileOutputStream }
-import java.nio.file.Files.{ createDirectories, exists }
+import java.util.concurrent.TimeUnit
 import java.util.jar.JarOutputStream
 import java.util.zip.ZipEntry
-import java.util.concurrent.TimeUnit
+
+import scala.collection.JavaConversions.asScalaBuffer
 
 import org.apache.camel.impl.DefaultCamelContext
+import org.apache.commons.io.FileUtils.deleteDirectory
+
+import com.ibm.plain.bootstrap.{ ExternalComponent, Singleton }
 
 import bootstrap.{ ExternalComponent, Singleton }
 import logging.Logger
@@ -50,6 +52,7 @@ final class Camel
     Camel.resetInstance
     context.getRouteDefinitions.map(r ⇒ context.stopRoute(r.getId, shutdownTimeout, TimeUnit.MILLISECONDS, true))
     context.stop
+    deleteWarFile
     ignore(Thread.sleep(delayDuringShutdown))
     this
   }
@@ -75,6 +78,11 @@ object Camel
     in.close
     out.closeEntry
     out.close
+  }
+
+  private final def deleteWarFile = {
+    new File(servlet.webApplicationsDirectory + "/" + servletServicesRoot + ".war").delete
+    deleteDirectory(new File(servlet.webApplicationsDirectory + "/" + servletServicesRoot))
   }
 
   private[this] final val webxml = """<web-app>
