@@ -7,6 +7,7 @@ package io
 import java.io.{ InputStream, OutputStream }
 
 import net.jpountz.lz4.{ LZ4BlockInputStream, LZ4BlockOutputStream, LZ4Factory }
+import os._
 
 /**
  *
@@ -19,6 +20,12 @@ object LZ4 {
 
   def inputStream(in: InputStream): InputStream = new LZ4BlockInputStream(in, factory.fastDecompressor)
 
-  private[this] final val factory = LZ4Factory.fastestInstance
+  /**
+   * Fast instance not ported to hpux.
+   */
+  private[this] final val factory = operatingSystem match {
+    case OperatingSystem.HPUX ⇒ LZ4Factory.safeInstance
+    case _ ⇒ LZ4Factory.fastestInstance
+  }
 
 }
