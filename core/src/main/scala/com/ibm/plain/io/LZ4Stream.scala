@@ -7,7 +7,7 @@ package io
 import java.io.{ InputStream, OutputStream }
 
 import net.jpountz.lz4.{ LZ4BlockInputStream, LZ4BlockOutputStream, LZ4Factory }
-import os._
+import os.{ OperatingSystem, operatingSystem }
 
 /**
  *
