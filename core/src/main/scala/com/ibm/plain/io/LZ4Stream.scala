@@ -21,10 +21,10 @@ object LZ4 {
   def inputStream(in: InputStream): InputStream = new LZ4BlockInputStream(in, factory.fastDecompressor)
 
   /**
-   * Fast instance not ported to hpux.
+   * Fast instance based on JNI is not ported to hpux.
    */
   private[this] final val factory = operatingSystem match {
-    case OperatingSystem.HPUX ⇒ LZ4Factory.safeInstance
+    case OperatingSystem.HPUX ⇒ LZ4Factory.unsafeInstance
     case _ ⇒ LZ4Factory.fastestInstance
   }
 
