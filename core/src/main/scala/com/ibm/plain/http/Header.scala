@@ -17,10 +17,12 @@ sealed abstract class Header[A]
 
   def value(s: String): A
 
-  final def apply(headers: Headers): Option[A] = headers.get(name) match {
-    case Some(s) ⇒ Some(value(s))
-    case _ ⇒ None
-  }
+  final def apply(headers: Headers): Option[A] = if (null != headers) {
+    headers.get(name) match {
+      case Some(s) ⇒ Some(value(s))
+      case _ ⇒ None
+    }
+  } else None
 
 }
 
