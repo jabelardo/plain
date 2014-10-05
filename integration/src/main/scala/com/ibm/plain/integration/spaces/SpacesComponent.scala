@@ -14,28 +14,30 @@ import org.apache.camel.spi.{ UriEndpoint, UriParam }
 import crypt.Uuid
 import http.Method
 import logging.Logger
+import json.Json
 import time.timeMillis
 
 /**
  * Represents the component that manages {@link SpacesEndpoint}, Producer only (no from(spaces))
  *
- * Uri scheme: spaces:space?method
+ * Uri scheme: spaces:space[?parameters]
  *
  * Examples:
  *
+ *  to("spaces://repository")
  *  to("spaces://repository?method=get")
- *  to("spaces:repository?method=get&purgeDirectory=true")
+ *  to("spaces:repository?method=get&purgeDirectory=true") *  to("spaces://repository?method=get") *  to("spaces://repository?method=get")
  *  to("spaces:repository?method=put")
  *
- * method: get | put | delete            default: get
- * purgeDirectory: true | false          default: false, only valid for method get, will empty the localDirectory if it exists
+ * method: get | put | delete : default: get
+ * purgeDirectory: true | false : default: false, only valid for method get, will empty the localDirectory if it exists
  *
  * space: a configured space on the server, if you prefer to specify the space as an option, this has preference over a given space in the path
- * useConduits: true | false             default: false; true: run everything with in sockets and conduits, false: use temporary files in between
- * the IN message must contain the following headers (case-sensitive):
+ * useConduits: true | false : default: false; true: run everything with in sockets and conduits, false: use temporary files in between
  *
- * spaces.containerUuid : a 32 hex uuid string; this can be omitted for PUT it will generate a uuid and set this variable on the message
- * spaces.localDirectory : a valid local filepath to a directory; it must exist on PUT, it may be created on GET and it can be omitted on DELETE
+ * the IN message must contain the following headers (case-sensitive):
+ * spaces.containerUuid : a 32 hex uuid string; this can be omitted for PUT, it will generate a uuid and set this variable on the message
+ * spaces.localDirectory : a valid local filepath to a directory; it must exist on PUT, it will be created if necessary on GET and it can be omitted on DELETE
  *
  */
 
@@ -128,10 +130,8 @@ final class SpacesProducer(
         require(null != exchange.getIn.getHeader("spaces.containerUuid", classOf[String]), s"Cannot GET from a spaces container without spaces.containerUuid set as a message header.")
         val localdirectory = Paths.get(exchange.getIn.getHeader("spaces.localDirectory", classOf[String]))
         val containeruuid = exchange.getIn.getHeader("spaces.containerUuid", classOf[String])
-        val (statuscode, ms) = timeMillis(SpacesClient.instance.get(space, containeruuid, localdirectory, purgeDirectory, useConduits))
+        val (statuscode, ms) = timeMillis(SpacesClient.instance.get(space, containeruuid, localdirectory, purgeDirectory))
         info("GET " + containeruuid + " INTO " + localdirectory + " : " + statuscode + " (" + ms + " ms)")
-        exchange.getIn.removeHeader("spaces.localDirectory")
-        exchange.getIn.removeHeader("spaces.containerUuid")
       case Method.PUT ⇒
         require(null != exchange.getIn.getHeader("spaces.localDirectory", classOf[String]), s"Cannot PUT to a spaces container without spaces.localDirectory set as a message header. ")
         val localdirectory = Paths.get(exchange.getIn.getHeader("spaces.localDirectory", classOf[String]))
@@ -144,13 +144,20 @@ final class SpacesProducer(
           case uuid ⇒
             Uuid.fromString(uuid)
         }
-        val (statuscode, ms) = timeMillis(SpacesClient.instance.put(space, containeruuid, localdirectory, useConduits))
+        val (statuscode, ms) = timeMillis(SpacesClient.instance.put(space, containeruuid, localdirectory))
         info("PUT " + containeruuid + " FROM " + localdirectory + " : " + statuscode + " (" + ms + " ms)")
         exchange.getIn.removeHeader("spaces.localDirectory")
+      case Method.POST ⇒
+        require(null != exchange.getIn.getHeader("spaces.localDirectory", classOf[String]), s"Cannot GET from a spaces container without spaces.localDirectory set as a message header. ")
+        val localdirectory = Paths.get(exchange.getIn.getHeader("spaces.localDirectory", classOf[String]))
+        val containercontent = """{ "1da421e34ed847e6984831cc9406b082" : [ "hello.txt" ] }"""
+        val (statuscode, ms) = timeMillis(SpacesClient.instance.post(space, containercontent, localdirectory, purgeDirectory))
+        info("POST " + containercontent + " INTO " + localdirectory + " : " + statuscode + " (" + ms + " ms)")
       case Method.DELETE ⇒
         val containeruuid = exchange.getIn.getHeader("spaces.containerUuid", classOf[String])
         require(null != containeruuid, s"Cannot DELETE a spaces container without spaces.containerUuid set as a message header.")
         exchange.getIn.removeHeader("spaces.containerUuid")
+        unsupported
     }
   }
 

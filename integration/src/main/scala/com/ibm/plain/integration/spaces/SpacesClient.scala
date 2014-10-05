@@ -22,6 +22,7 @@ import net.lingala.zip4j.core.ZipFile
 import net.lingala.zip4j.model.ZipParameters
 import net.lingala.zip4j.util.Zip4jConstants
 import time.infoMillis
+import json.Json
 
 /**
  *
@@ -41,30 +42,26 @@ final class SpacesClient
   /**
    * PUT or upload to a container into the space.
    */
-  final def put(name: String, container: Uuid, localdirectory: Path, useConduit: Boolean): Int = {
+  final def put(
+
+    name: String,
+
+    container: Uuid,
+
+    localdirectory: Path): Int = {
+
     spaceslist.find(name == _.name) match {
       case Some(space) ⇒
-        val url = space.serverUri + "/" + container
-        val (source, destination, ahcconduit, tmpfile) = if (useConduit) {
-          val request = new RequestBuilder("PUT").
-            setUrl(space.serverUri + "/" + container).
-            setHeader("Transfer-Encoding", "chunked").
-            setHeader("Expect", "100-continue").
-            build
-          val ahcconduit = AHCConduit(client, request)
-          (TarConduit(localdirectory.toFile), GzipConduit(ChunkedConduit(ahcconduit)), ahcconduit, None)
-        } else {
-          val tmpfile = packDirectory(localdirectory)
-          val request = new RequestBuilder("PUT").
-            setUrl(space.serverUri + "/" + container).
-            setHeader("Transfer-Encoding", "chunked").
-            setHeader("Expect", "100-continue").
-            build
-          val ahcconduit = AHCConduit(client, request)
-          (FileConduit.forReading(tmpfile), ChunkedConduit(ahcconduit), ahcconduit, Some(tmpfile))
-        }
-        ClientExchange(source, destination).transferAndWait
-        tmpfile.map(_.toFile.delete)
+        val request = new RequestBuilder("PUT").
+          setUrl(space.serverUri + "/" + container).
+          setHeader("Transfer-Encoding", "chunked").
+          setHeader("Expect", "100-continue").
+          build
+        val ahcconduit = AHCConduit(client, request)
+        val tmpfile = packDirectory(localdirectory)
+        time.infoMillis(ClientExchange(FileConduit.forReading(tmpfile), ChunkedConduit(ahcconduit)).transferAndWait)
+        tmpfile.toFile.delete
+        tmpfile.getParent.toFile.delete
         ahcconduit.getResponse match {
           case Some(response) ⇒ response.getStatusCode
           case _ ⇒ 501
@@ -74,35 +71,64 @@ final class SpacesClient
   }
 
   /**
-   * GET or download from a container from the space into a local directory.
+   * POST a json with a list of containers and a list of files for each to the space.
    */
-  final def get(name: String, container: Uuid, localdirectory: Path, purgedirectory: Boolean, useConduit: Boolean): Int = {
+  final def post(
+
+    name: String,
+
+    containercontent: String,
+
+    localdirectory: Path,
+
+    purgedirectory: Boolean): Int = {
+
     spaceslist.find(name == _.name) match {
       case Some(space) ⇒
-        if (purgedirectory) {
-          ignore(deleteDirectory(localdirectory.toFile))
-          debug("Purged localdirectory : " + localdirectory)
-        }
-        val url = space.serverUri + "/" + container
+        if (purgedirectory) deleteDirectory(localdirectory.toFile)
+        val request = new RequestBuilder("POST").
+          setUrl(space.serverUri + "/00000000000000000000000000000000/").
+          setHeader("ContentType", "application/json").
+          setBody(containercontent).
+          build
+        val response = client.executeRequest(request).get
+        response.getStatusCode
+      case _ ⇒ illegalState(s"Trying to POST to a non-existing space : $name")
+    }
+  }
+
+  /**
+   * GET or download from a container from the space into a local directory.
+   */
+  final def get(
+
+    name: String,
+
+    container: Uuid,
+
+    localdirectory: Path,
+
+    purgedirectory: Boolean): Int = {
+
+    spaceslist.find(name == _.name) match {
+      case Some(space) ⇒
+        if (purgedirectory) deleteDirectory(localdirectory.toFile)
         val request = new RequestBuilder("GET").
           setUrl(space.serverUri + "/" + container).
           build
         val ahcconduit = AHCConduit(client, request)
-        val (source, destination, tmpfile) = if (useConduit) {
-          (GzipConduit(ahcconduit), TarConduit(localdirectory.toFile), None)
-        } else {
+        val (source, destination, tmpfile) = {
           val lz4file = temporaryDirectory.toPath.resolve("lz4")
           (ahcconduit, FileConduit.forWriting(lz4file), Some(lz4file))
         }
         ClientExchange(source, destination).transferAndWait
-        if (!useConduit) unpackDirectory(localdirectory, tmpfile.get)
+        unpackDirectory(localdirectory, tmpfile.get)
         ahcconduit.getResponse match {
           case Some(response) ⇒ response.getStatusCode
-          case _ ⇒ 501
+          case _ ⇒ 200
         }
       case _ ⇒ illegalState(s"Trying to GET a container from a non-existing space : $name")
     }
-
   }
 
   /**
@@ -166,7 +192,7 @@ final class SpacesClient
     lz4file.toFile.delete
     val zipfile = new ZipFile(file)
     zipfile.extractAll(directory.toFile.getAbsolutePath)
-    file.delete
+    deleteDirectory(file.toPath.getParent.toFile)
   }
 
   private[this] final var client: AsyncHttpClient = null

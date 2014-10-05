@@ -5,21 +5,23 @@ package spaces
 import java.nio.file.{ Path, Paths }
 import java.nio.file.Files.{ exists ⇒ fexists, isDirectory, isRegularFile }
 
-import aio.conduit.{ ChunkedConduit, FileConduit, GzipConduit, TarConduit }
+import aio.conduit.FileConduit
 import crypt.Uuid
 import http.{ ContentType, Entity }
-import http.Entity.ConduitEntity
-import http.MimeType.`application/gzip`
+import http.Entity.{ ArrayEntity, ConduitEntity }
+import http.MimeType._
 import http.Status.{ ClientError, ServerError, Success }
+import json.Json
+import json.Json.JObject
 import logging.Logger
-import rest.{ Context, Resource }
+import rest.{ Context, StaticResource }
 
 /**
  *
  */
 final class SpacesResource
 
-    extends Resource {
+    extends StaticResource {
 
   import SpacesResource._
 
@@ -27,24 +29,21 @@ final class SpacesResource
    * Download an entire directory from the stored container file.
    */
   Get {
-    debug(request)
-    val contenttype = ContentType(`application/gzip`)
-    val path = computePathToContainerFile(context, extension)
-    val length = path.toFile.length
-    val source = FileConduit.forReading(path)
+    val filepath = computePathToContainerFile(context, extension)
+    val length = filepath.toFile.length
+    val source = FileConduit.forReading(filepath)
     exchange.transferFrom(source)
     ConduitEntity(
       source,
-      contenttype,
+      ContentType(`application/gzip`),
       length,
-      false).asInstanceOf[Entity]
+      false)
   }
 
   /**
    * Upload a complete tar.gz file.
    */
   Put { entity: Entity ⇒
-    debug(request)
     entity match {
       case Entity(contenttype, length, _) ⇒
         val container = computePathToContainerFile(context, extension)
@@ -56,6 +55,23 @@ final class SpacesResource
     ()
   }
 
+  /**
+   * Receive a json of containers and files inside them and download them as a tar.gz file.
+   */
+  Post { entity: Entity ⇒
+    debug(request)
+    val input: JObject = entity match {
+      case ArrayEntity(array, offset, length, _) ⇒
+        try
+          Json.parse(new String(array, offset, length.toInt, text.`UTF-8`)).asObject
+        catch { case _: Throwable ⇒ throw ClientError.`400` }
+      case _ ⇒ throw ClientError.`413`
+    }
+    error(input)
+    extractFilesFromContainers(input)
+    ()
+  }
+
   private[this] final val extension = ".bin"
 
 }
@@ -63,7 +79,9 @@ final class SpacesResource
 /**
  *
  */
-object SpacesResource {
+object SpacesResource
+
+    extends Logger {
 
   private final def computePathToContainerFile(context: Context, extension: String): Path = {
     def computeDirectory(root: String, directory: String): Path = {
@@ -80,6 +98,16 @@ object SpacesResource {
     require(null != space && null != container, throw ClientError.`400`)
     val containeruuid = try Uuid.fromString(container) catch { case e: Throwable ⇒ throw ClientError.`400` }
     computeDirectory(root, space).resolve(containeruuid + extension)
+  }
+
+  private final def extractFilesFromContainers(input: JObject): Path = {
+    input.toList.foreach {
+      case (container, files) ⇒
+        error(container)
+        files.asArray.foreach(error)
+    }
+
+    null
   }
 
 }
