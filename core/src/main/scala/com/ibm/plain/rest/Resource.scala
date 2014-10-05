@@ -183,7 +183,7 @@ trait Resource
                 })
                 context.response ++ e
                 completed(exchange, handler)
-              case _ ⇒ throw ClientError.`415`
+              case _ ⇒ throw ClientError.`400`
             }
         }
       case _ ⇒ throw ServerError.`500`

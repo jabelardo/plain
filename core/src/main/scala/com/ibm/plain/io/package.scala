@@ -158,14 +158,27 @@ package object io
 
   final val deleteDirectoryPauseBetweenRetries = getMilliseconds("plain.io.delete-directory-pause-between-retries", 10000)
 
-  final val temp = try {
-    val tmp = getString("plain.config.temp", System.getenv("TMP"))
-    createDirectory(Paths.get(tmp))
-    System.setProperty("java.io.tmpdir", tmp)
-    Paths.get(tmp)
-  } catch {
-    case _: Throwable ⇒
-      Paths.get(System.getProperty("java.io.tmpdir"))
+  final val tempPurgeEmptyDirectoriesOnStartup = getBoolean("plain.io.temp-purge-empty-directories-on-startup", true)
+
+  final val tempPurgeFilesOnStartup = getBoolean("plain.io.temp-purge-files-on-startup", true)
+
+  final val temp = {
+    val tempdir = try {
+      val tmp = getString("plain.io.temp", System.getenv("TMP"))
+      createDirectory(Paths.get(tmp))
+      System.setProperty("java.io.tmpdir", tmp)
+      Paths.get(tmp)
+    } catch {
+      case _: Throwable ⇒
+        Paths.get(System.getProperty("java.io.tmpdir"))
+    }
+    tempdir.toFile.listFiles.foreach { f ⇒
+      if (f.isFile && tempPurgeFilesOnStartup)
+        f.delete
+      else if (f.isDirectory && tempPurgeEmptyDirectoriesOnStartup && 0 == f.listFiles.size)
+        f.delete
+    }
+    tempdir
   }
 
   /**
