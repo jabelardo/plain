@@ -14,14 +14,14 @@ import http.Status.{ ClientError, ServerError, Success }
 import json.Json
 import json.Json.JObject
 import logging.Logger
-import rest.{ Context, StaticResource }
+import rest.{ Context, Resource }
 
 /**
  *
  */
 final class SpacesResource
 
-    extends StaticResource {
+    extends Resource {
 
   import SpacesResource._
 
