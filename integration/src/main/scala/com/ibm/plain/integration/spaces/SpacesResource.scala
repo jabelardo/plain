@@ -3,10 +3,14 @@ package integration
 package spaces
 
 import java.nio.file.{ Path, Paths }
-import java.nio.file.Files.{ exists ⇒ fexists, isDirectory, isRegularFile }
+import java.nio.file.Files.{ exists ⇒ fexists, isDirectory, isRegularFile, copy, move }
+
+import org.apache.commons.io.FileUtils.deleteDirectory
 
 import aio.conduit.FileConduit
+import aio.Exchange
 import crypt.Uuid
+import io.temporaryDirectory
 import http.{ ContentType, Entity }
 import http.Entity.{ ArrayEntity, ConduitEntity }
 import http.MimeType._
@@ -29,7 +33,7 @@ final class SpacesResource
    * Download an entire directory from the stored container file.
    */
   Get {
-    val filepath = computePathToContainerFile(context, extension)
+    val filepath = computePathToContainerFile(context)
     val length = filepath.toFile.length
     val source = FileConduit.forReading(filepath)
     exchange.transferFrom(source)
@@ -46,7 +50,7 @@ final class SpacesResource
   Put { entity: Entity ⇒
     entity match {
       case Entity(contenttype, length, _) ⇒
-        val container = computePathToContainerFile(context, extension)
+        val container = computePathToContainerFile(context)
         exchange.transferTo(
           FileConduit.forWriting(container),
           context ⇒ { context.response ++ Success.`201` })
@@ -67,12 +71,16 @@ final class SpacesResource
         catch { case _: Throwable ⇒ throw ClientError.`400` }
       case _ ⇒ throw ClientError.`413`
     }
-    error(input)
-    extractFilesFromContainers(input)
-    ()
+    val filepath = extractFilesFromContainers(context, input)
+    val length = filepath.toFile.length
+    val source = FileConduit.forReading(filepath)
+    exchange.transferFrom(source)
+    ConduitEntity(
+      source,
+      ContentType(`application/gzip`),
+      length,
+      false)
   }
-
-  private[this] final val extension = ".bin"
 
 }
 
@@ -83,7 +91,7 @@ object SpacesResource
 
     extends Logger {
 
-  private final def computePathToContainerFile(context: Context, extension: String): Path = {
+  private final def computePathToContainerFile(context: Context, defaultcontainer: String = null): Path = {
     def computeDirectory(root: String, directory: String): Path = {
       Paths.get(root).toAbsolutePath.resolve(directory) match {
         case path if path.toString.contains("..") ⇒ throw ClientError.`406`
@@ -94,20 +102,35 @@ object SpacesResource
     }
     val root = context.config.getString("spaces-directory")
     val space = context.variables.getOrElse("space", null)
-    val container = context.variables.getOrElse("container", null)
+    val container = if (null != defaultcontainer) defaultcontainer else context.variables.getOrElse("container", defaultcontainer)
     require(null != space && null != container, throw ClientError.`400`)
     val containeruuid = try Uuid.fromString(container) catch { case e: Throwable ⇒ throw ClientError.`400` }
     computeDirectory(root, space).resolve(containeruuid + extension)
   }
 
-  private final def extractFilesFromContainers(input: JObject): Path = {
+  private final def extractFilesFromContainers(context: Context, input: JObject): Path = try {
+    import SpacesClient._
+    val collectdir = temporaryDirectory.toPath
     input.toList.foreach {
       case (container, files) ⇒
-        error(container)
-        files.asArray.foreach(error)
+        val containerfile = computePathToContainerFile(context, container)
+        val containerdir = temporaryDirectory.toPath
+        val unpackdir = temporaryDirectory.toPath
+        val lz4file = unpackdir.resolve("lz4")
+        copy(containerfile, lz4file)
+        unpackDirectory(containerdir, lz4file)
+        files.asArray.map(_.asString).foreach(f ⇒ move(containerdir.resolve(f), collectdir.resolve(f)))
+        deleteDirectory(containerdir.toFile)
     }
-
-    null
+    val lz4file = packDirectory(collectdir)
+    deleteDirectory(collectdir.toFile)
+    lz4file
+  } catch {
+    case e: Throwable ⇒
+      error("extractFilesFromContainers failed : " + e)
+      throw ClientError.`400`
   }
+
+  private[this] final val extension = ".bin"
 
 }

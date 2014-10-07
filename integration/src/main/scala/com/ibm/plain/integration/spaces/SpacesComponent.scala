@@ -148,9 +148,10 @@ final class SpacesProducer(
         info("PUT " + containeruuid + " FROM " + localdirectory + " : " + statuscode + " (" + ms + " ms)")
         exchange.getIn.removeHeader("spaces.localDirectory")
       case Method.POST ⇒
-        require(null != exchange.getIn.getHeader("spaces.localDirectory", classOf[String]), s"Cannot GET from a spaces container without spaces.localDirectory set as a message header. ")
+        require(null != exchange.getIn.getHeader("spaces.localDirectory", classOf[String]), s"Cannot POST to a space without spaces.localDirectory set as a message header. ")
+        exchange.getIn.removeHeader("spaces.containerUuid")
         val localdirectory = Paths.get(exchange.getIn.getHeader("spaces.localDirectory", classOf[String]))
-        val containercontent = """{ "1da421e34ed847e6984831cc9406b082" : [ "hello.txt" ] }"""
+        val containercontent = """{ "65c15e71db294d2d972763c5423d197f" : [ "man-migration-framework" ], "55bcf2aafcbe4ba79c160f2f890daca3" : [ "man-migration-framework.bat" ] }"""
         val (statuscode, ms) = timeMillis(SpacesClient.instance.post(space, containercontent, localdirectory, purgeDirectory))
         info("POST " + containercontent + " INTO " + localdirectory + " : " + statuscode + " (" + ms + " ms)")
       case Method.DELETE ⇒
