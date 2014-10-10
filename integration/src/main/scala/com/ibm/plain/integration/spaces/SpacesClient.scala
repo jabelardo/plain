@@ -21,7 +21,6 @@ import logging.Logger
 import net.lingala.zip4j.core.ZipFile
 import net.lingala.zip4j.model.ZipParameters
 import net.lingala.zip4j.util.Zip4jConstants
-import time.infoMillis
 import json.Json
 
 /**
@@ -61,7 +60,7 @@ final class SpacesClient
           build
         val ahcconduit = AHCConduit(client, request)
         val tmpfile = packDirectory(localdirectory)
-        time.infoMillis(ClientExchange(FileConduit.forReading(tmpfile), ChunkedConduit(ahcconduit)).transferAndWait)
+        ClientExchange(FileConduit.forReading(tmpfile), ChunkedConduit(ahcconduit)).transferAndWait
         tmpfile.toFile.delete
         tmpfile.getParent.toFile.delete
         ahcconduit.getResponse match {
@@ -162,7 +161,6 @@ object SpacesClient
    * Do not use high lz4 compression unless you have a really low bandwidth.
    */
   final def packDirectory(directory: Path): Path = {
-    import time.infoMillis
     val tmpdir = temporaryDirectory.toPath
     val zfile = tmpdir.resolve("zip").toFile
     val zipfile = new ZipFile(zfile)
