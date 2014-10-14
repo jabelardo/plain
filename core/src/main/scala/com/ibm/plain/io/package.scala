@@ -208,9 +208,9 @@ package object io
     d
   }
 
-  final def createDirectory(directory: Path): Path = if (!Files.exists(directory)) Files.createDirectories(directory) else directory
+  final def createDirectory(directory: Path): Path = createDirectory(directory.toFile)
 
-  final def createDirectory(directory: File): Path = if (!Files.exists(directory.toPath)) Files.createDirectories(directory.toPath) else directory.toPath
+  final def createDirectory(directory: File): Path = { directory.mkdirs; directory.toPath }
 
   /**
    * Delete a directory and all of its contents in a background thread. Use delete-directory-retries and delete-directory-timeout to make this method more robust.

@@ -29,9 +29,9 @@ object Dependencies {
       "com.ning" % "async-http-client" % "1.8.13")
 
     def reflection = Seq(
-      "org.scala-lang" % "scala-compiler" % "2.11.2",
-      "org.scala-lang" % "scala-reflect" % "2.11.2",
-      "org.reflections" % "reflections" % "0.9.9-RC1") // do not use 0.9.9-RC2, it will introduce deps errors
+      "org.scala-lang" % "scala-compiler" % "2.11.3",
+      "org.scala-lang" % "scala-reflect" % "2.11.3",
+      "org.reflections" % "reflections" % "0.9.9") // do not use 0.9.9-RC2, it will introduce deps errors
 
     def javax = Seq(
       "javax.servlet" % "javax.servlet-api" % "3.1.0",

@@ -51,7 +51,7 @@ final class SpacesServer
         case path if path.toString.contains("..") ⇒
           (error, "invalid directory", path)
         case path if exists(path) && isRegularFile(path) ⇒
-          (error, "invalid directory (is a file)", path)
+          (error, "invalid directory (it is a file)", path)
         case path if exists(path) && isDirectory(path) && space.purgeOnStartup ⇒
           deleteDirectory(path.toFile)
           io.createDirectory(path)

@@ -21,8 +21,8 @@ object PlainBuild
       formatSettings ++
       Seq(
         organization := "com.ibm.plain",
-        scalaVersion in ThisBuild := "2.11.2",
-        crossScalaVersions in ThisBuild := Seq("2.11.2"),
+        scalaVersion in ThisBuild := "2.11.3",
+        crossScalaVersions in ThisBuild := Seq("2.11.3"),
         mainClass in (Compile, run) := Some("com.ibm.plain.bootstrap.Main"),
         publishTo := {
           def repo = if (version.value.trim.endsWith("SNAPSHOT")) "libs-snapshot-local" else "libs-release-local"
@@ -53,6 +53,7 @@ object PlainBuild
           "-Xlint:-options"),
         resolvers ++= Seq(
 	  "sonatype-releases" at "http://oss.sonatype.org/content/repositories/releases/",
+          "sonatype-snapshots" at "http://oss.sonatype.org/content/repositories/snapshots/",
 	  "typesafe-releases" at "http://repo.typesafe.com/typesafe/releases/",
 	  "scalasbt-releases" at "http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases/",
           "pentaho-releases" at "http://repository.pentaho.org/artifactory/repo/",
