@@ -9,10 +9,13 @@ import java.util.zip.ZipEntry
 
 import scala.collection.JavaConversions.asScalaBuffer
 
+import org.apache.camel.component.ahc.AhcComponent
 import org.apache.camel.impl.DefaultCamelContext
 import org.apache.commons.io.FileUtils.deleteDirectory
 
 import com.ibm.plain.bootstrap.{ ExternalComponent, Singleton }
+import com.ning.http.client.{ AsyncHttpClient, AsyncHttpClientConfig }
+import com.ning.http.client.providers.netty.NettyAsyncHttpProvider
 
 import bootstrap.{ ExternalComponent, Singleton }
 import logging.Logger
@@ -53,11 +56,37 @@ final class Camel
     context.getRouteDefinitions.map(r ⇒ context.stopRoute(r.getId, shutdownTimeout, TimeUnit.MILLISECONDS, true))
     context.stop
     deleteWarFile
+    ignore(client.doClose)
     ignore(Thread.sleep(delayDuringShutdown))
     this
   }
 
+  final def httpClient: AsyncHttpClient = client
+
   final val context = new DefaultCamelContext
+
+  private trait HasDoClose { def doClose }
+
+  private[this] final val client: AsyncHttpClient with HasDoClose = {
+    val config = new AsyncHttpClientConfig.Builder().
+      setRequestTimeoutInMs(requestTimeout).
+      setConnectionTimeoutInMs(requestTimeout).
+      setIdleConnectionTimeoutInMs(requestTimeout).
+      setIdleConnectionInPoolTimeoutInMs(requestTimeout).
+      setAllowPoolingConnection(true).
+      setFollowRedirects(true).
+      setMaxRequestRetry(5).
+      setMaximumConnectionsPerHost(100).
+      setMaximumConnectionsTotal(256).
+      build
+    val client = new AsyncHttpClient(new NettyAsyncHttpProvider(config)) with HasDoClose {
+      override def close = error("You are not allowed do call close() on AsyncHttpClient.")
+      def doClose = super.close
+    }
+    val ahccomponent = context.getComponent("ahc", classOf[AhcComponent])
+    ahccomponent.setClient(client)
+    client
+  }
 
 }
 

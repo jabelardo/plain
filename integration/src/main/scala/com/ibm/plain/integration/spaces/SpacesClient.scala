@@ -9,19 +9,18 @@ import org.apache.commons.io.FileUtils.deleteDirectory
 
 import com.ibm.plain.bootstrap.{ ExternalComponent, Singleton }
 import com.ibm.plain.integration.infrastructure.Infrastructure
-import com.ning.http.client.{ AsyncHttpClient, AsyncHttpClientConfig, RequestBuilder }
-import com.ning.http.client.providers.netty.NettyAsyncHttpProvider
+import com.ning.http.client.RequestBuilder
 
 import aio.client.ClientExchange
-import aio.conduit.{ AHCConduit, ChunkedConduit, FileConduit, GzipConduit, TarConduit }
+import aio.conduit.{ AHCConduit, ChunkedConduit, FileConduit }
 import bootstrap.{ ExternalComponent, Singleton }
+import camel.Camel
 import crypt.Uuid
 import io.{ LZ4, copyBytes, temporaryDirectory }
 import logging.Logger
 import net.lingala.zip4j.core.ZipFile
 import net.lingala.zip4j.model.ZipParameters
 import net.lingala.zip4j.util.Zip4jConstants
-import json.Json
 
 /**
  *
@@ -126,27 +125,17 @@ final class SpacesClient
    */
   override final def start = {
     val timeout = requestTimeout
-    val config = new AsyncHttpClientConfig.Builder().
-      setRequestTimeoutInMs(timeout).
-      setConnectionTimeoutInMs(timeout).
-      setIdleConnectionTimeoutInMs(timeout).
-      setIdleConnectionInPoolTimeoutInMs(timeout).
-      build
-    client = new AsyncHttpClient(new NettyAsyncHttpProvider(config))
     SpacesClient.instance(this)
     sys.addShutdownHook(ignore(stop))
     this
   }
 
   override final def stop = {
-    ignore(client.close)
-    client = null
     SpacesClient.resetInstance
     this
   }
 
-  private[this] final var client: AsyncHttpClient = null
-
+  private[this] final val client = Camel.instance.httpClient
 }
 
 /**

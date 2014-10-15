@@ -112,6 +112,7 @@ object Dependencies {
       "com.typesafe.slick" %% "slick" % slickVersion)
 
     def networking = Seq(
+      "org.apache.camel" % "camel-ahc" % camelVersion,
       "org.apache.camel" % "camel-ldap" % camelVersion,
       "org.apache.camel" % "camel-servlet" % camelVersion)
 
