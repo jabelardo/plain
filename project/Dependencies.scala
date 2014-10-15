@@ -26,12 +26,12 @@ object Dependencies {
     def net = Seq(
       "org.glassfish.grizzly" % "grizzly-websockets" % "2.3.16",
       "org.glassfish.grizzly" % "grizzly-http" % "2.3.16",
-      "com.ning" % "async-http-client" % "1.8.13")
+      "com.ning" % "async-http-client" % "1.8.14")
 
     def reflection = Seq(
       "org.scala-lang" % "scala-compiler" % "2.11.3",
       "org.scala-lang" % "scala-reflect" % "2.11.3",
-      "org.reflections" % "reflections" % "0.9.9") // do not use 0.9.9-RC2, it will introduce deps errors
+      "org.reflections" % "reflections" % "0.9.9") 
 
     def javax = Seq(
       "javax.servlet" % "javax.servlet-api" % "3.1.0",
@@ -46,11 +46,11 @@ object Dependencies {
       "org.json4s" %% "json4s-native" % "3.2.10",
       "org.json4s" %% "json4s-jackson" % "3.2.10",
       "org.json4s" %% "json4s-ext" % "3.2.10",
-      "com.fasterxml.jackson.core" % "jackson-databind" % "2.4.2",
+      "com.fasterxml.jackson.core" % "jackson-databind" % "2.4.3",
       "com.sun.jersey" % "jersey-json" % "1.18.1")
 
     def time = Seq(
-      "joda-time" % "joda-time" % "2.4"
+      "joda-time" % "joda-time" % "2.5"
     )
 
     def modules = Seq(

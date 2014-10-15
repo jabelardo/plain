@@ -9,7 +9,7 @@ import org.apache.commons.io.FileUtils.deleteDirectory
 
 import com.ibm.plain.bootstrap.{ ExternalComponent, Singleton }
 import com.ibm.plain.integration.infrastructure.Infrastructure
-import com.ning.http.client.RequestBuilder
+import com.ning.http.client.{ AsyncHttpClient, RequestBuilder }
 
 import aio.client.ClientExchange
 import aio.conduit.{ AHCConduit, ChunkedConduit, FileConduit }
@@ -33,7 +33,7 @@ final class SpacesClient
 
       "plain-integration-spaces-client",
 
-      classOf[infrastructure.Infrastructure])
+      classOf[camel.Camel])
 
     with Logger {
 
@@ -124,9 +124,9 @@ final class SpacesClient
    *
    */
   override final def start = {
-    val timeout = requestTimeout
-    SpacesClient.instance(this)
     sys.addShutdownHook(ignore(stop))
+    client = Camel.instance.httpClient
+    SpacesClient.instance(this)
     this
   }
 
@@ -135,7 +135,8 @@ final class SpacesClient
     this
   }
 
-  private[this] final val client = Camel.instance.httpClient
+  private[this] final var client: AsyncHttpClient = null
+
 }
 
 /**
