@@ -68,19 +68,15 @@ final class Camel
   private trait HasDoClose { def doClose }
 
   private[this] final val client: AsyncHttpClient with HasDoClose = {
+    val timeout = spaces.requestTimeout
     val config = new AsyncHttpClientConfig.Builder().
-      setRequestTimeoutInMs(requestTimeout).
-      setConnectionTimeoutInMs(requestTimeout).
-      setIdleConnectionTimeoutInMs(requestTimeout).
-      setIdleConnectionInPoolTimeoutInMs(requestTimeout).
-      setAllowPoolingConnection(true).
-      setFollowRedirects(true).
-      setMaxRequestRetry(5).
-      setMaximumConnectionsPerHost(100).
-      setMaximumConnectionsTotal(256).
+      setRequestTimeoutInMs(timeout).
+      setConnectionTimeoutInMs(timeout).
+      setIdleConnectionTimeoutInMs(timeout).
+      setIdleConnectionInPoolTimeoutInMs(timeout).
       build
     val client = new AsyncHttpClient(new NettyAsyncHttpProvider(config)) with HasDoClose {
-      override def close = error("You are not allowed do call close() on AsyncHttpClient.")
+      override def close = warn("Do not call close() on AsyncHttpClient, it will be ignored.")
       def doClose = super.close
     }
     val ahccomponent = context.getComponent("ahc", classOf[AhcComponent])

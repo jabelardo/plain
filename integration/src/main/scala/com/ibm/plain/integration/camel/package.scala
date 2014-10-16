@@ -23,6 +23,4 @@ package object camel
 
   final val isEnabled = getBoolean("plain.integration.camel.is-enabled", false)
 
-  final val requestTimeout = getMilliseconds("plain.integration.camel.http.request-timeout", 1 * 60 * 60 * 1000).toInt
-
 }
