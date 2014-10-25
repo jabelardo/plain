@@ -86,10 +86,10 @@ final class SpacesClient
         val ahcconduit = AHCConduit(client, request)
         ClientExchange(ahcconduit, FileConduit.forWriting(lz4file)).transferAndWait
         ahcconduit.getResponse match {
-          case Some(response) if 200 == response.getStatusCode ⇒
+          case Some(response) if null != response && 200 == response.getStatusCode ⇒
             unpackDirectory(localdirectory, lz4file)
             200
-          case Some(response) ⇒ response.getStatusCode
+          case Some(response) if null != response ⇒ response.getStatusCode
           case _ ⇒ 500
         }
       case _ ⇒ illegalState(s"Trying to POST to a non-existing space : $name")

@@ -153,8 +153,13 @@ final class SpacesProducer(
         exchange.getIn.removeHeader("spaces.containerUuid")
         val localdirectory = Paths.get(exchange.getIn.getHeader("spaces.localDirectory", classOf[String]))
         val containercontent = exchange.getIn.getHeader("spaces.containerContent", classOf[String])
-        val (statuscode, ms) = timeMillis(SpacesClient.instance.post(space, containercontent, localdirectory, purgeDirectory))
-        info("POST " + containercontent + " INTO " + localdirectory + " : " + statuscode + " (" + ms + " ms)")
+        val content = ignoreOrElse(Json.parse(containercontent).asObject, Map.empty)
+        if (0 < content.size) {
+          val (statuscode, ms) = timeMillis(SpacesClient.instance.post(space, containercontent, localdirectory, purgeDirectory))
+          info("POST " + containercontent + " INTO " + localdirectory + " : " + statuscode + " (" + ms + " ms)")
+        } else {
+          warn(s"Nothing to POST : $content")
+        }
         exchange.getIn.removeHeader("spaces.containerContent")
       case Method.DELETE ⇒
         val containeruuid = exchange.getIn.getHeader("spaces.containerUuid", classOf[String])

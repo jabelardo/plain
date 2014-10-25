@@ -84,7 +84,7 @@ object PlainBuild
   lazy val libraries = Project(
     id = "plain-libraries",
     base = file("libraries"),
-    aggregate = Seq(core, cqrs, integration))
+    aggregate = Seq(core, integration))
 
   lazy val samples = Project(
     id = "samples",
