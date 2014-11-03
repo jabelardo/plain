@@ -52,7 +52,7 @@ object PlainBuild
           "-Xlint:deprecation",
           "-Xlint:-options"),
         resolvers ++= Seq(
-//          "apache-snapshots" at "https://repository.apache.org/content/repositories/snapshots/",
+          "apache-snapshots" at "https://repository.apache.org/content/repositories/snapshots/",
 	  "sonatype-releases" at "http://oss.sonatype.org/content/repositories/releases/",
           "sonatype-snapshots" at "http://oss.sonatype.org/content/repositories/snapshots/",
 	  "typesafe-releases" at "http://repo.typesafe.com/typesafe/releases/",
