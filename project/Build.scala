@@ -21,8 +21,8 @@ object PlainBuild
       formatSettings ++
       Seq(
         organization := "com.ibm.plain",
-        scalaVersion in ThisBuild := "2.11.3",
-        crossScalaVersions in ThisBuild := Seq("2.11.3"),
+        scalaVersion in ThisBuild := "2.11.4",
+        crossScalaVersions in ThisBuild := Seq("2.11.4"),
         mainClass in (Compile, run) := Some("com.ibm.plain.bootstrap.Main"),
         publishTo := {
           def repo = if (version.value.trim.endsWith("SNAPSHOT")) "libs-snapshot-local" else "libs-release-local"
@@ -52,12 +52,15 @@ object PlainBuild
           "-Xlint:deprecation",
           "-Xlint:-options"),
         resolvers ++= Seq(
+//          "apache-snapshots" at "https://repository.apache.org/content/repositories/snapshots/",
 	  "sonatype-releases" at "http://oss.sonatype.org/content/repositories/releases/",
           "sonatype-snapshots" at "http://oss.sonatype.org/content/repositories/snapshots/",
 	  "typesafe-releases" at "http://repo.typesafe.com/typesafe/releases/",
+          "typesafe-ivy-releases" at "http://repo.typesafe.com/typesafe/ivy-releases/",
+          "typesafe-releases-simple" at "http://repo.typesafe.com/typesafe/simple/maven-releases/",
 	  "scalasbt-releases" at "http://scalasbt.artifactoryonline.com/scalasbt/sbt-plugin-releases/",
           "pentaho-releases" at "http://repository.pentaho.org/artifactory/repo/",
-	  "codels" at "https://code.lds.org/nexus/content/groups/main-repo/",
+	  "codelds" at "https://code.lds.org/nexus/content/groups/main-repo/",
           "fusesource-releases" at "http://repo.fusesource.com/nexus/content/groups/public/"))
   }
 
@@ -76,15 +79,10 @@ object PlainBuild
 
   def applicationSettings = defaultSettings ++ Seq(fork in (Compile, run) := false)
 
-  lazy val root = Project(
-    id = "plain",
-    base = file("."),
-    aggregate = Seq(core, cqrs, integration, samples))
-
   lazy val libraries = Project(
-    id = "plain-libraries",
+    id = "libraries",
     base = file("libraries"),
-    aggregate = Seq(core, integration))
+    aggregate = Seq(core, integration, cqrs))
 
   lazy val samples = Project(
     id = "samples",
@@ -131,3 +129,4 @@ object PlainBuild
     dependencies = Seq(core))
 
 }
+

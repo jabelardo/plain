@@ -29,8 +29,8 @@ object Dependencies {
       "com.ning" % "async-http-client" % "1.8.14")
 
     def reflection = Seq(
-      "org.scala-lang" % "scala-compiler" % "2.11.3",
-      "org.scala-lang" % "scala-reflect" % "2.11.3",
+      "org.scala-lang" % "scala-compiler" % "2.11.4",
+      "org.scala-lang" % "scala-reflect" % "2.11.4",
       "org.reflections" % "reflections" % "0.9.9") 
 
     def javax = Seq(
@@ -83,7 +83,7 @@ object Dependencies {
 
     def camelVersion = "2.14.0"
 
-    def activemqVersion = "5.11-SNAPSHOT"
+    def activemqVersion = "5.10.0"
 
     def slickVersion = "2.1.0"
 
@@ -92,17 +92,13 @@ object Dependencies {
       "org.apache.camel" % "camel-scala" % camelVersion,
       "org.apache.camel" % "camel-exec" % camelVersion exclude ("commons-exec", "commons-exec"),
       "org.apache.commons" % "commons-exec" % "1.2",
-      "org.apache.camel" % "camel-ssh" % camelVersion,
-      "org.apache.camel" % "camel-stream" % camelVersion,
-      "org.apache.camel" % "camel-quartz2" % camelVersion,
-      "org.apache.camel" % "camel-test" % camelVersion)
+      "org.apache.camel" % "camel-quartz2" % camelVersion)
 
     def messaging = Seq(
       "org.apache.camel" % "camel-sjms" % camelVersion,
       "org.apache.camel" % "camel-mail" % camelVersion,
       "org.apache.activemq" % "activemq-camel" % activemqVersion,
       "org.apache.activemq" % "activemq-broker" % activemqVersion,
-      "org.apache.activemq" % "activemq-jaas" % activemqVersion,
       "org.apache.activemq" % "activemq-kahadb-store" % activemqVersion)
 
     def persistence = Seq(
