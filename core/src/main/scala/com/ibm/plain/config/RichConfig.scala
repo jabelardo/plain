@@ -47,7 +47,7 @@ class RichConfig(config: Config)
 
   def getInt(key: String, default: Int) = if (config.hasPath(key)) config.getInt(key) else default
 
-  def getMilliseconds(key: String, default: Long): Long = getDuration(key, Duration.Zero)
+  def getMilliseconds(key: String, default: Long): Long = if (config.hasPath(key)) getDuration(key, Duration.Zero) else default
 
   def getBoolean(key: String, default: Boolean) = if (config.hasPath(key)) config.getBoolean(key) else default
 
