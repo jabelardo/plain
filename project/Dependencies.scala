@@ -81,7 +81,7 @@ object Dependencies {
 
   object Integration {
 
-    def camelVersion = "2.14.0"
+    def camelVersion = "2.14.1"
 
     def activemqVersion = "5.11-SNAPSHOT"
 
