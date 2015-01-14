@@ -94,6 +94,7 @@ object Dependencies {
       "org.apache.commons" % "commons-exec" % "1.2",
       "org.apache.camel" % "camel-ssh" % camelVersion,
       "org.apache.camel" % "camel-stream" % camelVersion,
+      "org.apache.camel" % "camel-zipfile" % camelVersion,
       "org.apache.camel" % "camel-quartz2" % camelVersion,
       "org.apache.camel" % "camel-test" % camelVersion)
 
