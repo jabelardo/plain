@@ -21,8 +21,8 @@ object PlainBuild
       formatSettings ++
       Seq(
         organization := "com.ibm.plain",
-        scalaVersion in ThisBuild := "2.11.4",
-        crossScalaVersions in ThisBuild := Seq("2.11.4"),
+        scalaVersion in ThisBuild := "2.11.5",
+        crossScalaVersions in ThisBuild := Seq("2.11.5"),
         mainClass in (Compile, run) := Some("com.ibm.plain.bootstrap.Main"),
         publishTo := {
           def repo = if (version.value.trim.endsWith("SNAPSHOT")) "libs-snapshot-local" else "libs-release-local"

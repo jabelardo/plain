@@ -70,10 +70,8 @@ final class Camel
   private[this] final val client: AsyncHttpClient with HasDoClose = {
     val timeout = spaces.requestTimeout
     val config = new AsyncHttpClientConfig.Builder().
-      setRequestTimeoutInMs(timeout).
-      setConnectionTimeoutInMs(timeout).
-      setIdleConnectionTimeoutInMs(timeout).
-      setIdleConnectionInPoolTimeoutInMs(timeout).
+      setRequestTimeout(timeout).
+      setConnectTimeout(timeout).
       build
     val client = new AsyncHttpClient(new NettyAsyncHttpProvider(config)) with HasDoClose {
       override def close = warn("Do not call close() on AsyncHttpClient, it will be ignored.")

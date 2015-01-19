@@ -32,10 +32,6 @@ final class ClientTester
 
     val timeout = 15 * 1000
     val config = new AsyncHttpClientConfig.Builder().
-      setRequestTimeoutInMs(timeout).
-      setConnectionTimeoutInMs(timeout).
-      setIdleConnectionTimeoutInMs(timeout).
-      setIdleConnectionInPoolTimeoutInMs(timeout).
       build
     val client = new AsyncHttpClient(new NettyAsyncHttpProvider(config))
     for (i ← 1 to 1) {

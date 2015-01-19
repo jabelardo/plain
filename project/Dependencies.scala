@@ -8,29 +8,29 @@ object Dependencies {
 
     def logging = Seq(
       "com.typesafe" % "config" % "1.2.1",
-      "org.slf4j" % "slf4j-api" % "1.7.7",
+      "org.slf4j" % "slf4j-api" % "1.7.10",
       "com.lmax" % "disruptor" % "3.3.0",
-      "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.0.2",
-      "org.apache.logging.log4j" % "log4j-api" % "2.0.2",
-      "org.apache.logging.log4j" % "log4j-core" % "2.0.2")
+      "org.apache.logging.log4j" % "log4j-slf4j-impl" % "2.1",
+      "org.apache.logging.log4j" % "log4j-api" % "2.1",
+      "org.apache.logging.log4j" % "log4j-core" % "2.1")
 
     def commons = Seq(
       "com.googlecode.concurrentlinkedhashmap" % "concurrentlinkedhashmap-lru" % "1.4",
       "org.apache.commons" % "commons-lang3" % "3.3.2",
-      "org.apache.commons" % "commons-compress" % "1.8.1",
+      "org.apache.commons" % "commons-compress" % "1.9",
       "commons-io" % "commons-io" % "2.4",
       "commons-net" % "commons-net" % "3.3",
-      "commons-codec" % "commons-codec" % "1.9",
-      "org.apache.httpcomponents" % "httpclient" % "4.3.5")
+      "commons-codec" % "commons-codec" % "1.10",
+      "org.apache.httpcomponents" % "httpclient" % "4.3.6")
 
     def net = Seq(
-      "org.glassfish.grizzly" % "grizzly-websockets" % "2.3.16",
-      "org.glassfish.grizzly" % "grizzly-http" % "2.3.16",
-      "com.ning" % "async-http-client" % "1.8.14")
+      "org.glassfish.grizzly" % "grizzly-websockets" % "2.3.18",
+      "org.glassfish.grizzly" % "grizzly-http" % "2.3.18",
+      "com.ning" % "async-http-client" % "1.9.4")
 
     def reflection = Seq(
-      "org.scala-lang" % "scala-compiler" % "2.11.4",
-      "org.scala-lang" % "scala-reflect" % "2.11.4",
+      "org.scala-lang" % "scala-compiler" % "2.11.5",
+      "org.scala-lang" % "scala-reflect" % "2.11.5",
       "org.reflections" % "reflections" % "0.9.9") 
 
     def javax = Seq(
@@ -39,23 +39,23 @@ object Dependencies {
       "org.glassfish.web" % "javax.servlet.jsp" % "2.3.2")
 
     def compress = Seq(
-      "net.jpountz.lz4" % "lz4" % "1.2.0",
+      "net.jpountz.lz4" % "lz4" % "1.3.0",
       "net.lingala.zip4j" % "zip4j" % "1.3.2")
 
     def json = Seq(
-      "org.json4s" %% "json4s-native" % "3.2.10",
-      "org.json4s" %% "json4s-jackson" % "3.2.10",
-      "org.json4s" %% "json4s-ext" % "3.2.10",
-      "com.fasterxml.jackson.core" % "jackson-databind" % "2.4.3",
-      "com.sun.jersey" % "jersey-json" % "1.18.1")
+      "org.json4s" %% "json4s-native" % "3.2.11",
+      "org.json4s" %% "json4s-jackson" % "3.2.11",
+      "org.json4s" %% "json4s-ext" % "3.2.11",
+      "com.fasterxml.jackson.core" % "jackson-databind" % "2.5.0",
+      "com.sun.jersey" % "jersey-json" % "1.18.3")
 
     def time = Seq(
-      "joda-time" % "joda-time" % "2.5"
+      "joda-time" % "joda-time" % "2.6"
     )
 
     def modules = Seq(
-      "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
-      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.2")
+      "org.scala-lang.modules" %% "scala-xml" % "1.0.3",
+      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.3")
 
     def dependencies = logging ++ commons ++ net ++ reflection ++ javax ++ compress ++ json ++ time ++ modules
 

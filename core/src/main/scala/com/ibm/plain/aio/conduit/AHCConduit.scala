@@ -118,7 +118,8 @@ sealed trait AHCSinkConduit
       result = r.execute(new AsyncCompletionHandler[Response] {
 
         final def onCompleted(innerresponse: Response) = {
-          result.content(innerresponse)
+          // :TODO: not sure if we need the next line, it worked until 1.8.14
+          // result.content(innerresponse)
           result.done
           innerresponse
         }
@@ -212,4 +213,3 @@ sealed trait AHCConduitBase
   @volatile private[this] final var isclosed = false
 
 }
-
