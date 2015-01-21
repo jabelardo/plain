@@ -59,7 +59,9 @@ final class SpacesClient
           build
         val ahcconduit = AHCConduit(client, request)
         val tmpfile = packDirectory(localdirectory)
+        trace(s"PUT started : ${request.getUrl}")
         ClientExchange(FileConduit.forReading(tmpfile), ChunkedConduit(ahcconduit)).transferAndWait
+        trace(s"PUT finished: ${request.getUrl}")
         tmpfile.toFile.delete
         tmpfile.getParent.toFile.delete
         ahcconduit.getResponse match {
@@ -84,7 +86,9 @@ final class SpacesClient
           build
         val lz4file = temporaryDirectory.toPath.resolve("lz4")
         val ahcconduit = AHCConduit(client, request)
+        trace(s"POST started : ${request.getUrl}")
         ClientExchange(ahcconduit, FileConduit.forWriting(lz4file)).transferAndWait
+        trace(s"POST finished : ${request.getUrl}")
         ahcconduit.getResponse match {
           case Some(response) if null != response && 200 == response.getStatusCode ⇒
             unpackDirectory(localdirectory, lz4file)
@@ -108,7 +112,9 @@ final class SpacesClient
           build
         val lz4file = temporaryDirectory.toPath.resolve("lz4")
         val ahcconduit = AHCConduit(client, request)
+        trace(s"GET started : ${request.getUrl}")
         ClientExchange(ahcconduit, FileConduit.forWriting(lz4file)).transferAndWait
+        trace(s"GET finished : ${request.getUrl}")
         ahcconduit.getResponse match {
           case Some(response) if 200 == response.getStatusCode ⇒
             unpackDirectory(localdirectory, lz4file)

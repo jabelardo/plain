@@ -26,7 +26,7 @@ object Dependencies {
     def net = Seq(
       "org.glassfish.grizzly" % "grizzly-websockets" % "2.3.18",
       "org.glassfish.grizzly" % "grizzly-http" % "2.3.18",
-      "com.ning" % "async-http-client" % "1.9.4")
+      "com.ning" % "async-http-client" % "1.9.5")
 
     def reflection = Seq(
       "org.scala-lang" % "scala-compiler" % "2.11.5",
