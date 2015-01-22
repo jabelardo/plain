@@ -150,7 +150,9 @@ final class SpacesClient
  */
 object SpacesClient
 
-    extends Singleton[SpacesClient] {
+    extends Singleton[SpacesClient]
+
+    with Logger {
 
   /**
    * From tests the fastest combination is to store only (no-compression) with zip4j and then use fast lz4 compression.
@@ -172,6 +174,7 @@ object SpacesClient
       in.close
       out.close
     }
+    trace(s"packDirectory : ${lz4file.getAbsolutePath} + , length = ${lz4file.length}")
     zfile.delete
     lz4file.toPath
   }
@@ -186,6 +189,7 @@ object SpacesClient
       out.close
     }
     lz4file.toFile.delete
+    trace(s"unpackDirectory : ${file.getAbsolutePath} + , length = ${file.length}")
     val zipfile = new ZipFile(file)
     zipfile.extractAll(directory.toFile.getAbsolutePath)
     deleteDirectory(file.toPath.getParent.toFile)

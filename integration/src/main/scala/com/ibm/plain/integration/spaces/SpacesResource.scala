@@ -114,7 +114,7 @@ object SpacesResource
   }
 
   private final def extractFilesFromContainers(context: Context, input: JObject): Path = try {
-    import SpacesClient._
+    import SpacesClient.{ packDirectory, unpackDirectory }
     val collectdir = temporaryDirectory.toPath
     input.toList.foreach {
       case (container, files) ⇒
