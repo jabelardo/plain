@@ -38,8 +38,8 @@ final class SpacesResource
     val filepath = computePathToContainerFile(context)
     val length = filepath.toFile.length
     val source = FileConduit.forReading(filepath)
+    trace(s"GET : source = $source, file = $filepath, length = $length")
     exchange.transferFrom(source)
-    trace(s"Get : source = $source, file = $filepath, length = $length")
     ConduitEntity(
       source,
       ContentType(`application/gzip`),
@@ -54,7 +54,7 @@ final class SpacesResource
     entity match {
       case Entity(contenttype, length, _) ⇒
         val container = computePathToContainerFile(context)
-        trace(s"Put : container = $container")
+        trace(s"PUT : container = $container")
         exchange.transferTo(
           FileConduit.forWriting(container),
           context ⇒ { context.response ++ Success.`201` })
@@ -67,7 +67,7 @@ final class SpacesResource
    * Receive a json of containers and files inside them and download them as a tar.gz file.
    */
   Post { entity: Entity ⇒
-    debug(request)
+    trace(s"POST : $request")
     val input: JObject = entity match {
       case ArrayEntity(array, offset, length, _) ⇒
         try
@@ -78,7 +78,7 @@ final class SpacesResource
     val filepath = extractFilesFromContainers(context, input)
     val length = filepath.toFile.length
     val source = FileConduit.forReading(filepath)
-    trace(s"Post : source = $source, file = $filepath, length = $length")
+    trace(s"POST : source = $source, file = $filepath, length = $length")
     exchange.transferFrom(source)
     ConduitEntity(
       source,
