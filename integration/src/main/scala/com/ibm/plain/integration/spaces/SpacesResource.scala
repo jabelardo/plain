@@ -25,7 +25,9 @@ import rest.{ Context, Resource }
  */
 final class SpacesResource
 
-    extends Resource {
+    extends Resource
+
+    with Logger {
 
   import SpacesResource._
 
@@ -37,6 +39,7 @@ final class SpacesResource
     val length = filepath.toFile.length
     val source = FileConduit.forReading(filepath)
     exchange.transferFrom(source)
+    trace(s"Get : source = $source, file = $filepath, length = $length")
     ConduitEntity(
       source,
       ContentType(`application/gzip`),
@@ -51,6 +54,7 @@ final class SpacesResource
     entity match {
       case Entity(contenttype, length, _) ⇒
         val container = computePathToContainerFile(context)
+        trace(s"Put : container = $container")
         exchange.transferTo(
           FileConduit.forWriting(container),
           context ⇒ { context.response ++ Success.`201` })
@@ -74,6 +78,7 @@ final class SpacesResource
     val filepath = extractFilesFromContainers(context, input)
     val length = filepath.toFile.length
     val source = FileConduit.forReading(filepath)
+    trace(s"Post : source = $source, file = $filepath, length = $length")
     exchange.transferFrom(source)
     ConduitEntity(
       source,
@@ -119,7 +124,7 @@ object SpacesResource
         val lz4file = unpackdir.resolve("lz4")
         copy(containerfile, lz4file)
         unpackDirectory(containerdir, lz4file)
-        files.asArray.map(_.asString).foreach(f ⇒ move(containerdir.resolve(f), collectdir.resolve(f)))
+        files.asArray.map(_.asString).foreach(f ⇒ { trace(s"Collect file : $f"); move(containerdir.resolve(f), collectdir.resolve(f)) })
         deleteDirectory(containerdir.toFile)
     }
     val lz4file = packDirectory(collectdir)
