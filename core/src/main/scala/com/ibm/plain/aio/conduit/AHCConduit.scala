@@ -59,7 +59,7 @@ sealed trait AHCSourceConduit
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     if (null != requestbuilder) {
-      trace(s"null != requestbuilder : $requestbuilder")
+      trace(s"READ : null != requestbuilder : $requestbuilder")
       val r = requestbuilder
       requestbuilder = null
       result = r.execute(new AHCSourceHandler(buffer, handler, attachment))
@@ -112,6 +112,7 @@ sealed trait AHCSinkConduit
    */
   final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     if (null != requestbuilder) {
+      trace(s"WRITE : null != requestbuilder : $requestbuilder")
       generator = new AHCBodyGenerator[A](buffer, handler, attachment)
       val r = requestbuilder
       r.setBody(generator)
@@ -121,7 +122,7 @@ sealed trait AHCSinkConduit
         final def onCompleted(innerresponse: Response) = {
           trace(s"onCompleted : innerresponse = $innerresponse")
           // :TODO: not sure if we need the next line, it worked until 1.8.14
-          // result.content(innerresponse)
+          result.content(innerresponse)
           result.done
           innerresponse
         }
