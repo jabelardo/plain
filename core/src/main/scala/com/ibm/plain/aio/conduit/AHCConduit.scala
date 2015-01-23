@@ -59,6 +59,7 @@ sealed trait AHCSourceConduit
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     if (null != requestbuilder) {
+      trace(s"null != requestbuilder : $requestbuilder")
       val r = requestbuilder
       requestbuilder = null
       result = r.execute(new AHCSourceHandler(buffer, handler, attachment))
@@ -118,6 +119,7 @@ sealed trait AHCSinkConduit
       result = r.execute(new AsyncCompletionHandler[Response] {
 
         final def onCompleted(innerresponse: Response) = {
+          trace(s"onCompleted : innerresponse = $innerresponse")
           // :TODO: not sure if we need the next line, it worked until 1.8.14
           // result.content(innerresponse)
           result.done
@@ -195,20 +197,39 @@ sealed trait AHCConduitBase
    */
   final def getResponse = {
     await(1000)
-    ignoreOrElse(Some(result.get(1000, TimeUnit.MILLISECONDS)), None)
+    trace(s"Calling getResponse.get")
+    try {
+      Some(result.get(1000, TimeUnit.MILLISECONDS))
+    } catch {
+      case e: Throwable ⇒
+        error(s"getResponse failed : $e")
+        None
+    }
   }
 
   protected[this] val client: AsyncHttpClient
 
-  protected[this] final var requestbuilder: AsyncHttpClient#BoundRequestBuilder = null
+  @volatile protected[this] final var requestbuilder: AsyncHttpClient#BoundRequestBuilder = null
 
-  protected[this] final def await = cyclicbarrier.await
+  protected[this] final def await = {
+    trace(s"cyclicbarrier await")
+    cyclicbarrier.await
+  }
 
-  protected[this] final def await(timeout: Long) = ignore(cyclicbarrier.await(timeout, TimeUnit.MILLISECONDS))
+  protected[this] final def await(timeout: Long) = {
+    trace(s"cyclicbarrier await : timeout = $timeout")
+    try {
+      val index = cyclicbarrier.await(timeout, TimeUnit.MILLISECONDS)
+      trace(s"cyclicbarrier await : index = $index")
+    } catch {
+      case e: Throwable ⇒
+        warn(s"cycnlicbarrier await : failed = $e")
+    }
+  }
 
   protected[this] final val cyclicbarrier = new CyclicBarrier(2)
 
-  protected[this] final var result: ListenableFuture[Response] = null
+  @volatile protected[this] final var result: ListenableFuture[Response] = null
 
   @volatile private[this] final var isclosed = false
 

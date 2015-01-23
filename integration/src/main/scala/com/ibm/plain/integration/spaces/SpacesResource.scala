@@ -3,7 +3,7 @@ package integration
 package spaces
 
 import java.nio.file.{ Path, Paths }
-import java.nio.file.Files.{ exists ⇒ fexists, isDirectory, isRegularFile, copy, move }
+import java.nio.file.Files.{ exists ⇒ fexists, isDirectory, isRegularFile, copy, move, delete }
 
 import org.apache.commons.io.FileUtils.deleteDirectory
 
@@ -55,6 +55,10 @@ final class SpacesResource
       case Entity(contenttype, length, _) ⇒
         val container = computePathToContainerFile(context)
         trace(s"PUT : container = $container")
+        if (fexists(container)) {
+          trace(s"PUT : container already exists and is deleted : $container")
+          delete(container)
+        }
         exchange.transferTo(
           FileConduit.forWriting(container),
           context ⇒ { context.response ++ Success.`201` })

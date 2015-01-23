@@ -9,7 +9,7 @@ package client
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.channels.{ CompletionHandler ⇒ Handler }
-import java.util.concurrent.CountDownLatch
+import java.util.concurrent.{ CountDownLatch, TimeUnit }
 import java.util.concurrent.atomic.AtomicBoolean
 
 import aio.conduit.Conduit
@@ -21,15 +21,17 @@ import concurrent.spawn
  */
 final class ClientExchange private (
 
-    private[this] final val source: Conduit,
+  private[this] final val source: Conduit,
 
-    private[this] final val destination: Conduit,
+  private[this] final val destination: Conduit,
 
-    private final val outerhandler: Handler[Integer, Any],
+  private final val outerhandler: Handler[Integer, Any],
 
-    private final val attachment: Any,
+  private final val attachment: Any,
 
-    private[this] final val progressfun: Int ⇒ Unit) {
+  private[this] final val progressfun: Int ⇒ Unit)
+
+    extends Logger {
 
   import ClientExchange._
 
@@ -48,8 +50,13 @@ final class ClientExchange private (
    * Transfers from source to destination and waits for the transfer to be completed.
    */
   final def transferAndWait = {
+    trace(s"starting transferAndWait : $source to $destination")
     readTransfer(TransferReadHandler)
-    latch.await
+    trace(s"latch.await : $source to $destination")
+    if (latch.await(60, TimeUnit.SECONDS))
+      trace(s"latch.await : $source to $destination")
+    else
+      error(s"latch.await timeout occurred : $source to $destination")
   }
 
   /**
@@ -108,7 +115,7 @@ object ClientExchange
 
     final def failed(e: Throwable, exchange: ClientExchange) = {
       e match {
-        case e: IOException ⇒
+        case e: IOException ⇒ error(e)
         case e ⇒ e.printStackTrace; error(e)
       }
       exchange.latch.countDown
@@ -116,8 +123,13 @@ object ClientExchange
     }
 
     @inline final def completed(processed: Integer, exchange: ClientExchange) = try {
+      trace(s"completed : processed = $processed")
       doComplete(processed, exchange)
-    } catch { case e: Throwable ⇒ failed(e, exchange) }
+    } catch {
+      case e: Throwable ⇒
+        error(s"completed failed : $e")
+        failed(e, exchange)
+    }
 
     protected[this] def doComplete(processed: Integer, exchange: ClientExchange)
 
@@ -162,10 +174,14 @@ object ClientExchange
       if (0 < exchange.available) {
         exchange.writeTransfer(this, false)
       } else {
+        trace(s"latch count : ${exchange.latch.getCount}")
         if (0 < exchange.latch.getCount) {
           exchange.closeTransfer
           exchange.latch.countDown
-          if (null != exchange.outerhandler) exchange.outerhandler.completed(0, exchange.attachment)
+          if (null != exchange.outerhandler) {
+            trace(s"Calling outerhandler : ${exchange.outerhandler}")
+            exchange.outerhandler.completed(0, exchange.attachment)
+          }
         }
       }
     }

@@ -146,11 +146,11 @@ final class SpacesProducer(
         }
         val (statuscode, ms) = timeMillis(SpacesClient.instance.put(space, containeruuid, localdirectory))
         info("PUT " + containeruuid + " FROM " + localdirectory + " : " + statuscode + " (" + ms + " ms)")
-        exchange.getIn.removeHeader("spaces.localDirectory")
+        exchange.getIn.removeHeaders("spaces.localDirectory")
       case Method.POST ⇒
         require(null != exchange.getIn.getHeader("spaces.localDirectory", classOf[String]), s"Cannot POST to a space without spaces.localDirectory set as a message header. ")
         require(null != exchange.getIn.getHeader("spaces.containerContent", classOf[String]), s"Cannot POST to a space without spaces.containerContent set as a message header. ")
-        exchange.getIn.removeHeader("spaces.containerUuid")
+        exchange.getIn.removeHeaders("spaces.containerUuid")
         val localdirectory = Paths.get(exchange.getIn.getHeader("spaces.localDirectory", classOf[String]))
         val containercontent = exchange.getIn.getHeader("spaces.containerContent", classOf[String])
         val content = ignoreOrElse(Json.parse(containercontent).asObject, Map.empty)
@@ -160,11 +160,11 @@ final class SpacesProducer(
         } else {
           warn(s"Nothing to POST : $content")
         }
-        exchange.getIn.removeHeader("spaces.containerContent")
+        exchange.getIn.removeHeaders("spaces.containerContent")
       case Method.DELETE ⇒
         val containeruuid = exchange.getIn.getHeader("spaces.containerUuid", classOf[String])
         require(null != containeruuid, s"Cannot DELETE a spaces container without spaces.containerUuid set as a message header.")
-        exchange.getIn.removeHeader("spaces.containerUuid")
+        exchange.getIn.removeHeaders("spaces.containerUuid")
         unsupported
     }
   }
