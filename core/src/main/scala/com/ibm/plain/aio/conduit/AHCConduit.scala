@@ -212,12 +212,12 @@ sealed trait AHCConduitBase
 
   @volatile protected[this] final var requestbuilder: AsyncHttpClient#BoundRequestBuilder = null
 
-  protected[this] final def await = {
-    trace(s"cyclicbarrier await")
-    cyclicbarrier.await
+  protected[this] final def await: Unit = {
+    trace(s"cyclicbarrier await, defaulting to 5000ms timeout")
+    await(5000)
   }
 
-  protected[this] final def await(timeout: Long) = {
+  protected[this] final def await(timeout: Long): Unit = {
     trace(s"cyclicbarrier await : timeout = $timeout")
     try {
       val index = cyclicbarrier.await(timeout, TimeUnit.MILLISECONDS)
