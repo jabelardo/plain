@@ -50,7 +50,7 @@ object Dependencies {
       "com.sun.jersey" % "jersey-json" % "1.18.3")
 
     def time = Seq(
-      "joda-time" % "joda-time" % "2.6"
+      "joda-time" % "joda-time" % "2.7"
     )
 
     def modules = Seq(
