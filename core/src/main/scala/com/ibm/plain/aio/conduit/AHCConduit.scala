@@ -59,10 +59,12 @@ sealed trait AHCSourceConduit
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     if (null != requestbuilder) {
-      trace(s"READ : null != requestbuilder : $requestbuilder")
+      trace(s"first read : $requestbuilder")
       val r = requestbuilder
       requestbuilder = null
       result = r.execute(new AHCSourceHandler(buffer, handler, attachment))
+    } else {
+      trace("read")
     }
     await
   }
@@ -92,7 +94,13 @@ sealed trait AHCSourceConduit
     }
 
     override final def onThrowable(e: Throwable) = {
+      error(s"onThrowable : $e")
       handler.failed(e, attachment)
+    }
+
+    override final def onContentWriteProgress(amount: Long, current: Long, total: Long) = {
+      trace(s"onContentWriteProgress : amount = $amount, current = $current, total = $total")
+      State.CONTINUE
     }
 
   }
@@ -112,7 +120,7 @@ sealed trait AHCSinkConduit
    */
   final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     if (null != requestbuilder) {
-      trace(s"WRITE : null != requestbuilder : $requestbuilder")
+      trace(s"first write : $requestbuilder")
       generator = new AHCBodyGenerator[A](buffer, handler, attachment)
       val r = requestbuilder
       r.setBody(generator)
@@ -120,15 +128,24 @@ sealed trait AHCSinkConduit
       result = r.execute(new AsyncCompletionHandler[Response] {
 
         final def onCompleted(innerresponse: Response) = {
-          trace(s"onCompleted : innerresponse = $innerresponse")
-          // :TODO: not sure if we need the next line, it worked until 1.8.14
-          result.content(innerresponse)
+          trace(s"onCompleted : result = ${result.isDone} innerresponse = $innerresponse")
           result.done
           innerresponse
         }
 
+        override final def onThrowable(e: Throwable) = {
+          error(s"onThrowable : $e")
+          handler.failed(e, attachment)
+        }
+
+        override final def onContentWriteProgress(amount: Long, current: Long, total: Long) = {
+          trace(s"onContentWriteProgress : amount = $amount, current = $current, total = $total")
+          State.CONTINUE
+        }
+
       })
     } else {
+      trace("write")
       generator.asInstanceOf[AHCBodyGenerator[A]].handler = handler
     }
     await
@@ -187,7 +204,10 @@ sealed trait AHCConduitBase
   /**
    * Must not close AHCClient as it used by others in parallel.
    */
-  def close = isclosed = true
+  def close = {
+    trace("call to close()")
+    isclosed = true
+  }
 
   final def isOpen = !isclosed
 
@@ -197,10 +217,9 @@ sealed trait AHCConduitBase
    * Call only after a call to transferAndWait, if the response is "almost there".
    */
   final def getResponse = {
-    await(1000)
-    trace(s"Calling getResponse.get")
+    info(s"Calling getResponse.get")
     try {
-      Some(result.get(1000, TimeUnit.MILLISECONDS))
+      Some(result.get(defaulttimeout, TimeUnit.MILLISECONDS))
     } catch {
       case e: Throwable ⇒
         error(s"getResponse failed : $e")
@@ -213,20 +232,22 @@ sealed trait AHCConduitBase
   @volatile protected[this] final var requestbuilder: AsyncHttpClient#BoundRequestBuilder = null
 
   protected[this] final def await: Unit = {
-    trace(s"cyclicbarrier await, defaulting to 5000ms timeout")
-    await(5000)
+    await(defaulttimeout)
   }
 
-  protected[this] final def await(timeout: Long): Unit = {
+  @inline private[this] final def await(timeout: Long): Unit = {
     trace(s"cyclicbarrier await : timeout = $timeout")
     try {
       val index = cyclicbarrier.await(timeout, TimeUnit.MILLISECONDS)
       trace(s"cyclicbarrier await : index = $index")
     } catch {
       case e: Throwable ⇒
-        warn(s"cycnlicbarrier await : failed = $e")
+        error(s"cycnlicbarrier await : failed = $e")
+        throw e
     }
   }
+
+  protected[this] final val defaulttimeout = 90000
 
   protected[this] final val cyclicbarrier = new CyclicBarrier(2)
 
