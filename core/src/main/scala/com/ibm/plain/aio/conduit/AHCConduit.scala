@@ -12,6 +12,7 @@ import com.ning.http.client.{ AsyncHttpClient, Body, BodyGenerator, HttpResponse
 import com.ning.http.client.AsyncCompletionHandler
 import com.ning.http.client.AsyncHandler.{ STATE ⇒ State }
 
+import concurrent.spawn
 import logging.Logger
 
 /**
@@ -91,7 +92,7 @@ sealed trait AHCSourceConduit
       count += len
       buffer.put(part.getBodyByteBuffer)
       trace(s"read.onBodyPartReceived : len = $len, count = $count")
-      handler.completed(part.length, attachment)
+      spawn { handler.completed(part.length, attachment) }
       State.CONTINUE
     }
 
@@ -170,7 +171,7 @@ sealed trait AHCSinkConduit
         extends Body {
 
       def close: Unit = if (isopen.compareAndSet(true, false)) {
-        handler.completed(-1, attachment)
+        spawn { handler.completed(-1, attachment) }
       }
 
       def getContentLength = contentlength
@@ -181,7 +182,7 @@ sealed trait AHCSinkConduit
         trace(s"AHCBody.read : len ? $len")
         buffer.put(innerbuffer.array, innerbuffer.position, len)
         innerbuffer.position(innerbuffer.position + len)
-        handler.completed(len, attachment)
+        spawn { handler.completed(len, attachment) }
         if (0 >= len) -1L else len
       }
 

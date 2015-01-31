@@ -50,13 +50,8 @@ final class ClientExchange private (
    * Transfers from source to destination and waits for the transfer to be completed.
    */
   final def transferAndWait = {
-    trace(s"starting transferAndWait : $source to $destination")
     readTransfer(TransferReadHandler)
-    trace(s"latch.await : $source to $destination")
-    if (latch.await(60, TimeUnit.SECONDS))
-      trace(s"latch.await : $source to $destination")
-    else
-      error(s"latch.await timeout occurred : $source to $destination")
+    latch.await(defaulttimeout, TimeUnit.MILLISECONDS)
   }
 
   /**
@@ -93,6 +88,8 @@ final class ClientExchange private (
 
   private[this] final val isopen = new AtomicBoolean(true)
 
+  private[this] final val defaulttimeout = 300000
+
 }
 
 /**
@@ -123,7 +120,6 @@ object ClientExchange
     }
 
     @inline final def completed(processed: Integer, exchange: ClientExchange) = try {
-      trace(s"completed : processed = $processed")
       doComplete(processed, exchange)
     } catch {
       case e: Throwable ⇒
@@ -143,6 +139,7 @@ object ClientExchange
       extends ReleaseHandler {
 
     @inline final def doComplete(processed: Integer, exchange: ClientExchange) = {
+      trace(s"read completed : processed = $processed")
       exchange.progress(processed)
       if (0 >= processed) {
         exchange.writeTransfer(TransferCloseHandler, true)
@@ -158,6 +155,7 @@ object ClientExchange
       extends ReleaseHandler {
 
     @inline final def doComplete(processed: Integer, exchange: ClientExchange) = {
+      trace(s"write completed : processed = $processed")
       if (0 < exchange.available) {
         exchange.writeTransfer(this, false)
       } else {
@@ -171,17 +169,14 @@ object ClientExchange
       extends ReleaseHandler {
 
     @inline final def doComplete(processed: Integer, exchange: ClientExchange) = {
+      trace(s"close completed : processed = $processed")
       if (0 < exchange.available) {
         exchange.writeTransfer(this, false)
       } else {
-        trace(s"latch count : ${exchange.latch.getCount}")
         if (0 < exchange.latch.getCount) {
           exchange.closeTransfer
           exchange.latch.countDown
-          if (null != exchange.outerhandler) {
-            trace(s"Calling outerhandler : ${exchange.outerhandler}")
-            exchange.outerhandler.completed(0, exchange.attachment)
-          }
+          if (null != exchange.outerhandler) exchange.outerhandler.completed(0, exchange.attachment)
         }
       }
     }
