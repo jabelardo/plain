@@ -8,12 +8,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 import scala.math.min
 
-import com.ning.http.client._
-import com.ning.http.client.AsyncHttpClient._
+import com.ning.http.client.{ AsyncHttpClient, Body, BodyGenerator, HttpResponseBodyPart, ListenableFuture, Request, Response }
+import com.ning.http.client.AsyncCompletionHandler
 import com.ning.http.client.AsyncHandler.{ STATE ⇒ State }
-import com.ning.http.client.listener._
 
-import concurrent.spawn
 import logging.Logger
 
 /**
@@ -25,7 +23,7 @@ final class AHCConduit private (
 
   final val request: Request,
 
-  final val contentLength: Long)
+  final val contentlength: Long)
 
     extends AHCSourceConduit
 
@@ -59,12 +57,12 @@ sealed trait AHCSourceConduit
 
   final def read[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     if (null != requestbuilder) {
-      trace(s"first read : $requestbuilder")
+      trace(s"first read : buffer = $buffer, builder = $requestbuilder")
       val r = requestbuilder
       requestbuilder = null
       result = r.execute(new AHCSourceHandler(buffer, handler, attachment))
     } else {
-      trace("read")
+      trace(s"read : buffer = $buffer")
     }
     await
   }
@@ -81,6 +79,7 @@ sealed trait AHCSourceConduit
 
     final def onCompleted(innerresponse: Response): Response = {
       await
+      trace(s"read.onCompleted : innerresponse = $innerresponse")
       handler.completed(0, attachment)
       result.done
       innerresponse
@@ -88,18 +87,21 @@ sealed trait AHCSourceConduit
 
     override final def onBodyPartReceived(part: HttpResponseBodyPart): State = {
       await
+      val len = part.length
+      count += len
       buffer.put(part.getBodyByteBuffer)
+      trace(s"read.onBodyPartReceived : len = $len, count = $count")
       handler.completed(part.length, attachment)
       State.CONTINUE
     }
 
     override final def onThrowable(e: Throwable) = {
-      error(s"onThrowable : $e")
+      error(s"read.onThrowable : $e")
       handler.failed(e, attachment)
     }
 
     override final def onContentWriteProgress(amount: Long, current: Long, total: Long) = {
-      trace(s"onContentWriteProgress : amount = $amount, current = $current, total = $total")
+      trace(s"read.onContentWriteProgress : amount = $amount, current = $current, total = $total")
       State.CONTINUE
     }
 
@@ -120,7 +122,7 @@ sealed trait AHCSinkConduit
    */
   final def write[A](buffer: ByteBuffer, attachment: A, handler: Handler[A]) = {
     if (null != requestbuilder) {
-      trace(s"first write : $requestbuilder")
+      trace(s"first write : buffer = $buffer, builder = $requestbuilder")
       generator = new AHCBodyGenerator[A](buffer, handler, attachment)
       val r = requestbuilder
       r.setBody(generator)
@@ -128,13 +130,13 @@ sealed trait AHCSinkConduit
       result = r.execute(new AsyncCompletionHandler[Response] {
 
         final def onCompleted(innerresponse: Response) = {
-          trace(s"onCompleted : result = ${result.isDone} innerresponse = $innerresponse")
+          trace(s"write.onCompleted : result = ${result.isDone} innerresponse = $innerresponse")
           result.done
           innerresponse
         }
 
         override final def onThrowable(e: Throwable) = {
-          error(s"onThrowable : $e")
+          error(s"write.onThrowable : $e")
           handler.failed(e, attachment)
         }
 
@@ -145,7 +147,7 @@ sealed trait AHCSinkConduit
 
       })
     } else {
-      trace("write")
+      trace(s"write : buffer = $buffer")
       generator.asInstanceOf[AHCBodyGenerator[A]].handler = handler
     }
     await
@@ -171,14 +173,15 @@ sealed trait AHCSinkConduit
         handler.completed(-1, attachment)
       }
 
-      def getContentLength = contentLength
+      def getContentLength = contentlength
 
       def read(buffer: java.nio.ByteBuffer): Long = {
         await
         val len = min(buffer.remaining, innerbuffer.remaining)
+        trace(s"AHCBody.read : len ? $len")
         buffer.put(innerbuffer.array, innerbuffer.position, len)
         innerbuffer.position(innerbuffer.position + len)
-        spawn { handler.completed(len, attachment) }
+        handler.completed(len, attachment)
         if (0 >= len) -1L else len
       }
 
@@ -204,20 +207,16 @@ sealed trait AHCConduitBase
   /**
    * Must not close AHCClient as it used by others in parallel.
    */
-  def close = {
-    trace("call to close()")
-    isclosed = true
-  }
+  def close = isclosed = true
 
   final def isOpen = !isclosed
 
-  protected[this] val contentLength: Long
+  protected[this] val contentlength: Long
 
   /**
    * Call only after a call to transferAndWait, if the response is "almost there".
    */
   final def getResponse = {
-    info(s"Calling getResponse.get")
     try {
       Some(result.get(defaulttimeout, TimeUnit.MILLISECONDS))
     } catch {
@@ -236,10 +235,8 @@ sealed trait AHCConduitBase
   }
 
   @inline private[this] final def await(timeout: Long): Unit = {
-    trace(s"cyclicbarrier await : timeout = $timeout")
     try {
-      val index = cyclicbarrier.await(timeout, TimeUnit.MILLISECONDS)
-      trace(s"cyclicbarrier await : index = $index")
+      cyclicbarrier.await(timeout, TimeUnit.MILLISECONDS)
     } catch {
       case e: Throwable ⇒
         error(s"cycnlicbarrier await : failed = $e")
@@ -252,6 +249,8 @@ sealed trait AHCConduitBase
   protected[this] final val cyclicbarrier = new CyclicBarrier(2)
 
   @volatile protected[this] final var result: ListenableFuture[Response] = null
+
+  @volatile protected[this] final var count = 0L
 
   @volatile private[this] final var isclosed = false
 
