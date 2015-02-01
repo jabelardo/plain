@@ -6,16 +6,16 @@ import java.io.{ FileInputStream, FileOutputStream }
 import java.nio.file.Path
 
 import org.apache.commons.io.FileUtils.deleteDirectory
-import org.apache.http.client.methods.HttpPut
-import org.apache.http.entity.FileEntity
+import org.apache.http.client.methods.{ HttpGet, HttpPost, HttpPut }
+import org.apache.http.entity.{ FileEntity, StringEntity }
 import org.apache.http.impl.client.HttpClientBuilder
+import org.apache.http.client.config.RequestConfig
+import org.apache.http.NoHttpResponseException
 
 import com.ibm.plain.bootstrap.{ ExternalComponent, Singleton }
 import com.ibm.plain.integration.infrastructure.Infrastructure
 import com.ning.http.client.{ AsyncHttpClient, RequestBuilder }
 
-import aio.client.ClientExchange
-import aio.conduit.{ AHCConduit, ChunkedConduit, FileConduit }
 import bootstrap.{ ExternalComponent, Singleton }
 import camel.Camel
 import crypt.Uuid
@@ -55,26 +55,41 @@ final class SpacesClient
 
     spaceslist.find(name == _.name) match {
       case Some(space) ⇒
-        val client = HttpClientBuilder.create.build
         val put = new HttpPut(space.serverUri + "/" + container)
-        put.setHeader("Transfer-Encoding", "chunked")
-        put.setHeader("Expect", "100-continue")
-        val tmpfile = packDirectory(localdirectory)
-        put.setEntity(new FileEntity(tmpfile.toFile))
-        trace(s"PUT started : uri = ${put.getURI}")
         try {
-          val response = client.execute(put)
-          trace(s"PUT finished: statuscode = '${response.getStatusLine}', uri = ${put.getURI}")
-          response.close
-          201
+          trace(s"PUT pack directory : localdirectory = $localdirectory")
+          val lz4file = packDirectory(localdirectory)
+          val config = RequestConfig.
+            custom.
+            setConnectTimeout(defaulttimeout).
+            setConnectionRequestTimeout(defaulttimeout).
+            setSocketTimeout(defaulttimeout).
+            build
+          val client = HttpClientBuilder.create.setDefaultRequestConfig(config).build
+          put.setHeader("Expect", "100-continue")
+          put.setEntity(new FileEntity(lz4file.toFile))
+          try {
+            trace(s"PUT started : uri = ${put.getURI}")
+            val response = client.execute(put)
+            trace(s"PUT finished : statuscode = '${response.getStatusLine}', uri = ${put.getURI}")
+            response.close
+            201
+          } catch {
+            case e: NoHttpResponseException ⇒
+              trace(s"PUT finished : uri = ${put.getURI}")
+              201
+            case e: Throwable ⇒
+              error(s"PUT failed : uri = ${put.getURI}\n$e")
+              501
+          } finally {
+            client.close
+            lz4file.toFile.delete
+            lz4file.getParent.toFile.delete
+          }
         } catch {
           case e: Throwable ⇒
             error(s"PUT failed : uri = ${put.getURI}\n$e")
             501
-        } finally {
-          client.close
-          tmpfile.toFile.delete
-          tmpfile.getParent.toFile.delete
         }
       case _ ⇒ illegalState(s"Trying to PUT a container to a non-existing space : $name")
     }
@@ -87,22 +102,37 @@ final class SpacesClient
     spaceslist.find(name == _.name) match {
       case Some(space) ⇒
         if (purgedirectory) deleteDirectory(localdirectory.toFile)
-        val request = new RequestBuilder("POST").
-          setUrl(space.serverUri + "/00000000000000000000000000000000/").
-          setHeader("ContentType", "application/json").
-          setBody(content).
+        val config = RequestConfig.
+          custom.
+          setConnectTimeout(defaulttimeout).
+          setConnectionRequestTimeout(defaulttimeout).
+          setSocketTimeout(defaulttimeout).
           build
+        val client = HttpClientBuilder.create.setDefaultRequestConfig(config).build
+        val post = new HttpPost(space.serverUri + "/00000000000000000000000000000000/")
+        post.setHeader("ContentType", "application/json")
+        post.setEntity(new StringEntity(content))
         val lz4file = temporaryDirectory.toPath.resolve("lz4")
-        val ahcconduit = AHCConduit(client, request)
-        trace(s"POST started : ${request.getUrl}")
-        ClientExchange(ahcconduit, FileConduit.forWriting(lz4file)).transferAndWait
-        trace(s"POST finished : ${request.getUrl}")
-        ahcconduit.getResponse match {
-          case Some(response) if null != response && 200 == response.getStatusCode ⇒
-            unpackDirectory(localdirectory, lz4file)
-            200
-          case Some(response) if null != response ⇒ response.getStatusCode
-          case _ ⇒ 500
+        try {
+          trace(s"POST started : uri = ${post.getURI}")
+          val response = client.execute(post)
+          val in = response.getEntity.getContent
+          val out = new FileOutputStream(lz4file.toFile)
+          try copyBytes(in, out)
+          finally {
+            in.close
+            out.close
+            response.close
+          }
+          unpackDirectory(localdirectory, lz4file)
+          trace(s"POST finished : statuscode = '${response.getStatusLine}', uri = ${post.getURI}")
+          200
+        } catch {
+          case e: Throwable ⇒
+            error(s"POST failed : uri = ${post.getURI}\n$e")
+            401
+        } finally {
+          client.close
         }
       case _ ⇒ illegalState(s"Trying to POST to a non-existing space : $name")
     }
@@ -115,20 +145,35 @@ final class SpacesClient
     spaceslist.find(name == _.name) match {
       case Some(space) ⇒
         if (purgedirectory) deleteDirectory(localdirectory.toFile)
-        val request = new RequestBuilder("GET").
-          setUrl(space.serverUri + "/" + container).
+        val config = RequestConfig.
+          custom.
+          setConnectTimeout(defaulttimeout).
+          setConnectionRequestTimeout(defaulttimeout).
+          setSocketTimeout(defaulttimeout).
           build
-        val lz4file = temporaryDirectory.toPath.resolve("lz4")
-        val ahcconduit = AHCConduit(client, request)
-        trace(s"GET started : ${request.getUrl}")
-        ClientExchange(ahcconduit, FileConduit.forWriting(lz4file)).transferAndWait
-        trace(s"GET finished : ${request.getUrl}")
-        ahcconduit.getResponse match {
-          case Some(response) if 200 == response.getStatusCode ⇒
-            unpackDirectory(localdirectory, lz4file)
-            200
-          case Some(response) ⇒ response.getStatusCode
-          case _ ⇒ 500
+        val client = HttpClientBuilder.create.setDefaultRequestConfig(config).build
+        val get = new HttpGet(space.serverUri + "/" + container)
+        try {
+          trace(s"GET started : ${get.getURI}")
+          val response = client.execute(get)
+          val in = response.getEntity.getContent
+          val lz4file = temporaryDirectory.toPath.resolve("lz4")
+          val out = new FileOutputStream(lz4file.toFile)
+          try copyBytes(in, out)
+          finally {
+            in.close
+            out.close
+            response.close
+          }
+          unpackDirectory(localdirectory, lz4file)
+          trace(s"GET finished : ${get.getURI}")
+          200
+        } catch {
+          case e: Throwable ⇒
+            error(s"GET failed : ${get.getURI}\n$e")
+            401
+        } finally {
+          client.close
         }
       case _ ⇒ illegalState(s"Trying to GET a container from a non-existing space : $name")
     }
@@ -151,6 +196,8 @@ final class SpacesClient
 
   private[this] final var client: AsyncHttpClient = null
 
+  private[this] final val defaulttimeout = 90000
+
 }
 
 /**
@@ -165,6 +212,9 @@ object SpacesClient
   /**
    * From tests the fastest combination is to store only (no-compression) with zip4j and then use fast lz4 compression.
    * Do not use high lz4 compression unless you have a really low bandwidth.
+   *
+   * BUT: lz4 sucks with sizes larger than 2gb, what crap!
+   *
    */
   final def packDirectory(directory: Path): Path = {
     val tmpdir = temporaryDirectory.toPath
@@ -174,6 +224,11 @@ object SpacesClient
     zipparameters.setCompressionMethod(Zip4jConstants.COMP_STORE)
     zipparameters.setIncludeRootFolder(false)
     zipfile.addFolder(directory.toFile, zipparameters)
+    if (Int.MaxValue <= zfile.length) {
+      zfile.delete
+      zfile.toPath.getParent.toFile.delete
+      illegalState(s"space is too large : ${zfile.length}")
+    }
     val in = new FileInputStream(zfile)
     val lz4file = tmpdir.resolve("lz4").toFile
     val out = LZ4.fastOutputStream(new FileOutputStream(lz4file))
@@ -182,7 +237,7 @@ object SpacesClient
       in.close
       out.close
     }
-    trace(s"packDirectory : ${lz4file.getAbsolutePath} + , length = ${lz4file.length}")
+    trace(s"packDirectory finished : ${zfile.getAbsolutePath} length = ${zfile.length}")
     zfile.delete
     lz4file.toPath
   }
@@ -197,7 +252,7 @@ object SpacesClient
       out.close
     }
     lz4file.toFile.delete
-    trace(s"unpackDirectory : ${file.getAbsolutePath} + , length = ${file.length}")
+    trace(s"unpackDirectory : ${file.getAbsolutePath} length = ${file.length}")
     val zipfile = new ZipFile(file)
     zipfile.extractAll(directory.toFile.getAbsolutePath)
     deleteDirectory(file.toPath.getParent.toFile)

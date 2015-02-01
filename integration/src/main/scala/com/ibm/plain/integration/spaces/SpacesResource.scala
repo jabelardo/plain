@@ -35,6 +35,7 @@ final class SpacesResource
    * Download an entire directory from the stored container file.
    */
   Get {
+    trace(s"GET : $request")
     val filepath = computePathToContainerFile(context)
     val length = filepath.toFile.length
     val source = FileConduit.forReading(filepath)
@@ -51,6 +52,7 @@ final class SpacesResource
    * Upload a complete tar.gz file.
    */
   Put { entity: Entity ⇒
+    trace(s"PUT : $request")
     entity match {
       case Entity(contenttype, length, _) ⇒
         val container = computePathToContainerFile(context)
@@ -61,7 +63,10 @@ final class SpacesResource
         }
         exchange.transferTo(
           FileConduit.forWriting(container),
-          context ⇒ { context.response ++ Success.`201` })
+          context ⇒ {
+            trace(s"PUT : transfer completed, container size = ${container.toFile.length}")
+            context.response ++ Success.`201`
+          })
       case _ ⇒ throw ServerError.`501`
     }
     ()
