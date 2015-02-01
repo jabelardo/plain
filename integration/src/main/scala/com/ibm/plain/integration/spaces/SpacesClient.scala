@@ -6,6 +6,9 @@ import java.io.{ FileInputStream, FileOutputStream }
 import java.nio.file.Path
 
 import org.apache.commons.io.FileUtils.deleteDirectory
+import org.apache.http.client.methods.HttpPut
+import org.apache.http.entity.FileEntity
+import org.apache.http.impl.client.HttpClientBuilder
 
 import com.ibm.plain.bootstrap.{ ExternalComponent, Singleton }
 import com.ibm.plain.integration.infrastructure.Infrastructure
@@ -52,21 +55,26 @@ final class SpacesClient
 
     spaceslist.find(name == _.name) match {
       case Some(space) ⇒
-        val request = new RequestBuilder("PUT").
-          setUrl(space.serverUri + "/" + container).
-          setHeader("Transfer-Encoding", "chunked").
-          setHeader("Expect", "100-continue").
-          build
-        val ahcconduit = AHCConduit(client, request)
+        val client = HttpClientBuilder.create.build
+        val put = new HttpPut(space.serverUri + "/" + container)
+        put.setHeader("Transfer-Encoding", "chunked")
+        put.setHeader("Expect", "100-continue")
         val tmpfile = packDirectory(localdirectory)
-        trace(s"PUT started : ${request.getUrl}")
-        ClientExchange(FileConduit.forReading(tmpfile), ChunkedConduit(ahcconduit)).transferAndWait
-        trace(s"PUT finished: ${request.getUrl}")
-        tmpfile.toFile.delete
-        tmpfile.getParent.toFile.delete
-        ahcconduit.getResponse match {
-          case Some(response) ⇒ response.getStatusCode
-          case _ ⇒ 501
+        put.setEntity(new FileEntity(tmpfile.toFile))
+        trace(s"PUT started : uri = ${put.getURI}")
+        try {
+          val response = client.execute(put)
+          trace(s"PUT finished: statuscode = '${response.getStatusLine}', uri = ${put.getURI}")
+          response.close
+          201
+        } catch {
+          case e: Throwable ⇒
+            error(s"PUT failed : uri = ${put.getURI}\n$e")
+            501
+        } finally {
+          client.close
+          tmpfile.toFile.delete
+          tmpfile.getParent.toFile.delete
         }
       case _ ⇒ illegalState(s"Trying to PUT a container to a non-existing space : $name")
     }
