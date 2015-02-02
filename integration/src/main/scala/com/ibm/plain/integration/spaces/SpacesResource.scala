@@ -132,7 +132,7 @@ object SpacesResource
         val unpackdir = temporaryDirectory.toPath
         val lz4file = unpackdir.resolve("lz4")
         copy(containerfile, lz4file)
-        unpackDirectory(containerdir, lz4file)
+        unpackDirectory(containerdir, lz4file.toFile)
         files.asArray.map(_.asString).foreach(f ⇒ { trace(s"Collect file : $f"); move(containerdir.resolve(f), collectdir.resolve(f)) })
         deleteDirectory(containerdir.toFile)
     }

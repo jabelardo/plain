@@ -2,7 +2,7 @@ package com.ibm.plain
 package integration
 package spaces
 
-import java.io.{ FileInputStream, FileOutputStream }
+import java.io.{ File, FileInputStream, FileOutputStream }
 import java.nio.file.Path
 
 import org.apache.commons.io.FileUtils.deleteDirectory
@@ -96,49 +96,6 @@ final class SpacesClient
   }
 
   /**
-   * POST a json with a list of containers and a list of files for each to the space.
-   */
-  final def post(name: String, content: String, localdirectory: Path, purgedirectory: Boolean): Int = {
-    spaceslist.find(name == _.name) match {
-      case Some(space) ⇒
-        if (purgedirectory) deleteDirectory(localdirectory.toFile)
-        val config = RequestConfig.
-          custom.
-          setConnectTimeout(defaulttimeout).
-          setConnectionRequestTimeout(defaulttimeout).
-          setSocketTimeout(defaulttimeout).
-          build
-        val client = HttpClientBuilder.create.setDefaultRequestConfig(config).build
-        val post = new HttpPost(space.serverUri + "/00000000000000000000000000000000/")
-        post.setHeader("ContentType", "application/json")
-        post.setEntity(new StringEntity(content))
-        val lz4file = temporaryDirectory.toPath.resolve("lz4")
-        try {
-          trace(s"POST started : uri = ${post.getURI}")
-          val response = client.execute(post)
-          val in = response.getEntity.getContent
-          val out = new FileOutputStream(lz4file.toFile)
-          try copyBytes(in, out)
-          finally {
-            in.close
-            out.close
-            response.close
-          }
-          unpackDirectory(localdirectory, lz4file)
-          trace(s"POST finished : statuscode = '${response.getStatusLine}', uri = ${post.getURI}")
-          200
-        } catch {
-          case e: Throwable ⇒
-            error(s"POST failed : uri = ${post.getURI}\n$e")
-            401
-        } finally {
-          client.close
-        }
-      case _ ⇒ illegalState(s"Trying to POST to a non-existing space : $name")
-    }
-  }
-
-  /**
    * GET or download from a container from the space into a local directory.
    */
   final def get(name: String, container: Uuid, localdirectory: Path, purgedirectory: Boolean): Int = {
@@ -157,8 +114,8 @@ final class SpacesClient
           trace(s"GET started : ${get.getURI}")
           val response = client.execute(get)
           val in = response.getEntity.getContent
-          val lz4file = temporaryDirectory.toPath.resolve("lz4")
-          val out = new FileOutputStream(lz4file.toFile)
+          val lz4file = temporaryDirectory.toPath.resolve("lz4").toFile
+          val out = new FileOutputStream(lz4file)
           try copyBytes(in, out)
           finally {
             in.close
@@ -176,6 +133,49 @@ final class SpacesClient
           client.close
         }
       case _ ⇒ illegalState(s"Trying to GET a container from a non-existing space : $name")
+    }
+  }
+
+  /**
+   * POST a json with a list of containers and a list of files for each to the space.
+   */
+  final def post(name: String, content: String, localdirectory: Path, purgedirectory: Boolean): Int = {
+    spaceslist.find(name == _.name) match {
+      case Some(space) ⇒
+        if (purgedirectory) deleteDirectory(localdirectory.toFile)
+        val config = RequestConfig.
+          custom.
+          setConnectTimeout(defaulttimeout).
+          setConnectionRequestTimeout(defaulttimeout).
+          setSocketTimeout(defaulttimeout).
+          build
+        val client = HttpClientBuilder.create.setDefaultRequestConfig(config).build
+        val post = new HttpPost(space.serverUri + "/00000000000000000000000000000000/")
+        post.setHeader("ContentType", "application/json")
+        post.setEntity(new StringEntity(content))
+        val lz4file = temporaryDirectory.toPath.resolve("lz4").toFile
+        try {
+          trace(s"POST started : uri = ${post.getURI}")
+          val response = client.execute(post)
+          val in = response.getEntity.getContent
+          val out = new FileOutputStream(lz4file)
+          try copyBytes(in, out)
+          finally {
+            in.close
+            out.close
+            response.close
+          }
+          unpackDirectory(localdirectory, lz4file)
+          trace(s"POST finished : statuscode = '${response.getStatusLine}', uri = ${post.getURI}")
+          200
+        } catch {
+          case e: Throwable ⇒
+            error(s"POST failed : uri = ${post.getURI}\n$e")
+            401
+        } finally {
+          client.close
+        }
+      case _ ⇒ illegalState(s"Trying to POST to a non-existing space : $name")
     }
   }
 
@@ -219,43 +219,45 @@ object SpacesClient
   final def packDirectory(directory: Path): Path = {
     val tmpdir = temporaryDirectory.toPath
     val zfile = tmpdir.resolve("zip").toFile
+    trace(s"packDirectory started : ${zfile.getAbsolutePath}")
     val zipfile = new ZipFile(zfile)
     val zipparameters = new ZipParameters
-    zipparameters.setCompressionMethod(Zip4jConstants.COMP_STORE)
+    zipparameters.setCompressionMethod(Zip4jConstants.COMP_DEFLATE)
+    zipparameters.setCompressionLevel(Zip4jConstants.DEFLATE_LEVEL_FASTEST)
     zipparameters.setIncludeRootFolder(false)
     zipfile.addFolder(directory.toFile, zipparameters)
-    if (Int.MaxValue <= zfile.length) {
-      zfile.delete
-      zfile.toPath.getParent.toFile.delete
-      illegalState(s"space is too large : ${zfile.length}")
-    }
-    val in = new FileInputStream(zfile)
-    val lz4file = tmpdir.resolve("lz4").toFile
-    val out = LZ4.fastOutputStream(new FileOutputStream(lz4file))
-    try copyBytes(in, out)
-    finally {
-      in.close
-      out.close
-    }
     trace(s"packDirectory finished : ${zfile.getAbsolutePath} length = ${zfile.length}")
-    zfile.delete
-    lz4file.toPath
+    zfile.toPath
   }
 
-  final def unpackDirectory(directory: Path, lz4file: Path) = {
-    val file = lz4file.getParent.resolve("zip").toFile
-    val in = LZ4.inputStream(new FileInputStream(lz4file.toFile))
-    val out = new FileOutputStream(file)
-    try copyBytes(in, out)
-    finally {
-      in.close
-      out.close
+  final def unpackDirectory(directory: Path, lz4file: File) = {
+    trace(s"unpackDirectory started : ${lz4file.getAbsolutePath} length = ${lz4file.length}")
+    try {
+      val file = lz4file.toPath.getParent.resolve("zip").toFile
+      val in = LZ4.inputStream(new FileInputStream(lz4file))
+      val out = new FileOutputStream(file)
+      try copyBytes(in, out)
+      finally {
+        in.close
+        out.close
+      }
+      trace(s"unpackDirectory : extracted lz4 to zip : ${file.getAbsolutePath} length = ${file.length}")
+      try {
+        val zipfile = new ZipFile(file)
+        zipfile.extractAll(directory.toFile.getAbsolutePath)
+      } catch {
+        case e: Throwable ⇒
+          error(s"unpackDirectory failed : File is corrupted due to legacy size limitations : $lz4file $e")
+          illegalState(s"Could not load from spaces, file is corrupted due to legacy size limitations: $lz4file")
+      }
+    } catch {
+      case e: Throwable ⇒
+        warn(s"unpackDirectory : Probably not an lz4 file (trying unzip now) : ${lz4file.getAbsolutePath} : $e")
+        val zipfile = new ZipFile(lz4file)
+        zipfile.extractAll(directory.toFile.getAbsolutePath)
     }
-    lz4file.toFile.delete
-    trace(s"unpackDirectory : ${file.getAbsolutePath} length = ${file.length}")
-    val zipfile = new ZipFile(file)
-    zipfile.extractAll(directory.toFile.getAbsolutePath)
-    deleteDirectory(file.toPath.getParent.toFile)
+    trace(s"unpackDirectory finished : target directory = ${directory.toFile.getAbsolutePath}")
+    deleteDirectory(lz4file.toPath.getParent.toFile)
   }
 
 }
