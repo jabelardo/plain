@@ -132,6 +132,7 @@ final class SpacesProducer(
         val containeruuid = exchange.getIn.getHeader("spaces.containerUuid", classOf[String])
         val (statuscode, ms) = timeMillis(SpacesClient.instance.get(space, containeruuid, localdirectory, purgeDirectory))
         info("GET " + containeruuid + " INTO " + localdirectory + " : " + statuscode + " (" + ms + " ms)")
+        require(200 == statuscode, s"GET $containeruuid failed.")
       case Method.PUT ⇒
         require(null != exchange.getIn.getHeader("spaces.localDirectory", classOf[String]), s"Cannot PUT to a spaces container without spaces.localDirectory set as a message header. ")
         val localdirectory = Paths.get(exchange.getIn.getHeader("spaces.localDirectory", classOf[String]))
@@ -147,6 +148,7 @@ final class SpacesProducer(
         val (statuscode, ms) = timeMillis(SpacesClient.instance.put(space, containeruuid, localdirectory))
         info("PUT " + containeruuid + " FROM " + localdirectory + " : " + statuscode + " (" + ms + " ms)")
         exchange.getIn.removeHeaders("spaces.localDirectory")
+        require(201 == statuscode, s"PUT $containeruuid failed.")
       case Method.POST ⇒
         require(null != exchange.getIn.getHeader("spaces.localDirectory", classOf[String]), s"Cannot POST to a space without spaces.localDirectory set as a message header. ")
         require(null != exchange.getIn.getHeader("spaces.containerContent", classOf[String]), s"Cannot POST to a space without spaces.containerContent set as a message header. ")
@@ -154,13 +156,16 @@ final class SpacesProducer(
         val localdirectory = Paths.get(exchange.getIn.getHeader("spaces.localDirectory", classOf[String]))
         val containercontent = exchange.getIn.getHeader("spaces.containerContent", classOf[String])
         val content = ignoreOrElse(Json.parse(containercontent).asObject, Map.empty)
-        if (0 < content.size) {
+        val statuscode = if (0 < content.size) {
           val (statuscode, ms) = timeMillis(SpacesClient.instance.post(space, containercontent, localdirectory, purgeDirectory))
           info("POST " + containercontent + " INTO " + localdirectory + " : " + statuscode + " (" + ms + " ms)")
+          statuscode
         } else {
           warn(s"Nothing to POST : $content")
+          200
         }
         exchange.getIn.removeHeaders("spaces.containerContent")
+        require(200 == statuscode, s"POST failed.")
       case Method.DELETE ⇒
         val containeruuid = exchange.getIn.getHeader("spaces.containerUuid", classOf[String])
         require(null != containeruuid, s"Cannot DELETE a spaces container without spaces.containerUuid set as a message header.")
