@@ -132,7 +132,7 @@ final class SpacesProducer(
         val containeruuid = exchange.getIn.getHeader("spaces.containerUuid", classOf[String])
         val (statuscode, ms) = timeMillis(SpacesClient.instance.get(space, containeruuid, localdirectory, purgeDirectory))
         info("GET " + containeruuid + " INTO " + localdirectory + " : " + statuscode + " (" + ms + " ms)")
-        require(200 == statuscode, s"GET $containeruuid failed.")
+        require(200 == statuscode, s"GET $containeruuid failed : statuscode = $statuscode")
       case Method.PUT ⇒
         require(null != exchange.getIn.getHeader("spaces.localDirectory", classOf[String]), s"Cannot PUT to a spaces container without spaces.localDirectory set as a message header. ")
         val localdirectory = Paths.get(exchange.getIn.getHeader("spaces.localDirectory", classOf[String]))
@@ -148,7 +148,7 @@ final class SpacesProducer(
         val (statuscode, ms) = timeMillis(SpacesClient.instance.put(space, containeruuid, localdirectory))
         info("PUT " + containeruuid + " FROM " + localdirectory + " : " + statuscode + " (" + ms + " ms)")
         exchange.getIn.removeHeaders("spaces.localDirectory")
-        require(201 == statuscode, s"PUT $containeruuid failed.")
+        require(201 == statuscode, s"PUT $containeruuid failed : statuscode = $statuscode")
       case Method.POST ⇒
         require(null != exchange.getIn.getHeader("spaces.localDirectory", classOf[String]), s"Cannot POST to a space without spaces.localDirectory set as a message header. ")
         require(null != exchange.getIn.getHeader("spaces.containerContent", classOf[String]), s"Cannot POST to a space without spaces.containerContent set as a message header. ")
@@ -165,7 +165,7 @@ final class SpacesProducer(
           200
         }
         exchange.getIn.removeHeaders("spaces.containerContent")
-        require(200 == statuscode, s"POST failed.")
+        require(200 == statuscode, s"POST failed : statuscode = $statuscode")
       case Method.DELETE ⇒
         val containeruuid = exchange.getIn.getHeader("spaces.containerUuid", classOf[String])
         require(null != containeruuid, s"Cannot DELETE a spaces container without spaces.containerUuid set as a message header.")
