@@ -124,15 +124,21 @@ object SpacesResource
 
   private final def extractFilesFromContainers(context: Context, input: JObject): Path = try {
     import SpacesClient.{ packDirectory, unpackDirectory }
+    trace(s"extractFilesFromContainers : input = $input")
     val collectdir = temporaryDirectory.toPath
     input.toList.foreach {
       case (container, files) ⇒
-        val containerfile = computePathToContainerFile(context, container)
         val containerdir = temporaryDirectory.toPath
         val unpackdir = temporaryDirectory.toPath
-        val lz4file = unpackdir.resolve("lz4")
-        copy(containerfile, lz4file)
-        unpackDirectory(containerdir, lz4file.toFile, true)
+        try {
+          val containerfile = computePathToContainerFile(context, container)
+          val lz4file = unpackdir.resolve("lz4")
+          copy(containerfile, lz4file)
+          unpackDirectory(containerdir, lz4file.toFile, true) // ignore errors
+        } catch {
+          case e: Throwable ⇒
+            warn(s"extractFilesFromContainers : ignored = $e")
+        }
         files.asArray.map(_.asString).foreach(f ⇒ {
           val from = containerdir.resolve(f)
           if (!fexists(from)) {
