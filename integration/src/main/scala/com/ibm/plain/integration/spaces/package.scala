@@ -33,6 +33,12 @@ package object spaces
     root
   }
 
+  final val fallbackDirectory = {
+    val fallback = Paths.get(getString("plain.integration.spaces.fallback-directory", rootDirectory.resolve("fallback").toString))
+    io.createDirectory(fallback)
+    fallback
+  }
+
   final val spaceslist = {
     val list = getConfigList("plain.integration.spaces.spaces", List.empty)
     try {

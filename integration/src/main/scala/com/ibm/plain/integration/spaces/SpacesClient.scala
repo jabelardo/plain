@@ -122,7 +122,7 @@ final class SpacesClient
             out.close
             response.close
           }
-          unpackDirectory(localdirectory, lz4file)
+          unpackDirectory(localdirectory, lz4file, false)
           trace(s"GET finished : ${get.getURI}")
           200
         } catch {
@@ -165,7 +165,7 @@ final class SpacesClient
             out.close
             response.close
           }
-          unpackDirectory(localdirectory, lz4file)
+          unpackDirectory(localdirectory, lz4file, false)
           trace(s"POST finished : statuscode = '${response.getStatusLine}', uri = ${post.getURI}")
           200
         } catch {
@@ -230,7 +230,7 @@ object SpacesClient
     zfile.toPath
   }
 
-  final def unpackDirectory(directory: Path, lz4file: File) = {
+  final def unpackDirectory(directory: Path, lz4file: File, ignore: Boolean) = {
     trace(s"unpackDirectory started : ${lz4file.getAbsolutePath} length = ${lz4file.length}")
     try {
       val file = lz4file.toPath.getParent.resolve("zip").toFile
@@ -247,14 +247,28 @@ object SpacesClient
         zipfile.extractAll(directory.toFile.getAbsolutePath)
       } catch {
         case e: Throwable ⇒
-          error(s"unpackDirectory failed : File is corrupted due to legacy size limitations : $lz4file $e")
-          illegalState(s"Could not load from spaces, file is corrupted due to legacy size limitations: $lz4file")
+          if (ignore) {
+            warn(s"unpackDirectory failed : File is corrupted due to legacy size limitations : $lz4file $e")
+          } else {
+            error(s"unpackDirectory failed : File is corrupted due to legacy size limitations : $lz4file $e")
+            illegalState(s"Could not load from spaces, file is corrupted due to legacy size limitations: $lz4file")
+          }
       }
     } catch {
       case e: Throwable ⇒
         warn(s"unpackDirectory : Probably not an lz4 file (trying unzip now) : ${lz4file.getAbsolutePath} : $e")
-        val zipfile = new ZipFile(lz4file)
-        zipfile.extractAll(directory.toFile.getAbsolutePath)
+        try {
+          val zipfile = new ZipFile(lz4file)
+          zipfile.extractAll(directory.toFile.getAbsolutePath)
+        } catch {
+          case e: Throwable ⇒
+            if (ignore) {
+              warn(s"unpackDirectory : Sorry, not even a zip file : ${lz4file.getAbsolutePath} : $e")
+            } else {
+              error(s"unpackDirectory : Sorry, not even a zip file : ${lz4file.getAbsolutePath} : $e")
+              throw e
+            }
+        }
     }
     trace(s"unpackDirectory finished : target directory = ${directory.toFile.getAbsolutePath}")
     deleteDirectory(lz4file.toPath.getParent.toFile)

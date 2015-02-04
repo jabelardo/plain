@@ -49,7 +49,7 @@ final class SpacesResource
   }
 
   /**
-   * Upload a complete tar.gz file.
+   * Upload a complete directory file.
    */
   Put { entity: Entity ⇒
     trace(s"PUT : $request")
@@ -73,7 +73,7 @@ final class SpacesResource
   }
 
   /**
-   * Receive a json of containers and files inside them and download them as a tar.gz file.
+   * Receive a json of containers and files inside them and download them as one container file.
    */
   Post { entity: Entity ⇒
     trace(s"POST : $request")
@@ -132,8 +132,35 @@ object SpacesResource
         val unpackdir = temporaryDirectory.toPath
         val lz4file = unpackdir.resolve("lz4")
         copy(containerfile, lz4file)
-        unpackDirectory(containerdir, lz4file.toFile)
-        files.asArray.map(_.asString).foreach(f ⇒ { trace(s"Collect file : $f"); move(containerdir.resolve(f), collectdir.resolve(f)) })
+        unpackDirectory(containerdir, lz4file.toFile, true)
+        files.asArray.map(_.asString).foreach(f ⇒ {
+          val from = containerdir.resolve(f)
+          if (!fexists(from)) {
+            val fromfallback = fallbackDirectory.resolve(f)
+            if (!fexists(fromfallback)) {
+              error(s"POST : File could not be extracted from repository and is also missing in the 'fallback' directory : filename = $f fallback directory = $fallbackDirectory")
+            }
+          }
+        })
+        files.asArray.map(_.asString).foreach(f ⇒ {
+          trace(s"Collect file : $f")
+          val from = containerdir.resolve(f)
+          val to = collectdir.resolve(f)
+          if (fexists(from)) {
+            move(from, to)
+          } else {
+            warn(s"POST : Could not extract a repository file : filename = ${from.getFileName} directory = ${from.getParent}")
+            warn(s"POST : Looking for file in the spaces 'fallback' directory : filename = $f fallback directory = $fallbackDirectory")
+            val fromfallback = fallbackDirectory.resolve(f)
+            if (fexists(fromfallback)) {
+              copy(fromfallback, to)
+              warn(s"POST : Copied file from the 'fallback' directory : filename = $f")
+            } else {
+              error(s"POST : File does not exist and is missing in the 'fallback' directory : filename = $f")
+              illegalState(s"POST : File does not exist and is missing in the 'fallback' directory : filename = $f")
+            }
+          }
+        })
         deleteDirectory(containerdir.toFile)
     }
     val lz4file = packDirectory(collectdir)
