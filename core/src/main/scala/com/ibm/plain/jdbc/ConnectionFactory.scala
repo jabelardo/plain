@@ -26,6 +26,7 @@ import config.config2RichConfig
 import javax.sql.DataSource
 import logging.Logger
 import reflect.primitive
+import text.stackTraceToString
 import time.now
 
 /**
@@ -56,7 +57,10 @@ final case class ConnectionFactory(
       (0 until poolmin).foreach(_ ⇒ conns += newConnection)
       conns.foreach(_.close)
     } catch {
-      case e: Throwable ⇒ error(name + " : Cannot establish connection :  " + e)
+      case e: Throwable ⇒
+        error(stackTraceToString(e))
+        error(name + " : Cannot establish connection :  " + e)
+        throw e
     }
     connectioncleaner = schedule(idletimeout) {
       if (idle.size > poolmin) {
@@ -224,4 +228,3 @@ final case class ConnectionFactory(
   private[this] final val slickjdbcprofileclass = config.settings.getString("plain.jdbc.drivers." + driver + ".slick-jdbc-profile-class", "scala.slick.driver.JdbcProfile")
 
 }
-

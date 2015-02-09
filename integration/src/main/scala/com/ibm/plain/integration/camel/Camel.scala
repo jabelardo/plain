@@ -69,7 +69,6 @@ final class Camel
 
   private[this] final val client: AsyncHttpClient with HasDoClose = {
     val timeout = spaces.requestTimeout
-    info(s"AsyncHttpClientConfig : timeout = $timeout")
     val config = new AsyncHttpClientConfig.Builder().
       setRequestTimeout(timeout).
       setConnectTimeout(timeout).
