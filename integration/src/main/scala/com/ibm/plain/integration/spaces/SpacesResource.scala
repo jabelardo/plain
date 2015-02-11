@@ -81,23 +81,30 @@ final class SpacesResource
     entity match {
       case e @ Entity(contenttype, length, _) ⇒
         val tmpfile = temporaryFile
-        trace(s"POST : $e tmpfile = $tmpfile")
+        trace(s"POST : $contenttype, $length, $e tmpfile = $tmpfile")
         exchange.transferTo(
           FileConduit.forWriting(tmpfile),
           context ⇒ {
-            trace(s"POST : transfer completed, input size = ${tmpfile.length}")
-            val input = Json.parse(new String(readAllBytes(tmpfile.toPath), `UTF-8`)).asObject
-            trace(s"POST : input = $input")
-            val filepath = extractFilesFromContainers(context, input)
-            val length = filepath.toFile.length
-            val source = FileConduit.forReading(filepath)
-            trace(s"POST : source = $source, file = $filepath, length = $length")
-            exchange.transferFrom(source)
-            ConduitEntity(
-              source,
-              ContentType(`application/zip`),
-              length,
-              false)
+            try {
+              trace(s"POST : transfer completed, input size = ${tmpfile.length}")
+              val fileinput = new String(readAllBytes(tmpfile.toPath), `UTF-8`)
+              trace(s"POST : input = $fileinput")
+              val input = Json.parse(fileinput).asObject
+              trace(s"POST : input = $input")
+              val filepath = extractFilesFromContainers(context, input)
+              val length = filepath.toFile.length
+              val source = FileConduit.forReading(filepath)
+              trace(s"POST : source = $source, file = $filepath, length = $length")
+              exchange.transferFrom(source)
+              ConduitEntity(
+                source,
+                ContentType(`application/zip`),
+                length,
+                false)
+            } catch {
+              case e: Throwable ⇒
+                throw ServerError.`501`
+            }
           })
       case e ⇒
         trace(s"POST request : Received an unhandled entity body : $e")
