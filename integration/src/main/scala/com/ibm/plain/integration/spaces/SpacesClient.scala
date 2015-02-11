@@ -151,8 +151,7 @@ final class SpacesClient
           build
         val client = HttpClientBuilder.create.setDefaultRequestConfig(config).build
         val post = new HttpPost(space.serverUri + "/00000000000000000000000000000000/")
-        post.setHeader("Content-Type", "application/json")
-        post.setHeader("Expect", "100-Continue")
+        post.setHeader("ContentType", "application/json")
         post.setEntity(new StringEntity(content))
         val lz4file = temporaryDirectory.toPath.resolve("lz4").toFile
         try {

@@ -2,16 +2,15 @@ package com.ibm.plain
 package integration
 package spaces
 
-import java.util.concurrent.{ CyclicBarrier, TimeUnit }
 import java.nio.file.{ Path, Paths }
-import java.nio.file.Files.{ exists ⇒ fexists, isDirectory, isRegularFile, copy, move, delete, readAllBytes }
+import java.nio.file.Files.{ exists ⇒ fexists, isDirectory, isRegularFile, copy, move, delete }
 
 import org.apache.commons.io.FileUtils.deleteDirectory
 
 import aio.conduit.FileConduit
 import aio.Exchange
 import crypt.Uuid
-import io.{ temporaryDirectory, temporaryFile }
+import io.temporaryDirectory
 import http.{ ContentType, Entity }
 import http.Entity.{ ArrayEntity, ConduitEntity }
 import http.MimeType._
@@ -20,7 +19,6 @@ import json.Json
 import json.Json.JObject
 import logging.Logger
 import rest.{ Context, Resource }
-import text.`UTF-8`
 
 /**
  *
@@ -37,7 +35,7 @@ final class SpacesResource
    * Download an entire directory from the stored container file.
    */
   Get {
-    trace(s"GET request : $request")
+    trace(s"GET : $request")
     val filepath = computePathToContainerFile(context)
     val length = filepath.toFile.length
     val source = FileConduit.forReading(filepath)
@@ -45,7 +43,7 @@ final class SpacesResource
     exchange.transferFrom(source)
     ConduitEntity(
       source,
-      ContentType(`application/zip`),
+      ContentType(`application/gzip`),
       length,
       false)
   }
@@ -54,7 +52,7 @@ final class SpacesResource
    * Upload a complete directory file.
    */
   Put { entity: Entity ⇒
-    trace(s"PUT request : $request")
+    trace(s"PUT : $request")
     entity match {
       case Entity(contenttype, length, _) ⇒
         val container = computePathToContainerFile(context)
@@ -78,37 +76,26 @@ final class SpacesResource
    * Receive a json of containers and files inside them and download them as one container file.
    */
   Post { entity: Entity ⇒
-    trace(s"POST request: $request")
-    entity match {
-      case e @ Entity(contenttype, length, _) ⇒
-        val tmpfile = temporaryFile
-        trace(s"POST :  $tmpfile")
-        exchange.transferTo(
-          FileConduit.forWriting(tmpfile),
-          context ⇒ {
-            trace(s"POST : transfer completed, input size = ${tmpfile.length}")
-          })
-        trace(s"POST : Waiting for upload to complete. ")
-        Thread.sleep(5000)
-        trace(s"POST :  $tmpfile loaded : ${tmpfile.length}")
-        val fileinput = new String(readAllBytes(tmpfile.toPath), `UTF-8`)
-        trace(s"POST : input = $fileinput")
-        val input = Json.parse(fileinput).asObject
-        trace(s"POST : input = $input")
-        val filepath = extractFilesFromContainers(context, input)
-        val length = filepath.toFile.length
-        val source = FileConduit.forReading(filepath)
-        trace(s"POST : source = $source, file = $filepath, length = $length")
-        exchange.transferFrom(source)
-        ConduitEntity(
-          source,
-          ContentType(`application/zip`),
-          length,
-          false)
+    trace(s"POST : $request")
+    val input: JObject = entity match {
+      case ArrayEntity(array, offset, length, _) ⇒
+        try
+          Json.parse(new String(array, offset, length.toInt, text.`UTF-8`)).asObject
+        catch { case _: Throwable ⇒ throw ClientError.`400` }
       case e ⇒
-        error(s"POST request : Received an unhandled entity body : $e")
+        error(s"POST : Entity not handled : $e")
         throw ClientError.`413`
     }
+    val filepath = extractFilesFromContainers(context, input)
+    val length = filepath.toFile.length
+    val source = FileConduit.forReading(filepath)
+    trace(s"POST : source = $source, file = $filepath, length = $length")
+    exchange.transferFrom(source)
+    ConduitEntity(
+      source,
+      ContentType(`application/gzip`),
+      length,
+      false)
   }
 
 }
@@ -154,7 +141,16 @@ object SpacesResource
           case e: Throwable ⇒
             warn(s"extractFilesFromContainers : ignored = $e")
         }
-        files.asArray.map(_.asString).foreach(f ⇒ {
+        val filelist = {
+          val fileinput = files.asArray.map(_.asString).toList
+          if (1 == fileinput.size && "*" == fileinput.apply(0)) {
+            containerdir.toFile.list.toList.filter(f ⇒ f.endsWith("CATPart") || f.endsWith("CATProduct"))
+          } else {
+            fileinput
+          }
+        }
+        trace(s"extractFilesFromContainers : input filelist = $filelist")
+        filelist.foreach(f ⇒ {
           val from = containerdir.resolve(f)
           if (!fexists(from)) {
             val fromfallback = fallbackDirectory.resolve(f)
@@ -163,8 +159,8 @@ object SpacesResource
             }
           }
         })
-        files.asArray.map(_.asString).foreach(f ⇒ {
-          trace(s"Collect file : $f")
+        filelist.foreach(f ⇒ {
+          trace(s"Trying to collect file : $f")
           val from = containerdir.resolve(f)
           val to = collectdir.resolve(f)
           if (fexists(from)) {
