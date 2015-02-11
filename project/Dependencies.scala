@@ -83,7 +83,7 @@ object Dependencies {
 
     def camelVersion = "2.14.1"
 
-    def activemqVersion = "5.11-SNAPSHOT"
+    def activemqVersion = "5.11"
 
     def slickVersion = "2.1.0"
 
