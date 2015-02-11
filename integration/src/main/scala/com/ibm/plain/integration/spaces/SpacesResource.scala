@@ -44,7 +44,7 @@ final class SpacesResource
     exchange.transferFrom(source)
     ConduitEntity(
       source,
-      ContentType(`application/gzip`),
+      ContentType(`application/zip`),
       length,
       false)
   }
@@ -78,25 +78,7 @@ final class SpacesResource
    */
   Post { entity: Entity ⇒
     trace(s"POST request: $request")
-    def extract(input: Json.JObject) = {
-      trace(s"POST : input = $input")
-      val filepath = extractFilesFromContainers(context, input)
-      val length = filepath.toFile.length
-      val source = FileConduit.forReading(filepath)
-      trace(s"POST : source = $source, file = $filepath, length = $length")
-      exchange.transferFrom(source)
-      ConduitEntity(
-        source,
-        ContentType(`application/gzip`),
-        length,
-        false)
-    }
     entity match {
-      case e @ ArrayEntity(array, offset, length, _) ⇒
-        try {
-          trace(s"POST : $e")
-          extract(Json.parse(new String(array, offset, length.toInt, text.`UTF-8`)).asObject)
-        } catch { case _: Throwable ⇒ throw ClientError.`400` }
       case e @ Entity(contenttype, length, _) ⇒
         val tmpfile = temporaryFile
         trace(s"POST : $e tmpfile = $tmpfile")
@@ -104,13 +86,24 @@ final class SpacesResource
           FileConduit.forWriting(tmpfile),
           context ⇒ {
             trace(s"POST : transfer completed, input size = ${tmpfile.length}")
-            extract(Json.parse(new String(readAllBytes(tmpfile.toPath), `UTF-8`)).asObject)
+            val input = Json.parse(new String(readAllBytes(tmpfile.toPath), `UTF-8`)).asObject
+            trace(s"POST : input = $input")
+            val filepath = extractFilesFromContainers(context, input)
+            val length = filepath.toFile.length
+            val source = FileConduit.forReading(filepath)
+            trace(s"POST : source = $source, file = $filepath, length = $length")
+            exchange.transferFrom(source)
+            ConduitEntity(
+              source,
+              ContentType(`application/zip`),
+              length,
+              false)
           })
-        ()
       case e ⇒
-        trace(s"POST request : received an unhandled entity body : $e")
+        trace(s"POST request : Received an unhandled entity body : $e")
         throw ClientError.`413`
     }
+    ()
   }
 
 }
