@@ -109,7 +109,6 @@ final class SpacesResource
         error(s"POST request : Received an unhandled entity body : $e")
         throw ClientError.`413`
     }
-    ()
   }
 
 }
