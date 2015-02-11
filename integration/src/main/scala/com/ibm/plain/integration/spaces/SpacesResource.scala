@@ -2,6 +2,7 @@ package com.ibm.plain
 package integration
 package spaces
 
+import java.util.concurrent.{ CyclicBarrier, TimeUnit }
 import java.nio.file.{ Path, Paths }
 import java.nio.file.Files.{ exists ⇒ fexists, isDirectory, isRegularFile, copy, move, delete, readAllBytes }
 
@@ -80,34 +81,32 @@ final class SpacesResource
     trace(s"POST request: $request")
     entity match {
       case e @ Entity(contenttype, length, _) ⇒
+        val done = new CyclicBarrier(2)
         val tmpfile = temporaryFile
-        trace(s"POST : $contenttype, $length, $e tmpfile = $tmpfile")
+        trace(s"POST :  $tmpfile")
         exchange.transferTo(
           FileConduit.forWriting(tmpfile),
           context ⇒ {
-            try {
-              trace(s"POST : transfer completed, input size = ${tmpfile.length}")
-              val fileinput = new String(readAllBytes(tmpfile.toPath), `UTF-8`)
-              trace(s"POST : input = $fileinput")
-              val input = Json.parse(fileinput).asObject
-              trace(s"POST : input = $input")
-              val filepath = extractFilesFromContainers(context, input)
-              val length = filepath.toFile.length
-              val source = FileConduit.forReading(filepath)
-              trace(s"POST : source = $source, file = $filepath, length = $length")
-              exchange.transferFrom(source)
-              ConduitEntity(
-                source,
-                ContentType(`application/zip`),
-                length,
-                false)
-            } catch {
-              case e: Throwable ⇒
-                throw ServerError.`501`
-            }
+            trace(s"POST : transfer completed, input size = ${tmpfile.length}")
+            done.await
           })
+        done.await(90000, TimeUnit.MILLISECONDS)
+        val fileinput = new String(readAllBytes(tmpfile.toPath), `UTF-8`)
+        trace(s"POST : input = $fileinput")
+        val input = Json.parse(fileinput).asObject
+        trace(s"POST : input = $input")
+        val filepath = extractFilesFromContainers(context, input)
+        val length = filepath.toFile.length
+        val source = FileConduit.forReading(filepath)
+        trace(s"POST : source = $source, file = $filepath, length = $length")
+        exchange.transferFrom(source)
+        ConduitEntity(
+          source,
+          ContentType(`application/zip`),
+          length,
+          false)
       case e ⇒
-        trace(s"POST request : Received an unhandled entity body : $e")
+        error(s"POST request : Received an unhandled entity body : $e")
         throw ClientError.`413`
     }
     ()
