@@ -3,14 +3,14 @@ package integration
 package spaces
 
 import java.nio.file.{ Path, Paths }
-import java.nio.file.Files.{ exists ⇒ fexists, isDirectory, isRegularFile, copy, move, delete }
+import java.nio.file.Files.{ exists ⇒ fexists, isDirectory, isRegularFile, copy, move, delete, readAllBytes }
 
 import org.apache.commons.io.FileUtils.deleteDirectory
 
 import aio.conduit.FileConduit
 import aio.Exchange
 import crypt.Uuid
-import io.temporaryDirectory
+import io.{ temporaryDirectory, temporaryFile }
 import http.{ ContentType, Entity }
 import http.Entity.{ ArrayEntity, ConduitEntity }
 import http.MimeType._
@@ -19,6 +19,7 @@ import json.Json
 import json.Json.JObject
 import logging.Logger
 import rest.{ Context, Resource }
+import text.`UTF-8`
 
 /**
  *
@@ -35,7 +36,7 @@ final class SpacesResource
    * Download an entire directory from the stored container file.
    */
   Get {
-    trace(s"GET : $request")
+    trace(s"GET request : $request")
     val filepath = computePathToContainerFile(context)
     val length = filepath.toFile.length
     val source = FileConduit.forReading(filepath)
@@ -52,7 +53,7 @@ final class SpacesResource
    * Upload a complete directory file.
    */
   Put { entity: Entity ⇒
-    trace(s"PUT : $request")
+    trace(s"PUT request : $request")
     entity match {
       case Entity(contenttype, length, _) ⇒
         val container = computePathToContainerFile(context)
@@ -76,24 +77,36 @@ final class SpacesResource
    * Receive a json of containers and files inside them and download them as one container file.
    */
   Post { entity: Entity ⇒
-    trace(s"POST : $request")
-    val input: JObject = entity match {
+    trace(s"POST request: $request")
+    def extract(input: Json.JObject) = {
+      val filepath = extractFilesFromContainers(context, input)
+      val length = filepath.toFile.length
+      val source = FileConduit.forReading(filepath)
+      trace(s"POST : source = $source, file = $filepath, length = $length")
+      exchange.transferFrom(source)
+      ConduitEntity(
+        source,
+        ContentType(`application/gzip`),
+        length,
+        false)
+    }
+    entity match {
       case ArrayEntity(array, offset, length, _) ⇒
         try
-          Json.parse(new String(array, offset, length.toInt, text.`UTF-8`)).asObject
+          extract(Json.parse(new String(array, offset, length.toInt, text.`UTF-8`)).asObject)
         catch { case _: Throwable ⇒ throw ClientError.`400` }
-      case _ ⇒ throw ClientError.`413`
+      case Entity(contenttype, length, _) ⇒
+        val tmpfile = temporaryFile
+        exchange.transferTo(
+          FileConduit.forWriting(tmpfile),
+          context ⇒ {
+            trace(s"POST : transfer completed, input size = ${tmpfile.length}")
+            extract(Json.parse(new String(readAllBytes(tmpfile.toPath), `UTF-8`)).asObject)
+          })
+      case e ⇒
+        trace(s"POST request : received an unhandled entity body : $e")
+        throw ClientError.`413`
     }
-    val filepath = extractFilesFromContainers(context, input)
-    val length = filepath.toFile.length
-    val source = FileConduit.forReading(filepath)
-    trace(s"POST : source = $source, file = $filepath, length = $length")
-    exchange.transferFrom(source)
-    ConduitEntity(
-      source,
-      ContentType(`application/gzip`),
-      length,
-      false)
   }
 
 }
