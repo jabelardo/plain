@@ -81,16 +81,16 @@ final class SpacesResource
     trace(s"POST request: $request")
     entity match {
       case e @ Entity(contenttype, length, _) ⇒
-        val done = new CyclicBarrier(2)
         val tmpfile = temporaryFile
         trace(s"POST :  $tmpfile")
         exchange.transferTo(
           FileConduit.forWriting(tmpfile),
           context ⇒ {
             trace(s"POST : transfer completed, input size = ${tmpfile.length}")
-            done.await
           })
-        done.await(90000, TimeUnit.MILLISECONDS)
+        trace(s"POST : Waiting for upload to complete. ")
+        Thread.sleep(5000)
+        trace(s"POST :  $tmpfile loaded : ${tmpfile.length}")
         val fileinput = new String(readAllBytes(tmpfile.toPath), `UTF-8`)
         trace(s"POST : input = $fileinput")
         val input = Json.parse(fileinput).asObject
