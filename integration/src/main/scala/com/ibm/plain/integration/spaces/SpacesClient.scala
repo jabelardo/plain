@@ -256,7 +256,7 @@ object SpacesClient
       }
     } catch {
       case e: Throwable ⇒
-        warn(s"unpackDirectory : Probably not an lz4 file (trying unzip now) : ${lz4file.getAbsolutePath} : $e")
+        trace(s"unpackDirectory : Probably not an lz4 file (trying unzip now) : ${lz4file.getAbsolutePath} : $e")
         try {
           val zipfile = new ZipFile(lz4file)
           zipfile.extractAll(directory.toFile.getAbsolutePath)
