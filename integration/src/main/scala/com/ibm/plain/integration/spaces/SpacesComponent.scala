@@ -156,9 +156,10 @@ final class SpacesProducer(
         val localdirectory = Paths.get(exchange.getIn.getHeader("spaces.localDirectory", classOf[String]))
         val containercontent = exchange.getIn.getHeader("spaces.containerContent", classOf[String])
         val content = ignoreOrElse(Json.parse(containercontent).asObject, Map.empty)
+        val contentfilepath = exchange.getIn.getBody(classOf[String])
         val statuscode = if (0 < content.size) {
-          val (statuscode, ms) = timeMillis(SpacesClient.instance.post(space, containercontent, localdirectory, purgeDirectory))
-          info("POST " + containercontent + " INTO " + localdirectory + " : " + statuscode + " (" + ms + " ms)")
+          val (statuscode, ms) = timeMillis(SpacesClient.instance.post(space, contentfilepath, localdirectory, purgeDirectory))
+          info("POST " + contentfilepath + " INTO " + localdirectory + " : " + statuscode + " (" + ms + " ms)")
           statuscode
         } else {
           warn(s"Nothing to POST : $content")

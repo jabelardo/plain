@@ -3,7 +3,7 @@ package integration
 package spaces
 
 import java.nio.file.{ Path, Paths }
-import java.nio.file.Files.{ exists ⇒ fexists, isDirectory, isRegularFile, copy, move, delete }
+import java.nio.file.Files.{ exists ⇒ fexists, isDirectory, isRegularFile, copy, move, delete, readAllBytes }
 
 import org.apache.commons.io.FileUtils.deleteDirectory
 
@@ -79,9 +79,13 @@ final class SpacesResource
     trace(s"POST : $request")
     val input: JObject = entity match {
       case ArrayEntity(array, offset, length, _) ⇒
-        try
-          Json.parse(new String(array, offset, length.toInt, text.`UTF-8`)).asObject
-        catch { case _: Throwable ⇒ throw ClientError.`400` }
+        try {
+          val inputfilepath = Paths.get(new String(array, offset, length.toInt, text.`UTF-8`))
+          trace(s"Trying to load input from temp file : $inputfilepath")
+          val inputfile = new String(readAllBytes(inputfilepath), text.`UTF-8`)
+          trace(s"Input read from file : $inputfile")
+          Json.parse(inputfile).asObject
+        } catch { case _: Throwable ⇒ throw ClientError.`400` }
       case e ⇒
         error(s"POST : Entity not handled : $e")
         throw ClientError.`413`
