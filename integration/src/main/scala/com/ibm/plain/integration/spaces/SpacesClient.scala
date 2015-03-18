@@ -19,7 +19,7 @@ import com.ning.http.client.{ AsyncHttpClient, RequestBuilder }
 import bootstrap.{ ExternalComponent, Singleton }
 import camel.Camel
 import crypt.Uuid
-import io.{ LZ4, copyBytes, temporaryDirectory }
+import io.{ LZ4, copyBytes, temporaryDirectory, temporaryFileInDirectory }
 import logging.Logger
 import net.lingala.zip4j.core.ZipFile
 import net.lingala.zip4j.model.ZipParameters
@@ -225,6 +225,7 @@ object SpacesClient
     zipparameters.setCompressionMethod(Zip4jConstants.COMP_DEFLATE)
     zipparameters.setCompressionLevel(Zip4jConstants.DEFLATE_LEVEL_FASTEST)
     zipparameters.setIncludeRootFolder(false)
+    if (0 == directory.toFile.listFiles.size) temporaryFileInDirectory(directory.toFile)
     zipfile.addFolder(directory.toFile, zipparameters)
     trace(s"packDirectory finished : ${zfile.getAbsolutePath} length = ${zfile.length}")
     zfile.toPath

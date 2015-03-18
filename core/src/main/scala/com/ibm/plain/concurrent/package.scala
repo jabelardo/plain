@@ -2,13 +2,21 @@ package com.ibm
 
 package plain
 
-import java.util.concurrent.{ ForkJoinPool, ThreadPoolExecutor, ArrayBlockingQueue, TimeUnit, ScheduledFuture }
+import java.util.concurrent.{ ScheduledFuture, TimeUnit }
 
 import scala.concurrent.Future
-import scala.concurrent.duration.DurationLong
 import scala.language.implicitConversions
 
+import com.ibm.plain.concurrent.Concurrent
+
 import config.CheckedConfig
+
+import java.util.concurrent.{ ScheduledFuture, TimeUnit }
+
+import scala.concurrent.Future
+import scala.language.implicitConversions
+
+import com.ibm.plain.concurrent.Concurrent
 
 package object concurrent
 
