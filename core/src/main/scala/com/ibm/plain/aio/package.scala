@@ -99,7 +99,7 @@ package object aio
   /**
    *
    */
-  final val readWriteTimeout = getMilliseconds("plain.aio.read-write-timeout", 15 * 60 * 1000)
+  final val readWriteTimeout = getMilliseconds("plain.aio.read-write-timeout", 15 * 1000)
 
   final val readWriteDuration = Duration(readWriteTimeout, MILLISECONDS)
 
