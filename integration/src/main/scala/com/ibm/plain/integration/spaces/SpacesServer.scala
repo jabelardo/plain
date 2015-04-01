@@ -43,6 +43,8 @@ final class SpacesServer
 
   override def start = {
 
+    checkMinimumFileSpace
+
     spaceslist.foreach { space ⇒
       def log(fun: String ⇒ Unit, message: String, space: Space, path: Path): Unit = fun("name: " + space.name + ", " + message + ": " + path.toAbsolutePath)
       val (fun, message, path): (String ⇒ Unit, String, Path) = rootDirectory.resolve(space.name) match {

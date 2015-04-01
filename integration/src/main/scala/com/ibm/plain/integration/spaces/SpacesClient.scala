@@ -220,6 +220,7 @@ object SpacesClient
     val tmpdir = temporaryDirectory.toPath
     val zfile = tmpdir.resolve("zip").toFile
     trace(s"packDirectory started : ${zfile.getAbsolutePath}")
+    checkMinimumFileSpace
     val zipfile = new ZipFile(zfile)
     val zipparameters = new ZipParameters
     zipparameters.setCompressionMethod(Zip4jConstants.COMP_DEFLATE)
@@ -233,6 +234,7 @@ object SpacesClient
 
   final def unpackDirectory(directory: Path, lz4file: File, ignore: Boolean) = {
     trace(s"unpackDirectory started : ${lz4file.getAbsolutePath} length = ${lz4file.length}")
+    checkMinimumFileSpace
     try {
       val file = lz4file.toPath.getParent.resolve("zip").toFile
       val in = LZ4.inputStream(new FileInputStream(lz4file))

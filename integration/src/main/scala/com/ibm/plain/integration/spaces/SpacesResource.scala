@@ -120,6 +120,7 @@ object SpacesResource
         case path ⇒ io.createDirectory(path)
       }
     }
+    checkMinimumFileSpace
     val root = context.config.getString("spaces-directory")
     val space = context.variables.getOrElse("space", null)
     val container = if (null != defaultcontainer) defaultcontainer else context.variables.getOrElse("container", defaultcontainer)
@@ -131,6 +132,7 @@ object SpacesResource
   private final def extractFilesFromContainers(context: Context, input: JObject): Path = try {
     import SpacesClient.{ packDirectory, unpackDirectory }
     trace(s"extractFilesFromContainers : input = $input")
+    checkMinimumFileSpace
     val collectdir = temporaryDirectory.toPath
     input.toList.foreach {
       case (container, files) ⇒
