@@ -61,9 +61,9 @@ final class SpacesClient
           val lz4file = packDirectory(localdirectory)
           val config = RequestConfig.
             custom.
-            setConnectTimeout(defaulttimeout).
-            setConnectionRequestTimeout(defaulttimeout).
-            setSocketTimeout(defaulttimeout).
+            setConnectTimeout(requestTimeout).
+            setConnectionRequestTimeout(requestTimeout).
+            setSocketTimeout(requestTimeout).
             build
           val client = HttpClientBuilder.create.setDefaultRequestConfig(config).build
           put.setHeader("Expect", "100-continue")
@@ -104,9 +104,9 @@ final class SpacesClient
         if (purgedirectory) deleteDirectory(localdirectory.toFile)
         val config = RequestConfig.
           custom.
-          setConnectTimeout(defaulttimeout).
-          setConnectionRequestTimeout(defaulttimeout).
-          setSocketTimeout(defaulttimeout).
+          setConnectTimeout(requestTimeout).
+          setConnectionRequestTimeout(requestTimeout).
+          setSocketTimeout(requestTimeout).
           build
         val client = HttpClientBuilder.create.setDefaultRequestConfig(config).build
         val get = new HttpGet(space.serverUri + "/" + container)
@@ -145,9 +145,9 @@ final class SpacesClient
         if (purgedirectory) deleteDirectory(localdirectory.toFile)
         val config = RequestConfig.
           custom.
-          setConnectTimeout(defaulttimeout).
-          setConnectionRequestTimeout(defaulttimeout).
-          setSocketTimeout(defaulttimeout).
+          setConnectTimeout(requestTimeout).
+          setConnectionRequestTimeout(requestTimeout).
+          setSocketTimeout(requestTimeout).
           build
         val client = HttpClientBuilder.create.setDefaultRequestConfig(config).build
         val post = new HttpPost(space.serverUri + "/00000000000000000000000000000000/")
@@ -195,8 +195,6 @@ final class SpacesClient
   }
 
   private[this] final var client: AsyncHttpClient = null
-
-  private[this] final val defaulttimeout = 90000
 
 }
 
