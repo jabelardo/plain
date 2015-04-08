@@ -63,8 +63,8 @@ final class ActiveMQ
   }
 
   override def stop = {
-    ActiveMQ.resetInstance
-    Camel.instance.context.removeComponent("activemq")
+    ignore(ActiveMQ.resetInstance)
+    ignore(Camel.instance.context.removeComponent("activemq"))
     if (isMaster) {
       if (null != broker) {
         broker.stop

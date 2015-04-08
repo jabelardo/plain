@@ -99,7 +99,9 @@ abstract class BaseComponent[C](
       info("Stopped component : " + name)
     }
   } catch {
-    case e: Throwable ⇒ System.err.println("Exception during stop of Component '" + name + "' : " + e)
+    case e: Throwable ⇒
+      System.err.println("Exception during stop of Component '" + name + "' : " + e)
+      e.printStackTrace
   }
 
   final def doAwaitTermination(timeout: Duration) = try {
