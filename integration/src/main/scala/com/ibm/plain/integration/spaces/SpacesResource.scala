@@ -2,7 +2,7 @@ package com.ibm.plain
 package integration
 package spaces
 
-import java.nio.file.{ Path, Paths }
+import java.nio.file.{ Path, Paths, StandardCopyOption }
 import java.nio.file.Files.{ exists ⇒ fexists, isDirectory, isRegularFile, copy, move, delete, readAllBytes }
 
 import org.apache.commons.io.FileUtils.deleteDirectory
@@ -170,7 +170,7 @@ object SpacesResource
           val from = containerdir.resolve(f)
           val to = collectdir.resolve(f)
           if (fexists(from)) {
-            move(from, to)
+            move(from, to, StandardCopyOption.REPLACE_EXISTING)
           } else {
             warn(s"POST : Could not extract a repository file : filename = ${from.getFileName} directory = ${from.getParent}")
             warn(s"POST : Looking for file in the spaces 'fallback' directory : filename = $f fallback directory = $fallbackDirectory")
