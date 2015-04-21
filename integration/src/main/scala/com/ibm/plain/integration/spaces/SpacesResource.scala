@@ -141,7 +141,7 @@ object SpacesResource
         try {
           val containerfile = computePathToContainerFile(context, container)
           val lz4file = unpackdir.resolve("lz4")
-          copy(containerfile, lz4file)
+          copy(containerfile, lz4file, StandardCopyOption.REPLACE_EXISTING)
           unpackDirectory(containerdir, lz4file.toFile, true) // ignore errors
         } catch {
           case e: Throwable ⇒
@@ -176,7 +176,7 @@ object SpacesResource
             warn(s"POST : Looking for file in the spaces 'fallback' directory : filename = $f fallback directory = $fallbackDirectory")
             val fromfallback = fallbackDirectory.resolve(f)
             if (fexists(fromfallback)) {
-              copy(fromfallback, to)
+              copy(fromfallback, to, StandardCopyOption.REPLACE_EXISTING)
               warn(s"POST : Copied file from the 'fallback' directory : filename = $f")
             } else {
               error(s"POST : File does not exist and is missing in the 'fallback' directory : filename = $f")
