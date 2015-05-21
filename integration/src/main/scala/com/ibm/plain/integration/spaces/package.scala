@@ -29,11 +29,7 @@ package object spaces
 
   final val requestTimeout = getMilliseconds("plain.integration.spaces.client.request-timeout", 15 * 60 * 1000).toInt
 
-  final val slowdownTimeout = getMilliseconds("plain.integration.spaces.client.slowdown-timeout", 0).toInt
-
-  final val intermediateWriteBufferSize = getBytes("plain.integration.spaces.client.intermediate-write-buffer-size", 0).toInt
-
-  final val doNotWriteToFile = getBoolean("plain.integration.spaces.client.do-not-write-to-file", false)
+  final val intermediateWriteBufferSize = getBytes("plain.integration.spaces.client.intermediate-write-buffer-size", 2 * 1024 * 1024).toInt
 
   final val rootDirectory = {
     val root = Paths.get(getString("plain.integration.spaces.root-directory", "target/spaces"))

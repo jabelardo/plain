@@ -111,48 +111,46 @@ final class SpacesClient
         val client = HttpClientBuilder.create.setDefaultRequestConfig(config).build
         val get = new HttpGet(space.serverUri + "/" + container)
         try {
-          def slowCopy(in: InputStream, out: OutputStream) {
+          var total = 0L
+          def bufferedCopy(in: InputStream, out: OutputStream) {
             val buffersize = 54 * 1024
             val buffer = new Array[Byte](buffersize)
             val intermediate = 0 < intermediateWriteBufferSize
             val intermediateout = if (intermediate) new ByteArrayOutputStream(intermediateWriteBufferSize) else null
-            val output = if (doNotWriteToFile) NullOutputStream else out
             var bytesread = 0
-            var total = 0L
             while (-1 < { bytesread = in.read(buffer, 0, buffersize); bytesread }) {
               total += bytesread
               trace(s"GET : bytesread $bytesread, total = $total")
               if (intermediate) {
                 intermediateout.write(buffer, 0, bytesread)
                 if (intermediateout.length >= intermediateWriteBufferSize) {
-                  trace(s"GET : flushing intermediate buffer : ${intermediateout.length}")
-                  output.write(intermediateout.toByteArray)
-                  output.flush
+                  out.write(intermediateout.toByteArray)
+                  out.flush
                   intermediateout.reset
                 }
               } else {
-                output.write(buffer, 0, bytesread)
-                output.flush
+                out.write(buffer, 0, bytesread)
+                out.flush
               }
-              if (0 < slowdownTimeout) Thread.sleep(slowdownTimeout)
             }
             if (intermediate) {
-              output.write(intermediateout.toByteArray)
-              output.flush
+              out.write(intermediateout.toByteArray)
+              out.flush
             }
             out.flush
-            trace(s"GET : finished, total = $total")
+            trace(s"GET finished, total = $total")
           }
           trace(s"GET started : ${get.getURI}")
           val response = client.execute(get)
           val in = response.getEntity.getContent
           val lz4file = temporaryDirectory.toPath.resolve("lz4").toFile
           val out = new FileOutputStream(lz4file)
-          try slowCopy(in, out)
+          try bufferedCopy(in, out)
           finally {
             in.close
             out.close
             response.close
+            if (total > 500 * 1024 * 1024) Thread.sleep(2000)
           }
           unpackDirectory(localdirectory, lz4file, false)
           trace(s"GET finished : ${get.getURI}")
