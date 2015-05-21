@@ -29,6 +29,8 @@ package object spaces
 
   final val requestTimeout = getMilliseconds("plain.integration.spaces.client.request-timeout", 15 * 60 * 1000).toInt
 
+  final val slowdownTimeout = getMilliseconds("plain.integration.spaces.client.slowdown-timeout", 0).toInt
+
   final val rootDirectory = {
     val root = Paths.get(getString("plain.integration.spaces.root-directory", "target/spaces"))
     io.createDirectory(root)

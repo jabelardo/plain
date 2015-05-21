@@ -43,7 +43,7 @@ final class SpacesResource
     exchange.transferFrom(source)
     ConduitEntity(
       source,
-      ContentType(`application/gzip`),
+      ContentType(`application/zip`),
       length,
       false)
   }
@@ -97,7 +97,7 @@ final class SpacesResource
     exchange.transferFrom(source)
     ConduitEntity(
       source,
-      ContentType(`application/gzip`),
+      ContentType(`application/zip`),
       length,
       false)
   }

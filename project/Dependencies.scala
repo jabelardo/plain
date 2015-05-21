@@ -21,7 +21,7 @@ object Dependencies {
       "commons-io" % "commons-io" % "2.4",
       "commons-net" % "commons-net" % "3.3",
       "commons-codec" % "commons-codec" % "1.10",
-      "org.apache.httpcomponents" % "httpclient" % "4.3.6")
+      "org.apache.httpcomponents" % "httpclient" % "4.4.1")
 
     def net = Seq(
       "org.glassfish.grizzly" % "grizzly-websockets" % "2.3.18",

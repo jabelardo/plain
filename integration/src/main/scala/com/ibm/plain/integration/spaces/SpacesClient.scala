@@ -2,7 +2,7 @@ package com.ibm.plain
 package integration
 package spaces
 
-import java.io.{ File, FileInputStream, FileOutputStream }
+import java.io.{ File, FileInputStream, FileOutputStream, InputStream, OutputStream }
 import java.nio.file.Path
 
 import org.apache.commons.io.FileUtils.deleteDirectory
@@ -111,12 +111,28 @@ final class SpacesClient
         val client = HttpClientBuilder.create.setDefaultRequestConfig(config).build
         val get = new HttpGet(space.serverUri + "/" + container)
         try {
+          def slowCopy(in: InputStream, out: OutputStream) {
+            val buffersize = 32 * 1024
+            val buffer = new Array[Byte](buffersize)
+            var bytesread = 0
+            if (0 < slowdownTimeout) {
+              while (-1 < { bytesread = in.read(buffer, 0, buffersize); bytesread }) {
+                out.write(buffer, 0, bytesread)
+                Thread.sleep(slowdownTimeout)
+              }
+            } else {
+              while (-1 < { bytesread = in.read(buffer, 0, buffersize); bytesread }) {
+                out.write(buffer, 0, bytesread)
+              }
+            }
+            out.flush
+          }
           trace(s"GET started : ${get.getURI}")
           val response = client.execute(get)
           val in = response.getEntity.getContent
           val lz4file = temporaryDirectory.toPath.resolve("lz4").toFile
           val out = new FileOutputStream(lz4file)
-          try copyBytes(in, out)
+          try slowCopy(in, out)
           finally {
             in.close
             out.close
