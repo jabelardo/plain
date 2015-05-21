@@ -120,7 +120,6 @@ final class SpacesClient
             var bytesread = 0
             while (-1 < { bytesread = in.read(buffer, 0, buffersize); bytesread }) {
               total += bytesread
-              trace(s"GET : bytesread $bytesread, total = $total")
               if (intermediate) {
                 intermediateout.write(buffer, 0, bytesread)
                 if (intermediateout.length >= intermediateWriteBufferSize) {
@@ -138,7 +137,7 @@ final class SpacesClient
               out.flush
             }
             out.flush
-            trace(s"GET finished, total = $total")
+            trace(s"GET finished, total = $total, intermediat buffer = $intermediateWriteBufferSize")
           }
           trace(s"GET started : ${get.getURI}")
           val response = client.execute(get)
