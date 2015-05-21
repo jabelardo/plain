@@ -19,7 +19,7 @@ import com.ning.http.client.{ AsyncHttpClient, RequestBuilder }
 import bootstrap.{ ExternalComponent, Singleton }
 import camel.Camel
 import crypt.Uuid
-import io.{ LZ4, copyBytes, temporaryDirectory, temporaryFileInDirectory }
+import io.{ LZ4, copyBytes, temporaryDirectory, temporaryFileInDirectory, NullOutputStream, ByteArrayOutputStream }
 import logging.Logger
 import net.lingala.zip4j.core.ZipFile
 import net.lingala.zip4j.model.ZipParameters
@@ -112,20 +112,36 @@ final class SpacesClient
         val get = new HttpGet(space.serverUri + "/" + container)
         try {
           def slowCopy(in: InputStream, out: OutputStream) {
-            val buffersize = 32 * 1024
+            val buffersize = 54 * 1024
             val buffer = new Array[Byte](buffersize)
+            val intermediate = 0 < intermediateWriteBufferSize
+            val intermediateout = if (intermediate) new ByteArrayOutputStream(intermediateWriteBufferSize) else null
+            val output = if (doNotWriteToFile) NullOutputStream else out
             var bytesread = 0
-            if (0 < slowdownTimeout) {
-              while (-1 < { bytesread = in.read(buffer, 0, buffersize); bytesread }) {
-                out.write(buffer, 0, bytesread)
-                Thread.sleep(slowdownTimeout)
+            var total = 0L
+            while (-1 < { bytesread = in.read(buffer, 0, buffersize); bytesread }) {
+              total += bytesread
+              trace(s"GET : bytesread $bytesread, total = $total")
+              if (intermediate) {
+                intermediateout.write(buffer, 0, bytesread)
+                if (intermediateout.length >= intermediateWriteBufferSize) {
+                  trace(s"GET : flushing intermediate buffer : ${intermediateout.length}")
+                  output.write(intermediateout.toByteArray)
+                  output.flush
+                  intermediateout.reset
+                }
+              } else {
+                output.write(buffer, 0, bytesread)
+                output.flush
               }
-            } else {
-              while (-1 < { bytesread = in.read(buffer, 0, buffersize); bytesread }) {
-                out.write(buffer, 0, bytesread)
-              }
+              if (0 < slowdownTimeout) Thread.sleep(slowdownTimeout)
+            }
+            if (intermediate) {
+              output.write(intermediateout.toByteArray)
+              output.flush
             }
             out.flush
+            trace(s"GET : finished, total = $total")
           }
           trace(s"GET started : ${get.getURI}")
           val response = client.execute(get)

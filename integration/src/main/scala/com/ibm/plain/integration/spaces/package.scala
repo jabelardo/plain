@@ -31,6 +31,10 @@ package object spaces
 
   final val slowdownTimeout = getMilliseconds("plain.integration.spaces.client.slowdown-timeout", 0).toInt
 
+  final val intermediateWriteBufferSize = getBytes("plain.integration.spaces.client.intermediate-write-buffer-size", 0).toInt
+
+  final val doNotWriteToFile = getBoolean("plain.integration.spaces.client.do-not-write-to-file", false)
+
   final val rootDirectory = {
     val root = Paths.get(getString("plain.integration.spaces.root-directory", "target/spaces"))
     io.createDirectory(root)
