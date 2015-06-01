@@ -58,7 +58,7 @@ final class SpacesComponent
 /**
  * Represents a Spaces endpoint.
  */
-@UriEndpoint(scheme = "spaces", title = "spaces", syntax = "spaces:path")
+@UriEndpoint(scheme = "spaces" /*, title = "spaces", syntax = "spaces:path"*/ )
 class SpacesEndpoint(
 
   uri: String,
