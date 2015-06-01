@@ -114,7 +114,7 @@ final class HttpServletRequest(
   final def getInputStream: js.ServletInputStream = {
     request.entity match {
       case None ⇒
-        null
+        new ServletInputStream(new java.io.ByteArrayInputStream(new Array[Byte](0), 0, 0))
       case Some(e: ArrayEntity) ⇒
         new ServletInputStream(new io.ByteArrayInputStream(e.array, e.offset, e.length.toInt))
       case Some(e: ByteBufferEntity) ⇒
