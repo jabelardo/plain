@@ -13,6 +13,8 @@ project/plugins/project/
 *.war
 *.jar
 */.cache
+*/.cache-main
+*/.cache-tests
 *.cache
 */.classpath
 *.classpath

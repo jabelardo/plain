@@ -113,6 +113,8 @@ final class HttpServletRequest(
 
   final def getInputStream: js.ServletInputStream = {
     request.entity match {
+      case None ⇒
+        null
       case Some(e: ArrayEntity) ⇒
         new ServletInputStream(new io.ByteArrayInputStream(e.array, e.offset, e.length.toInt))
       case Some(e: ByteBufferEntity) ⇒
@@ -290,4 +292,3 @@ final class HttpServletRequest(
   private[this] final def channel = exchange.socketChannel.asInstanceOf[SocketChannelConduit].socketChannel
 
 }
-
