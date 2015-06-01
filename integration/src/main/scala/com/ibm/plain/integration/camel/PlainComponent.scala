@@ -35,7 +35,7 @@ final class PlainComponent
 /**
  * Represents a Plain endpoint.
  */
-@UriEndpoint(scheme = "plain")
+@UriEndpoint(scheme = "plain", title = "plain", syntax = "plain:path")
 class PlainEndpoint(
 
   uri: String,
