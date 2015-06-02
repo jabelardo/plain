@@ -237,7 +237,7 @@ object SpacesResource
       val tokenUuid = try {
         // construct POST request
         val postRequest = new HttpPost(wtcURI)
-        postRequest.setHeader("Authorization", wtcAuthorization)
+        postRequest.setHeader("Authorization", "Basic " + wtcAuthorization)
         postRequest.setHeader("ContentType", "application/json")
         postRequest.setEntity(new StringEntity("""{ "requests": [ { "cadname": "$file" } ] }"""))
 
