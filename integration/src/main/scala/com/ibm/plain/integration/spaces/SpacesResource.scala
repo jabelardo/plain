@@ -4,9 +4,7 @@ package spaces
 
 import java.nio.file.{ Path, Paths, StandardCopyOption }
 import java.nio.file.Files.{ exists ⇒ fexists, isDirectory, isRegularFile, copy, move, delete, readAllBytes }
-
 import org.apache.commons.io.FileUtils.deleteDirectory
-
 import aio.conduit.FileConduit
 import aio.Exchange
 import crypt.Uuid
@@ -19,6 +17,14 @@ import json.Json
 import json.Json.JObject
 import logging.Logger
 import rest.{ Context, Resource }
+import org.apache.http.client.config.RequestConfig
+import org.apache.http.impl.client.HttpClientBuilder
+import org.apache.http.client.methods.HttpPost
+import com.ibm.plain.io.Base64OutputStream
+import org.apache.http.entity.StringEntity
+import org.apache.http.client.methods.HttpGet
+import java.io.FileOutputStream
+import net.lingala.zip4j.core.ZipFile
 
 /**
  *
@@ -161,7 +167,11 @@ object SpacesResource
           if (!fexists(from)) {
             val fromfallback = fallbackDirectory.resolve(f)
             if (!fexists(fromfallback)) {
-              error(s"POST : File could not be extracted from repository and is also missing in the 'fallback' directory : filename = $f fallback directory = $fallbackDirectory")
+              warn(s"POST : File could not be extracted from repository and is also missing in the 'fallback' directory : filename = $f fallback directory = $fallbackDirectory")
+              warn(s"POST : Trying to downloading file from Windchill : CADName = $f")
+              if (!downloadFileFromWindchill(f, fallbackDirectory)) {
+                error(s"POST : Downloading file from Windchill failed: CADName = $f")
+              }
             }
           }
         })
@@ -193,6 +203,120 @@ object SpacesResource
     case e: Throwable ⇒
       error("extractFilesFromContainers failed : " + e)
       throw ClientError.`400`
+  }
+
+  /**
+   * In case the fallback directory does not contain the specified file it will be downloaded from Windchill and
+   * will be put into place instead of the missing file.
+   */
+  private final def downloadFileFromWindchill(file: String, downloadDir: Path): Boolean = {
+    var success = false
+
+    // test wtc-downloader configuration
+    if (wtcProtocol == null || wtcHost == null || wtcPort == null || wtcServlet == null) {
+      error(s"Windchill download server path has not been properly set up.")
+      return false
+    }
+
+    // build request configuration
+    val config = RequestConfig.
+      custom.
+      setConnectTimeout(requestTimeout).
+      setConnectionRequestTimeout(requestTimeout).
+      setSocketTimeout(requestTimeout).
+      build
+    // build http client
+    val client = HttpClientBuilder.create.setDefaultRequestConfig(config).build
+
+    // create request URI and authorization string
+    val wtcURI = s"$wtcProtocol$wtcHost:$wtcPort$wtcServlet"
+    val wtcAuthorization = new String(Base64OutputStream.encode(s"$wtcUser:$wtcPassword".getBytes))
+
+    try {
+      // retrieve tokenUuid
+      val tokenUuid = try {
+        // construct POST request
+        val postRequest = new HttpPost(wtcURI)
+        postRequest.setHeader("Authorization", wtcAuthorization)
+        postRequest.setHeader("ContentType", "application/json")
+        postRequest.setEntity(new StringEntity("""{ "requests": [ { "cadname": "$file" } ] }"""))
+
+        // send POST request to wtc-downloader
+        trace(s"POST started : uri = ${postRequest.getURI}")
+
+        val postResponse = client.execute(postRequest)
+        // process POST response
+        if (postResponse == null) {
+          throw new Exception(s"No response for request : request = ${postRequest.getURI}")
+        } else if (postResponse.getStatusLine.getStatusCode != 201) {
+          throw new Exception(s"Resource could not be created for request : request = ${postRequest.getURI}, status = ${postResponse.getStatusLine.getStatusCode}")
+        }
+
+        // TODO: magic token tag, create CONSTANT
+        val token = postResponse.getFirstHeader("X-TOKEN-UUID").getValue
+        postResponse.close
+        token
+      } catch {
+        case e: Throwable ⇒
+          error(s"WTC-Download POST failed :\n$e")
+          null
+      }
+
+      if (tokenUuid == null) {
+        throw new Exception(s"Could not retrieve file from Windchill : $file")
+      }
+
+      val tokenFile = try {
+        val getRequest = new HttpGet(s"$wtcURI?tokenuuid=$tokenUuid")
+        // wait for response
+        val getResponse = client.execute(getRequest)
+        // process response
+        if (getResponse == null) {
+          throw new Exception(s"No response for request : request = ${getRequest.getURI}")
+        } else if (getResponse.getStatusLine.getStatusCode != 200) {
+          throw new Exception(s"Resource could not be downloaded for request : request = ${getRequest.getURI}, status = ${getResponse.getStatusLine.getStatusCode}")
+        }
+
+        // fetch file for given token
+        val in = getResponse.getEntity.getContent
+        val wtcFile = downloadDir.resolve(s"$tokenUuid.zip").toFile()
+        val out = new FileOutputStream(wtcFile)
+        try com.ibm.plain.io.copyBytes(in, out)
+        finally {
+          in.close
+          out.close
+          getResponse.close
+        }
+        wtcFile
+      } catch {
+        case e: Throwable ⇒
+          error(s"WTC-Download GET failed :\n$e")
+          null
+      }
+
+      if (tokenFile == null || !tokenFile.exists()) {
+        throw new Exception(s"No token-file could be downloaded for token: tokenuuid = $tokenUuid")
+      }
+
+      try {
+        // extract files from retrieved data into fallback directory
+        val zipfile = new ZipFile(tokenFile)
+        zipfile.extractAll(downloadDir.toFile().getAbsolutePath)
+        success = true
+      } catch {
+        case e: Throwable ⇒
+          error(s"WTC-Download unpacking failed : file = $tokenFile\n$e")
+      } finally {
+        tokenFile.delete()
+      }
+    } catch {
+      case e: Throwable ⇒
+        error(s"WTC-Download failed :\n$e")
+    } finally {
+      client.close
+    }
+
+    success
   }
 
   private[this] final val extension = ".bin"

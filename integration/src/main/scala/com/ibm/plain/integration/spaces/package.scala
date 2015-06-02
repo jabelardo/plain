@@ -86,4 +86,16 @@ package object spaces
     check(io.temp)
   }
 
+  final val wtcProtocol = getString("plain.integration.spaces.wtc-downloader.wtc-protocol")
+
+  final val wtcUser = getString("plain.integration.spaces.wtc-downloader.wtc-user")
+
+  final val wtcPassword = getString("plain.integration.spaces.wtc-downloader.wtc-password")
+
+  final val wtcHost = getString("plain.integration.spaces.wtc-downloader.wtc-host")
+
+  final val wtcPort = getString("plain.integration.spaces.wtc-downloader.wtc-port")
+
+  final val wtcServlet = getString("plain.integration.spaces.wtc-downloader.wtc-servlet")
+
 }
