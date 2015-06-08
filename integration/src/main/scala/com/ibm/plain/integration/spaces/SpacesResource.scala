@@ -20,7 +20,6 @@ import rest.{ Context, Resource }
 import org.apache.http.client.config.RequestConfig
 import org.apache.http.impl.client.HttpClientBuilder
 import org.apache.http.client.methods.HttpPost
-import com.ibm.plain.io.Base64OutputStream
 import org.apache.http.entity.StringEntity
 import org.apache.http.client.methods.HttpGet
 import java.io.FileOutputStream
@@ -219,8 +218,7 @@ object SpacesResource
     }
 
     // build request configuration
-    val config = RequestConfig.
-      custom.
+    val config = RequestConfig.custom.
       setConnectTimeout(requestTimeout).
       setConnectionRequestTimeout(requestTimeout).
       setSocketTimeout(requestTimeout).
@@ -236,12 +234,12 @@ object SpacesResource
       val tokenUuid = try {
         // construct POST request
         val postRequest = new HttpPost(wtcURI)
-        // postRequest.addHeader("Authorization", s"Basic $wtcAuthorization")
         postRequest.addHeader("ContentType", "application/json")
-        postRequest.setEntity(new StringEntity(s"""{ "requests": [ { "cadname": """" + file + """" } ] }"""))
+        val entity = new StringEntity(s"""{ "requests": [ { "cadname": "$file" } ] }""")
+        postRequest.setEntity(entity)
 
         // send POST request to wtc-downloader
-        trace(s"POST started : uri = ${postRequest.getURI}")
+        trace(s"POST started : uri = ${postRequest.getURI} entity = $entity")
 
         val postResponse = client.execute(postRequest)
         // process POST response
