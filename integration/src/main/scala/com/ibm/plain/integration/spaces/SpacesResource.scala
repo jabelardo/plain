@@ -209,7 +209,7 @@ object SpacesResource
    * In case the fallback directory does not contain the specified file it will be downloaded from Windchill and
    * will be put into place instead of the missing file.
    */
-  private final def downloadFileFromWindchill(file: String, downloadDir: Path): Boolean = {
+  def downloadFileFromWindchill(file: String, downloadDir: Path): Boolean = {
     var success = false
 
     // test wtc-downloader configuration
@@ -229,17 +229,16 @@ object SpacesResource
     val client = HttpClientBuilder.create.setDefaultRequestConfig(config).build
 
     // create request URI and authorization string
-    val wtcURI = s"$wtcProtocol$wtcHost:$wtcPort$wtcServlet"
-    val wtcAuthorization = new String(Base64OutputStream.encode(s"$wtcUser:$wtcPassword".getBytes))
+    val wtcURI = s"$wtcProtocol$wtcUser:$wtcPassword@$wtcHost:$wtcPort$wtcServlet"
 
     try {
       // retrieve tokenUuid
       val tokenUuid = try {
         // construct POST request
         val postRequest = new HttpPost(wtcURI)
-        postRequest.setHeader("Authorization", "Basic " + wtcAuthorization)
-        postRequest.setHeader("ContentType", "application/json")
-        postRequest.setEntity(new StringEntity("""{ "requests": [ { "cadname": "$file" } ] }"""))
+        // postRequest.addHeader("Authorization", s"Basic $wtcAuthorization")
+        postRequest.addHeader("ContentType", "application/json")
+        postRequest.setEntity(new StringEntity(s"""{ "requests": [ { "cadname": """" + file + """" } ] }"""))
 
         // send POST request to wtc-downloader
         trace(s"POST started : uri = ${postRequest.getURI}")
@@ -248,11 +247,16 @@ object SpacesResource
         // process POST response
         if (postResponse == null) {
           throw new Exception(s"No response for request : request = ${postRequest.getURI}")
-        } else if (postResponse.getStatusLine.getStatusCode != 201) {
+        } else if (postResponse.getStatusLine.getStatusCode == 201) {
+          trace("Query returned full result list.")
+        } else if (postResponse.getStatusLine.getStatusCode == 204) {
+          trace("Query returned no results.")
+        } else if (postResponse.getStatusLine.getStatusCode == 206) {
+          trace("Query partial returned results.")
+        } else {
           throw new Exception(s"Resource could not be created for request : request = ${postRequest.getURI}, status = ${postResponse.getStatusLine.getStatusCode}")
         }
 
-        // TODO: magic token tag, create CONSTANT
         val token = postResponse.getFirstHeader("X-TOKEN-UUID").getValue
         postResponse.close
         token
@@ -263,13 +267,16 @@ object SpacesResource
       }
 
       if (tokenUuid == null) {
-        throw new Exception(s"Could not retrieve file from Windchill : $file")
+        throw new Exception(s"Could not retrieve file from Windchill : $file request/json: " + s"""{ "requests": [ { "cadname": """" + file + """" } ] }""")
       }
 
       val tokenFile = try {
         val getRequest = new HttpGet(s"$wtcURI?tokenuuid=$tokenUuid")
+        // getRequest.addHeader("Authorization", s"Basic $wtcAuthorization")
+
         // wait for response
         val getResponse = client.execute(getRequest)
+
         // process response
         if (getResponse == null) {
           throw new Exception(s"No response for request : request = ${getRequest.getURI}")
