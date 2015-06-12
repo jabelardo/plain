@@ -185,8 +185,8 @@ object SpacesResource
             warn(s"POST : Looking for file in the spaces 'fallback' directory : filename = $f fallback directory = $fallbackDirectory")
             val fromfallback = fallbackDirectory.resolve(f)
             if (fexists(fromfallback)) {
-              copy(fromfallback, to, StandardCopyOption.REPLACE_EXISTING)
-              warn(s"POST : Copied file from the 'fallback' directory : filename = $f")
+              move(fromfallback, to, StandardCopyOption.REPLACE_EXISTING)
+              warn(s"POST : Moved file from the 'fallback' directory : filename = $f")
             } else {
               error(s"POST : File does not exist and is missing in the 'fallback' directory : filename = $f")
               illegalState(s"POST : File does not exist and is missing in the 'fallback' directory : filename = $f")
@@ -306,13 +306,13 @@ object SpacesResource
       try {
         // extract files from retrieved data into fallback directory
         val zipfile = new ZipFile(tokenFile)
-        zipfile.extractAll(downloadDir.toFile().getAbsolutePath)
+        zipfile.extractAll(downloadDir.toFile.getAbsolutePath)
         success = true
       } catch {
         case e: Throwable ⇒
           error(s"WTC-Download unpacking failed : file = $tokenFile\n$e")
       } finally {
-        tokenFile.delete()
+        tokenFile.delete
       }
     } catch {
       case e: Throwable ⇒
