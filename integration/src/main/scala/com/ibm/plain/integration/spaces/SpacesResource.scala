@@ -153,7 +153,8 @@ object SpacesResource
             warn(s"extractFilesFromContainers : ignored = $e")
         }
         val filelist = {
-          val fileinput = files.asArray.map(_.asString).toList
+          // WTC-Download /  / robert.bergner@de.ibm.com
+          val fileinput = files.asArray.map(_.asArray(0).asString).toList
           if (1 == fileinput.size && "*" == fileinput.apply(0)) {
             containerdir.toFile.list.toList.filter(f ⇒ f.endsWith("CATPart") || f.endsWith("CATProduct"))
           } else {
