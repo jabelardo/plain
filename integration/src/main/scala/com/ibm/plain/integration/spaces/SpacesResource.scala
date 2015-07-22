@@ -134,6 +134,18 @@ object SpacesResource
     computeDirectory(root, space).resolve(containeruuid + extension)
   }
 
+  private final def matchTuple(fn: String => Boolean): Any => Boolean = {
+		(tuple: Any) => 
+  		tuple match {
+    		case (file: String, _) => fn(file)
+    		case _ => false
+  		}
+  }
+    
+  private final def isFileMissingInDirectory(directory: Path): String => Boolean = (file: String) => {
+    !fexists(directory.resolve(file))
+  }
+  
   private final def extractFilesFromContainers(context: Context, input: JObject): Path = try {
     import SpacesClient.{ packDirectory, unpackDirectory }
     trace(s"extractFilesFromContainers : input = $input")
@@ -152,39 +164,45 @@ object SpacesResource
           case e: Throwable ⇒
             warn(s"extractFilesFromContainers : ignored = $e")
         }
-        val filelist = {
-          // WTC-Download /  / robert.bergner@de.ibm.com
-          val fileinput = files.asArray.map(_.asArray(0).asString).toList
-          if (1 == fileinput.size && "*" == fileinput.apply(0)) {
-            containerdir.toFile.list.toList.filter(f ⇒ f.endsWith("CATPart") || f.endsWith("CATProduct"))
+        
+        val filelist: List[(String, Option[String])] = {
+          val fileinput = files.asArray.map(e ⇒ {
+            val a = e.asArray
+            // (filename, enoviaoidversion)
+            (a(0).asString, Some(a(1).asString))
+          }).toList
+          
+          if (1 == fileinput.size && "*" == fileinput(0)._1) {
+            containerdir.toFile.list.toList.filter(f ⇒ f.endsWith("CATPart") || f.endsWith("CATProduct")).map(f => (f, None))
           } else {
             fileinput
           }
         }
+        
         trace(s"extractFilesFromContainers : input filelist = $filelist")
-        filelist.foreach(f ⇒ {
-          val from = containerdir.resolve(f)
-          if (!fexists(from)) {
-            val fromfallback = fallbackDirectory.resolve(f)
-            if (!fexists(fromfallback)) {
-              warn(s"POST : File could not be extracted from repository and is also missing in the 'fallback' directory : filename = $f fallback directory = $fallbackDirectory")
-              warn(s"POST : Trying to downloading file from Windchill : CADName = $f")
-              if (!downloadFileFromWindchill(f, fallbackDirectory)) {
-                error(s"POST : Downloading file from Windchill failed: CADName = $f")
-              }
-            }
-          }
+        val missingFiles = filelist
+          .filter(f => matchTuple(isFileMissingInDirectory(containerdir))(f))
+          .filter(f => matchTuple(isFileMissingInDirectory(fallbackDirectory))(f))
+
+        missingFiles.foreach(t => {
+          warn(s"POST : File could not be extracted from repository and is also missing in the 'fallback' directory : filename = ${t._1} fallback directory = $fallbackDirectory")
+          warn(s"POST : Trying to download it from from Windchill : CADName = ${t._1}, enoviaoidmaster = ${t._2}")
         })
+        
+        if (!downloadFilesFromWindchill(missingFiles, fallbackDirectory)) {
+          error(s"POST : Downloading file from Windchill failed for files: $missingFiles")
+        }
+
         filelist.foreach(f ⇒ {
           trace(s"Trying to collect file : $f")
-          val from = containerdir.resolve(f)
-          val to = collectdir.resolve(f)
+          val from = containerdir.resolve(f._1)
+          val to = collectdir.resolve(f._1)
           if (fexists(from)) {
             move(from, to, StandardCopyOption.REPLACE_EXISTING)
           } else {
             warn(s"POST : Could not extract a repository file : filename = ${from.getFileName} directory = ${from.getParent}")
             warn(s"POST : Looking for file in the spaces 'fallback' directory : filename = $f fallback directory = $fallbackDirectory")
-            val fromfallback = fallbackDirectory.resolve(f)
+            val fromfallback = fallbackDirectory.resolve(f._1)
             if (fexists(fromfallback)) {
               move(fromfallback, to, StandardCopyOption.REPLACE_EXISTING)
               warn(s"POST : Moved file from the 'fallback' directory : filename = $f")
@@ -209,7 +227,7 @@ object SpacesResource
    * In case the fallback directory does not contain the specified file it will be downloaded from Windchill and
    * will be put into place instead of the missing file.
    */
-  def downloadFileFromWindchill(file: String, downloadDir: Path): Boolean = {
+  def downloadFilesFromWindchill(fileRequests: List[(String, Option[String])], downloadDir: Path): Boolean = {
     var success = false
 
     // test wtc-downloader configuration
@@ -230,17 +248,28 @@ object SpacesResource
     // create request URI and authorization string
     val wtcURI = s"$wtcProtocol$wtcUser:$wtcPassword@$wtcHost:$wtcPort$wtcServlet"
 
+    val query = s"""{ "requests": [ """ + fileRequests.foldLeft("")((query, tuple) => {
+      // accumulate sub queries 
+      query + { if (0 < query.length()) ", " } + {
+      // match either versions or file names
+      tuple match {
+        case (_, version: Some[String]) =>
+          s"""{ "enoviaoidversion": "$version" }"""
+        case (file: String, _) => 
+          s"""{ "cadname": "$file" }"""
+      } }
+    }) + s""" ] }"""
+    
     try {
       // retrieve tokenUuid
       val tokenUuid = try {
         // construct POST request
         val postRequest = new HttpPost(wtcURI)
         postRequest.addHeader("ContentType", "application/json")
-        val entity = new StringEntity(s"""{ "requests": [ { "cadname": "$file" } ] }""")
-        postRequest.setEntity(entity)
+        postRequest.setEntity(new StringEntity(query))
 
         // send POST request to wtc-downloader
-        trace(s"POST started : uri = ${postRequest.getURI} entity = $entity")
+        trace(s"POST started : uri = ${postRequest.getURI} query = $query")
 
         val postResponse = client.execute(postRequest)
         // process POST response
@@ -253,7 +282,7 @@ object SpacesResource
         } else if (postResponse.getStatusLine.getStatusCode == 206) {
           trace("Query partial returned results.")
         } else {
-          throw new Exception(s"Resource could not be created for request : request = ${postRequest.getURI}, status = ${postResponse.getStatusLine.getStatusCode}")
+          throw new Exception(s"Resource could not be created for request : requestURI = ${postRequest.getURI}, json = ${postRequest.getEntity}, status = ${postResponse.getStatusLine.getStatusCode}")
         }
 
         val token = postResponse.getFirstHeader("X-TOKEN-UUID").getValue
@@ -266,7 +295,7 @@ object SpacesResource
       }
 
       if (tokenUuid == null) {
-        throw new Exception(s"Could not retrieve file from Windchill : $file request/json: " + s"""{ "requests": [ { "cadname": """" + file + """" } ] }""")
+        throw new Exception(s"Could not retrieve file from Windchill : request/json = $query")
       }
 
       val tokenFile = try {
