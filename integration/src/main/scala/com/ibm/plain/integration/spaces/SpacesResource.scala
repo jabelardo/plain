@@ -186,11 +186,11 @@ object SpacesResource
 
         missingFiles.foreach(t => {
           warn(s"POST : File could not be extracted from repository and is also missing in the 'fallback' directory : filename = ${t._1} fallback directory = $fallbackDirectory")
-          warn(s"POST : Trying to download it from from Windchill : CADName = ${t._1}, enoviaoidmaster = ${t._2}")
+          warn(s"POST : Trying to download it from from Windchill : " + { if (t._2.isDefined) s"enoviaoidversion = ${t._2.get}" else s"CADName = ${t._1}" })
         })
         
         if (!downloadFilesFromWindchill(missingFiles, fallbackDirectory)) {
-          error(s"POST : Downloading file from Windchill failed for files: $missingFiles")
+          error(s"POST : Downloading file from Windchill failed for files: " + missingFiles.foldLeft("")((str, file) => s"$str ${file._1}"))
         }
 
         filelist.foreach(f ⇒ {
@@ -250,11 +250,11 @@ object SpacesResource
 
     val query = s"""{ "requests": [ """ + fileRequests.foldLeft("")((query, tuple) => {
       // accumulate sub queries 
-      query + { if (0 < query.length()) ", " } + {
+      query + { if (0 < query.length()) ", " else "" } + {
       // match either versions or file names
       tuple match {
         case (_, version: Some[String]) =>
-          s"""{ "enoviaoidversion": "$version" }"""
+          s"""{ "enoviaoidversion": "${version.get}" }"""
         case (file: String, _) => 
           s"""{ "cadname": "$file" }"""
       } }
