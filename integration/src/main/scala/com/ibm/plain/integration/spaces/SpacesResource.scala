@@ -168,7 +168,7 @@ object SpacesResource
         val filelist: List[(String, Option[String])] = {
           val fileinput = files.asArray.map(e ⇒ {
             val a = e.asArray
-            // (filename, enoviaoidversion)
+            // (filename, enoviaoidmaster) / robert.bergner@de.ibm.com
             (a(0).asString, Some(a(1).asString))
           }).toList
           
@@ -186,7 +186,7 @@ object SpacesResource
 
         missingFiles.foreach(t => {
           warn(s"POST : File could not be extracted from repository and is also missing in the 'fallback' directory : filename = ${t._1} fallback directory = $fallbackDirectory")
-          warn(s"POST : Trying to download it from from Windchill : " + { if (t._2.isDefined) s"enoviaoidversion = ${t._2.get}" else s"CADName = ${t._1}" })
+          warn(s"POST : Trying to download it from from Windchill : " + { if (t._2.isDefined) s"enoviaoidmaster = ${t._2.get}" else s"CADName = ${t._1}" })
         })
         
         if (!downloadFilesFromWindchill(missingFiles, fallbackDirectory)) {
@@ -251,10 +251,10 @@ object SpacesResource
     val query = s"""{ "requests": [ """ + fileRequests.foldLeft("")((query, tuple) => {
       // accumulate sub queries 
       query + { if (0 < query.length()) ", " else "" } + {
-      // match either versions or file names
+      // match either enoviaoidmaster or file names
       tuple match {
-        case (_, version: Some[String]) =>
-          s"""{ "enoviaoidversion": "${version.get}" }"""
+        case (_, master: Some[String]) =>
+          s"""{ "enoviaoidmaster": "${master.get}" }"""
         case (file: String, _) => 
           s"""{ "cadname": "$file" }"""
       } }
