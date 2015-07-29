@@ -253,8 +253,8 @@ object SpacesResource
       query + { if (0 < query.length()) ", " else "" } + {
       // match either enoviaoidmaster or file names
       tuple match {
-        case (_, master: Some[String]) =>
-          s"""{ "enoviaoidmaster": "${master.get}" }"""
+        case (file: String, master: Some[String]) =>
+          s"""{ "enoviaoidmaster": "${master.get}", "cadname": "$file" }"""
         case (file: String, _) => 
           s"""{ "cadname": "$file" }"""
       } }
