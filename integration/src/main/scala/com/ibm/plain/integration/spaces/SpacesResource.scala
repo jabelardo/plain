@@ -250,14 +250,30 @@ object SpacesResource
 
     val query = s"""{ "requests": [ """ + fileRequests.foldLeft("")((query, tuple) => {
       // accumulate sub queries 
-      query + { if (0 < query.length()) ", " else "" } + {
-      // match either enoviaoidmaster or file names
-      tuple match {
-        case (file: String, master: Some[String]) =>
-          s"""{ "enoviaoidmaster": "${master.get}", "cadname": "$file" }"""
-        case (file: String, _) => 
-          s"""{ "cadname": "$file" }"""
-      } }
+      query + {
+        // match either enoviaoidmaster or file names
+        val subquery = tuple match {
+          // empty query
+          case ("", Some("")) =>
+            ""
+          // missing id
+          case (file: String, Some("")) =>
+            s"""{ "cadname": "$file" }"""
+          // missing cadname
+          case ("", master: Some[String]) =>
+            s"""{ "enoviaoidmaster": "${master.get}" }"""
+          // complete query
+          case (file: String, master: Some[String]) =>
+            s"""{ "enoviaoidmaster": "${master.get}", "cadname": "$file" }"""
+          // skip invalid query
+          case _ =>
+            ""
+        }
+        if (!subquery.isEmpty())
+          { if (0 < query.length()) ", " else "" } + subquery
+        else
+          ""
+      }
     }) + s""" ] }"""
     
     try {
