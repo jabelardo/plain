@@ -2,6 +2,8 @@ package com.ibm.plain
 package integration
 package spaces
 
+import java.io.File
+import java.io.FileOutputStream
 import java.nio.file.{ Path, Paths, StandardCopyOption }
 import java.nio.file.Files.{ exists ⇒ fexists, isDirectory, isRegularFile, copy, move, delete, readAllBytes }
 import org.apache.commons.io.FileUtils.deleteDirectory
@@ -22,8 +24,9 @@ import org.apache.http.impl.client.HttpClientBuilder
 import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.StringEntity
 import org.apache.http.client.methods.HttpGet
-import java.io.FileOutputStream
 import net.lingala.zip4j.core.ZipFile
+import com.fasterxml.jackson.databind.ObjectMapper
+import scala.collection.JavaConverters._
 
 /**
  *
@@ -192,8 +195,20 @@ object SpacesResource
         if (!downloadFilesFromWindchill(missingFiles, fallbackDirectory)) {
           error(s"POST : Downloading file from Windchill failed for files: " + missingFiles.foldLeft("")((str, file) => s"$str ${file._1}"))
         }
-
-        filelist.foreach(f ⇒ {
+        
+        // read mapping of renames which should be included in WTCResults 
+        val renamedFiles = (new ObjectMapper()).readValue(new File("_CADNameRenames.json"), classOf[java.util.HashMap[String, String]]).asScala
+          
+        filelist.map(e => {
+          // use mapping from renamedFiles to correct affected filenames
+            if (renamedFiles.contains(e._1)) {
+              val renamed = (renamedFiles(e._1), e._2)
+              trace(s"File ${e._1} renamed to: ${renamed._1}")
+              renamed
+            } else {
+              e
+            }
+          } ).foreach(f ⇒ {
           trace(s"Trying to collect file : $f")
           val from = containerdir.resolve(f._1)
           val to = collectdir.resolve(f._1)
