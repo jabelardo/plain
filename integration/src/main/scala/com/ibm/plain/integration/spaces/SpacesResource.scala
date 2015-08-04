@@ -137,18 +137,18 @@ object SpacesResource
     computeDirectory(root, space).resolve(containeruuid + extension)
   }
 
-  private final def matchTuple(fn: String => Boolean): Any => Boolean = {
-		(tuple: Any) => 
-  		tuple match {
-    		case (file: String, _) => fn(file)
-    		case _ => false
-  		}
+  private final def matchTuple(fn: String ⇒ Boolean): Any ⇒ Boolean = {
+    (tuple: Any) ⇒
+      tuple match {
+        case (file: String, _) ⇒ fn(file)
+        case _ ⇒ false
+      }
   }
-    
-  private final def isFileMissingInDirectory(directory: Path): String => Boolean = (file: String) => {
+
+  private final def isFileMissingInDirectory(directory: Path): String ⇒ Boolean = (file: String) ⇒ {
     !fexists(directory.resolve(file))
   }
-  
+
   private final def extractFilesFromContainers(context: Context, input: JObject): Path = try {
     import SpacesClient.{ packDirectory, unpackDirectory }
     trace(s"extractFilesFromContainers : input = $input")
@@ -167,48 +167,69 @@ object SpacesResource
           case e: Throwable ⇒
             warn(s"extractFilesFromContainers : ignored = $e")
         }
-        
+
         val filelist: List[(String, Option[String])] = {
           val fileinput = files.asArray.map(e ⇒ {
             val a = e.asArray
             // (filename, enoviaoidmaster) / robert.bergner@de.ibm.com
             (a(0).asString, Some(a(1).asString))
           }).toList
-          
+
           if (1 == fileinput.size && "*" == fileinput(0)._1) {
-            containerdir.toFile.list.toList.filter(f ⇒ f.endsWith("CATPart") || f.endsWith("CATProduct")).map(f => (f, None))
+            containerdir.toFile.list.toList.filter(f ⇒ f.endsWith("CATPart") || f.endsWith("CATProduct")).map(f ⇒ (f, None))
           } else {
             fileinput
           }
         }
-        
+
         trace(s"extractFilesFromContainers : input filelist = $filelist")
         val missingFiles = filelist
-          .filter(f => matchTuple(isFileMissingInDirectory(containerdir))(f))
-          .filter(f => matchTuple(isFileMissingInDirectory(fallbackDirectory))(f))
+          .filter(f ⇒ matchTuple(isFileMissingInDirectory(containerdir))(f))
+          .filter(f ⇒ matchTuple(isFileMissingInDirectory(fallbackDirectory))(f))
 
-        missingFiles.foreach(t => {
+        trace(s"extractFilesFromContainers : checking for missing files")
+        missingFiles.foreach(t ⇒ {
           warn(s"POST : File could not be extracted from repository and is also missing in the 'fallback' directory : filename = ${t._1} fallback directory = $fallbackDirectory")
           warn(s"POST : Trying to download it from from Windchill : " + { if (t._2.isDefined) s"enoviaoidmaster = ${t._2.get}" else s"CADName = ${t._1}" })
         })
-        
+
+        trace(s"extractFilesFromContainers : download missing files from windchill")
         if (!downloadFilesFromWindchill(missingFiles, fallbackDirectory)) {
-          error(s"POST : Downloading file from Windchill failed for files: " + missingFiles.foldLeft("")((str, file) => s"$str ${file._1}"))
+          error(s"POST : Downloading file from Windchill failed for files: " + missingFiles.foldLeft("")((str, file) ⇒ s"$str ${file._1}"))
         }
-        
-        // read mapping of renames which should be included in WTCResults 
-        val renamedFiles = (new ObjectMapper()).readValue(new File("_CADNameRenames.json"), classOf[java.util.HashMap[String, String]]).asScala
-          
-        filelist.map(e => {
-          // use mapping from renamedFiles to correct affected filenames
-            if (renamedFiles.contains(e._1)) {
-              val renamed = (renamedFiles(e._1), e._2)
-              trace(s"File ${e._1} renamed to: ${renamed._1}")
-              renamed
-            } else {
-              e
+
+        trace(s"extractFilesFromContainers : download missing files from windchill")
+        // read mapping of renames which should be included in WTCResults
+        val renamedFiles = {
+          try {
+            val cadnameRenamesFile = fallbackDirectory.resolve("_CADNameRenames.json").toFile()
+  
+            if (cadnameRenamesFile.exists()) {
+            	trace(s"Loading ${cadnameRenamesFile.getAbsoluteFile}.")
+            	(new ObjectMapper()).readValue(cadnameRenamesFile, classOf[java.util.HashMap[String, String]]).asScala
             }
-          } ).foreach(f ⇒ {
+            else {
+            	trace(s"Could not load ${cadnameRenamesFile.getAbsoluteFile}.")
+            	Map[String, String]()
+            }
+          } catch {
+            case e: Throwable => {
+              trace(s"Could not load _CADNameRenames.json")
+              Map[String, String]()
+            }
+          }
+        }
+
+        filelist.map(e ⇒ {
+          // use mapping from renamedFiles to correct affected filenames
+          if (!renamedFiles.isEmpty && renamedFiles.contains(e._1)) {
+            val renamed = (renamedFiles(e._1), e._2)
+            trace(s"File ${e._1} renamed to ${renamed._1}")
+            renamed
+          } else {
+            e
+          }
+        }).foreach(f ⇒ {
           trace(s"Trying to collect file : $f")
           val from = containerdir.resolve(f._1)
           val to = collectdir.resolve(f._1)
@@ -263,25 +284,25 @@ object SpacesResource
     // create request URI and authorization string
     val wtcURI = s"$wtcProtocol$wtcUser:$wtcPassword@$wtcHost:$wtcPort$wtcServlet"
 
-    val query = s"""{ "requests": [ """ + fileRequests.foldLeft("")((query, tuple) => {
+    val query = s"""{ "requests": [ """ + fileRequests.foldLeft("")((query, tuple) ⇒ {
       // accumulate sub queries 
       query + {
         // match either enoviaoidmaster or file names
         val subquery = tuple match {
           // empty query
-          case ("", Some("")) =>
+          case ("", Some("")) ⇒
             ""
           // missing id
-          case (file: String, Some("")) =>
+          case (file: String, Some("")) ⇒
             s"""{ "cadname": "$file" }"""
           // missing cadname
-          case ("", master: Some[String]) =>
+          case ("", master: Some[String]) ⇒
             s"""{ "enoviaoidmaster": "${master.get}" }"""
           // complete query
-          case (file: String, master: Some[String]) =>
+          case (file: String, master: Some[String]) ⇒
             s"""{ "enoviaoidmaster": "${master.get}", "cadname": "$file" }"""
           // skip invalid query
-          case _ =>
+          case _ ⇒
             ""
         }
         if (!subquery.isEmpty())
@@ -290,7 +311,7 @@ object SpacesResource
           ""
       }
     }) + s""" ] }"""
-    
+
     try {
       // retrieve tokenUuid
       val tokenUuid = try {
