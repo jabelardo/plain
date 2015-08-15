@@ -203,17 +203,16 @@ object SpacesResource
         val renamedFiles = {
           try {
             val cadnameRenamesFile = fallbackDirectory.resolve("_CADNameRenames.json").toFile()
-  
+
             if (cadnameRenamesFile.exists()) {
-            	trace(s"Loading ${cadnameRenamesFile.getAbsoluteFile}.")
-            	(new ObjectMapper()).readValue(cadnameRenamesFile, classOf[java.util.HashMap[String, String]]).asScala
-            }
-            else {
-            	trace(s"Could not load ${cadnameRenamesFile.getAbsoluteFile}.")
-            	Map[String, String]()
+              trace(s"Loading ${cadnameRenamesFile.getAbsoluteFile}.")
+              (new ObjectMapper()).readValue(cadnameRenamesFile, classOf[java.util.HashMap[String, String]]).asScala
+            } else {
+              trace(s"Could not load ${cadnameRenamesFile.getAbsoluteFile}.")
+              Map[String, String]()
             }
           } catch {
-            case e: Throwable => {
+            case e: Throwable ⇒ {
               trace(s"Could not load _CADNameRenames.json")
               Map[String, String]()
             }

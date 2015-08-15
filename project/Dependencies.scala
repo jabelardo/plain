@@ -24,13 +24,13 @@ object Dependencies {
       "org.apache.httpcomponents" % "httpclient" % "4.4.1")
 
     def net = Seq(
-      "org.glassfish.grizzly" % "grizzly-websockets" % "2.3.18",
-      "org.glassfish.grizzly" % "grizzly-http" % "2.3.18",
-      "com.ning" % "async-http-client" % "1.9.8")
+      "org.glassfish.grizzly" % "grizzly-websockets" % "2.3.22",
+      "org.glassfish.grizzly" % "grizzly-http" % "2.3.22",
+      "com.ning" % "async-http-client" % "1.9.30")
 
     def reflection = Seq(
-      "org.scala-lang" % "scala-compiler" % "2.11.6",
-      "org.scala-lang" % "scala-reflect" % "2.11.6",
+      "org.scala-lang" % "scala-compiler" % "2.11.7",
+      "org.scala-lang" % "scala-reflect" % "2.11.7",
       "org.reflections" % "reflections" % "0.9.9") 
 
     def javax = Seq(
@@ -50,12 +50,12 @@ object Dependencies {
       "com.sun.jersey" % "jersey-json" % "1.18.3")
 
     def time = Seq(
-      "joda-time" % "joda-time" % "2.7"
+      "joda-time" % "joda-time" % "2.8.2"
     )
 
     def modules = Seq(
-      "org.scala-lang.modules" %% "scala-xml" % "1.0.3",
-      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.3")
+      "org.scala-lang.modules" %% "scala-xml" % "1.0.4",
+      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4")
 
     def dependencies = logging ++ commons ++ net ++ reflection ++ javax ++ compress ++ json ++ time ++ modules
 
@@ -81,9 +81,9 @@ object Dependencies {
 
   object Integration {
 
-    def camelVersion = "2.14.1"
+    def camelVersion = "2.14.3"
 
-    def activemqVersion = "5.11.1"
+    def activemqVersion = "5.11.2"
 
     def slickVersion = "2.1.0"
 
