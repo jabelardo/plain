@@ -201,19 +201,20 @@ object SpacesResource
         trace(s"extractFilesFromContainers : download missing files from windchill")
         // read mapping of renames which should be included in WTCResults
         val renamedFiles = {
+          val cadnameRenamesFilename = "_CADNameRenames.json"
           try {
-            val cadnameRenamesFile = fallbackDirectory.resolve("_CADNameRenames.json").toFile()
+            val cadnameRenamesFile = fallbackDirectory.resolve(cadnameRenamesFilename).toFile()
 
             if (cadnameRenamesFile.exists()) {
-              trace(s"Loading ${cadnameRenamesFile.getAbsoluteFile}.")
+              trace(s"Loading '${cadnameRenamesFile.getAbsolutePath}'. Some requested files have been renamed.")
               (new ObjectMapper()).readValue(cadnameRenamesFile, classOf[java.util.HashMap[String, String]]).asScala
             } else {
-              trace(s"Could not load ${cadnameRenamesFile.getAbsoluteFile}.")
+              trace(s"Could not find '${cadnameRenamesFile.getAbsolutePath}'. No renamed files expected.")
               Map[String, String]()
             }
           } catch {
             case e: Throwable ⇒ {
-              trace(s"Could not load _CADNameRenames.json")
+              trace(s"Could not load '$cadnameRenamesFilename' from fallback directory. No renamed files expected.")
               Map[String, String]()
             }
           }
@@ -223,7 +224,7 @@ object SpacesResource
           // use mapping from renamedFiles to correct affected filenames
           if (!renamedFiles.isEmpty && renamedFiles.contains(e._1)) {
             val renamed = (renamedFiles(e._1), e._2)
-            trace(s"File ${e._1} renamed to ${renamed._1}")
+            trace(s"Requested CADName '${e._1}' did not provide file. Matching enoviaoidmaster provided file '${renamed._1}' instead.")
             renamed
           } else {
             e
