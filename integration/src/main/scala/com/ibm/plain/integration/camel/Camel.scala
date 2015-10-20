@@ -93,15 +93,21 @@ object Camel
 
     extends Singleton[Camel] {
 
+  private final def createEntry(out: JarOutputStream, path: String, content: Array[Byte]) {
+    out.putNextEntry(new ZipEntry(path))
+    val in = new ByteArrayInputStream(content)
+    io.copyBytes(in, out)
+    in.close
+    out.closeEntry
+  }
+
   private final def createWarFile = {
     val file = new File(servlet.webApplicationsDirectory + "/" + servletServicesRoot + ".war")
     io.createDirectory(file.toPath.getParent)
     val out = new JarOutputStream(new FileOutputStream(file))
-    out.putNextEntry(new ZipEntry("WEB-INF/web.xml"))
-    val in = new ByteArrayInputStream(webxml)
-    io.copyBytes(in, out)
-    in.close
-    out.closeEntry
+    createEntry(out, "WEB-INF/web.xml", webxml)
+    createEntry(out, "browser.jsp", Browser.jsp)
+    createEntry(out, "browser.css", Browser.css)
     out.close
   }
 
@@ -117,6 +123,14 @@ object Camel
 		<servlet-class>org.apache.camel.component.servlet.CamelHttpTransportServlet
 		</servlet-class>
 	</servlet>
+  <servlet>
+    <servlet-name>browser</servlet-name>
+    <servlet-class>com.ibm.plain.integration.camel.BrowserServlet</servlet-class>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>browser</servlet-name>
+    <url-pattern>/browser/*</url-pattern>
+  </servlet-mapping>
 	<servlet-mapping>
 		<servlet-name>CamelServlet</servlet-name>
 		<url-pattern>/*</url-pattern>
